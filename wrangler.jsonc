@@ -19,7 +19,7 @@
     {
       "binding": "DB",
       "database_name": "loka-weather",
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "database_id": "23c60a13-a134-40c9-b38e-2435e7fed368",
       "migrations_dir": "migrations"
     }
   ]
