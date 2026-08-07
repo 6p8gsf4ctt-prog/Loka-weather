@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "loka-weather",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-07",
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "OPEN_METEO_BASE_URL": "https://api.open-meteo.com/v1/forecast"
+  },
+  "triggers": {
+    "crons": [
+      "45 3 * * *",
+      "45 4 * * *"
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "loka-weather",
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
