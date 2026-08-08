@@ -1,444 +1,87 @@
 import type { CityConfig, ConsensusHour, DisplayHour, LokaForecast, ModelForecast } from "../types";
 import { hourOf, modelDailyRain } from "./consensus";
 import { clamp, median, weightedSupport } from "./math";
+import { assertPublicLanguage, joinSentences, noRainAllDay, rainFreeAfter, rainFreeBefore, rainWindow, temperatureDrop, temperatureStory, thunderstormWindow, uncertaintyAfter, windWindow } from "./editorial";
 
-interface RainAnalysis {
-  verdict: string;
-  dry: boolean;
-  confidence: number;
-  startHour: number | null;
-  endHour: number | null;
-  medianDailyRainMm: number;
-  weightedProbGt1Mm: number;
-  peakSupport: number;
-  kind: "dry" | "rain" | "showers" | "thunderstorm";
-  maxRate: number;
+type RainKind = "dry"|"rain"|"showers"|"thunderstorm"|"uncertain";
+interface RainAnalysis { dry:boolean; uncertain:boolean; confidence:number; startHour:number|null; endHour:number|null; medianDailyRainMm:number; weightedProbGt1Mm:number; peakSupport:number; kind:RainKind; maxRate:number; }
+interface ThermalAnalysis { morningTempC:number; maxTempC:number; maxHour:number; eveningTempC:number; eveningHour:number; riseC:number; eveningDropC:number; }
+
+const pointsForDate=(c:Map<string,ConsensusHour>,d:string)=>[...c.values()].filter(p=>p.time.slice(0,10)===d);
+const nearestHour=(p:ConsensusHour[],h:number)=>[...p].sort((a,b)=>Math.abs(hourOf(a.time)-h)-Math.abs(hourOf(b.time)-h))[0];
+const avg=(v:number[])=>v.length?v.reduce((a,b)=>a+b,0)/v.length:0;
+const cloudCondition=(p:number)=>p<20?"soleil":p<40?"peu nuageux":p<65?"variable":p<85?"nuageux":"couvert";
+
+function displayCondition(p:ConsensusHour):string {
+  if(p.thunderstormSupport>=.45)return "orage";
+  if(p.precipitationSupport>=.50&&p.precipitationMm>=.2)return p.showerSupport>=.45?"averse":"pluie";
+  return cloudCondition(p.cloudCoverPct);
 }
 
-interface ThermalAnalysis {
-  morningTempC: number;
-  maxTempC: number;
-  eveningTempC: number;
-  riseC: number;
-  eveningDropC: number;
-  morningLabel: "cool" | "mild" | "warm";
-  afternoonLabel: "normal" | "hot" | "very_hot";
+function analyzeThermal(day:ConsensusHour[]):ThermalAnalysis{
+  const d=day.filter(p=>hourOf(p.time)>=7&&hourOf(p.time)<=21);
+  const m=nearestHour(d,7)??d[0], e=nearestHour(d,21)??d[d.length-1];
+  const x=[...d].sort((a,b)=>b.temperatureC-a.temperatureC)[0];
+  return {morningTempC:m.temperatureC,maxTempC:x.temperatureC,maxHour:hourOf(x.time),eveningTempC:e.temperatureC,eveningHour:hourOf(e.time),riseC:x.temperatureC-m.temperatureC,eveningDropC:x.temperatureC-e.temperatureC};
 }
 
-function pointsForDate(consensus: Map<string, ConsensusHour>, date: string): ConsensusHour[] {
-  return [...consensus.values()].filter((p) => p.time.slice(0, 10) === date);
+function analyzeRain(date:string,day:ConsensusHour[],forecasts:ModelForecast[]):RainAnalysis{
+  const d=day.filter(p=>hourOf(p.time)>=7&&hourOf(p.time)<=21);
+  const totals=forecasts.map(f=>[modelDailyRain(f,date),f.weight] as [number,number]);
+  const med=median(totals.map(([v])=>v)), prob=weightedSupport(totals,1), peak=Math.max(0,...d.map(p=>p.precipitationSupport)), thunder=Math.max(0,...d.map(p=>p.thunderstormSupport));
+  const robust=d.filter(p=>p.precipitationMm>=.2&&(p.precipitationSupport>=.60||p.rainCodeSupport>=.60));
+  const confidence=Math.round(clamp(100*(.48*Math.max(prob,1-prob)+.32*Math.max(peak,1-peak)+.20*Math.max(thunder,1-thunder)),50,98));
+  if(med<.2&&prob<.25&&!robust.length&&thunder<.35)return {dry:true,uncertain:false,confidence,startHour:null,endHour:null,medianDailyRainMm:med,weightedProbGt1Mm:prob,peakSupport:peak,kind:"dry",maxRate:0};
+
+  const cand=d.filter(p=>(p.precipitationMm>=.2&&p.precipitationSupport>=.45)||p.rainCodeSupport>=.55||p.thunderstormSupport>=.40);
+  if(!cand.length||(prob>=.25&&prob<.50&&peak<.55)){
+    const u=d.filter(p=>p.precipitationSupport>=.25||p.rainCodeSupport>=.30||p.thunderstormSupport>=.25);
+    return {dry:false,uncertain:true,confidence,startHour:u.length?hourOf(u[0].time):18,endHour:null,medianDailyRainMm:med,weightedProbGt1Mm:prob,peakSupport:peak,kind:"uncertain",maxRate:0};
+  }
+
+  const blocks:ConsensusHour[][]=[[cand[0]]];
+  for(const p of cand.slice(1)){const last=blocks.at(-1)!; if(hourOf(p.time)-hourOf(last.at(-1)!.time)<=1)last.push(p);else blocks.push([p]);}
+  const score=(b:ConsensusHour[])=>b.reduce((s,p)=>s+p.precipitationMm+2.5*p.precipitationSupport+4*p.thunderstormSupport,0);
+  const block=blocks.sort((a,b)=>score(b)-score(a))[0];
+  const start=hourOf(block[0].time), end=Math.min(22,hourOf(block.at(-1)!.time)+1);
+  const maxRate=Math.max(...block.map(p=>p.precipitationMm));
+  const ts=Math.max(...block.map(p=>p.thunderstormSupport)), ss=Math.max(...block.map(p=>p.showerSupport));
+  const continuity=block.length/Math.max(1,end-start);
+  const kind:RainKind=ts>=.45?"thunderstorm":(continuity<.75||ss>=.45)?"showers":"rain";
+  return {dry:false,uncertain:false,confidence,startHour:start,endHour:end,medianDailyRainMm:med,weightedProbGt1Mm:prob,peakSupport:peak,kind,maxRate};
 }
 
-function nearestHour(points: ConsensusHour[], hour: number): ConsensusHour | undefined {
-  return [...points].sort((a, b) => Math.abs(hourOf(a.time) - hour) - Math.abs(hourOf(b.time) - hour))[0];
+function weatherStory(city:CityConfig,day:ConsensusHour[],rain:RainAnalysis,t:ThermalAnalysis){
+  const d=day.filter(p=>hourOf(p.time)>=7&&hourOf(p.time)<=21), morning=d.filter(p=>hourOf(p.time)<=11), afternoon=d.filter(p=>hourOf(p.time)>=12&&hourOf(p.time)<=18);
+  const mc=avg(morning.map(p=>p.cloudCoverPct)), ac=avg(afternoon.map(p=>p.cloudCoverPct));
+  let rainText:string;
+  if(rain.dry) rainText=noRainAllDay();
+  else if(rain.uncertain&&rain.startHour!==null) rainText=joinSentences(rainFreeBefore(rain.startHour),uncertaintyAfter(rain.startHour));
+  else if(rain.startHour!==null&&rain.endHour!==null){
+    const event=rain.kind==="thunderstorm"?thunderstormWindow(rain.startHour,rain.endHour):rainWindow(rain.startHour,rain.endHour,rain.maxRate>=4?"strong":"normal",rain.kind==="showers");
+    rainText=joinSentences(rain.startHour>=9?rainFreeBefore(rain.startHour):null,event,rain.endHour<=20?rainFreeAfter(rain.endHour):null);
+  } else rainText=noRainAllDay();
+
+  let sky=mc<=25&&ac<=25?"Soleil toute la journée.":mc>=75&&ac<=35?"Nuages le matin. Le soleil revient dans la journée.":mc<=35&&ac>=75?"Soleil le matin. Plus de nuages dans l’après-midi.":mc<=45&&ac<=45?"Soleil avec quelques nuages.":mc>=85&&ac>=85?"Nuages toute la journée.":"Soleil et nuages dans la journée.";
+  let main=joinSentences(temperatureStory(t.morningTempC,t.maxTempC,t.maxHour),sky);
+  if(!rain.dry&&!rain.uncertain&&rain.startHour!==null&&rain.endHour!==null){
+    if(rain.kind==="thunderstorm")main=thunderstormWindow(rain.startHour,rain.endHour);
+    else if(rain.maxRate>=4)main=rainWindow(rain.startHour,rain.endHour,"strong");
+  }
+
+  const maxGust=Math.max(...d.map(p=>p.windGustKmh)); let notable:string|null=null;
+  if(maxGust>=city.wind.gustNotableKmh){const w=d.filter(p=>p.windGustKmh>=city.wind.gustNotableKmh);notable=windWindow(hourOf(w[0].time),Math.min(22,hourOf(w.at(-1)!.time)+1),maxGust);}
+  else if(t.eveningDropC>=city.thermal.notableDropC&&t.maxTempC>=city.thermal.afternoonHotFromC) notable=temperatureDrop(t.maxHour,t.maxTempC,t.eveningHour,t.eveningTempC);
+  assertPublicLanguage(main);assertPublicLanguage(rainText);if(notable)assertPublicLanguage(notable);
+  return {main,rain:rainText,notable};
 }
 
-function avg(values: number[]): number {
-  return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
-}
-
-function cloudCondition(pct: number): string {
-  if (pct < 20) return "soleil";
-  if (pct < 40) return "peu nuageux";
-  if (pct < 65) return "variable";
-  if (pct < 85) return "nuageux";
-  return "couvert";
-}
-
-function displayCondition(point: ConsensusHour): string {
-  if (point.thunderstormSupport >= 0.45) return "orage";
-  if (
-    point.precipitationSupport >= 0.50 &&
-    point.precipitationMm >= 0.2
-  ) {
-    return point.showerSupport >= 0.45 ? "averse" : "pluie";
-  }
-  return cloudCondition(point.cloudCoverPct);
-}
-
-function analyzeThermal(city: CityConfig, day: ConsensusHour[]): ThermalAnalysis {
-  const daytime = day.filter((p) => hourOf(p.time) >= 7 && hourOf(p.time) <= 21);
-  const morningPoint = nearestHour(daytime, 7) ?? daytime[0];
-  const eveningPoint = nearestHour(daytime, 21) ?? daytime[daytime.length - 1];
-
-  const maxTempC = Math.max(...daytime.map((p) => p.temperatureC));
-  const morningTempC = morningPoint.temperatureC;
-  const eveningTempC = eveningPoint.temperatureC;
-
-  let morningLabel: ThermalAnalysis["morningLabel"] = "mild";
-  if (morningTempC < city.thermal.morningCoolBelowC) morningLabel = "cool";
-  else if (morningTempC >= city.thermal.morningWarmFromC) morningLabel = "warm";
-
-  let afternoonLabel: ThermalAnalysis["afternoonLabel"] = "normal";
-  if (maxTempC >= city.thermal.afternoonVeryHotFromC) afternoonLabel = "very_hot";
-  else if (maxTempC >= city.thermal.afternoonHotFromC) afternoonLabel = "hot";
-
-  return {
-    morningTempC,
-    maxTempC,
-    eveningTempC,
-    riseC: maxTempC - morningTempC,
-    eveningDropC: maxTempC - eveningTempC,
-    morningLabel,
-    afternoonLabel
-  };
-}
-
-function analyzeRain(
-  date: string,
-  day: ConsensusHour[],
-  forecasts: ModelForecast[]
-): RainAnalysis {
-  const daytime = day.filter((p) => hourOf(p.time) >= 7 && hourOf(p.time) <= 21);
-  const modelTotals = forecasts.map((f) => [modelDailyRain(f, date), f.weight] as [number, number]);
-
-  const medianDailyRainMm = median(modelTotals.map(([v]) => v));
-  const weightedProbGt1Mm = weightedSupport(modelTotals, 1.0);
-  const peakSupport = Math.max(0, ...daytime.map((p) => p.precipitationSupport));
-  const peakThunder = Math.max(0, ...daytime.map((p) => p.thunderstormSupport));
-
-  const robustWetHours = daytime.filter(
-    (p) =>
-      p.precipitationMm >= 0.2 &&
-      (p.precipitationSupport >= 0.60 || p.rainCodeSupport >= 0.60)
-  );
-
-  const functionallyDry =
-    medianDailyRainMm < 0.2 &&
-    weightedProbGt1Mm < 0.25 &&
-    robustWetHours.length === 0 &&
-    peakThunder < 0.35;
-
-  const agreement = Math.max(weightedProbGt1Mm, 1 - weightedProbGt1Mm);
-  const confidence = Math.round(
-    clamp(
-      100 * (
-        0.48 * agreement +
-        0.32 * Math.max(peakSupport, 1 - peakSupport) +
-        0.20 * Math.max(peakThunder, 1 - peakThunder)
-      ),
-      50,
-      98
-    )
-  );
-
-  if (functionallyDry) {
-    return {
-      verdict: "Journée sèche.",
-      dry: true,
-      confidence,
-      startHour: null,
-      endHour: null,
-      medianDailyRainMm,
-      weightedProbGt1Mm,
-      peakSupport,
-      kind: "dry",
-      maxRate: 0
-    };
-  }
-
-  const candidates = daytime.filter(
-    (p) =>
-      (p.precipitationMm >= 0.2 && p.precipitationSupport >= 0.45) ||
-      p.rainCodeSupport >= 0.55 ||
-      p.thunderstormSupport >= 0.40
-  );
-
-  if (!candidates.length) {
-    return {
-      verdict: "Journée globalement sèche.",
-      dry: true,
-      confidence,
-      startHour: null,
-      endHour: null,
-      medianDailyRainMm,
-      weightedProbGt1Mm,
-      peakSupport,
-      kind: "dry",
-      maxRate: 0
-    };
-  }
-
-  const blocks: ConsensusHour[][] = [[candidates[0]]];
-  for (const p of candidates.slice(1)) {
-    const previous = blocks[blocks.length - 1][blocks[blocks.length - 1].length - 1];
-    if (hourOf(p.time) - hourOf(previous.time) <= 1) {
-      blocks[blocks.length - 1].push(p);
-    } else {
-      blocks.push([p]);
-    }
-  }
-
-  const block = blocks.sort((a, b) => {
-    const score = (items: ConsensusHour[]) =>
-      items.reduce(
-        (sum, p) =>
-          sum +
-          p.precipitationMm +
-          2.5 * p.precipitationSupport +
-          4 * p.thunderstormSupport,
-        0
-      );
-    return score(b) - score(a);
-  })[0];
-
-  const start = hourOf(block[0].time);
-  const end = Math.min(22, hourOf(block[block.length - 1].time) + 1);
-  const duration = end - start;
-  const continuity = block.length / Math.max(1, duration);
-  const maxRate = Math.max(...block.map((p) => p.precipitationMm));
-  const thunderSupport = Math.max(...block.map((p) => p.thunderstormSupport));
-  const showerSupport = Math.max(...block.map((p) => p.showerSupport));
-
-  let kind: RainAnalysis["kind"] = "rain";
-  let noun = "Pluie";
-
-  if (thunderSupport >= 0.45) {
-    kind = "thunderstorm";
-    noun = "Orages";
-  } else if (continuity < 0.75 || showerSupport >= 0.45) {
-    kind = "showers";
-    noun = maxRate >= 4 ? "Fortes averses" : "Averses";
-  } else if (maxRate >= 4) {
-    noun = "Forte pluie";
-  } else if (maxRate < 1) {
-    noun = "Pluie faible";
-  }
-
-  return {
-    verdict: `${noun} de ${start} h à ${end} h.`,
-    dry: false,
-    confidence,
-    startHour: start,
-    endHour: end,
-    medianDailyRainMm,
-    weightedProbGt1Mm,
-    peakSupport,
-    kind,
-    maxRate
-  };
-}
-
-function makeMainVerdict(
-  city: CityConfig,
-  day: ConsensusHour[],
-  rain: RainAnalysis,
-  thermal: ThermalAnalysis
-): string {
-  const daytime = day.filter((p) => hourOf(p.time) >= 7 && hourOf(p.time) <= 21);
-  const morning = daytime.filter((p) => hourOf(p.time) <= 11);
-  const afternoon = daytime.filter((p) => hourOf(p.time) >= 12 && hourOf(p.time) <= 18);
-
-  const morningCloud = avg(morning.map((p) => p.cloudCoverPct));
-  const afternoonCloud = avg(afternoon.map((p) => p.cloudCoverPct));
-
-  // High-impact weather gets the first right to describe the day.
-  if (!rain.dry && rain.startHour !== null) {
-    if (rain.kind === "thunderstorm") {
-      if (rain.startHour >= 17) return "Chaud dans la journée, orageux en soirée.";
-      if (rain.startHour >= 13) return "Temps calme le matin, orageux cet après-midi.";
-      return "Orageux dès ce matin.";
-    }
-
-    if (rain.startHour >= 16 && morningCloud <= 45) {
-      return "Soleil jusqu’en fin d’après-midi, pluie ensuite.";
-    }
-
-    if (rain.endHour !== null && rain.endHour <= 13) {
-      return "Pluvieux le matin, plus sec ensuite.";
-    }
-  }
-
-  // Thermal wording is allowed only when the absolute values justify the words.
-  // This is the V0.3 fix for the erroneous "Plus frais" at 20°C.
-  if (
-    thermal.morningLabel === "cool" &&
-    thermal.afternoonLabel === "hot" &&
-    thermal.riseC >= city.thermal.strongRiseC &&
-    morningCloud <= 55 &&
-    afternoonCloud <= 55
-  ) {
-    return "Frais ce matin, chaud et ensoleillé ensuite.";
-  }
-
-  if (
-    thermal.morningLabel === "mild" &&
-    thermal.afternoonLabel === "hot" &&
-    thermal.riseC >= city.thermal.notableRiseC &&
-    morningCloud <= 55 &&
-    afternoonCloud <= 55
-  ) {
-    return "Doux ce matin, chaud et ensoleillé ensuite.";
-  }
-
-  if (
-    thermal.morningLabel === "warm" &&
-    thermal.afternoonLabel === "hot" &&
-    morningCloud <= 55 &&
-    afternoonCloud <= 55
-  ) {
-    return "Doux dès le matin, chaud et ensoleillé ensuite.";
-  }
-
-  if (
-    thermal.afternoonLabel === "very_hot" &&
-    afternoonCloud <= 60
-  ) {
-    return "Très chaud et largement ensoleillé cet après-midi.";
-  }
-
-  // Strong late-day cooling can matter more than ordinary cloud variation.
-  if (
-    thermal.eveningDropC >= city.thermal.notableDropC &&
-    thermal.maxTempC >= city.thermal.afternoonHotFromC
-  ) {
-    return "Chaud l’après-midi, nettement plus doux en soirée.";
-  }
-
-  if (morningCloud >= 75 && afternoonCloud <= 35) {
-    return "Gris le matin, soleil ensuite.";
-  }
-
-  if (morningCloud <= 35 && afternoonCloud >= 75) {
-    return "Soleil le matin, plus couvert ensuite.";
-  }
-
-  if (morningCloud <= 25 && afternoonCloud <= 25) {
-    if (thermal.afternoonLabel === "hot" || thermal.afternoonLabel === "very_hot") {
-      return "Grand soleil et chaud toute la journée.";
-    }
-    return "Grand soleil toute la journée.";
-  }
-
-  if (morningCloud <= 45 && afternoonCloud <= 45) {
-    return thermal.afternoonLabel === "hot"
-      ? "Ensoleillé et chaud dans l’après-midi."
-      : "Ensoleillé avec quelques nuages.";
-  }
-
-  if (morningCloud >= 85 && afternoonCloud >= 85) {
-    return rain.dry ? "Gris mais sec toute la journée." : "Couvert toute la journée.";
-  }
-
-  return "Alternance de soleil et de nuages.";
-}
-
-function makeNotableEvent(
-  city: CityConfig,
-  daytime: ConsensusHour[],
-  rain: RainAnalysis,
-  thermal: ThermalAnalysis
-): string | null {
-  const maxGust = Math.max(...daytime.map((p) => p.windGustKmh));
-  const peakThunder = Math.max(...daytime.map((p) => p.thunderstormSupport));
-
-  // Orage: the rain verdict already carries the timing. Secondary line adds only
-  // something truly additional, e.g. severe wind.
-  if (rain.kind === "thunderstorm" && maxGust >= city.wind.gustStrongKmh) {
-    return `Fortes rafales jusqu’à ${Math.round(maxGust / 5) * 5} km/h sous les orages.`;
-  }
-
-  if (peakThunder >= 0.45 && rain.kind !== "thunderstorm") {
-    return "Signal orageux notable dans les modèles.";
-  }
-
-  if (maxGust >= city.wind.gustStrongKmh) {
-    return `Fortes rafales jusqu’à ${Math.round(maxGust / 5) * 5} km/h.`;
-  }
-
-  if (maxGust >= city.wind.gustNotableKmh) {
-    return "Vent soutenu cet après-midi.";
-  }
-
-  // Only highlight an exceptional thermal change when it is not already
-  // clearly expressed in the main verdict.
-  if (
-    thermal.riseC >= 13 &&
-    thermal.morningLabel === "cool" &&
-    thermal.afternoonLabel !== "normal"
-  ) {
-    return `${Math.round(thermal.morningTempC)}° le matin, jusqu’à ${Math.round(thermal.maxTempC)}° l’après-midi.`;
-  }
-
-  return null;
-}
-
-export function buildLokaForecast(
-  city: CityConfig,
-  date: string,
-  consensus: Map<string, ConsensusHour>,
-  forecasts: ModelForecast[]
-): LokaForecast {
-  const day = pointsForDate(consensus, date);
-  if (!day.length) throw new Error(`No consensus data for ${date}`);
-
-  const daytime = day.filter((p) => hourOf(p.time) >= 7 && hourOf(p.time) <= 21);
-  if (!daytime.length) throw new Error(`No daytime data for ${date}`);
-
-  const rain = analyzeRain(date, day, forecasts);
-  const thermal = analyzeThermal(city, day);
-
-  const maxTemp = Math.round(Math.max(...daytime.map((p) => p.temperatureC)));
-  const minTemp = Math.round(Math.min(...daytime.map((p) => p.temperatureC)));
-  const maxGust = Math.max(...daytime.map((p) => p.windGustKmh));
-  const peakThunder = Math.max(...daytime.map((p) => p.thunderstormSupport));
-  const medianTempSpread = median(daytime.map((p) => p.temperatureSpreadC));
-
-  const confidenceMain = Math.round(
-    clamp(
-      96 - medianTempSpread * 10 - Math.max(0, 5 - forecasts.length) * 5,
-      50,
-      98
-    )
-  );
-
-  const hourly: DisplayHour[] = city.displayHours.map((hour) => {
-    const p = nearestHour(daytime, hour)!;
-    return {
-      hour,
-      temperatureC: Math.round(p.temperatureC),
-      condition: displayCondition(p),
-      precipitationMm: Math.round(p.precipitationMm * 100) / 100
-    };
-  });
-
-  return {
-    city: city.name,
-    citySlug: city.slug,
-    date,
-    generatedAt: new Date().toISOString(),
-    tempMaxC: maxTemp,
-    tempMinC: minTemp,
-    mainVerdict: makeMainVerdict(city, day, rain, thermal),
-    rainVerdict: rain.verdict,
-    notableEvent: makeNotableEvent(city, daytime, rain, thermal),
-    confidenceMain,
-    confidenceRain: rain.confidence,
-    hourly,
-    diagnostics: {
-      modelsReceived: forecasts.map((f) => f.modelId),
-      modelCount: forecasts.length,
-
-      medianDailyRainMm: Math.round(rain.medianDailyRainMm * 100) / 100,
-      weightedProbGt1Mm: Math.round(rain.weightedProbGt1Mm * 1000) / 1000,
-      peakPrecipitationSupport: Math.round(rain.peakSupport * 1000) / 1000,
-      rainKind: rain.kind,
-      rainStartHour: rain.startHour,
-      rainEndHour: rain.endHour,
-
-      peakThunderstormSupport: Math.round(peakThunder * 1000) / 1000,
-
-      maxGustKmh: Math.round(maxGust * 10) / 10,
-
-      morningTemperatureC: Math.round(thermal.morningTempC * 10) / 10,
-      maxTemperatureC: Math.round(thermal.maxTempC * 10) / 10,
-      eveningTemperatureC: Math.round(thermal.eveningTempC * 10) / 10,
-      morningToMaxDeltaC: Math.round(thermal.riseC * 10) / 10,
-      maxToEveningDeltaC: Math.round(thermal.eveningDropC * 10) / 10,
-      morningThermalLabel: thermal.morningLabel,
-      afternoonThermalLabel: thermal.afternoonLabel,
-
-      medianTemperatureSpreadC: Math.round(medianTempSpread * 100) / 100
-    }
-  };
+export function buildLokaForecast(city:CityConfig,date:string,consensus:Map<string,ConsensusHour>,forecasts:ModelForecast[]):LokaForecast{
+  const day=pointsForDate(consensus,date); if(!day.length)throw new Error(`No consensus data for ${date}`);
+  const daytime=day.filter(p=>hourOf(p.time)>=7&&hourOf(p.time)<=21); if(!daytime.length)throw new Error(`No daytime data for ${date}`);
+  const rain=analyzeRain(date,day,forecasts), thermal=analyzeThermal(day), story=weatherStory(city,day,rain,thermal);
+  const maxTemp=Math.round(Math.max(...daytime.map(p=>p.temperatureC))), minTemp=Math.round(Math.min(...daytime.map(p=>p.temperatureC))), maxGust=Math.max(...daytime.map(p=>p.windGustKmh)), peakThunder=Math.max(...daytime.map(p=>p.thunderstormSupport)), spread=median(daytime.map(p=>p.temperatureSpreadC));
+  const confidenceMain=Math.round(clamp(96-spread*10-Math.max(0,5-forecasts.length)*5,50,98));
+  const hourly:DisplayHour[]=city.displayHours.map(hour=>{const p=nearestHour(daytime,hour)!;return {hour,temperatureC:Math.round(p.temperatureC),condition:displayCondition(p),precipitationMm:Math.round(p.precipitationMm*100)/100};});
+  return {city:city.name,citySlug:city.slug,date,generatedAt:new Date().toISOString(),tempMaxC:maxTemp,tempMinC:minTemp,mainVerdict:story.main,rainVerdict:story.rain,notableEvent:story.notable,confidenceMain,confidenceRain:rain.confidence,hourly,diagnostics:{editorialVersion:"0.3.1",modelsReceived:forecasts.map(f=>f.modelId),modelCount:forecasts.length,medianDailyRainMm:Math.round(rain.medianDailyRainMm*100)/100,weightedProbGt1Mm:Math.round(rain.weightedProbGt1Mm*1000)/1000,peakPrecipitationSupport:Math.round(rain.peakSupport*1000)/1000,rainKind:rain.kind,rainUncertain:rain.uncertain,rainStartHour:rain.startHour,rainEndHour:rain.endHour,peakThunderstormSupport:Math.round(peakThunder*1000)/1000,maxGustKmh:Math.round(maxGust*10)/10,morningTemperatureC:Math.round(thermal.morningTempC*10)/10,maxTemperatureC:Math.round(thermal.maxTempC*10)/10,maxTemperatureHour:thermal.maxHour,eveningTemperatureC:Math.round(thermal.eveningTempC*10)/10,morningToMaxDeltaC:Math.round(thermal.riseC*10)/10,maxToEveningDeltaC:Math.round(thermal.eveningDropC*10)/10,medianTemperatureSpreadC:Math.round(spread*100)/100}};
 }
