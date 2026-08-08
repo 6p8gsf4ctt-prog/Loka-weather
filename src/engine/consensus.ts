@@ -1,6 +1,33 @@
 import type { ConsensusHour, ModelForecast } from "../types";
 import { stddev, weightedMean, weightedSupport } from "./math";
 
+function isRainCode(code: number | null): boolean {
+  if (code === null) return false;
+  // WMO weather interpretation codes used by Open-Meteo:
+  // 51-67 drizzle/rain/freezing rain, 80-82 showers, 95-99 thunderstorms.
+  return (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || (code >= 95 && code <= 99);
+}
+
+function isShowerCode(code: number | null): boolean {
+  return code !== null && code >= 80 && code <= 82;
+}
+
+function isThunderstormCode(code: number | null): boolean {
+  return code !== null && code >= 95 && code <= 99;
+}
+
+function weightedBooleanSupport(
+  rows: Array<{ forecast: ModelForecast; index: number }>,
+  predicate: (code: number | null) => boolean
+): number {
+  const total = rows.reduce((sum, row) => sum + row.forecast.weight, 0);
+  if (total <= 0) return 0;
+
+  return rows.reduce((sum, { forecast, index }) => {
+    return sum + (predicate(forecast.hourly[index].weatherCode) ? forecast.weight : 0);
+  }, 0) / total;
+}
+
 export function buildConsensus(forecasts: ModelForecast[]): Map<string, ConsensusHour> {
   const byTime = new Map<string, Array<{ forecast: ModelForecast; index: number }>>();
 
@@ -14,6 +41,7 @@ export function buildConsensus(forecasts: ModelForecast[]): Map<string, Consensu
   }
 
   const result = new Map<string, ConsensusHour>();
+
   for (const [time, rows] of [...byTime.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     const tempValues: Array<[number | null, number]> = [];
     const apparentValues: Array<[number | null, number]> = [];
@@ -26,12 +54,14 @@ export function buildConsensus(forecasts: ModelForecast[]): Map<string, Consensu
     for (const { forecast, index } of rows) {
       const point = forecast.hourly[index];
       const weight = forecast.weight;
+
       tempValues.push([point.temperatureC, weight]);
       apparentValues.push([point.apparentTemperatureC ?? point.temperatureC, weight]);
       precipValues.push([point.precipitationMm, weight]);
       cloudValues.push([point.cloudCoverPct, weight]);
       windValues.push([point.windSpeedKmh, weight]);
       gustValues.push([point.windGustKmh, weight]);
+
       if (point.temperatureC !== null) temps.push(point.temperatureC);
     }
 
@@ -45,7 +75,10 @@ export function buildConsensus(forecasts: ModelForecast[]): Map<string, Consensu
       windGustKmh: weightedMean(gustValues),
       modelCount: rows.length,
       temperatureSpreadC: stddev(temps),
-      precipitationSupport: weightedSupport(precipValues, 0.2)
+      precipitationSupport: weightedSupport(precipValues, 0.2),
+      rainCodeSupport: weightedBooleanSupport(rows, isRainCode),
+      showerSupport: weightedBooleanSupport(rows, isShowerCode),
+      thunderstormSupport: weightedBooleanSupport(rows, isThunderstormCode)
     });
   }
 

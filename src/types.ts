@@ -19,9 +19,26 @@ export interface CityConfig {
   longitude: number;
   timezone: string;
   displayHours: number[];
+
   wind: {
     gustNotableKmh: number;
     gustStrongKmh: number;
+  };
+
+  /**
+   * Editorial temperature thresholds used by LOKA.
+   * These are not warning thresholds. They only prevent absurd wording
+   * such as calling 20°C "frais" on a summer morning in Tarnos.
+   */
+  thermal: {
+    morningCoolBelowC: number;
+    morningMildBelowC: number;
+    morningWarmFromC: number;
+    afternoonHotFromC: number;
+    afternoonVeryHotFromC: number;
+    notableRiseC: number;
+    strongRiseC: number;
+    notableDropC: number;
   };
 }
 
@@ -66,6 +83,15 @@ export interface ConsensusHour {
   modelCount: number;
   temperatureSpreadC: number;
   precipitationSupport: number;
+
+  /** Weighted share of models whose WMO code indicates rain/drizzle/showers. */
+  rainCodeSupport: number;
+
+  /** Weighted share of models whose WMO code indicates showers. */
+  showerSupport: number;
+
+  /** Weighted share of models whose WMO code indicates thunderstorm. */
+  thunderstormSupport: number;
 }
 
 export interface DisplayHour {
