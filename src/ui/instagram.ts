@@ -2,7 +2,7 @@ import type { LokaForecast } from "../types";
 import { BACKGROUND_SOURCES } from "./backgrounds";
 
 /**
- * LOKA V0.6.5 — prévisualisation des 6 masters + géométrie commune validée.
+ * LOKA V0.6.6 — scénarios de contrôle dédiés pour les 6 masters + AUTO réel.
  *
  * La météo continue de venir exclusivement du moteur LOKA. Cette couche ne
  * classe pas la journée : elle sélectionne l'univers visuel correspondant à
@@ -27,7 +27,7 @@ export function renderInstagramGenerator(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>LOKA! — Studio Instagram V0.6.5</title>
+<title>LOKA! — Studio Instagram V0.6.6</title>
 <style>
 :root{color-scheme:light;--ink:#15202a;--paper:#efefec}
 *{box-sizing:border-box}
@@ -46,7 +46,7 @@ canvas{display:block;width:100%;height:auto}
 <body>
 <div class="wrap">
   <div class="toolbar">
-    <h1>Studio Instagram LOKA! — V0.6.5</h1>
+    <h1>Studio Instagram LOKA! — V0.6.6</h1>
     <p>Le fond maître est fixe par scène. Seules les données météo, les pictogrammes et les textes du jour changent.</p>
     <div class="preview">
       <label for="previewScene">Prévisualiser un master</label>
@@ -77,6 +77,23 @@ let previewScene="AUTO";
 const backgroundCache={};
 const canvas=document.getElementById('post');
 const ctx=canvas.getContext('2d');
+
+const masterScenarios={
+  "SOLEIL":{subtitle:"Journée ensoleillée et lumineuse.",temps:[19,21,25,28,27,23],conditions:["soleil","soleil","soleil","soleil","soleil","soleil"],summary:["Températures comprises entre 19 et 28 degrés.","Ciel dégagé toute la journée. Grand beau temps.","Aucun événement notable."]},
+  "NUAGES":{subtitle:"Journée grise et humide, amélioration possible en soirée.",temps:[18,20,23,24,19,17],conditions:["couvert","couvert","couvert","couvert","pluie","pluie"],summary:["Températures comprises entre 17 et 24 degrés.","Ciel très nuageux, pluies intermittentes possibles.","Amélioration possible en soirée, temps plus sec et lumineux."]},
+  "PLUIE":{subtitle:"Journée pluvieuse, fraîche et humide.",temps:[14,15,16,16,15,14],conditions:["pluie","pluie","pluie","pluie","pluie","pluie"],summary:["Températures comprises entre 14 et 16 degrés.","Pluie continue toute la journée. Ciel gris et très humide.","Pluie plus marquée de 11 h à 17 h. Cumuls de 10 à 20 mm attendus."]},
+  "ORAGES":{subtitle:"Journée instable, averses et orages possibles.",temps:[17,18,20,21,19,17],conditions:["peu nuageux","peu nuageux","pluie","orage","pluie","orage"],summary:["Températures comprises entre 17 et 21 degrés.","Ciel très nuageux, averses possibles à plusieurs moments.","Orages possibles l’après-midi et en soirée. Risque de fortes pluies localement."]},
+  "VENT FORT":{subtitle:"Journée changeante, vent fort de l’après-midi.",temps:[14,16,18,19,17,15],conditions:["peu nuageux","peu nuageux","couvert","vent fort","vent fort","couvert"],summary:["Températures comprises entre 14 et 19 degrés.","Ciel variable le matin, plus nuageux l’après-midi.","Vent fort de 14 h à 19 h, rafales jusqu’à 70 km/h. Quelques averses possibles en fin de journée."]},
+  "INSTABLE":{subtitle:"Journée agréable avant une dégradation en soirée.",temps:[20,22,27,28,24,21],conditions:["peu nuageux","peu nuageux","couvert","couvert","pluie","orage"],summary:["Températures comprises entre 20 et 28 degrés.","Soleil le matin, ciel de plus en plus couvert l’après-midi.","Pluie dès 17 h, orages possibles en soirée à partir de 20 h."]}
+};
+function previewForecastFor(scene,base){
+  if(scene==="AUTO"||!masterScenarios[scene])return base;
+  const m=masterScenarios[scene],hours=[7,9,12,15,18,21];
+  const copy=Object.assign({},base);
+  copy.scene=scene;copy.subtitle=m.subtitle;copy.mainVerdict=m.subtitle;copy.tempMinC=Math.min.apply(null,m.temps);copy.tempMaxC=Math.max.apply(null,m.temps);copy.summaryLines=m.summary.slice();copy.notableEvent=m.summary[2];
+  copy.hourly=hours.map(function(hour,i){return {hour:hour,temperatureC:m.temps[i],condition:m.conditions[i],precipitationMm:(m.conditions[i]==="pluie"||m.conditions[i]==="orage")?1:0};});
+  return copy;
+}
 
 const themes={
   "SOLEIL":{ink:"#17212b",sub:"#26333c",curve:"#e6a000",accent:"#f0a000",panel:"rgba(255,246,231,.91)",panelInk:"#17212b",panelRule:"rgba(34,43,50,.18)",overlay:"rgba(255,248,231,.03)",title:"SOLEIL"},
@@ -203,6 +220,7 @@ async function draw(){
   const f=forecast;if(!f){ctx.fillStyle="#eee";ctx.fillRect(0,0,1080,1350);text("Aucune prévision enregistrée",540,675,34,600,"#333","center");return;}
   const realScene=f.scene||"INSTABLE";
   const scene=previewScene==="AUTO"?realScene:previewScene;
+  const displayForecast=previewForecastFor(previewScene,f);
   const theme=themes[scene]||themes["INSTABLE"],src=backgroundSources[scene]||backgroundSources["INSTABLE"];
   const isInstable=scene==="INSTABLE";
   const usesValidatedGeometry=true;
@@ -211,19 +229,19 @@ async function draw(){
   // légère protection de lisibilité uniquement, sans masquer le fond maître
   const topShade=ctx.createLinearGradient(0,0,0,660);topShade.addColorStop(0,scene==="SOLEIL"||scene==="NUAGES"?"rgba(255,255,255,.08)":"rgba(0,0,0,.12)");topShade.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=topShade;ctx.fillRect(0,0,1080,660);
 
-  text("LOKA!",45,80,52,350,theme.ink,"left");text(String(f.city||"Tarnos").toLocaleUpperCase("fr-FR"),540,72,25,500,theme.ink,"center");text(formatDate(f.date),1030,72,23,450,theme.ink,"right");
-  text(theme.title,540,usesValidatedGeometry?208:205,usesValidatedGeometry?84:78,760,theme.ink,"center");wrapText(f.subtitle||f.mainVerdict,540,usesValidatedGeometry?288:282,860,40,usesValidatedGeometry?34:31,430,theme.sub,"center",2);
+  text("LOKA!",45,80,52,350,theme.ink,"left");text(String(displayForecast.city||"Tarnos").toLocaleUpperCase("fr-FR"),540,72,25,500,theme.ink,"center");text(formatDate(displayForecast.date),1030,72,23,450,theme.ink,"right");
+  text(theme.title,540,usesValidatedGeometry?208:205,usesValidatedGeometry?84:78,760,theme.ink,"center");wrapText(displayForecast.subtitle||displayForecast.mainVerdict,540,usesValidatedGeometry?288:282,860,40,usesValidatedGeometry?34:31,430,theme.sub,"center",2);
 
-  const hours=(f.hourly||[]).slice(0,6);while(hours.length<6)hours.push({hour:[7,9,12,15,18,21][hours.length],temperatureC:0,condition:"nuageux",precipitationMm:0});
+  const hours=(displayForecast.hourly||[]).slice(0,6);while(hours.length<6)hours.push({hour:[7,9,12,15,18,21][hours.length],temperatureC:0,condition:"nuageux",precipitationMm:0});
   const xs=[145,310,470,630,790,950];
   for(let i=0;i<6;i++){text(String(hours[i].hour).padStart(2,"0")+"h",xs[i],382,usesValidatedGeometry?32:29,470,theme.ink,"center");lineIcon(conditionToIcon(hours[i].condition),xs[i],476,usesValidatedGeometry?118:106,theme.ink,theme.accent);}
   const curve=drawTempCurve(hours,theme);
   for(let i=0;i<6;i++)text(String(hours[i].temperatureC)+"°",xs[i],usesValidatedGeometry?640:632,usesValidatedGeometry?58:52,650,theme.ink,"center");
 
-  const solar=solarTimes(f.date,cityConfig.latitude,cityConfig.longitude);drawSolarCurve(solar,theme);
+  const solar=solarTimes(displayForecast.date,cityConfig.latitude,cityConfig.longitude);drawSolarCurve(solar,theme);
 
   const panelX=62,panelY=usesValidatedGeometry?948:965,panelW=956,panelH=usesValidatedGeometry?350:326;ctx.save();ctx.fillStyle=theme.panel;ctx.shadowColor="rgba(0,0,0,.10)";ctx.shadowBlur=18;roundRect(panelX,panelY,panelW,panelH,30);ctx.fill();ctx.restore();
-  const lines=preciseSummaryLines(f);while(lines.length<3)lines.push("");
+  const lines=previewScene==="AUTO"?preciseSummaryLines(displayForecast):masterScenarios[scene].summary.slice();while(lines.length<3)lines.push("");
   for(let i=0;i<3;i++){
     const cy=panelY+(usesValidatedGeometry?76:70)+i*(usesValidatedGeometry?110:103);if(i>0){ctx.strokeStyle=theme.panelRule;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(panelX+36,cy-52);ctx.lineTo(panelX+panelW-36,cy-52);ctx.stroke();}
     ctx.strokeStyle=theme.panelRule;ctx.beginPath();ctx.moveTo(panelX+182,cy-40);ctx.lineTo(panelX+182,cy+38);ctx.stroke();
