@@ -2,7 +2,7 @@ import type { LokaForecast } from "../types";
 import { BACKGROUND_SOURCES } from "./backgrounds";
 
 /**
- * LOKA V0.6.6 — scénarios de contrôle dédiés pour les 6 masters + AUTO réel.
+ * LOKA V0.6.7 — finition avant verrouillage des 6 masters + AUTO réel.
  *
  * La météo continue de venir exclusivement du moteur LOKA. Cette couche ne
  * classe pas la journée : elle sélectionne l'univers visuel correspondant à
@@ -27,7 +27,7 @@ export function renderInstagramGenerator(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>LOKA! — Studio Instagram V0.6.6</title>
+<title>LOKA! — Studio Instagram V0.6.7</title>
 <style>
 :root{color-scheme:light;--ink:#15202a;--paper:#efefec}
 *{box-sizing:border-box}
@@ -46,7 +46,7 @@ canvas{display:block;width:100%;height:auto}
 <body>
 <div class="wrap">
   <div class="toolbar">
-    <h1>Studio Instagram LOKA! — V0.6.6</h1>
+    <h1>Studio Instagram LOKA! — V0.6.7</h1>
     <p>Le fond maître est fixe par scène. Seules les données météo, les pictogrammes et les textes du jour changent.</p>
     <div class="preview">
       <label for="previewScene">Prévisualiser un master</label>
@@ -132,7 +132,23 @@ function lineIcon(type,x,y,size,color,accent){
   else if(type==="partly"){sun(x-size*.16,y-size*.14,size*.66,accent||"#f0a000");ctx.strokeStyle=color;cloud(x+size*.09,y+size*.06,size*.82);} 
   else if(type==="rain"){cloud(x,y-size*.08,size);ctx.strokeStyle="#25b8ef";for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(x+i*size*.18,y+size*.20);ctx.lineTo(x+i*size*.18-size*.05,y+size*.39);ctx.stroke();}} 
   else if(type==="storm"){cloud(x,y-size*.10,size);ctx.strokeStyle="#25b8ef";for(let i=-1;i<=1;i+=2){ctx.beginPath();ctx.moveTo(x+i*size*.20,y+size*.20);ctx.lineTo(x+i*size*.20-size*.04,y+size*.37);ctx.stroke();}ctx.strokeStyle="#ffd21c";ctx.beginPath();ctx.moveTo(x+size*.02,y+size*.13);ctx.lineTo(x-size*.08,y+size*.34);ctx.lineTo(x+size*.05,y+size*.31);ctx.lineTo(x-size*.03,y+size*.52);ctx.stroke();} 
-  else if(type==="wind"){ctx.strokeStyle="#36c2ed";for(let i=-1;i<=1;i++){const yy=y+i*size*.18;ctx.beginPath();ctx.moveTo(x-size*.42,yy);ctx.bezierCurveTo(x-size*.12,yy,x+size*.05,yy-size*.12,x+size*.32,yy);ctx.stroke();}}
+  else if(type==="wind"){
+    ctx.strokeStyle="#36c2ed";
+    ctx.lineWidth=Math.max(3,size*.052);
+    const rows=[-0.20,0,0.20];
+    for(let i=0;i<rows.length;i++){
+      const yy=y+rows[i]*size;
+      ctx.beginPath();
+      ctx.moveTo(x-size*.46,yy);
+      ctx.bezierCurveTo(x-size*.18,yy,x-size*.02,yy-size*.10,x+size*.20,yy);
+      if(i<2){
+        ctx.bezierCurveTo(x+size*.42,yy,x+size*.42,yy-size*.22,x+size*.23,yy-size*.22);
+      }else{
+        ctx.lineTo(x+size*.36,yy);
+      }
+      ctx.stroke();
+    }
+  }
   ctx.restore();
 }
 
@@ -240,15 +256,25 @@ async function draw(){
 
   const solar=solarTimes(displayForecast.date,cityConfig.latitude,cityConfig.longitude);drawSolarCurve(solar,theme);
 
-  const panelX=62,panelY=usesValidatedGeometry?948:965,panelW=956,panelH=usesValidatedGeometry?350:326;ctx.save();ctx.fillStyle=theme.panel;ctx.shadowColor="rgba(0,0,0,.10)";ctx.shadowBlur=18;roundRect(panelX,panelY,panelW,panelH,30);ctx.fill();ctx.restore();
+  const panelX=62;
+  const preserveValidatedScene=scene==="SOLEIL"||scene==="INSTABLE";
+  const panelY=preserveValidatedScene?948:920;
+  const panelW=956;
+  const panelH=preserveValidatedScene?350:344;ctx.save();ctx.fillStyle=theme.panel;ctx.shadowColor="rgba(0,0,0,.10)";ctx.shadowBlur=18;roundRect(panelX,panelY,panelW,panelH,30);ctx.fill();ctx.restore();
   const lines=previewScene==="AUTO"?preciseSummaryLines(displayForecast):masterScenarios[scene].summary.slice();while(lines.length<3)lines.push("");
   for(let i=0;i<3;i++){
-    const cy=panelY+(usesValidatedGeometry?76:70)+i*(usesValidatedGeometry?110:103);if(i>0){ctx.strokeStyle=theme.panelRule;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(panelX+36,cy-52);ctx.lineTo(panelX+panelW-36,cy-52);ctx.stroke();}
+    const cy=panelY+(preserveValidatedScene?76:74)+i*(preserveValidatedScene?110:106);if(i>0){ctx.strokeStyle=theme.panelRule;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(panelX+36,cy-52);ctx.lineTo(panelX+panelW-36,cy-52);ctx.stroke();}
     ctx.strokeStyle=theme.panelRule;ctx.beginPath();ctx.moveTo(panelX+182,cy-40);ctx.lineTo(panelX+182,cy+38);ctx.stroke();
     const icon=summaryIcon(lines[i],i,scene);panelIcon(icon,panelX+98,cy-3,usesValidatedGeometry?84:76,theme.panelInk,theme.accent);
-    if(lines[i])wrapText(lines[i],panelX+225,cy+7,panelW-270,usesValidatedGeometry?39:36,usesValidatedGeometry?30:27,430,theme.panelInk,"left",2);
+    if(lines[i]){
+      const panelLineHeight=preserveValidatedScene?39:36;
+      const panelFontSize=preserveValidatedScene?30:27;
+      wrapText(lines[i],panelX+225,cy+7,panelW-270,panelLineHeight,panelFontSize,430,theme.panelInk,"left",2);
+    }
   }
-  text("Ici, aujourd’hui.",540,1330,23,380,theme.ink,"center");
+  const footerColor=scene==="NUAGES"?"#ffffff":theme.ink;
+  const footerY=preserveValidatedScene?1330:1308;
+  text("Ici, aujourd’hui.",540,footerY,23,380,footerColor,"center");
 }
 
 document.getElementById('previewScene').addEventListener('change',async function(e){
