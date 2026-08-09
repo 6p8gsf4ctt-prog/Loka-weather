@@ -2,7 +2,7 @@ import type { LokaForecast } from "../types";
 import { BACKGROUND_SOURCES } from "./backgrounds";
 
 /**
- * LOKA V0.6.4 — finition graphique du master SOLEIL, sur la géométrie validée d’INSTABLE.
+ * LOKA V0.6.5 — prévisualisation des 6 masters + géométrie commune validée.
  *
  * La météo continue de venir exclusivement du moteur LOKA. Cette couche ne
  * classe pas la journée : elle sélectionne l'univers visuel correspondant à
@@ -27,7 +27,7 @@ export function renderInstagramGenerator(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>LOKA! — Studio Instagram V0.6.4</title>
+<title>LOKA! — Studio Instagram V0.6.5</title>
 <style>
 :root{color-scheme:light;--ink:#15202a;--paper:#efefec}
 *{box-sizing:border-box}
@@ -35,7 +35,7 @@ body{margin:0;background:#ecebe7;color:var(--ink);font-family:-apple-system,Blin
 .wrap{width:min(100%,580px);margin:auto}
 .toolbar{background:#fff;border-radius:24px;padding:18px;margin-bottom:14px;box-shadow:0 12px 36px rgba(0,0,0,.07)}
 .toolbar h1{font-size:22px;margin:0 0 6px}.toolbar p{font-size:13px;color:#6f7478;margin:0 0 14px;line-height:1.45}
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.preview{margin:0 0 12px}.preview label{display:block;font-size:12px;font-weight:650;margin:0 0 6px;color:#555}.preview select{width:100%;border:1px solid #deded9;background:#f8f8f5;border-radius:12px;padding:12px 13px;font:600 14px/1 -apple-system,BlinkMacSystemFont,sans-serif;color:#171715}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 button{appearance:none;border:0;border-radius:14px;padding:14px 12px;font:600 14px/1 -apple-system,BlinkMacSystemFont,sans-serif;text-align:center}
 button.primary{background:#171715;color:#fff}button.secondary{background:#f1f1ee;color:#171715}
 .canvas-wrap{background:#ddd;border-radius:26px;overflow:hidden;box-shadow:0 18px 70px rgba(0,0,0,.15)}
@@ -46,21 +46,34 @@ canvas{display:block;width:100%;height:auto}
 <body>
 <div class="wrap">
   <div class="toolbar">
-    <h1>Studio Instagram LOKA! — V0.6.4</h1>
+    <h1>Studio Instagram LOKA! — V0.6.5</h1>
     <p>Le fond maître est fixe par scène. Seules les données météo, les pictogrammes et les textes du jour changent.</p>
+    <div class="preview">
+      <label for="previewScene">Prévisualiser un master</label>
+      <select id="previewScene">
+        <option value="AUTO">AUTO — scène LOKA du jour</option>
+        <option value="SOLEIL">SOLEIL</option>
+        <option value="NUAGES">COUVERT</option>
+        <option value="PLUIE">PLUIE</option>
+        <option value="ORAGES">ORAGEUX</option>
+        <option value="VENT FORT">VENT FORT</option>
+        <option value="INSTABLE">INSTABLE</option>
+      </select>
+    </div>
     <div class="actions">
       <button class="secondary" id="refresh">Actualiser</button>
       <button class="primary" id="download">Télécharger le PNG</button>
     </div>
   </div>
   <div class="canvas-wrap"><canvas id="post" width="1080" height="1350"></canvas></div>
-  <div class="note">Publication manuelle : vérifie le visuel, télécharge le PNG, puis publie-le sur Instagram.</div>
+  <div class="note">AUTO = météo réelle du jour. Les autres choix servent uniquement à contrôler les masters avant validation.</div>
 </div>
 <script>
 const initialForecast=${initial};
 const cityConfig=${config};
 const backgroundSources=${backgrounds};
 let forecast=initialForecast;
+let previewScene="AUTO";
 const backgroundCache={};
 const canvas=document.getElementById('post');
 const ctx=canvas.getContext('2d');
@@ -188,9 +201,11 @@ function drawSolarCurve(solar,theme){
 }
 async function draw(){
   const f=forecast;if(!f){ctx.fillStyle="#eee";ctx.fillRect(0,0,1080,1350);text("Aucune prévision enregistrée",540,675,34,600,"#333","center");return;}
-  const scene=f.scene||"INSTABLE",theme=themes[scene]||themes["INSTABLE"],src=backgroundSources[scene]||backgroundSources["INSTABLE"];
+  const realScene=f.scene||"INSTABLE";
+  const scene=previewScene==="AUTO"?realScene:previewScene;
+  const theme=themes[scene]||themes["INSTABLE"],src=backgroundSources[scene]||backgroundSources["INSTABLE"];
   const isInstable=scene==="INSTABLE";
-  const usesValidatedGeometry=isInstable||scene==="SOLEIL";
+  const usesValidatedGeometry=true;
   if(!backgroundCache[scene])backgroundCache[scene]=await loadImage(src);const bg=backgroundCache[scene];
   ctx.clearRect(0,0,1080,1350);coverImage(bg,0,0,1080,1350);ctx.fillStyle=theme.overlay;ctx.fillRect(0,0,1080,1350);
   // légère protection de lisibilité uniquement, sans masquer le fond maître
@@ -218,6 +233,10 @@ async function draw(){
   text("Ici, aujourd’hui.",540,1330,23,380,theme.ink,"center");
 }
 
+document.getElementById('previewScene').addEventListener('change',async function(e){
+  previewScene=e.target.value||"AUTO";
+  await draw();
+});
 document.getElementById('refresh').addEventListener('click',async function(){try{const r=await fetch('/api/latest?city=tarnos',{cache:'no-store'});forecast=await r.json();await draw();}catch(e){console.error(e);}});
 document.getElementById('download').addEventListener('click',function(){const a=document.createElement('a');a.download='loka-'+(forecast&&forecast.date?forecast.date:'meteo')+'.png';a.href=canvas.toDataURL('image/png');a.click();});
 draw();
