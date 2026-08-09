@@ -2,7 +2,7 @@ import type { LokaForecast } from "../types";
 import { BACKGROUND_SOURCES } from "./backgrounds";
 
 /**
- * LOKA V0.6.1 — compositeur Instagram déterministe.
+ * LOKA V0.6.2 — recalage graphique du master INSTABLE.
  *
  * La météo continue de venir exclusivement du moteur LOKA. Cette couche ne
  * classe pas la journée : elle sélectionne l'univers visuel correspondant à
@@ -27,7 +27,7 @@ export function renderInstagramGenerator(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>LOKA! — Studio Instagram V0.6</title>
+<title>LOKA! — Studio Instagram V0.6.2</title>
 <style>
 :root{color-scheme:light;--ink:#15202a;--paper:#efefec}
 *{box-sizing:border-box}
@@ -46,7 +46,7 @@ canvas{display:block;width:100%;height:auto}
 <body>
 <div class="wrap">
   <div class="toolbar">
-    <h1>Studio Instagram LOKA! — V0.6.1</h1>
+    <h1>Studio Instagram LOKA! — V0.6.2</h1>
     <p>Le fond maître est fixe par scène. Seules les données météo, les pictogrammes et les textes du jour changent.</p>
     <div class="actions">
       <button class="secondary" id="refresh">Actualiser</button>
@@ -174,16 +174,16 @@ function thermometer(x,y,size,color){ctx.save();ctx.strokeStyle=color;ctx.lineWi
 function panelIcon(type,x,y,size,color,accent){if(type==="thermo")thermometer(x,y,size,color);else lineIcon(type,x,y,size,color,accent);}
 function drawTempCurve(hours,theme){
   const xs=[145,310,470,630,790,950],temps=hours.map(function(h){return Number(h.temperatureC)});const min=Math.min.apply(null,temps),max=Math.max.apply(null,temps),span=Math.max(1,max-min);
-  const ys=temps.map(function(t){return 525-((t-min)/span)*24;});
+  const ys=temps.map(function(t){return 550-((t-min)/span)*30;});
   ctx.save();ctx.strokeStyle=theme.curve;ctx.lineWidth=2;ctx.globalAlpha=.95;ctx.beginPath();ctx.moveTo(95,ys[0]+4);for(let i=0;i<xs.length;i++){const nx=i<xs.length-1?(xs[i]+xs[i+1])/2:1010;ctx.quadraticCurveTo(xs[i],ys[i],nx,(ys[i]+(ys[i+1]||ys[i]))/2);}ctx.stroke();ctx.globalAlpha=1;
   for(let i=0;i<xs.length;i++){ctx.fillStyle=(i>=4&&theme.title!=="SOLEIL")?(i===5?"#a757ef":"#34b9eb"):theme.ink;ctx.beginPath();ctx.arc(xs[i],ys[i],7,0,Math.PI*2);ctx.fill();}
   ctx.restore();return {xs,ys};
 }
 function drawSolarCurve(solar,theme){
-  const x1=145,x2=310,x3=755,x4=945,base=895,peak=834;ctx.save();ctx.lineWidth=3;ctx.lineCap="round";
-  const grad=ctx.createLinearGradient(x2,0,x4,0);grad.addColorStop(0,"#f1b700");grad.addColorStop(.48,"#ffffff");grad.addColorStop(.72,"#56c7ef");grad.addColorStop(1,"#ad58ef");ctx.strokeStyle=grad;ctx.beginPath();ctx.moveTo(105,base);ctx.lineTo(x1,base);ctx.moveTo(x2,base);ctx.bezierCurveTo(425,805,610,798,x3,base);ctx.moveTo(870,base);ctx.lineTo(x4,base);ctx.stroke();
+  const x1=145,x2=310,x3=755,x4=945,base=920,peak=850;ctx.save();ctx.lineWidth=3;ctx.lineCap="round";
+  const grad=ctx.createLinearGradient(x2,0,x4,0);grad.addColorStop(0,"#f1b700");grad.addColorStop(.48,"#ffffff");grad.addColorStop(.72,"#56c7ef");grad.addColorStop(1,"#ad58ef");ctx.strokeStyle=grad;ctx.beginPath();ctx.moveTo(105,base);ctx.lineTo(x1,base);ctx.moveTo(x2,base);ctx.bezierCurveTo(425,830,610,820,x3,base);ctx.moveTo(870,base);ctx.lineTo(x4,base);ctx.stroke();
   const items=[[x1,solar.dawn,"AUBE","#ffffff"],[x2,solar.sunrise,"LEVER","#f0b300"],[x3,solar.sunset,"COUCHER","#66c8ef"],[x4,solar.dusk,"CRÉPUSCULE","#ad58ef"]];
-  for(const it of items){const x=it[0],tm=it[1],lab=it[2],col=it[3];text(tm,x,790,23,450,theme.ink,"center");text(lab,x,832,21,500,theme.ink,"center");ctx.fillStyle=col;ctx.strokeStyle="#ffffff";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,base,10,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-28,base);ctx.lineTo(x+28,base);ctx.stroke();ctx.beginPath();ctx.moveTo(x,base-18);ctx.lineTo(x,base-28);ctx.stroke();}
+  for(const it of items){const x=it[0],tm=it[1],lab=it[2],col=it[3];text(tm,x,808,24,450,theme.ink,"center");text(lab,x,852,22,500,theme.ink,"center");ctx.fillStyle=col;ctx.strokeStyle="#ffffff";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,base,10,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-28,base);ctx.lineTo(x+28,base);ctx.stroke();ctx.beginPath();ctx.moveTo(x,base-18);ctx.lineTo(x,base-28);ctx.stroke();}
   ctx.restore();
 }
 async function draw(){
@@ -194,26 +194,26 @@ async function draw(){
   // légère protection de lisibilité uniquement, sans masquer le fond maître
   const topShade=ctx.createLinearGradient(0,0,0,660);topShade.addColorStop(0,scene==="SOLEIL"||scene==="NUAGES"?"rgba(255,255,255,.08)":"rgba(0,0,0,.12)");topShade.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=topShade;ctx.fillRect(0,0,1080,660);
 
-  text("LOKA!",45,76,48,350,theme.ink,"left");text(String(f.city||"Tarnos").toLocaleUpperCase("fr-FR"),540,68,24,500,theme.ink,"center");text(formatDate(f.date),1030,68,22,450,theme.ink,"right");
-  text(theme.title,540,188,72,760,theme.ink,"center");wrapText(f.subtitle||f.mainVerdict,540,252,800,36,30,430,theme.sub,"center",2);
+  text("LOKA!",45,80,52,350,theme.ink,"left");text(String(f.city||"Tarnos").toLocaleUpperCase("fr-FR"),540,72,25,500,theme.ink,"center");text(formatDate(f.date),1030,72,23,450,theme.ink,"right");
+  text(theme.title,540,205,78,760,theme.ink,"center");wrapText(f.subtitle||f.mainVerdict,540,282,840,38,31,430,theme.sub,"center",2);
 
   const hours=(f.hourly||[]).slice(0,6);while(hours.length<6)hours.push({hour:[7,9,12,15,18,21][hours.length],temperatureC:0,condition:"nuageux",precipitationMm:0});
   const xs=[145,310,470,630,790,950];
-  for(let i=0;i<6;i++){text(String(hours[i].hour).padStart(2,"0")+"h",xs[i],354,27,470,theme.ink,"center");lineIcon(conditionToIcon(hours[i].condition),xs[i],445,96,theme.ink,theme.accent);}
+  for(let i=0;i<6;i++){text(String(hours[i].hour).padStart(2,"0")+"h",xs[i],382,29,470,theme.ink,"center");lineIcon(conditionToIcon(hours[i].condition),xs[i],476,106,theme.ink,theme.accent);}
   const curve=drawTempCurve(hours,theme);
-  for(let i=0;i<6;i++)text(String(hours[i].temperatureC)+"°",xs[i],592,48,650,theme.ink,"center");
+  for(let i=0;i<6;i++)text(String(hours[i].temperatureC)+"°",xs[i],632,52,650,theme.ink,"center");
 
   const solar=solarTimes(f.date,cityConfig.latitude,cityConfig.longitude);drawSolarCurve(solar,theme);
 
-  const panelX=62,panelY=940,panelW=956,panelH=326;ctx.save();ctx.fillStyle=theme.panel;ctx.shadowColor="rgba(0,0,0,.10)";ctx.shadowBlur=18;roundRect(panelX,panelY,panelW,panelH,30);ctx.fill();ctx.restore();
+  const panelX=62,panelY=965,panelW=956,panelH=326;ctx.save();ctx.fillStyle=theme.panel;ctx.shadowColor="rgba(0,0,0,.10)";ctx.shadowBlur=18;roundRect(panelX,panelY,panelW,panelH,30);ctx.fill();ctx.restore();
   const lines=preciseSummaryLines(f);while(lines.length<3)lines.push("");
   for(let i=0;i<3;i++){
     const cy=panelY+70+i*103;if(i>0){ctx.strokeStyle=theme.panelRule;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(panelX+36,cy-52);ctx.lineTo(panelX+panelW-36,cy-52);ctx.stroke();}
     ctx.strokeStyle=theme.panelRule;ctx.beginPath();ctx.moveTo(panelX+182,cy-40);ctx.lineTo(panelX+182,cy+38);ctx.stroke();
-    const icon=summaryIcon(lines[i],i,scene);panelIcon(icon,panelX+98,cy-3,72,theme.panelInk,theme.accent);
-    if(lines[i])wrapText(lines[i],panelX+225,cy+6,panelW-270,34,25,430,theme.panelInk,"left",2);
+    const icon=summaryIcon(lines[i],i,scene);panelIcon(icon,panelX+98,cy-3,76,theme.panelInk,theme.accent);
+    if(lines[i])wrapText(lines[i],panelX+225,cy+7,panelW-270,36,27,430,theme.panelInk,"left",2);
   }
-  text("Ici, aujourd’hui.",540,1318,22,380,theme.ink,"center");
+  text("Ici, aujourd’hui.",540,1330,23,380,theme.ink,"center");
 }
 
 document.getElementById('refresh').addEventListener('click',async function(){try{const r=await fetch('/api/latest?city=tarnos',{cache:'no-store'});forecast=await r.json();await draw();}catch(e){console.error(e);}});
