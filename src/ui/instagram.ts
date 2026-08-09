@@ -1,7 +1,7 @@
 import type { LokaForecast } from "../types";
 
 /**
- * LOKA V0.5.1 — générateur manuel Instagram.
+ * LOKA V0.5.2 — générateur manuel Instagram.
  *
  * Important : le script navigateur inclus ci-dessous n'utilise PAS de
  * template literals JavaScript (`...`) afin d'éviter de casser la template
@@ -60,12 +60,12 @@ const canvas=document.getElementById('post');
 const ctx=canvas.getContext('2d');
 
 const palettes={
-  "SOLEIL":{top:"#f6e6c6",mid:"#f1d4a2",bottom:"#ead8bb",ink:"#1d2731",accent:"#d59c21",light:true},
-  "NUAGES":{top:"#d9dde0",mid:"#c5ccd0",bottom:"#d5d8d8",ink:"#1d2731",accent:"#5f6b76",light:true},
-  "PLUIE":{top:"#8095a8",mid:"#506c83",bottom:"#506a7e",ink:"#f7f8f8",accent:"#48b8ec",light:false},
-  "ORAGES":{top:"#273142",mid:"#151c2b",bottom:"#222a42",ink:"#f8f8fa",accent:"#a176e8",light:false},
-  "VENT FORT":{top:"#b7d7e6",mid:"#8bbbd3",bottom:"#a9cbd8",ink:"#182735",accent:"#167ab5",light:true},
-  "INSTABLE":{top:"#e7b678",mid:"#8b8291",bottom:"#474d68",ink:"#fffaf3",accent:"#d49a26",light:false}
+  "SOLEIL":{top:"#f7e9cf",mid:"#eecf9e",bottom:"#e4d0b2",ink:"#20262c",accent:"#d99e20",light:true},
+  "NUAGES":{top:"#e1e1dc",mid:"#c8cdce",bottom:"#c5c9c8",ink:"#20262c",accent:"#59636d",light:true},
+  "PLUIE":{top:"#8ea1af",mid:"#657d90",bottom:"#4d6477",ink:"#f7f8f8",accent:"#54b9e6",light:false},
+  "ORAGES":{top:"#364052",mid:"#222b3c",bottom:"#20283a",ink:"#f8f8fa",accent:"#a684e4",light:false},
+  "VENT FORT":{top:"#c4dde6",mid:"#9fc4d3",bottom:"#a6c3cd",ink:"#1c2932",accent:"#337fa9",light:true},
+  "INSTABLE":{top:"#edc286",mid:"#b59c8f",bottom:"#6d7180",ink:"#fffaf3",accent:"#d99c22",light:false}
 };
 
 function roundRect(x,y,w,h,r){
@@ -317,6 +317,61 @@ function wrapText(txt,x,y,maxWidth,lineHeight,size,weight,color,align){
   return yy;
 }
 
+
+function hourLabel(h){
+  return String(Math.round(h))+" h";
+}
+
+function preciseSummaryLines(f){
+  const hours=(f.hourly||[]).slice().sort(function(a,b){return a.hour-b.hour;});
+  const base=[
+    "Températures comprises entre "+String(f.tempMinC)+" et "+String(f.tempMaxC)+"°."
+  ];
+  if(hours.length<2)return (f.summaryLines&&f.summaryLines.length)?f.summaryLines:base;
+
+  function isSunny(c){return c==="soleil"||c==="peu nuageux";}
+  function isCloudy(c){return c==="nuageux"||c==="variable";}
+  function isWet(h){return (Number(h.precipitationMm)||0)>=0.2||h.condition==="pluie"||h.condition==="averse"||h.condition==="orage";}
+
+  const sunny=hours.filter(function(h){return isSunny(h.condition);});
+  const cloudy=hours.filter(function(h){return isCloudy(h.condition);});
+  const wet=hours.filter(isWet);
+
+  if(f.scene==="SOLEIL"){
+    if(sunny.length){
+      base.push("Soleil présent de "+hourLabel(sunny[0].hour)+" à "+hourLabel(sunny[sunny.length-1].hour)+".");
+    }
+  } else if(f.scene==="NUAGES"){
+    if(cloudy.length){
+      base.push("Ciel nuageux de "+hourLabel(cloudy[0].hour)+" à "+hourLabel(cloudy[cloudy.length-1].hour)+".");
+    }
+    if(sunny.length){
+      base.push("Éclaircies surtout entre "+hourLabel(sunny[0].hour)+" et "+hourLabel(sunny[sunny.length-1].hour)+".");
+    }
+  } else if(f.scene==="PLUIE"){
+    if(wet.length){
+      base.push("Pluie entre "+hourLabel(wet[0].hour)+" et "+hourLabel(wet[wet.length-1].hour)+".");
+    }
+  } else if(f.scene==="ORAGES"){
+    if(wet.length){
+      base.push("Orages entre "+hourLabel(wet[0].hour)+" et "+hourLabel(wet[wet.length-1].hour)+".");
+    }
+  } else if(f.scene==="VENT FORT"){
+    base.push((f.summaryLines&&f.summaryLines[1])?f.summaryLines[1]:"Vent fort au cours de la journée.");
+  } else {
+    if(sunny.length){
+      base.push("Soleil surtout présent entre "+hourLabel(sunny[0].hour)+" et "+hourLabel(sunny[sunny.length-1].hour)+".");
+    }
+    const lateCloud=cloudy.filter(function(h){return h.hour>=(sunny.length?sunny[sunny.length-1].hour:15);});
+    if(lateCloud.length){
+      base.push("Ciel plus nuageux à partir de "+hourLabel(lateCloud[0].hour)+".");
+    } else if(wet.length){
+      base.push("Dégradation à partir de "+hourLabel(wet[0].hour)+".");
+    }
+  }
+  return base.slice(0,3);
+}
+
 function draw(){
   const f=forecast;
 
@@ -410,31 +465,27 @@ function draw(){
     text(lab,x,642,15,650,ink,"center");
   }
 
-  const fade=ctx.createLinearGradient(0,720,0,850);
+  const fade=ctx.createLinearGradient(0,690,0,1350);
   fade.addColorStop(0,"rgba(255,255,255,0)");
-  fade.addColorStop(1,p.light?"rgba(255,255,255,.38)":"rgba(17,24,39,.34)");
+  fade.addColorStop(.32,p.light?"rgba(255,255,255,.13)":"rgba(20,27,40,.10)");
+  fade.addColorStop(1,p.light?"rgba(255,255,255,.24)":"rgba(20,27,40,.22)");
   ctx.fillStyle=fade;
-  ctx.fillRect(0,700,1080,170);
-
-  ctx.fillStyle=p.light?"rgba(255,255,255,.38)":"rgba(17,24,39,.34)";
-  ctx.fillRect(0,850,1080,500);
+  ctx.fillRect(0,690,1080,660);
 
   // Règle validée : un seul pictogramme dans la zone basse.
-  lineIcon(sceneIcon(scene),122,995,118,p.accent);
+  lineIcon(sceneIcon(scene),112,968,82,p.accent);
 
-  const lines=(f.summaryLines&&f.summaryLines.length
-    ? f.summaryLines
-    : [f.rainVerdict]).filter(Boolean);
+  const lines=preciseSummaryLines(f).filter(Boolean);
 
-  let yy=930;
+  let yy=920;
   for(let i=0;i<Math.min(lines.length,3);i++){
     yy=wrapText(
       lines[i],
-      235,
+      205,
       yy,
-      760,
-      48,
-      30,
+      805,
+      46,
+      28,
       i===0?560:470,
       ink,
       "left"
