@@ -43,7 +43,7 @@ export default {
       return json({
         ok: true,
         service: "LOKA Weather",
-        version: "0.6.3",
+        version: "0.6.4",
         time: new Date().toISOString()
       });
     }

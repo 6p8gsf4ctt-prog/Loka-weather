@@ -2,7 +2,7 @@ import type { LokaForecast } from "../types";
 import { BACKGROUND_SOURCES } from "./backgrounds";
 
 /**
- * LOKA V0.6.3 — finition graphique du master INSTABLE.
+ * LOKA V0.6.4 — finition graphique du master SOLEIL, sur la géométrie validée d’INSTABLE.
  *
  * La météo continue de venir exclusivement du moteur LOKA. Cette couche ne
  * classe pas la journée : elle sélectionne l'univers visuel correspondant à
@@ -27,7 +27,7 @@ export function renderInstagramGenerator(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>LOKA! — Studio Instagram V0.6.3</title>
+<title>LOKA! — Studio Instagram V0.6.4</title>
 <style>
 :root{color-scheme:light;--ink:#15202a;--paper:#efefec}
 *{box-sizing:border-box}
@@ -46,7 +46,7 @@ canvas{display:block;width:100%;height:auto}
 <body>
 <div class="wrap">
   <div class="toolbar">
-    <h1>Studio Instagram LOKA! — V0.6.3</h1>
+    <h1>Studio Instagram LOKA! — V0.6.4</h1>
     <p>Le fond maître est fixe par scène. Seules les données météo, les pictogrammes et les textes du jour changent.</p>
     <div class="actions">
       <button class="secondary" id="refresh">Actualiser</button>
@@ -190,29 +190,30 @@ async function draw(){
   const f=forecast;if(!f){ctx.fillStyle="#eee";ctx.fillRect(0,0,1080,1350);text("Aucune prévision enregistrée",540,675,34,600,"#333","center");return;}
   const scene=f.scene||"INSTABLE",theme=themes[scene]||themes["INSTABLE"],src=backgroundSources[scene]||backgroundSources["INSTABLE"];
   const isInstable=scene==="INSTABLE";
+  const usesValidatedGeometry=isInstable||scene==="SOLEIL";
   if(!backgroundCache[scene])backgroundCache[scene]=await loadImage(src);const bg=backgroundCache[scene];
   ctx.clearRect(0,0,1080,1350);coverImage(bg,0,0,1080,1350);ctx.fillStyle=theme.overlay;ctx.fillRect(0,0,1080,1350);
   // légère protection de lisibilité uniquement, sans masquer le fond maître
   const topShade=ctx.createLinearGradient(0,0,0,660);topShade.addColorStop(0,scene==="SOLEIL"||scene==="NUAGES"?"rgba(255,255,255,.08)":"rgba(0,0,0,.12)");topShade.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=topShade;ctx.fillRect(0,0,1080,660);
 
   text("LOKA!",45,80,52,350,theme.ink,"left");text(String(f.city||"Tarnos").toLocaleUpperCase("fr-FR"),540,72,25,500,theme.ink,"center");text(formatDate(f.date),1030,72,23,450,theme.ink,"right");
-  text(theme.title,540,isInstable?208:205,isInstable?84:78,760,theme.ink,"center");wrapText(f.subtitle||f.mainVerdict,540,isInstable?288:282,860,40,isInstable?34:31,430,theme.sub,"center",2);
+  text(theme.title,540,usesValidatedGeometry?208:205,usesValidatedGeometry?84:78,760,theme.ink,"center");wrapText(f.subtitle||f.mainVerdict,540,usesValidatedGeometry?288:282,860,40,usesValidatedGeometry?34:31,430,theme.sub,"center",2);
 
   const hours=(f.hourly||[]).slice(0,6);while(hours.length<6)hours.push({hour:[7,9,12,15,18,21][hours.length],temperatureC:0,condition:"nuageux",precipitationMm:0});
   const xs=[145,310,470,630,790,950];
-  for(let i=0;i<6;i++){text(String(hours[i].hour).padStart(2,"0")+"h",xs[i],382,isInstable?32:29,470,theme.ink,"center");lineIcon(conditionToIcon(hours[i].condition),xs[i],476,isInstable?118:106,theme.ink,theme.accent);}
+  for(let i=0;i<6;i++){text(String(hours[i].hour).padStart(2,"0")+"h",xs[i],382,usesValidatedGeometry?32:29,470,theme.ink,"center");lineIcon(conditionToIcon(hours[i].condition),xs[i],476,usesValidatedGeometry?118:106,theme.ink,theme.accent);}
   const curve=drawTempCurve(hours,theme);
-  for(let i=0;i<6;i++)text(String(hours[i].temperatureC)+"°",xs[i],isInstable?640:632,isInstable?58:52,650,theme.ink,"center");
+  for(let i=0;i<6;i++)text(String(hours[i].temperatureC)+"°",xs[i],usesValidatedGeometry?640:632,usesValidatedGeometry?58:52,650,theme.ink,"center");
 
   const solar=solarTimes(f.date,cityConfig.latitude,cityConfig.longitude);drawSolarCurve(solar,theme);
 
-  const panelX=62,panelY=isInstable?948:965,panelW=956,panelH=isInstable?350:326;ctx.save();ctx.fillStyle=theme.panel;ctx.shadowColor="rgba(0,0,0,.10)";ctx.shadowBlur=18;roundRect(panelX,panelY,panelW,panelH,30);ctx.fill();ctx.restore();
+  const panelX=62,panelY=usesValidatedGeometry?948:965,panelW=956,panelH=usesValidatedGeometry?350:326;ctx.save();ctx.fillStyle=theme.panel;ctx.shadowColor="rgba(0,0,0,.10)";ctx.shadowBlur=18;roundRect(panelX,panelY,panelW,panelH,30);ctx.fill();ctx.restore();
   const lines=preciseSummaryLines(f);while(lines.length<3)lines.push("");
   for(let i=0;i<3;i++){
-    const cy=panelY+(isInstable?76:70)+i*(isInstable?110:103);if(i>0){ctx.strokeStyle=theme.panelRule;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(panelX+36,cy-52);ctx.lineTo(panelX+panelW-36,cy-52);ctx.stroke();}
+    const cy=panelY+(usesValidatedGeometry?76:70)+i*(usesValidatedGeometry?110:103);if(i>0){ctx.strokeStyle=theme.panelRule;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(panelX+36,cy-52);ctx.lineTo(panelX+panelW-36,cy-52);ctx.stroke();}
     ctx.strokeStyle=theme.panelRule;ctx.beginPath();ctx.moveTo(panelX+182,cy-40);ctx.lineTo(panelX+182,cy+38);ctx.stroke();
-    const icon=summaryIcon(lines[i],i,scene);panelIcon(icon,panelX+98,cy-3,isInstable?84:76,theme.panelInk,theme.accent);
-    if(lines[i])wrapText(lines[i],panelX+225,cy+7,panelW-270,isInstable?39:36,isInstable?30:27,430,theme.panelInk,"left",2);
+    const icon=summaryIcon(lines[i],i,scene);panelIcon(icon,panelX+98,cy-3,usesValidatedGeometry?84:76,theme.panelInk,theme.accent);
+    if(lines[i])wrapText(lines[i],panelX+225,cy+7,panelW-270,usesValidatedGeometry?39:36,usesValidatedGeometry?30:27,430,theme.panelInk,"left",2);
   }
   text("Ici, aujourd’hui.",540,1330,23,380,theme.ink,"center");
 }
