@@ -2,7 +2,7 @@ import type { LokaForecast } from "../types";
 import { BACKGROUND_SOURCES } from "./backgrounds";
 
 /**
- * LOKA V0.6.0 — compositeur Instagram déterministe.
+ * LOKA V0.6.1 — compositeur Instagram déterministe.
  *
  * La météo continue de venir exclusivement du moteur LOKA. Cette couche ne
  * classe pas la journée : elle sélectionne l'univers visuel correspondant à
@@ -46,7 +46,7 @@ canvas{display:block;width:100%;height:auto}
 <body>
 <div class="wrap">
   <div class="toolbar">
-    <h1>Studio Instagram LOKA! — V0.6</h1>
+    <h1>Studio Instagram LOKA! — V0.6.1</h1>
     <p>Le fond maître est fixe par scène. Seules les données météo, les pictogrammes et les textes du jour changent.</p>
     <div class="actions">
       <button class="secondary" id="refresh">Actualiser</button>
@@ -82,11 +82,13 @@ function loadImage(src){return new Promise(function(resolve,reject){const im=new
 function coverImage(im,x,y,w,h){const s=Math.max(w/im.width,h/im.height),dw=im.width*s,dh=im.height*s;ctx.drawImage(im,x+(w-dw)/2,y+(h-dh)/2,dw,dh);}
 
 function conditionToIcon(condition){
-  if(condition==="soleil")return "sun";
-  if(condition==="peu nuageux"||condition==="variable")return "partly";
-  if(condition==="pluie"||condition==="averse")return "rain";
-  if(condition==="orage")return "storm";
-  if(condition==="vent"||condition==="venteux")return "wind";
+  const c=String(condition||"").trim().toLocaleLowerCase("fr-FR");
+  if(c==="soleil"||c==="ensoleillé"||c==="ensoleille")return "sun";
+  if(c==="peu nuageux"||c==="éclaircies"||c==="eclaircies"||c==="variable")return "partly";
+  if(c==="pluie"||c==="averse"||c==="averses")return "rain";
+  if(c==="orage"||c==="orages"||c==="orageux")return "storm";
+  if(c==="vent"||c==="venteux"||c==="vent fort")return "wind";
+  if(c==="nuageux"||c==="couvert"||c==="très nuageux"||c==="tres nuageux")return "cloud";
   return "cloud";
 }
 function sceneIcon(scene){if(scene==="SOLEIL")return "sun";if(scene==="NUAGES")return "cloud";if(scene==="PLUIE")return "rain";if(scene==="ORAGES")return "storm";if(scene==="VENT FORT")return "wind";return "partly";}
@@ -113,30 +115,50 @@ function solarTimes(date,lat,lon){
 function hourLabel(h){return String(Math.round(h))+" h";}
 function preciseSummaryLines(f){
   const hours=(f.hourly||[]).slice().sort(function(a,b){return a.hour-b.hour;});
-  const out=["Températures comprises entre "+String(f.tempMinC)+" et "+String(f.tempMaxC)+" degrés."];
-  if(hours.length<2){return (f.summaryLines&&f.summaryLines.length)?f.summaryLines:out;}
-  function sunny(c){return c==="soleil"||c==="peu nuageux";}
-  function cloudy(c){return c==="nuageux"||c==="couvert"||c==="variable";}
-  function wet(h){return Number(h.precipitationMm||0)>=.2||h.condition==="pluie"||h.condition==="averse"||h.condition==="orage";}
-  const s=hours.filter(function(h){return sunny(h.condition)}),c=hours.filter(function(h){return cloudy(h.condition)}),w=hours.filter(wet);
-  const event=(f.summaryLines||[]).slice(2).find(Boolean)||f.notableEvent;
-  if(f.scene==="SOLEIL"){
-    if(s.length===hours.length)out.push("Ciel dégagé toute la journée.");
-    else if(s.length)out.push("Soleil surtout présent entre "+hourLabel(s[0].hour)+" et "+hourLabel(s[s.length-1].hour)+".");
-  }else if(f.scene==="NUAGES"){
-    if(c.length)out.push("Ciel très nuageux de "+hourLabel(c[0].hour)+" à "+hourLabel(c[c.length-1].hour)+".");
-  }else if(f.scene==="PLUIE"){
-    if(w.length)out.push("Pluie entre "+hourLabel(w[0].hour)+" et "+hourLabel(w[w.length-1].hour)+".");
-  }else if(f.scene==="ORAGES"){
-    if(w.length)out.push("Averses ou orages entre "+hourLabel(w[0].hour)+" et "+hourLabel(w[w.length-1].hour)+".");
-  }else if(f.scene==="VENT FORT"){
-    out.push((f.summaryLines&&f.summaryLines[1])?f.summaryLines[1]:"Ciel changeant au cours de la journée.");
-  }else{
-    if(s.length)out.push("Soleil surtout présent entre "+hourLabel(s[0].hour)+" et "+hourLabel(s[s.length-1].hour)+".");
-    else if(c.length)out.push("Ciel plus nuageux au fil de la journée.");
+  const tempLine="Températures comprises entre "+String(f.tempMinC)+" et "+String(f.tempMaxC)+" degrés.";
+  const out=[tempLine];
+  if(hours.length<2){
+    const supplied=(f.summaryLines||[]).filter(function(line){return line&&String(line).toLowerCase().indexOf("températures comprises")<0;});
+    return out.concat(supplied).slice(0,3);
   }
-  if(event&&out.indexOf(event)<0)out.push(event);
-  if(out.length<3&&f.summaryLines){for(const line of f.summaryLines){if(line&&out.indexOf(line)<0)out.push(line);if(out.length>=3)break;}}
+  function sunny(c){const x=String(c||"").toLowerCase();return x==="soleil"||x==="peu nuageux";}
+  function cloudy(c){const x=String(c||"").toLowerCase();return x==="nuageux"||x==="couvert"||x==="variable";}
+  function wet(h){const x=String(h.condition||"").toLowerCase();return Number(h.precipitationMm||0)>=.2||x==="pluie"||x==="averse"||x==="averses"||x==="orage"||x==="orages";}
+  function addUnique(line){
+    if(!line)return;
+    const key=String(line).trim().toLocaleLowerCase("fr-FR").replace(/[°.]/g,"").replace(/degrés/g,"degres");
+    for(const existing of out){
+      const ek=String(existing).trim().toLocaleLowerCase("fr-FR").replace(/[°.]/g,"").replace(/degrés/g,"degres");
+      if(ek===key)return;
+      if(key.indexOf("températures comprises")===0&&ek.indexOf("températures comprises")===0)return;
+    }
+    out.push(String(line));
+  }
+  const s=hours.filter(function(h){return sunny(h.condition)}),c=hours.filter(function(h){return cloudy(h.condition)}),w=hours.filter(wet);
+  if(f.scene==="SOLEIL"){
+    if(s.length===hours.length)addUnique("Ciel dégagé toute la journée.");
+    else if(s.length)addUnique("Soleil surtout présent entre "+hourLabel(s[0].hour)+" et "+hourLabel(s[s.length-1].hour)+".");
+  }else if(f.scene==="NUAGES"){
+    if(c.length)addUnique("Ciel très nuageux de "+hourLabel(c[0].hour)+" à "+hourLabel(c[c.length-1].hour)+".");
+  }else if(f.scene==="PLUIE"){
+    if(w.length)addUnique("Pluie entre "+hourLabel(w[0].hour)+" et "+hourLabel(w[w.length-1].hour)+".");
+  }else if(f.scene==="ORAGES"){
+    if(w.length)addUnique("Averses ou orages entre "+hourLabel(w[0].hour)+" et "+hourLabel(w[w.length-1].hour)+".");
+  }else if(f.scene==="VENT FORT"){
+    addUnique((f.summaryLines&&f.summaryLines[1])?f.summaryLines[1]:"Ciel changeant au cours de la journée.");
+  }else{
+    if(s.length)addUnique("Soleil surtout présent entre "+hourLabel(s[0].hour)+" et "+hourLabel(s[s.length-1].hour)+".");
+    const firstLateCloud=hours.find(function(h){return h.hour>=15&&cloudy(h.condition)});
+    if(firstLateCloud)addUnique("Ciel plus nuageux à partir de "+hourLabel(firstLateCloud.hour)+".");
+    else if(c.length)addUnique("Ciel plus nuageux au fil de la journée.");
+  }
+  const supplied=(f.summaryLines||[]).concat(f.notableEvent?[f.notableEvent]:[]);
+  for(const line of supplied){
+    if(out.length>=3)break;
+    if(!line)continue;
+    if(String(line).toLowerCase().indexOf("températures comprises")>=0)continue;
+    addUnique(line);
+  }
   return out.slice(0,3);
 }
 function summaryIcon(line,index,scene){
@@ -152,16 +174,16 @@ function thermometer(x,y,size,color){ctx.save();ctx.strokeStyle=color;ctx.lineWi
 function panelIcon(type,x,y,size,color,accent){if(type==="thermo")thermometer(x,y,size,color);else lineIcon(type,x,y,size,color,accent);}
 function drawTempCurve(hours,theme){
   const xs=[145,310,470,630,790,950],temps=hours.map(function(h){return Number(h.temperatureC)});const min=Math.min.apply(null,temps),max=Math.max.apply(null,temps),span=Math.max(1,max-min);
-  const ys=temps.map(function(t){return 505-((t-min)/span)*20;});
+  const ys=temps.map(function(t){return 525-((t-min)/span)*24;});
   ctx.save();ctx.strokeStyle=theme.curve;ctx.lineWidth=2;ctx.globalAlpha=.95;ctx.beginPath();ctx.moveTo(95,ys[0]+4);for(let i=0;i<xs.length;i++){const nx=i<xs.length-1?(xs[i]+xs[i+1])/2:1010;ctx.quadraticCurveTo(xs[i],ys[i],nx,(ys[i]+(ys[i+1]||ys[i]))/2);}ctx.stroke();ctx.globalAlpha=1;
   for(let i=0;i<xs.length;i++){ctx.fillStyle=(i>=4&&theme.title!=="SOLEIL")?(i===5?"#a757ef":"#34b9eb"):theme.ink;ctx.beginPath();ctx.arc(xs[i],ys[i],7,0,Math.PI*2);ctx.fill();}
   ctx.restore();return {xs,ys};
 }
 function drawSolarCurve(solar,theme){
-  const x1=145,x2=310,x3=755,x4=945,base=870,peak=814;ctx.save();ctx.lineWidth=3;ctx.lineCap="round";
+  const x1=145,x2=310,x3=755,x4=945,base=895,peak=834;ctx.save();ctx.lineWidth=3;ctx.lineCap="round";
   const grad=ctx.createLinearGradient(x2,0,x4,0);grad.addColorStop(0,"#f1b700");grad.addColorStop(.48,"#ffffff");grad.addColorStop(.72,"#56c7ef");grad.addColorStop(1,"#ad58ef");ctx.strokeStyle=grad;ctx.beginPath();ctx.moveTo(105,base);ctx.lineTo(x1,base);ctx.moveTo(x2,base);ctx.bezierCurveTo(425,805,610,798,x3,base);ctx.moveTo(870,base);ctx.lineTo(x4,base);ctx.stroke();
   const items=[[x1,solar.dawn,"AUBE","#ffffff"],[x2,solar.sunrise,"LEVER","#f0b300"],[x3,solar.sunset,"COUCHER","#66c8ef"],[x4,solar.dusk,"CRÉPUSCULE","#ad58ef"]];
-  for(const it of items){const x=it[0],tm=it[1],lab=it[2],col=it[3];text(tm,x,778,22,450,theme.ink,"center");text(lab,x,818,20,500,theme.ink,"center");ctx.fillStyle=col;ctx.strokeStyle="#ffffff";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,base,10,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-28,base);ctx.lineTo(x+28,base);ctx.stroke();ctx.beginPath();ctx.moveTo(x,base-18);ctx.lineTo(x,base-28);ctx.stroke();}
+  for(const it of items){const x=it[0],tm=it[1],lab=it[2],col=it[3];text(tm,x,790,23,450,theme.ink,"center");text(lab,x,832,21,500,theme.ink,"center");ctx.fillStyle=col;ctx.strokeStyle="#ffffff";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,base,10,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(x-28,base);ctx.lineTo(x+28,base);ctx.stroke();ctx.beginPath();ctx.moveTo(x,base-18);ctx.lineTo(x,base-28);ctx.stroke();}
   ctx.restore();
 }
 async function draw(){
@@ -173,25 +195,25 @@ async function draw(){
   const topShade=ctx.createLinearGradient(0,0,0,660);topShade.addColorStop(0,scene==="SOLEIL"||scene==="NUAGES"?"rgba(255,255,255,.08)":"rgba(0,0,0,.12)");topShade.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=topShade;ctx.fillRect(0,0,1080,660);
 
   text("LOKA!",45,76,48,350,theme.ink,"left");text(String(f.city||"Tarnos").toLocaleUpperCase("fr-FR"),540,68,24,500,theme.ink,"center");text(formatDate(f.date),1030,68,22,450,theme.ink,"right");
-  text(theme.title,540,202,64,760,theme.ink,"center");wrapText(f.subtitle||f.mainVerdict,540,258,760,34,28,430,theme.sub,"center",2);
+  text(theme.title,540,188,72,760,theme.ink,"center");wrapText(f.subtitle||f.mainVerdict,540,252,800,36,30,430,theme.sub,"center",2);
 
   const hours=(f.hourly||[]).slice(0,6);while(hours.length<6)hours.push({hour:[7,9,12,15,18,21][hours.length],temperatureC:0,condition:"nuageux",precipitationMm:0});
   const xs=[145,310,470,630,790,950];
-  for(let i=0;i<6;i++){text(String(hours[i].hour).padStart(2,"0")+"h",xs[i],350,25,470,theme.ink,"center");lineIcon(conditionToIcon(hours[i].condition),xs[i],430,88,theme.ink,theme.accent);}
+  for(let i=0;i<6;i++){text(String(hours[i].hour).padStart(2,"0")+"h",xs[i],354,27,470,theme.ink,"center");lineIcon(conditionToIcon(hours[i].condition),xs[i],445,96,theme.ink,theme.accent);}
   const curve=drawTempCurve(hours,theme);
-  for(let i=0;i<6;i++)text(String(hours[i].temperatureC)+"°",xs[i],570,42,650,theme.ink,"center");
+  for(let i=0;i<6;i++)text(String(hours[i].temperatureC)+"°",xs[i],592,48,650,theme.ink,"center");
 
   const solar=solarTimes(f.date,cityConfig.latitude,cityConfig.longitude);drawSolarCurve(solar,theme);
 
-  const panelX=62,panelY=915,panelW=956,panelH=330;ctx.save();ctx.fillStyle=theme.panel;ctx.shadowColor="rgba(0,0,0,.10)";ctx.shadowBlur=18;roundRect(panelX,panelY,panelW,panelH,30);ctx.fill();ctx.restore();
+  const panelX=62,panelY=940,panelW=956,panelH=326;ctx.save();ctx.fillStyle=theme.panel;ctx.shadowColor="rgba(0,0,0,.10)";ctx.shadowBlur=18;roundRect(panelX,panelY,panelW,panelH,30);ctx.fill();ctx.restore();
   const lines=preciseSummaryLines(f);while(lines.length<3)lines.push("");
   for(let i=0;i<3;i++){
-    const cy=panelY+73+i*105;if(i>0){ctx.strokeStyle=theme.panelRule;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(panelX+36,cy-52);ctx.lineTo(panelX+panelW-36,cy-52);ctx.stroke();}
+    const cy=panelY+70+i*103;if(i>0){ctx.strokeStyle=theme.panelRule;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(panelX+36,cy-52);ctx.lineTo(panelX+panelW-36,cy-52);ctx.stroke();}
     ctx.strokeStyle=theme.panelRule;ctx.beginPath();ctx.moveTo(panelX+182,cy-40);ctx.lineTo(panelX+182,cy+38);ctx.stroke();
     const icon=summaryIcon(lines[i],i,scene);panelIcon(icon,panelX+98,cy-3,72,theme.panelInk,theme.accent);
-    if(lines[i])wrapText(lines[i],panelX+225,cy+5,panelW-270,32,24,430,theme.panelInk,"left",2);
+    if(lines[i])wrapText(lines[i],panelX+225,cy+6,panelW-270,34,25,430,theme.panelInk,"left",2);
   }
-  text("Ici, aujourd’hui.",540,1312,22,380,theme.ink,"center");
+  text("Ici, aujourd’hui.",540,1318,22,380,theme.ink,"center");
 }
 
 document.getElementById('refresh').addEventListener('click',async function(){try{const r=await fetch('/api/latest?city=tarnos',{cache:'no-store'});forecast=await r.json();await draw();}catch(e){console.error(e);}});
