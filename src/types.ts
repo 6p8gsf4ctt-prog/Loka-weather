@@ -19,17 +19,7 @@ export interface CityConfig {
   longitude: number;
   timezone: string;
   displayHours: number[];
-
-  wind: {
-    gustNotableKmh: number;
-    gustStrongKmh: number;
-  };
-
-  /**
-   * Editorial temperature thresholds used by LOKA.
-   * These are not warning thresholds. They only prevent absurd wording
-   * such as calling 20°C "frais" on a summer morning in Tarnos.
-   */
+  wind: { gustNotableKmh: number; gustStrongKmh: number; };
   thermal: {
     morningCoolBelowC: number;
     morningMildBelowC: number;
@@ -83,14 +73,8 @@ export interface ConsensusHour {
   modelCount: number;
   temperatureSpreadC: number;
   precipitationSupport: number;
-
-  /** Weighted share of models whose WMO code indicates rain/drizzle/showers. */
   rainCodeSupport: number;
-
-  /** Weighted share of models whose WMO code indicates showers. */
   showerSupport: number;
-
-  /** Weighted share of models whose WMO code indicates thunderstorm. */
   thunderstormSupport: number;
 }
 
@@ -101,6 +85,31 @@ export interface DisplayHour {
   precipitationMm: number;
 }
 
+export type LokaScene =
+  | "SOLEIL"
+  | "NUAGES"
+  | "PLUIE"
+  | "ORAGES"
+  | "VENT FORT"
+  | "INSTABLE";
+
+export interface SceneCandidate {
+  scene: LokaScene;
+  score: number;
+  eligible: boolean;
+  reasons: string[];
+}
+
+export interface DecisionLog {
+  version: string;
+  selectedScene: LokaScene;
+  selectedScore: number;
+  candidates: SceneCandidate[];
+  metrics: Record<string, number | string | boolean | null>;
+  reasons: string[];
+  suppressed: string[];
+}
+
 export interface LokaForecast {
   city: string;
   citySlug: string;
@@ -108,6 +117,10 @@ export interface LokaForecast {
   generatedAt: string;
   tempMaxC: number;
   tempMinC: number;
+  scene?: LokaScene;
+  subtitle?: string;
+  summaryLines?: string[];
+  decisionLog?: DecisionLog;
   mainVerdict: string;
   rainVerdict: string;
   notableEvent: string | null;

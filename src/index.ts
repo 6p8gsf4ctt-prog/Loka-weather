@@ -5,18 +5,10 @@ import type { Env } from "./types";
 import { renderAdmin, renderDashboard } from "./ui/dashboard";
 
 function json(data: unknown, status = 200): Response {
-  return Response.json(data, {
-    status,
-    headers: {
-      "cache-control": "no-store",
-      "access-control-allow-origin": "*"
-    }
-  });
+  return Response.json(data, { status, headers: { "cache-control": "no-store", "access-control-allow-origin": "*" } });
 }
 
-function unauthorized(): Response {
-  return json({ error: "unauthorized" }, 401);
-}
+function unauthorized(): Response { return json({ error: "unauthorized" }, 401); }
 
 function isAuthorized(request: Request, env: Env): boolean {
   if (!env.ADMIN_TOKEN) return false;
@@ -25,11 +17,7 @@ function isAuthorized(request: Request, env: Env): boolean {
 }
 
 function localHour(timezone: string, epochMs: number): number {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: timezone,
-    hour: "2-digit",
-    hourCycle: "h23"
-  }).formatToParts(new Date(epochMs));
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: timezone, hour: "2-digit", hourCycle: "h23" }).formatToParts(new Date(epochMs));
   return Number(parts.find((p) => p.type === "hour")?.value ?? -1);
 }
 
@@ -38,13 +26,29 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/health") {
-      return json({ ok: true, service: "LOKA Weather", version: "0.1.0", time: new Date().toISOString() });
+      return json({ ok: true, service: "LOKA Weather", version: "0.4.0", time: new Date().toISOString() });
     }
 
     if (url.pathname === "/api/latest") {
       const slug = url.searchParams.get("city") || "tarnos";
       if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
       return json(await latestForecast(env.DB, slug));
+    }
+
+    if (url.pathname === "/api/decision") {
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+      const forecast = await latestForecast(env.DB, slug);
+      if (!forecast) return json({ error: "no_forecast" }, 404);
+      return json({
+        city: forecast.city,
+        date: forecast.date,
+        generatedAt: forecast.generatedAt,
+        scene: forecast.scene,
+        subtitle: forecast.subtitle,
+        summaryLines: forecast.summaryLines,
+        decisionLog: forecast.decisionLog
+      });
     }
 
     if (url.pathname === "/api/history") {
@@ -59,11 +63,8 @@ export default {
       const slug = url.searchParams.get("city") || "tarnos";
       const city = getCity(slug);
       if (!city) return json({ error: "unknown_city" }, 404);
-      try {
-        return json(await runOneCity(env, city, "manual"));
-      } catch (error) {
-        return json({ error: error instanceof Error ? error.message : String(error) }, 500);
-      }
+      try { return json(await runOneCity(env, city, "manual")); }
+      catch (error) { return json({ error: error instanceof Error ? error.message : String(error) }, 500); }
     }
 
     if (url.pathname === "/admin") {
@@ -72,18 +73,13 @@ export default {
 
     if (url.pathname === "/" || url.pathname === "/tarnos") {
       const forecast = await latestForecast(env.DB, "tarnos");
-      return new Response(renderDashboard(forecast), {
-        headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
-      });
+      return new Response(renderDashboard(forecast), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
     }
 
     return json({ error: "not_found" }, 404);
   },
 
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    // Cloudflare cron expressions are UTC. We schedule both possible UTC slots
-    // for 05:45 in mainland France and execute only the one that is actually
-    // 05:xx in Europe/Paris. This survives CET/CEST automatically.
     const hourInParis = localHour("Europe/Paris", controller.scheduledTime);
     if (hourInParis !== 5) return;
     ctx.waitUntil(runAllCities(env, "cron").then(() => undefined));
