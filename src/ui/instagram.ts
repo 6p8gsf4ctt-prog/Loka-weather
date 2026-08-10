@@ -2,7 +2,7 @@ import type { LokaForecast } from "../types";
 import { BACKGROUND_SOURCES } from "./backgrounds";
 
 /**
- * LOKA V0.6.6 — scénarios de contrôle dédiés pour les 6 masters + AUTO réel.
+ * LOKA V0.6.6.1 — export iPhone corrigé, rendu graphique strictement identique à V0.6.6.
  *
  * La météo continue de venir exclusivement du moteur LOKA. Cette couche ne
  * classe pas la journée : elle sélectionne l'univers visuel correspondant à
@@ -27,7 +27,7 @@ export function renderInstagramGenerator(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>LOKA! — Studio Instagram V0.6.6</title>
+<title>LOKA! — Studio Instagram V0.6.6.1</title>
 <style>
 :root{color-scheme:light;--ink:#15202a;--paper:#efefec}
 *{box-sizing:border-box}
@@ -46,7 +46,7 @@ canvas{display:block;width:100%;height:auto}
 <body>
 <div class="wrap">
   <div class="toolbar">
-    <h1>Studio Instagram LOKA! — V0.6.6</h1>
+    <h1>Studio Instagram LOKA! — V0.6.6.1</h1>
     <p>Le fond maître est fixe par scène. Seules les données météo, les pictogrammes et les textes du jour changent.</p>
     <div class="preview">
       <label for="previewScene">Prévisualiser un master</label>
@@ -256,7 +256,55 @@ document.getElementById('previewScene').addEventListener('change',async function
   await draw();
 });
 document.getElementById('refresh').addEventListener('click',async function(){try{const r=await fetch('/api/latest?city=tarnos',{cache:'no-store'});forecast=await r.json();await draw();}catch(e){console.error(e);}});
-document.getElementById('download').addEventListener('click',function(){const a=document.createElement('a');a.download='loka-'+(forecast&&forecast.date?forecast.date:'meteo')+'.png';a.href=canvas.toDataURL('image/png');a.click();});
+function canvasPngFile(){
+  const dataUrl=canvas.toDataURL('image/png');
+  const parts=dataUrl.split(',');
+  const mime=(parts[0].match(/data:([^;]+)/)||[])[1]||'image/png';
+  const binary=atob(parts[1]);
+  const bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+  const filename='loka-'+(forecast&&forecast.date?forecast.date:'meteo')+'.png';
+  return new File([bytes],filename,{type:mime,lastModified:Date.now()});
+}
+function fallbackDownload(file){
+  const url=URL.createObjectURL(file);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=file.name;
+  a.rel='noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function(){URL.revokeObjectURL(url);},30000);
+}
+const downloadButton=document.getElementById('download');
+(function(){
+  try{
+    const probe=new File(['x'],'loka.png',{type:'image/png'});
+    if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[probe]})))downloadButton.textContent='Partager / enregistrer';
+  }catch(e){}
+})();
+downloadButton.addEventListener('click',function(){
+  try{
+    const file=canvasPngFile();
+    const canShareFiles=!!navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}));
+    if(canShareFiles){
+      navigator.share({files:[file],title:'LOKA! — météo du jour'}).catch(function(err){
+        if(err&&err.name==='AbortError')return;
+        console.error(err);
+        fallbackDownload(file);
+      });
+      return;
+    }
+    fallbackDownload(file);
+  }catch(e){
+    console.error(e);
+    const a=document.createElement('a');
+    a.download='loka-'+(forecast&&forecast.date?forecast.date:'meteo')+'.png';
+    a.href=canvas.toDataURL('image/png');
+    document.body.appendChild(a);a.click();a.remove();
+  }
+});
 draw();
 </script>
 </body>
