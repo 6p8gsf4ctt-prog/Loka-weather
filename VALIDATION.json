@@ -1,9 +1,9 @@
 {
-  "onlyProductionFileChanged": "src/engine/verdict.ts",
-  "legacySceneStillReturned": true,
-  "v24ShadowCalled": true,
-  "v24FailOpen": true,
-  "v24OnlyInDiagnostics": true,
-  "productionFlagLegacy": true,
+  "protectedShadowEndpoint": true,
+  "compactPayload": true,
+  "adminCompareButton": true,
+  "refreshAfterManualRun": true,
+  "instagramUntouchedInIndex": true,
+  "productionHealthVersionUntouched": true,
   "typescriptIntegrationCheck": "PASS"
 }
