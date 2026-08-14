@@ -1,218 +1,211 @@
-LOKA V24 — BLOC 12.4
+LOKA V24 — BLOC 12.5
 ======================
 
 OBJECTIF
 --------
-Premier CUTOVER PUBLIC RÉEL mais strictement conditionnel.
+Durcir le mécanisme de publication/fallback pour qu'une défaillance V24 ne
+puisse ni publier un produit incomplet, ni écraser le dernier produit sûr.
 
-Une génération devient officiellement V24 uniquement si :
+Ce bloc ne change PAS les critères de readiness.
+Avec NOT_READY, la production reste LEGACY.
 
-1. requested_mode = V24
-2. v24_approved = true
-3. readiness = READY_CANDIDATE
-4. décision V24 valide
-5. preuve APPROVED dans l'audit
-6. TOUS les garde-fous du Bloc 12.3 = PASS
+NOUVELLE MIGRATION D1
+---------------------
+AJOUTER ET APPLIQUER :
+migrations/0005_publication_safety.sql
 
-Sinon :
-MOTEUR PUBLIC = LEGACY
+Elle crée :
 
-AUCUNE NOUVELLE MIGRATION D1.
-Les migrations 0003 et 0004 doivent déjà être présentes.
+1. public_forecast_backup
+   - dernier forecast Legacy sûr
+   - forecast JSON complet
+   - checksum SHA-256
+   - une ligne par ville
+
+2. publication_fallback_audit
+   - journal append-only des incidents de publication
+   - UPDATE/DELETE interdits par triggers
 
 FICHIERS
 --------
 AJOUTER
-- src/engine/publicProduct.ts
-- src/ui/dashboard24.ts
-- src/ui/instagramOfficial24.ts
+- migrations/0005_publication_safety.sql
+- src/engine/masterAsset.ts
+- src/engine/publicFailSafe.ts
+- src/engine/fallbackSelfTest.ts
+- src/storage/publicationSafety.ts
 
 REMPLACER
+- src/engine/publicProduct.ts
+- src/engine/activationGuard.ts
 - src/engine/engineMode.ts
 - src/engine/engineRuntime.ts
 - src/pipeline.ts
 - src/index.ts
 - src/ui/dashboard.ts
 
-Le ZIP inclut aussi les dépendances 12.3 nécessaires.
+Le ZIP inclut également les dépendances 12.4 nécessaires.
 
-COMMENT LE CUTOVER FONCTIONNE
------------------------------
-engineMode 12.4 vérifie d'abord les conditions globales :
+NIVEAU 1 — MASTER V24 RÉELLEMENT VÉRIFIÉ
+-----------------------------------------
+Le Worker possède déjà un binding Cloudflare :
+ASSETS -> ./public
 
-LEGACY demandé
-→ resolver = LEGACY
+Le Bloc 12.5 l'utilise maintenant.
 
-V24_PREVIEW
-→ resolver = LEGACY
+Avant toute génération V24 officielle :
+- le master choisi est demandé via env.ASSETS
+- HTTP doit réussir
+- Content-Type doit être image/*
+- sinon activationGuard = BLOCKED
+- génération = LEGACY
 
-V24 mais readiness insuffisant
-→ resolver = LEGACY
+Le master est également REVÉRIFIÉ à chaque requête publique V24.
 
-V24 sans approbation
-→ resolver = LEGACY
+Donc la suppression accidentelle d'un master après génération déclenche
+immédiatement le fallback Legacy.
 
-V24 + approbation + READY_CANDIDATE + scène valide
-→ resolver = V24 ARMÉ
-→ le garde-fou génération 12.3 reste obligatoire
+NIVEAU 2 — BACKUP LEGACY PERSISTANT
+-----------------------------------
+Avant de publier une génération V24 :
 
-Ensuite engineRuntime applique la décision finale :
+1. LOKA vérifie le snapshot Legacy inline.
+2. Il reconstruit le forecast Legacy complet.
+3. Il l'enregistre dans public_forecast_backup.
+4. Il calcule un SHA-256 du JSON.
 
-resolver V24 + guard PASS
-→ génération publique V24
+Si cette sauvegarde échoue :
+V24 N'EST PAS PUBLIÉ.
+La génération est forcée en Legacy.
 
-resolver V24 + guard BLOCKED
-→ génération publique LEGACY
-→ generationFallbackRequired = true
+Le backup est aussi rafraîchi pendant les générations Legacy normales.
 
-AUCUN "DEMI V24"
-----------------
-Quand une génération passe en V24, le runtime remplace ENSEMBLE :
+NIVEAU 3 — ÉCRITURE D1 SÉCURISÉE
+---------------------------------
+La nouvelle publication suit :
 
-- forecast.scene
-- subtitle
-- summaryLines
-- mainVerdict
-- rainVerdict
-- notableEvent
-- decisionLog public
-- diagnostics.scene
-- diagnostics.subtitle
-- diagnostics.summaryLines
-- diagnostics.decisionLog
-- sceneClassifierProduction
+prepareSafePublication()
+→ backup Legacy
+→ validation JSON
+→ commitSafePublication()
+→ écriture forecasts
+→ relecture D1
+→ vérification generatedAt + moteur effectif
 
-Cela est important car storage/db.ts reconstruit scene/subtitle/summaryLines
-depuis diagnostics_json lors de la lecture D1.
+Cas V24 :
+- write échoue -> tentative récupération Legacy
+- relecture incohérente -> réécriture Legacy
+- récupération Legacy échoue aussi -> exception
+  et le précédent forecast public reste l'unique produit de confiance
 
-Le produit V24 complet est sauvegardé dans :
-diagnostics.v24OfficialProduct
+LOKA ne doit jamais répondre que la nouvelle génération est publiée si
+l'écriture n'a pas été vérifiée.
 
-Le produit Legacy complet est conservé dans :
-diagnostics.legacyPublicFallback
+NIVEAU 4 — FALLBACK À LA REQUÊTE
+---------------------------------
+Les 4 surfaces officielles passent par le même resolver sécurisé :
 
-FAIL-SAFE À LA LECTURE
-----------------------
-Même après sauvegarde, chaque surface publique revérifie :
+/api/latest
+/api/decision
+/
+/instagram
 
-sceneEngine.effectiveProduction = V24
-+
-v24ActivationGuard.status = PASS
-+
-v24OfficialProduct valide
+Pour servir V24 il faut maintenant :
 
-Si une incohérence est détectée :
-la requête publique reconstruit immédiatement le fallback Legacy.
+- produit stocké V24 valide
+- guard PASS
+- backup Legacy persistant lisible + checksum valide
+- master officiel toujours disponible
 
-Cela protège :
-- /api/latest
-- /api/decision
-- /
-- /instagram
+Si une vérification échoue :
+→ backup Legacy persistant
 
-SURFACES PUBLIQUES
-------------------
-Quand la génération effective est LEGACY :
+Si D1 backup est indisponible :
+→ snapshot Legacy inline
 
-/api/latest  -> Legacy
-/api/decision -> Legacy
-/             -> dashboard Legacy
-/instagram    -> Studio Legacy
+Si aucun fallback sûr n'existe :
+→ LOKA REFUSE de servir le V24
+→ HTTP 503 "Prévision temporairement indisponible"
 
-Quand la génération effective est V24 PASS :
+C'est volontairement plus sûr que de montrer une donnée incohérente.
 
-/api/latest  -> forecast public V24
-/api/decision -> forecast public V24
-/             -> nouveau dashboard officiel V24
-/instagram    -> nouveau Studio officiel V24
+NIVEAU 5 — AUDIT FALLBACK
+-------------------------
+Les incidents de publication sont enregistrés dans :
+publication_fallback_audit
 
-Les routes QA restent séparées :
+Stages :
+PREFLIGHT
+BACKUP
+WRITE
+VERIFY
+RECOVERY
 
-/instagram24
-= Shadow / QA
+L'audit ne participe jamais au fonctionnement du fallback.
+Une panne de la table d'audit ne peut pas empêcher un rollback/fallback.
 
-/preview24
-= prépublication V24
+NIVEAU 6 — SELF-TEST MOBILE
+----------------------------
+Nouveau bouton Admin :
+"Tester les fallbacks 12.5"
 
-/instagram24-preview
-= Studio prépublication V24
+Route privée :
+GET /api/admin/engine/fallback-self-test?city=tarnos
 
-ROLLBACK
---------
-Le bouton "Revenir à Legacy" garde priorité absolue.
+Le test est LECTURE SEULE et ne modifie jamais la production.
 
-Après rollback :
-requested_mode = LEGACY
-v24_approved = 0
+Il contrôle notamment :
+- master V24 courant accessible
+- faux master absent correctement détecté
+- payload V24 corrompu refusé
+- guard BLOCKED => Legacy
+- restauration du snapshot Legacy
+- erreur JSON détectée avant D1
+- backup Legacy persistant + checksum
+- surface publique courante résolue sans danger
 
-La prochaine génération est Legacy.
+INSTALLATION MOBILE
+-------------------
+1. Ajouter/appliquer 0005_publication_safety.sql dans Cloudflare D1.
+2. Ajouter les 4 nouveaux fichiers TypeScript.
+3. Remplacer les 7 fichiers indiqués.
+4. Déployer.
+5. Générer UNE nouvelle météo.
+   Cette génération crée/rafraîchit le backup Legacy.
+6. /admin -> Contrôler le moteur.
+7. "Tester les fallbacks 12.5".
 
-Les requêtes publiques disposent également d'un fallback de lecture si un
-produit V24 stocké est incomplet ou invalide.
+RÉSULTAT ATTENDU ACTUEL
+-----------------------
+Comme le readiness est encore NOT_READY :
 
-ÉTAT ACTUEL
------------
-Avec ton readiness actuel NOT_READY :
+Production : LEGACY
+Readiness : NOT_READY
 
-Bloc 12.4 NE CHANGERA RIEN au produit public.
+Le self-test devrait retourner PASS.
 
-Même si le code de cutover existe :
-resolver = LEGACY
-dashboard = Legacy
-Instagram = Legacy
+Juste après le déploiement, avant la première nouvelle génération,
+persistent_legacy_backup peut être PENDING.
+Après une nouvelle génération il doit passer PASS.
 
-Donc le déploiement du Bloc 12.4 n'est PAS une activation anticipée.
-
-TEST MOBILE MAINTENANT
-----------------------
-1. Déployer Bloc 12.4.
-2. Générer une nouvelle météo.
-3. Contrôler le moteur.
-4. Vérifier :
-   Production = LEGACY
-   Readiness = NOT_READY
-   Dernière génération publique = LEGACY
-5. Ouvrir /
-   -> fonctionnement normal Legacy
-6. Ouvrir /instagram
-   -> Studio Legacy
-7. Tester les garde-fous
-   -> NOT_ARMED ou BLOCKED selon le mode demandé
-8. Aucun V24 officiel ne doit apparaître.
-
-TEST FUTUR READY_CANDIDATE
---------------------------
-Après double confirmation :
-
-Nouvelle génération
-→ si guard PASS :
-   Production = V24
-   / = dashboard V24
-   /instagram = Studio V24
-   /api/latest = V24
-
-→ si guard BLOCKED :
-   Production = LEGACY
-   fallback génération = LEGACY
-   toutes les surfaces restent Legacy
+AUCUN TEST DU SELF-TEST NE MODIFIE LE FORECAST.
 
 IMPORTANT
 ---------
-Bloc 12.4 introduit le cutover technique réel.
-Il ne signifie PAS encore GO LIVE Instagram.
+Le Bloc 12.5 n'est pas notre test de panne final.
 
-Les prochains blocs 12.5 à 12.13 servent précisément à éprouver :
-- les pannes
-- les fallbacks
-- la cohérence des surfaces
-- le rollback
-- les 24 scènes
-- la procédure quotidienne
-avant la validation de mise en exploitation.
+Il installe les mécanismes et un self-test non destructif.
+
+Le Bloc 12.8 prévu dans la trajectoire fera plus tard les véritables tests
+de panne contrôlés :
+- panne D1 simulée
+- payload/master forcé invalide
+- modèles dégradés
+- erreurs de surface
+- récupération et rollback
 
 PROCHAINE ÉTAPE
 ---------------
-Bloc 12.5 :
-durcir et tester systématiquement le fallback automatique de génération,
-y compris erreurs de master, produit public invalide, stockage, données météo
-dégradées et défaillances de surface.
+Bloc 12.6 :
+cohérence stricte de toutes les surfaces et audit d'une génération officielle
+(API / dashboard / Instagram / moteur réellement publié).

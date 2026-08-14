@@ -1,19 +1,29 @@
 {
   "typescriptIntegrationCheck": "PASS",
-  "migrationRequired": false,
-  "firstRealConditionalPublicCutover": true,
-  "globalAuthorizationRequired": true,
-  "readinessRequired": "READY_CANDIDATE",
-  "perGenerationGuardPassRequired": true,
-  "guardBlockedFallback": "LEGACY",
-  "apiLatestEngineAware": true,
-  "apiDecisionEngineAware": true,
-  "publicDashboardEngineAware": true,
-  "officialInstagramEngineAware": true,
-  "storedV24ProductValidation": true,
-  "requestTimeFallbackToLegacy": true,
-  "legacySnapshotPersisted": true,
-  "d1ReconstructionFieldsUpdatedTogether": true,
+  "migrationRequired": "0005_publication_safety.sql",
+  "persistentLegacyBackup": true,
+  "backupChecksumSha256": true,
+  "appendOnlyFallbackAudit": true,
+  "masterVerifiedViaAssetsBinding": true,
+  "masterCheckBlocksGenerationCutover": true,
+  "masterRecheckedAtRequestTime": true,
+  "safeD1WriteReadbackVerification": true,
+  "v24WriteFailureAttemptsLegacyRecovery": true,
+  "v24ReadbackFailureAttemptsLegacyRecovery": true,
+  "previousForecastRetainedIfBothWritesFail": true,
+  "requestTimeFallbackOrder": [
+    "persistent_legacy_backup",
+    "inline_legacy_backup",
+    "safe_503"
+  ],
+  "publicSurfacesCovered": [
+    "/api/latest",
+    "/api/decision",
+    "/",
+    "/instagram"
+  ],
+  "readOnlyFallbackSelfTest": true,
+  "selfTestProductionMutation": false,
   "currentNotReadyStateCannotCutover": true,
-  "newMigration": false
+  "nextBlock": "12.6"
 }

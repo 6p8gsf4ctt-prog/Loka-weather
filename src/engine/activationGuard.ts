@@ -1,6 +1,7 @@
 import type { LokaForecast } from "../types";
 import type { SceneEngineResolution } from "./engineMode";
 import { buildV24PublicPayloadPreview } from "./publicPreview";
+import type { V24MasterAvailability } from "./masterAsset";
 
 export interface V24ApprovalProof {
   eventId: string;
@@ -19,6 +20,7 @@ export type ActivationGuardCheckId =
   | "day_profile_available"
   | "model_count"
   | "payload_build"
+  | "master_asset"
   | "winner_score"
   | "confidence"
   | "score_gap"
@@ -36,7 +38,7 @@ export interface ActivationGuardCheck {
 }
 
 export interface V24ActivationGuardResult {
-  version: "12.3.0";
+  version: "12.5.0";
   status: "NOT_ARMED" | "BLOCKED" | "PASS";
   evaluatedAt: string;
   fallbackRequired: boolean;
@@ -100,8 +102,9 @@ export function evaluateV24ActivationGuard(args: {
   forecast: LokaForecast;
   resolution: SceneEngineResolution;
   approvalProof: V24ApprovalProof | null;
+  masterAvailability: V24MasterAvailability;
 }): V24ActivationGuardResult {
-  const { forecast, resolution, approvalProof } = args;
+  const { forecast, resolution, approvalProof, masterAvailability } = args;
   const evaluatedAt = new Date().toISOString();
 
   const modeRequested = resolution.requested === "V24";
@@ -110,7 +113,7 @@ export function evaluateV24ActivationGuard(args: {
 
   if (!modeRequested) {
     return {
-      version: "12.3.0",
+      version: "12.5.0",
       status: "NOT_ARMED",
       evaluatedAt,
       fallbackRequired: false,
@@ -274,6 +277,16 @@ export function evaluateV24ActivationGuard(args: {
         : `Payload V24 invalide : ${payloadError ?? "unknown"}.`
     ),
     check(
+      "master_asset",
+      "Master officiel disponible",
+      masterAvailability.checked && masterAvailability.available,
+      masterAvailability.status,
+      "asset image accessible",
+      masterAvailability.available
+        ? `Master disponible (${masterAvailability.contentType ?? "image"}).`
+        : `Master indisponible : ${masterAvailability.reason}.`
+    ),
+    check(
       "winner_score",
       "Score gagnant",
       score !== null && score >= MIN_WINNER_SCORE,
@@ -338,7 +351,7 @@ export function evaluateV24ActivationGuard(args: {
   const passed = failed === null;
 
   return {
-    version: "12.3.0",
+    version: "12.5.0",
     status: passed ? "PASS" : "BLOCKED",
     evaluatedAt,
     fallbackRequired: !passed,

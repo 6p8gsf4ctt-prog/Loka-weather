@@ -28,7 +28,7 @@ function buildPublicDecisionLog(args: {
       : {};
 
   return {
-    version: "24.0-public-12.4",
+    version: "24.0-public-12.5",
     engine: "V24",
     selectedSceneId: args.candidate.scene.id,
     selectedScene: args.candidate.scene.key,
@@ -162,7 +162,7 @@ export function applyEngineResolutionToForecast(args: {
     cutoverRequested && actualEngine === "LEGACY";
 
   forecast.diagnostics.sceneEngine = {
-    version: "12.4.0",
+    version: "12.5.0",
     connectedInPipeline: true,
     evaluatedAt: new Date().toISOString(),
 

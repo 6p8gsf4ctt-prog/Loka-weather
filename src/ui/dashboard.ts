@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.4. Le cutover public est conditionnel : V24 uniquement sur une génération PASS, sinon Legacy.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.5. Publication durcie : backup Legacy persistant, master vérifié, écriture D1 contrôlée et fallback testé.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -190,7 +190,7 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button>'+
+    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button>'+
     '<div class="metric-section"><h3>Autorisation V24 — double confirmation</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
     (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
     '<div id="payloadView" style="margin-top:12px"></div>';
@@ -211,6 +211,36 @@ function renderEngine(d){
       });
       await loadEngine();
     }catch(err){engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>'}
+  };
+
+  document.getElementById('testFallbacks').onclick=async()=>{
+    const btn=document.getElementById('testFallbacks');
+    btn.disabled=true;
+    const out=document.getElementById('payloadView');
+    out.innerHTML='<div class="muted">Test des fallbacks… aucune donnée de production ne sera modifiée.</div>';
+    try{
+      const x=await fetchJson('/api/admin/engine/fallback-self-test?city=tarnos',{
+        headers:{Authorization:'Bearer '+token()}
+      });
+      const r=x.report||{},tests=Array.isArray(r.tests)?r.tests:[],audit=Array.isArray(x.recentFallbackAudit)?x.recentFallbackAudit:[];
+      const cls=r.status==='PASS'?'good':(r.status==='PENDING'?'caution':'bad');
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.5 · FALLBACK SELF-TEST</div>'+
+        '<div class="scene '+cls+'">'+e(r.status||'—')+'</div>'+
+        '<div class="muted">Test lecture seule : aucune mutation de production.</div>'+
+        tests.map(t=>
+          '<div class="bar-row"><span>'+e(t.id)+'<div class="muted">'+e(t.detail||'')+'</div></span><strong class="'+(t.status==='PASS'?'good':(t.status==='PENDING'?'caution':'bad'))+'">'+e(t.status)+'</strong></div>'
+        ).join('')+
+        (audit.length?'<div class="metric-title" style="margin-top:14px">AUDIT FALLBACK RÉCENT</div>'+
+          audit.slice(0,6).map(a=>
+            '<div class="bar-row"><span>'+e(a.stage)+'<div class="muted">'+e(a.reason)+'</div></span><strong>'+e(a.finalEngine||'—')+'</strong></div>'
+          ).join(''):'')+
+        '</div>';
+    }catch(err){
+      out.innerHTML='<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>';
+    }finally{
+      btn.disabled=false;
+    }
   };
 
   document.getElementById('checkActivation').onclick=async()=>{

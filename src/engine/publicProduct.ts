@@ -7,7 +7,7 @@ export interface V24OfficialPublicPayload
     V24PublicPayloadPreview,
     "version" | "mode" | "publishable"
   > {
-  version: "12.4.0";
+  version: "12.4.0" | "12.5.0";
   mode: "V24";
   publishable: true;
   cutover: {
@@ -90,7 +90,7 @@ export function promoteV24PreviewToOfficial(
 
   return {
     ...preview,
-    version: "12.4.0",
+    version: "12.5.0",
     mode: "V24",
     publishable: true,
     cutover: {
@@ -109,7 +109,7 @@ export function readStoredOfficialV24(
   if (!value) return null;
 
   if (
-    value.version !== "12.4.0" ||
+    (value.version !== "12.4.0" && value.version !== "12.5.0") ||
     value.mode !== "V24" ||
     value.publishable !== true
   ) {
@@ -160,11 +160,41 @@ export function readStoredOfficialV24(
   return value as unknown as V24OfficialPublicPayload;
 }
 
+
+const LEGACY_SCENES = new Set([
+  "SOLEIL",
+  "NUAGES",
+  "PLUIE",
+  "ORAGES",
+  "VENT FORT",
+  "INSTABLE"
+]);
+
+export function hasValidLegacyPublicFallback(
+  forecast: LokaForecast
+): boolean {
+  const stored = asObj(forecast.diagnostics?.legacyPublicFallback);
+  if (!stored) return false;
+
+  if (
+    typeof stored.scene !== "string" ||
+    !LEGACY_SCENES.has(stored.scene) ||
+    typeof stored.mainVerdict !== "string" ||
+    !stored.mainVerdict.trim() ||
+    typeof stored.rainVerdict !== "string" ||
+    !Array.isArray(stored.summaryLines)
+  ) {
+    return false;
+  }
+
+  return stored.summaryLines.every((line) => typeof line === "string");
+}
+
 export function restoreLegacyPublicForecast(
   forecast: LokaForecast
 ): LokaForecast {
   const stored = asObj(forecast.diagnostics?.legacyPublicFallback);
-  if (!stored) return forecast;
+  if (!stored || !hasValidLegacyPublicFallback(forecast)) return forecast;
 
   const clone = {
     ...forecast,

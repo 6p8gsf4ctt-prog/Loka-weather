@@ -9,7 +9,10 @@ import { buildV24PublicPayloadPreview } from "./engine/publicPreview";
 import { ensureEngineControl, requestV24Preview, rollbackToLegacy } from "./storage/engineControl";
 import { auditRollback, confirmV24Approval, getLatestV24ApprovalProof, getV24ApprovalOverview, prepareV24Approval } from "./storage/engineApproval";
 import { evaluateV24ActivationGuard } from "./engine/activationGuard";
-import { resolveStoredPublicSurface } from "./engine/publicProduct";
+import { verifyV24CandidateMasterAsset } from "./engine/masterAsset";
+import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
+import { runFallbackSelfTest } from "./engine/fallbackSelfTest";
+import { recentPublicationFallbackAudit } from "./storage/publicationSafety";
 import { renderDashboard24 } from "./ui/dashboard24";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import type { Env, LokaForecast, Scene24Candidate, SceneDecisionV24, DayProfile } from "./types";
@@ -232,9 +235,27 @@ async function v24Prepublication(env:Env,citySlug:string){
 }
 
 
-function publicForecastResponse(forecast: LokaForecast | null): LokaForecast | null {
+async function safePublicSurface(
+  env: Env,
+  forecast: LokaForecast | null
+) {
   if (!forecast) return null;
-  return resolveStoredPublicSurface(forecast).forecast;
+  return resolvePublicSurfaceSafely(env, forecast);
+}
+
+function publicUnavailableJson(reason: string): Response {
+  return json({
+    error: "public_forecast_temporarily_unavailable",
+    reason,
+    safety: {
+      unsafeV24Served: false,
+      fallbackAttempted: true
+    }
+  }, 503);
+}
+
+function publicUnavailableHtml(reason: string): string {
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LOKA!</title><style>body{margin:0;background:#f3f1ed;color:#22272d;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;display:grid;place-items:center;min-height:100vh;padding:24px}.box{max-width:520px;background:#fff;border-radius:28px;padding:28px;text-align:center}.brand{letter-spacing:.16em;font-size:12px;color:#777}.title{font-size:27px;margin:18px 0 10px}.muted{font-size:14px;line-height:1.5;color:#73777a}</style></head><body><div class="box"><div class="brand">LOKA!</div><div class="title">Prévision temporairement indisponible</div><div class="muted">LOKA a refusé de servir un produit météo dont le fallback ne pouvait pas être vérifié. La dernière donnée sûre sera rétablie dès que possible.</div><!-- ${reason.replace(/--/g, "")} --></div></body></html>`;
 }
 
 
@@ -254,9 +275,17 @@ export default {
     if (url.pathname === "/api/latest") {
       const slug = url.searchParams.get("city") || "tarnos";
       if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
-      return json(
-        publicForecastResponse(await latestForecast(env.DB, slug))
-      );
+      const forecast = await latestForecast(env.DB, slug);
+      if (!forecast) return json(null);
+
+      const surface = await safePublicSurface(env, forecast);
+      if (!surface || surface.engine === "UNAVAILABLE") {
+        return publicUnavailableJson(
+          surface?.reason ?? "no_safe_public_surface"
+        );
+      }
+
+      return json(surface.forecast);
     }
 
     if (url.pathname === "/api/decision") {
@@ -266,7 +295,14 @@ export default {
       const forecast = await latestForecast(env.DB, slug);
       if (!forecast) return json({ error: "no_forecast" }, 404);
 
-      return json(publicForecastResponse(forecast));
+      const surface = await safePublicSurface(env, forecast);
+      if (!surface || surface.engine === "UNAVAILABLE") {
+        return publicUnavailableJson(
+          surface?.reason ?? "no_safe_public_surface"
+        );
+      }
+
+      return json(surface.forecast);
     }
 
     if (url.pathname === "/api/shadow") {
@@ -357,7 +393,7 @@ export default {
       return json({
         error: "use_double_confirmation_flow",
         message:
-          "Bloc 12.4 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
+          "Bloc 12.5 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
       }, 409);
     }
 
@@ -386,10 +422,18 @@ export default {
             typeof (scene24 as Record<string, unknown>).sceneId === "number"
         });
 
+        const masterAvailability =
+          await verifyV24CandidateMasterAsset(
+            env,
+            forecast,
+            resolution.effectiveProduction === "V24"
+          );
+
         const guard = evaluateV24ActivationGuard({
           forecast,
           resolution,
-          approvalProof: proof
+          approvalProof: proof,
+          masterAvailability
         });
 
         return json({
@@ -413,6 +457,43 @@ export default {
           safety: {
             fallbackEngine: "LEGACY",
             publicCutoverConditional: true
+          }
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/engine/fallback-self-test" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      const forecast = await latestForecast(env.DB, slug);
+      if (!forecast) return json({ error: "no_forecast" }, 404);
+
+      try {
+        const report = await runFallbackSelfTest(env, forecast);
+        const audit = await recentPublicationFallbackAudit(
+          env.DB,
+          slug,
+          12
+        );
+
+        return json({
+          ok: report.status !== "FAIL",
+          report,
+          recentFallbackAudit: audit,
+          safety: {
+            productionMutationPerformed: false,
+            publicEngineUnchanged: true
+          }
+        }, report.status === "FAIL" ? 409 : 200);
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error),
+          safety: {
+            productionMutationPerformed: false,
+            publicEngineUnchanged: true
           }
         }, 500);
       }
@@ -666,7 +747,22 @@ export default {
       const forecast = await latestForecast(env.DB, "tarnos");
 
       if (forecast) {
-        const surface = resolveStoredPublicSurface(forecast);
+        const surface = await safePublicSurface(env, forecast);
+
+        if (!surface || surface.engine === "UNAVAILABLE") {
+          return new Response(
+            publicUnavailableHtml(
+              surface?.reason ?? "no_safe_public_surface"
+            ),
+            {
+              status: 503,
+              headers: {
+                "content-type": "text/html; charset=utf-8",
+                "cache-control": "no-store"
+              }
+            }
+          );
+        }
 
         if (surface.engine === "V24") {
           return new Response(
@@ -765,7 +861,22 @@ export default {
         });
       }
 
-      const surface = resolveStoredPublicSurface(forecast);
+      const surface = await safePublicSurface(env, forecast);
+
+      if (!surface || surface.engine === "UNAVAILABLE") {
+        return new Response(
+          publicUnavailableHtml(
+            surface?.reason ?? "no_safe_public_surface"
+          ),
+          {
+            status: 503,
+            headers: {
+              "content-type": "text/html; charset=utf-8",
+              "cache-control": "no-store"
+            }
+          }
+        );
+      }
 
       return new Response(
         surface.engine === "V24"

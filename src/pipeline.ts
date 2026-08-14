@@ -5,9 +5,11 @@ import { buildLokaForecast } from "./engine/verdict";
 import { resolveSceneEngineMode, type ReadinessStatus } from "./engine/engineMode";
 import { applyEngineResolutionToForecast } from "./engine/engineRuntime";
 import { evaluateV24ActivationGuard } from "./engine/activationGuard";
-import { saveForecast, saveRun, saveShadowHistory } from "./storage/db";
+import { verifyV24CandidateMasterAsset } from "./engine/masterAsset";
+import { saveRun, saveShadowHistory } from "./storage/db";
 import { getEngineControl } from "./storage/engineControl";
 import { getLatestV24ApprovalProof } from "./storage/engineApproval";
+import { commitSafePublication, prepareSafePublication } from "./storage/publicationSafety";
 import { loadShadowMetricRows } from "./storage/shadowMetrics";
 import { evaluateV24Readiness } from "./analytics/readiness";
 import type { CityConfig, Env, LokaForecast, ModelForecast } from "./types";
@@ -73,10 +75,17 @@ async function connectEngineSelector(env: Env, forecast: LokaForecast): Promise<
     approvalProof = null;
   }
 
+  const masterAvailability = await verifyV24CandidateMasterAsset(
+    env,
+    forecast,
+    resolution.effectiveProduction === "V24"
+  );
+
   const activationGuard = evaluateV24ActivationGuard({
     forecast,
     resolution,
-    approvalProof
+    approvalProof,
+    masterAvailability
   });
 
   applyEngineResolutionToForecast({
@@ -128,7 +137,7 @@ async function runCity(env: Env, city: CityConfig, source: string): Promise<Loka
     await connectEngineSelector(env, forecast);
   } catch (error) {
     forecast.diagnostics.sceneEngine = {
-      version: "12.4.0",
+      version: "12.5.0",
       connectedInPipeline: true,
       requested: "LEGACY",
       resolverEffective: "LEGACY",
@@ -142,7 +151,7 @@ async function runCity(env: Env, city: CityConfig, source: string): Promise<Loka
       error: error instanceof Error ? error.message : String(error)
     };
     forecast.diagnostics.v24ActivationGuard = {
-      version: "12.4.0",
+      version: "12.5.0",
       status: "BLOCKED",
       evaluatedAt: new Date().toISOString(),
       fallbackRequired: true,
@@ -154,36 +163,98 @@ async function runCity(env: Env, city: CityConfig, source: string): Promise<Loka
     forecast.diagnostics.sceneClassifierProduction = "legacy6";
   }
 
+  let preparation;
+  try {
+    preparation = await prepareSafePublication(
+      env.DB,
+      forecast,
+      source
+    );
+  } catch (error) {
+    try {
+      await saveRun(env.DB, {
+        citySlug: city.slug,
+        forecastDate: targetDate,
+        generatedAt: forecast.generatedAt,
+        source,
+        status: "failed",
+        modelsOk: forecasts.map((f) => f.modelId),
+        modelsFailed: failures,
+        durationMs: Date.now() - started,
+        errorMessage:
+          error instanceof Error ? error.message : String(error)
+      });
+    } catch {
+      // The previous public forecast remains authoritative.
+    }
+
+    throw error;
+  }
+
+  let publication;
+  try {
+    publication = await commitSafePublication(
+      env.DB,
+      preparation,
+      source
+    );
+  } catch (error) {
+    try {
+      await saveRun(env.DB, {
+        citySlug: city.slug,
+        forecastDate: targetDate,
+        generatedAt: forecast.generatedAt,
+        source,
+        status: "failed",
+        modelsOk: forecasts.map((f) => f.modelId),
+        modelsFailed: failures,
+        durationMs: Date.now() - started,
+        errorMessage:
+          error instanceof Error ? error.message : String(error)
+      });
+    } catch {
+      // If D1 itself is unavailable, the last committed forecast is retained.
+    }
+
+    throw error;
+  }
+
+  const publishedForecast = publication.forecast;
+
   try {
     await saveShadowHistory(
       env.DB,
-      forecast,
+      publishedForecast,
       source,
       forecasts.map((f) => f.modelId),
       failures
     );
-    forecast.diagnostics.shadowArchive = { status: "ok" };
+    publishedForecast.diagnostics.shadowArchive = { status: "ok" };
   } catch (error) {
-    forecast.diagnostics.shadowArchive = {
+    publishedForecast.diagnostics.shadowArchive = {
       status: "failed",
       error: error instanceof Error ? error.message : String(error)
     };
   }
 
-  await saveForecast(env.DB, forecast, source);
-
   await saveRun(env.DB, {
     citySlug: city.slug,
     forecastDate: targetDate,
-    generatedAt: forecast.generatedAt,
+    generatedAt: publishedForecast.generatedAt,
     source,
-    status: Object.keys(failures).length ? "partial" : "ok",
+    status:
+      Object.keys(failures).length || publication.fallbackApplied
+        ? "partial"
+        : "ok",
     modelsOk: forecasts.map((f) => f.modelId),
     modelsFailed: failures,
-    durationMs: Date.now() - started
+    durationMs: Date.now() - started,
+    errorMessage: publication.fallbackApplied
+      ? `publication_fallback:${publication.reason}`
+      : undefined
   });
 
-  return forecast;
+  return publishedForecast;
 }
 
 export async function runAllCities(env: Env, source: string): Promise<LokaForecast[]> {
