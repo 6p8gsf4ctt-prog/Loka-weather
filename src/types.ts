@@ -100,6 +100,8 @@ export interface ConsensusHour {
   rainCodeSupport: number;
   showerSupport: number;
   thunderstormSupport: number;
+  /** V24 weighted support for WMO fog codes 45/48. */
+  fogSupport: number;
 }
 
 export interface DisplayHour {

@@ -16,6 +16,11 @@ function isThunderstormCode(code: number | null): boolean {
   return code !== null && code >= 95 && code <= 99;
 }
 
+function isFogCode(code: number | null): boolean {
+  // WMO 45 = fog, 48 = depositing rime fog.
+  return code === 45 || code === 48;
+}
+
 function weightedBooleanSupport(
   rows: Array<{ forecast: ModelForecast; index: number }>,
   predicate: (code: number | null) => boolean
@@ -64,7 +69,6 @@ export function buildConsensus(forecasts: ModelForecast[]): Map<string, Consensu
     const precipValues: Array<[number, number]> = [];
     const cloudValues: Array<[number | null, number]> = [];
 
-    // V24 — separate layer consensus.
     const cloudLowValues: Array<[number | null, number]> = [];
     const cloudMidValues: Array<[number | null, number]> = [];
     const cloudHighValues: Array<[number | null, number]> = [];
@@ -121,7 +125,8 @@ export function buildConsensus(forecasts: ModelForecast[]): Map<string, Consensu
       precipitationSupport: weightedSupport(precipValues, 0.2),
       rainCodeSupport: weightedBooleanSupport(rows, isRainCode),
       showerSupport: weightedBooleanSupport(rows, isShowerCode),
-      thunderstormSupport: weightedBooleanSupport(rows, isThunderstormCode)
+      thunderstormSupport: weightedBooleanSupport(rows, isThunderstormCode),
+      fogSupport: weightedBooleanSupport(rows, isFogCode)
     });
   }
 

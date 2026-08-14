@@ -1,40 +1,54 @@
-LOKA V24 — BLOC 2
+LOKA V24 — BLOC 3
 ====================
 
-À REMPLACER
------------
+AJOUTER
+-------
+- src/engine/scenes24/profile.ts
+
+REMPLACER
+---------
 - src/types.ts
-- src/config/models.ts
-- src/weather/openMeteo.ts
 - src/engine/consensus.ts
 
-Ce bloc ajoute :
-- cloud_cover_low
-- cloud_cover_mid
-- cloud_cover_high
-aux requêtes Open-Meteo ;
-- cloudCoverLowPct / cloudCoverMidPct / cloudCoverHighPct dans HourPoint ;
-- les mêmes valeurs pondérées dans ConsensusHour ;
-- cloudLayerModelCount pour mesurer combien de modèles contribuent réellement.
+Pourquoi deux petits remplacements en plus de profile.ts ?
+-----------------------------------------------------------
+Le DayProfile validé contient fogHours/fogSupport, mais le Bloc 2 ne transportait
+pas encore de support brouillard dans ConsensusHour. Le Bloc 3 ajoute donc :
+- ConsensusHour.fogSupport
+- calcul pondéré fogSupport depuis les codes WMO 45/48 dans consensus.ts
 
-Sécurité de transition
-----------------------
-Le moteur legacy reste actif :
-- LokaScene reste limité aux 6 scènes actuelles ;
-- classifier.ts n'est pas modifié ;
-- verdict.ts n'est pas modifié ;
-- pipeline.ts n'est pas modifié ;
-- instagram.ts n'est pas modifié.
+Aucune nouvelle requête météo n'est nécessaire : weather_code est déjà récupéré.
 
-Les nouvelles couches nuageuses sont collectées et transportées, mais elles ne
-sont pas encore utilisées pour sélectionner une scène publique.
+Ce que profile.ts calcule
+-------------------------
+- états ciel CLEAR / BRIGHT / MIXED / CLOUDY / DENSE
+- fractions et blocs lumineux/nuageux
+- moyenne/médiane/écart-type couverture nuageuse
+- couches low/mid/high et fraction high >= 70%
+- heures pluie, continuité, coupures, accalmies, averses
+- heures vent notable/fort et blocs
+- overlaps vent+lumière / vent+mixte / vent+nuages / vent+pluie
+- support orageux
+- support brouillard, durée et densité
+- tendance matin/après-midi/soir, force et inversions
+- transitions météorologiques significatives
+- incertitude météo
+- nombre d'états distincts
 
-Règle importante
-----------------
-Une couche nuageuse absente reste NULL. Elle n'est jamais convertie en 0%.
-Le consensus utilise donc weightedMeanNullable() uniquement pour low/mid/high.
+SHADOW MODE
+-----------
+Le fichier profile.ts n'est importé ni par verdict.ts ni par pipeline.ts.
+Le forecast.scene public reste donc produit par le classificateur legacy 6 scènes.
+
+Règles de sécurité
+------------------
+- visibilité physique reste null : elle n'est pas encore collectée.
+- un signal fog absent vaut support 0 parce que weather_code est disponible,
+  pas parce qu'une visibilité inconnue est assimilée à bonne.
+- les couches nuageuses manquantes restent null.
+- buildDayProfile() est pur et sans effet de bord.
 
 Étape suivante
 --------------
-Bloc 3 : créer src/engine/scenes24/profile.ts pour transformer ConsensusHour[]
-en DayProfile, toujours en shadow mode.
+Bloc 4 : scoring.ts + classifier.ts V24. Ils consommeront DayProfile et
+produiront les 24 candidats en shadow mode, sans modifier forecast.scene.
