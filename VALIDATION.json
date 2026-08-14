@@ -1,9 +1,8 @@
 {
-  "migrationCreatesAppendOnlyTable": true,
-  "forecastTableUntouched": true,
-  "saveShadowFailOpen": true,
-  "forecastSceneNotChanged": true,
-  "historyRouteProtected": true,
-  "dateHistorySupported": true,
-  "detailSupported": true
+  "typescriptIntegrationCheck": "PASS",
+  "noMigrationRequired": true,
+  "readOnly": true,
+  "productionSceneUntouched": true,
+  "sameDayTransitionsOnly": true,
+  "protectedEndpoint": true
 }

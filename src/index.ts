@@ -1,6 +1,8 @@
 import { getCity } from "./config/cities";
 import { runAllCities, runOneCity } from "./pipeline";
 import { forecastHistory, latestForecast, shadowHistory, shadowHistoryForDate } from "./storage/db";
+import { loadShadowMetricRows } from "./storage/shadowMetrics";
+import { calculateShadowMetrics } from "./analytics/shadowMetrics";
 import type { Env, LokaForecast, Scene24Candidate, SceneDecisionV24, DayProfile } from "./types";
 import { renderAdmin, renderDashboard } from "./ui/dashboard";
 import { renderInstagramGenerator } from "./ui/instagram";
@@ -175,6 +177,19 @@ export default {
 
       const limit = Number(url.searchParams.get("limit") || 30);
       return json(await shadowHistory(env.DB, slug, limit, includeDetail));
+    }
+
+    if (url.pathname === "/api/shadow/metrics") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      const days = Number(url.searchParams.get("days") || 14);
+      const limit = Number(url.searchParams.get("limit") || 500);
+      const rows = await loadShadowMetricRows(env.DB, slug, days, limit);
+
+      return json(calculateShadowMetrics(rows));
     }
 
     if (url.pathname === "/api/history") {
