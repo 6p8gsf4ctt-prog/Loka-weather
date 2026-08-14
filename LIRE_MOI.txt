@@ -1,54 +1,57 @@
-LOKA V24 — BLOC 3
+LOKA V24 — BLOC 4
 ====================
 
 AJOUTER
 -------
-- src/engine/scenes24/profile.ts
+- src/engine/scenes24/scoring.ts
+- src/engine/scenes24/classifier.ts
 
-REMPLACER
----------
-- src/types.ts
-- src/engine/consensus.ts
+AUCUN FICHIER EXISTANT À REMPLACER
+---------------------------------
+Ce bloc est volontairement isolé.
 
-Pourquoi deux petits remplacements en plus de profile.ts ?
------------------------------------------------------------
-Le DayProfile validé contient fogHours/fogSupport, mais le Bloc 2 ne transportait
-pas encore de support brouillard dans ConsensusHour. Le Bloc 3 ajoute donc :
-- ConsensusHour.fogSupport
-- calcul pondéré fogSupport depuis les codes WMO 45/48 dans consensus.ts
+Ce que scoring.ts fait
+----------------------
+- score normalisé 0–100
+- pondération officielle :
+  * phenomenonFit 40%
+  * durationFit 25%
+  * structureFit 20%
+  * modelConfidence 15%
+- bonus de spécificité plafonné à +8
+- pénalité d'incertitude plafonnée à -15
+- confiance HIGH / MEDIUM / LOW
+- helpers de scoring continu
 
-Aucune nouvelle requête météo n'est nécessaire : weather_code est déjà récupéré.
-
-Ce que profile.ts calcule
+Ce que classifier.ts fait
 -------------------------
-- états ciel CLEAR / BRIGHT / MIXED / CLOUDY / DENSE
-- fractions et blocs lumineux/nuageux
-- moyenne/médiane/écart-type couverture nuageuse
-- couches low/mid/high et fraction high >= 70%
-- heures pluie, continuité, coupures, accalmies, averses
-- heures vent notable/fort et blocs
-- overlaps vent+lumière / vent+mixte / vent+nuages / vent+pluie
-- support orageux
-- support brouillard, durée et densité
-- tendance matin/après-midi/soir, force et inversions
-- transitions météorologiques significatives
-- incertitude météo
-- nombre d'états distincts
+- calcule les 24 candidats
+- applique les critères d'éligibilité
+- applique les conflits critiques :
+  * 22 ORAGEUX vs 24 PLUIE + VENT
+  * 24 vs 10/12/13
+  * 10 vs 06/14/20
+  * 15 vs 11
+  * 17/08 vs 23/09
+- 19 INSTABLE n'est jamais un fallback technique
+- applique le fallback unique :
+  * 16 si journée franchement lumineuse
+  * 21 si journée partagée mais lumineuse
+  * 09 si nuages dominants
+  * 18 comme fallback absolu
+- prépare l'hystérésis inter-générations avec previousSceneId
+- les phénomènes critiques 10/17/22/24 peuvent contourner l'hystérésis
 
 SHADOW MODE
 -----------
-Le fichier profile.ts n'est importé ni par verdict.ts ni par pipeline.ts.
-Le forecast.scene public reste donc produit par le classificateur legacy 6 scènes.
-
-Règles de sécurité
-------------------
-- visibilité physique reste null : elle n'est pas encore collectée.
-- un signal fog absent vaut support 0 parce que weather_code est disponible,
-  pas parce qu'une visibilité inconnue est assimilée à bonne.
-- les couches nuageuses manquantes restent null.
-- buildDayProfile() est pur et sans effet de bord.
+IMPORTANT : verdict.ts et pipeline.ts ne sont PAS modifiés.
+chooseScene24() n'est donc encore appelé nulle part en production.
+forecast.scene reste fourni exclusivement par classifier.ts legacy 6 scènes.
 
 Étape suivante
 --------------
-Bloc 4 : scoring.ts + classifier.ts V24. Ils consommeront DayProfile et
-produiront les 24 candidats en shadow mode, sans modifier forecast.scene.
+Bloc 5 : brancher V24 en shadow mode dans verdict.ts :
+- construire DayProfile
+- appeler chooseScene24()
+- stocker le résultat uniquement dans diagnostics.scene24
+- conserver forecast.scene = legacy

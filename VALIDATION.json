@@ -1,12 +1,10 @@
 {
-  "profileCreated": true,
-  "usesScene24Config": true,
-  "usesCityWindThresholds": true,
-  "cloudLayersUsed": true,
-  "rainContinuityCalculated": true,
-  "windOverlapsCalculated": true,
-  "trendCalculated": true,
-  "fogSupportAdded": true,
-  "legacyClassifierUntouched": true,
+  "scoringCreated": true,
+  "classifierCreated": true,
+  "all24Referenced": true,
+  "instableNotFallback": true,
+  "hysteresisPresent": true,
+  "conflictRulesPresent": true,
+  "productionFilesUntouched": true,
   "typescriptCheck": "PASS"
 }
