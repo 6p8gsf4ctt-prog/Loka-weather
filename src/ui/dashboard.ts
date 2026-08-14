@@ -237,7 +237,7 @@ function renderEngine(d){
 
       const phrase=String(prep.confirmationPhrase||'');
       const entered=window.prompt(
-        'Test RÉEL du rollback global.\n\nLe test modifiera temporairement engine_control, mais ne générera aucune météo et n’accordera jamais V24.\n\nTape exactement :\n'+phrase
+        'Test RÉEL du rollback global.\\n\\nLe test modifiera temporairement engine_control, mais ne générera aucune météo et n’accordera jamais V24.\\n\\nTape exactement :\\n'+phrase
       );
 
       if(entered===null){
