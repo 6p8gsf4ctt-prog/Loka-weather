@@ -5,6 +5,14 @@ import {
   resolveStoredPublicSurface,
   restoreLegacyPublicForecast
 } from "../engine/publicProduct";
+import {
+  attachPublicationManifest,
+  verifyPublicationManifest
+} from "../engine/publicationManifest";
+import {
+  ensurePublicationAuditReady,
+  recordPublicationGenerationAudit
+} from "./publicationAudit";
 
 type Obj = Record<string, unknown>;
 
@@ -34,6 +42,7 @@ export interface SafePublicationCommit {
   fallbackApplied: boolean;
   reason: string;
   verified: boolean;
+  generationAuditRecorded: boolean;
 }
 
 const LEGACY_SCENES = new Set([
@@ -105,7 +114,7 @@ function annotate(
 ): LokaForecast {
   const clone = cloneForecast(forecast);
   clone.diagnostics.publicationSafety = {
-    version: "12.5.0",
+    version: "12.6.0",
     ...(asObj(clone.diagnostics.publicationSafety) ?? {}),
     ...values
   };
@@ -303,20 +312,29 @@ export async function prepareSafePublication(
   const requestedEngine = engineOf(forecast);
 
   if (requestedEngine === "LEGACY") {
+    let prepared = annotate(forecast, {
+      requestedEngine,
+      backupReady: false,
+      failSafeArmed: true,
+      preflightFallback: false
+    });
+
+    prepared = await attachPublicationManifest(prepared);
+
     let backupReady = false;
 
-    if (isStrictLegacyForecast(forecast)) {
+    if (isStrictLegacyForecast(prepared)) {
       try {
         await saveLegacyPublicBackup(
           db,
-          forecast,
+          prepared,
           source,
           "latest_good_legacy_generation"
         );
         backupReady = true;
       } catch (error) {
         await appendFallbackAudit(db, {
-          forecast,
+          forecast: prepared,
           stage: "BACKUP",
           requestedEngine,
           finalEngine: "LEGACY",
@@ -328,13 +346,14 @@ export async function prepareSafePublication(
       }
     }
 
+    prepared.diagnostics.publicationSafety = {
+      ...(asObj(prepared.diagnostics.publicationSafety) ?? {}),
+      version: "12.6.0",
+      backupReady
+    };
+
     return {
-      forecast: annotate(forecast, {
-        requestedEngine,
-        backupReady,
-        failSafeArmed: true,
-        preflightFallback: false
-      }),
+      forecast: prepared,
       requestedEngine,
       fallbackForecast: null,
       backupReady,
@@ -354,7 +373,8 @@ export async function prepareSafePublication(
     throw new Error("v24_missing_valid_inline_legacy_fallback");
   }
 
-  const fallback = restoreLegacyPublicForecast(forecast);
+  let fallback = restoreLegacyPublicForecast(forecast);
+  fallback = await attachPublicationManifest(fallback);
 
   if (!isStrictLegacyForecast(fallback)) {
     await appendFallbackAudit(db, {
@@ -365,6 +385,49 @@ export async function prepareSafePublication(
       reason: "v24_legacy_fallback_invalid"
     });
     throw new Error("v24_legacy_fallback_invalid");
+  }
+
+  try {
+    await ensurePublicationAuditReady(db);
+  } catch (error) {
+    let forced = annotate(fallback, {
+      requestedEngine: "V24",
+      effectiveEngine: "LEGACY",
+      backupReady: true,
+      failSafeArmed: true,
+      preflightFallback: true,
+      fallbackReason: "publication_generation_audit_unavailable"
+    });
+    forced = await attachPublicationManifest(forced);
+
+    forced.diagnostics.sceneEngine = {
+      ...(asObj(forced.diagnostics.sceneEngine) ?? {}),
+      effectiveProduction: "LEGACY",
+      publicSurfaceEngine: "LEGACY",
+      generationFallbackRequired: true,
+      generationFallbackEngine: "LEGACY",
+      reason: "publication_generation_audit_unavailable"
+    };
+
+    await appendFallbackAudit(db, {
+      forecast,
+      stage: "PREFLIGHT",
+      requestedEngine,
+      finalEngine: "LEGACY",
+      reason: "publication_generation_audit_unavailable",
+      detail: {
+        error: error instanceof Error ? error.message : String(error)
+      }
+    });
+
+    return {
+      forecast: forced,
+      requestedEngine,
+      fallbackForecast: fallback,
+      backupReady: true,
+      preflightFallback: true,
+      reason: "publication_generation_audit_unavailable"
+    };
   }
 
   try {
@@ -404,8 +467,11 @@ export async function prepareSafePublication(
       }
     });
 
+    const forcedManifested =
+      await attachPublicationManifest(forced);
+
     return {
-      forecast: forced,
+      forecast: forcedManifested,
       requestedEngine,
       fallbackForecast: fallback,
       backupReady: false,
@@ -414,14 +480,18 @@ export async function prepareSafePublication(
     };
   }
 
-  return {
-    forecast: annotate(forecast, {
+  const preparedV24 = await attachPublicationManifest(
+    annotate(forecast, {
       requestedEngine: "V24",
       backupReady: true,
       failSafeArmed: true,
       preflightFallback: false,
       persistentBackupReason: "pre_v24_cutover_last_known_good"
-    }),
+    })
+  );
+
+  return {
+    forecast: preparedV24,
     requestedEngine,
     fallbackForecast: fallback,
     backupReady: true,
@@ -440,7 +510,10 @@ async function verifyCommitted(
   if (readback.generatedAt !== expected.generatedAt) return false;
 
   const surface = resolveStoredPublicSurface(readback);
-  return surface.engine === expectedEngine;
+  if (surface.engine !== expectedEngine) return false;
+
+  const manifest = await verifyPublicationManifest(readback);
+  return manifest.valid;
 }
 
 async function recoverLegacy(
@@ -469,11 +542,25 @@ async function recoverLegacy(
     reason
   };
 
-  await saveForecast(db, recovered, source);
-  const verified = await verifyCommitted(db, recovered, "LEGACY");
+  const manifested = await attachPublicationManifest(recovered);
+
+  await saveForecast(db, manifested, source);
+  const verified = await verifyCommitted(db, manifested, "LEGACY");
+
+  let generationAuditRecorded = false;
+  try {
+    generationAuditRecorded =
+      await recordPublicationGenerationAudit(
+        db,
+        manifested,
+        source
+      );
+  } catch {
+    generationAuditRecorded = false;
+  }
 
   await appendFallbackAudit(db, {
-    forecast: recovered,
+    forecast: manifested,
     stage: "RECOVERY",
     requestedEngine,
     finalEngine: "LEGACY",
@@ -486,12 +573,13 @@ async function recoverLegacy(
   }
 
   return {
-    forecast: recovered,
+    forecast: manifested,
     requestedEngine,
     finalEngine: "LEGACY",
     fallbackApplied: true,
     reason,
-    verified: true
+    verified: true,
+    generationAuditRecorded
   };
 }
 
@@ -574,13 +662,45 @@ export async function commitSafePublication(
     throw new Error("legacy_publication_readback_not_verified");
   }
 
+  let generationAuditRecorded = false;
+
+  try {
+    generationAuditRecorded =
+      await recordPublicationGenerationAudit(
+        db,
+        preparation.forecast,
+        source
+      );
+  } catch {
+    generationAuditRecorded = false;
+  }
+
+  if (target === "V24" && !generationAuditRecorded) {
+    if (preparation.fallbackForecast) {
+      return recoverLegacy(
+        db,
+        preparation.fallbackForecast,
+        source,
+        preparation.requestedEngine,
+        "v24_generation_audit_failed_recovered_legacy"
+      );
+    }
+
+    throw new Error(
+      "v24_generation_audit_failed_without_legacy_fallback"
+    );
+  }
+
   return {
     forecast: preparation.forecast,
     requestedEngine: preparation.requestedEngine,
     finalEngine: target,
     fallbackApplied:
       preparation.requestedEngine === "V24" && target === "LEGACY",
-    reason: preparation.reason,
-    verified: true
+    reason: generationAuditRecorded
+      ? preparation.reason
+      : `${preparation.reason}:generation_audit_missing`,
+    verified: true,
+    generationAuditRecorded
   };
 }

@@ -137,7 +137,7 @@ async function runCity(env: Env, city: CityConfig, source: string): Promise<Loka
     await connectEngineSelector(env, forecast);
   } catch (error) {
     forecast.diagnostics.sceneEngine = {
-      version: "12.5.0",
+      version: "12.6.0",
       connectedInPipeline: true,
       requested: "LEGACY",
       resolverEffective: "LEGACY",
@@ -151,7 +151,7 @@ async function runCity(env: Env, city: CityConfig, source: string): Promise<Loka
       error: error instanceof Error ? error.message : String(error)
     };
     forecast.diagnostics.v24ActivationGuard = {
-      version: "12.5.0",
+      version: "12.6.0",
       status: "BLOCKED",
       evaluatedAt: new Date().toISOString(),
       fallbackRequired: true,
@@ -243,7 +243,7 @@ async function runCity(env: Env, city: CityConfig, source: string): Promise<Loka
     generatedAt: publishedForecast.generatedAt,
     source,
     status:
-      Object.keys(failures).length || publication.fallbackApplied
+      Object.keys(failures).length || publication.fallbackApplied || !publication.generationAuditRecorded
         ? "partial"
         : "ok",
     modelsOk: forecasts.map((f) => f.modelId),
@@ -251,7 +251,9 @@ async function runCity(env: Env, city: CityConfig, source: string): Promise<Loka
     durationMs: Date.now() - started,
     errorMessage: publication.fallbackApplied
       ? `publication_fallback:${publication.reason}`
-      : undefined
+      : !publication.generationAuditRecorded
+        ? "publication_generation_audit_missing"
+        : undefined
   });
 
   return publishedForecast;

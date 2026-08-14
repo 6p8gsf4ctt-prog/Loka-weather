@@ -1,29 +1,30 @@
 {
   "typescriptIntegrationCheck": "PASS",
-  "migrationRequired": "0005_publication_safety.sql",
-  "persistentLegacyBackup": true,
-  "backupChecksumSha256": true,
-  "appendOnlyFallbackAudit": true,
-  "masterVerifiedViaAssetsBinding": true,
-  "masterCheckBlocksGenerationCutover": true,
-  "masterRecheckedAtRequestTime": true,
-  "safeD1WriteReadbackVerification": true,
-  "v24WriteFailureAttemptsLegacyRecovery": true,
-  "v24ReadbackFailureAttemptsLegacyRecovery": true,
-  "previousForecastRetainedIfBothWritesFail": true,
-  "requestTimeFallbackOrder": [
-    "persistent_legacy_backup",
-    "inline_legacy_backup",
-    "safe_503"
+  "migrationRequired": "0006_publication_coherence.sql",
+  "canonicalPublicationManifest": true,
+  "deterministicSha256Fingerprint": true,
+  "manifestStoredInForecastDiagnostics": true,
+  "generationAuditAppendOnly": true,
+  "v24GenerationAuditMandatory": true,
+  "surfaceAuditAppendOnly": true,
+  "publicSurfaceHeaders": [
+    "x-loka-publication-version",
+    "x-loka-generated-at",
+    "x-loka-engine",
+    "x-loka-scene",
+    "x-loka-publication-fingerprint",
+    "x-loka-surface"
   ],
-  "publicSurfacesCovered": [
+  "officialSurfacesChecked": [
     "/api/latest",
     "/api/decision",
     "/",
     "/instagram"
   ],
-  "readOnlyFallbackSelfTest": true,
-  "selfTestProductionMutation": false,
-  "currentNotReadyStateCannotCutover": true,
-  "nextBlock": "12.6"
+  "realBrowserEndToEndCheck": true,
+  "browserCheckMutatesProduction": false,
+  "browserCheckRecordsAuditOnly": true,
+  "v24InvalidManifestFallsBackLegacy": true,
+  "currentNotReadyStateRemainsLegacy": true,
+  "nextBlock": "12.7_release_candidate"
 }

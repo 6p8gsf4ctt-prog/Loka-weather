@@ -11,8 +11,20 @@ import { auditRollback, confirmV24Approval, getLatestV24ApprovalProof, getV24App
 import { evaluateV24ActivationGuard } from "./engine/activationGuard";
 import { verifyV24CandidateMasterAsset } from "./engine/masterAsset";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
+import {
+  publicationIdentity,
+  publicationResponseHeaders,
+  verifyPublicationManifest,
+  type PublicationSurface
+} from "./engine/publicationManifest";
 import { runFallbackSelfTest } from "./engine/fallbackSelfTest";
 import { recentPublicationFallbackAudit } from "./storage/publicationSafety";
+import {
+  latestPublicationGenerationAudit,
+  latestSurfaceCoherenceAudit,
+  recordSurfaceCoherenceAudit,
+  type PublicSurfaceObservation
+} from "./storage/publicationAudit";
 import { renderDashboard24 } from "./ui/dashboard24";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import type { Env, LokaForecast, Scene24Candidate, SceneDecisionV24, DayProfile } from "./types";
@@ -243,6 +255,35 @@ async function safePublicSurface(
   return resolvePublicSurfaceSafely(env, forecast);
 }
 
+
+function publicHeaders(
+  forecast: LokaForecast,
+  surface: PublicationSurface,
+  extra: Record<string, string> = {}
+): Record<string, string> {
+  return {
+    "cache-control": "no-store",
+    ...publicationResponseHeaders(forecast, surface),
+    ...extra
+  };
+}
+
+function publicJson(
+  data: unknown,
+  forecast: LokaForecast,
+  surface: PublicationSurface,
+  status = 200
+): Response {
+  return Response.json(data, {
+    status,
+    headers: publicHeaders(
+      forecast,
+      surface,
+      { "access-control-allow-origin": "*" }
+    )
+  });
+}
+
 function publicUnavailableJson(reason: string): Response {
   return json({
     error: "public_forecast_temporarily_unavailable",
@@ -285,7 +326,11 @@ export default {
         );
       }
 
-      return json(surface.forecast);
+      return publicJson(
+        surface.forecast,
+        surface.forecast,
+        "api_latest"
+      );
     }
 
     if (url.pathname === "/api/decision") {
@@ -302,7 +347,11 @@ export default {
         );
       }
 
-      return json(surface.forecast);
+      return publicJson(
+        surface.forecast,
+        surface.forecast,
+        "api_decision"
+      );
     }
 
     if (url.pathname === "/api/shadow") {
@@ -393,7 +442,7 @@ export default {
       return json({
         error: "use_double_confirmation_flow",
         message:
-          "Bloc 12.5 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
+          "Bloc 12.6 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
       }, 409);
     }
 
@@ -495,6 +544,166 @@ export default {
             productionMutationPerformed: false,
             publicEngineUnchanged: true
           }
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/publication/coherence" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      const forecast = await latestForecast(env.DB, slug);
+      if (!forecast) return json({ error: "no_forecast" }, 404);
+
+      try {
+        const surface = await resolvePublicSurfaceSafely(
+          env,
+          forecast
+        );
+
+        if (surface.engine === "UNAVAILABLE" || !surface.forecast) {
+          return json({
+            ok: false,
+            status: "FAIL",
+            reason: surface.reason
+          }, 409);
+        }
+
+        const manifest = await verifyPublicationManifest(
+          surface.forecast
+        );
+        const identity = publicationIdentity(surface.forecast);
+        const generationAudit =
+          await latestPublicationGenerationAudit(env.DB, slug);
+        const latestSurfaceAudit =
+          await latestSurfaceCoherenceAudit(env.DB, slug);
+
+        const generationAuditMatches =
+          !!identity &&
+          !!generationAudit &&
+          generationAudit.generatedAt === identity.generatedAt &&
+          generationAudit.effectiveEngine === identity.engine &&
+          generationAudit.sceneKey === identity.scene &&
+          generationAudit.fingerprint === identity.fingerprint &&
+          generationAudit.verificationStatus === "VERIFIED";
+
+        return json({
+          ok:
+            manifest.valid &&
+            !!identity &&
+            generationAuditMatches,
+          status:
+            manifest.valid &&
+            !!identity &&
+            generationAuditMatches
+              ? "READY_FOR_BROWSER_CHECK"
+              : "PENDING_OR_FAIL",
+          identity,
+          manifest: {
+            valid: manifest.valid,
+            reason: manifest.reason
+          },
+          generationAudit,
+          generationAuditMatches,
+          latestSurfaceAudit,
+          requiredSurfaces: [
+            "api_latest",
+            "api_decision",
+            "dashboard",
+            "instagram"
+          ],
+          safety: {
+            browserCheckMutatesForecast: false,
+            browserCheckOnlyWritesAppendOnlyAudit: true
+          }
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/publication/coherence/record" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      let body: { observations?: unknown } = {};
+
+      try {
+        body = await request.json() as typeof body;
+      } catch {
+        return json({ error: "invalid_json" }, 400);
+      }
+
+      if (!Array.isArray(body.observations)) {
+        return json({ error: "observations_required" }, 400);
+      }
+
+      const observations: PublicSurfaceObservation[] =
+        body.observations
+          .filter((x): x is Record<string, unknown> =>
+            !!x && typeof x === "object" && !Array.isArray(x)
+          )
+          .map((x) => ({
+            surface: String(x.surface) as PublicationSurface,
+            status:
+              typeof x.status === "number" ? x.status : 0,
+            version:
+              typeof x.version === "string" ? x.version : null,
+            generatedAt:
+              typeof x.generatedAt === "string"
+                ? x.generatedAt
+                : null,
+            engine:
+              typeof x.engine === "string" ? x.engine : null,
+            scene:
+              typeof x.scene === "string" ? x.scene : null,
+            fingerprint:
+              typeof x.fingerprint === "string"
+                ? x.fingerprint
+                : null
+          }));
+
+      const forecast = await latestForecast(env.DB, slug);
+      if (!forecast) return json({ error: "no_forecast" }, 404);
+
+      try {
+        const surface = await resolvePublicSurfaceSafely(
+          env,
+          forecast
+        );
+
+        if (surface.engine === "UNAVAILABLE" || !surface.forecast) {
+          return json({
+            error: "safe_public_surface_unavailable",
+            reason: surface.reason
+          }, 409);
+        }
+
+        const result = await recordSurfaceCoherenceAudit(
+          env.DB,
+          slug,
+          surface.forecast,
+          observations
+        );
+
+        return json({
+          ok: result.status === "PASS",
+          ...result,
+          safety: {
+            forecastMutated: false,
+            engineControlMutated: false,
+            auditAppendOnly: true
+          }
+        }, result.status === "PASS" ? 200 : 409);
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error)
         }, 500);
       }
     }
@@ -784,10 +993,11 @@ export default {
             city.timezone
           ),
           {
-            headers: {
-              "content-type": "text/html; charset=utf-8",
-              "cache-control": "no-store"
-            }
+            headers: publicHeaders(
+              surface.forecast,
+              "instagram",
+              { "content-type": "text/html; charset=utf-8" }
+            )
           }
         );
       }
@@ -883,10 +1093,11 @@ export default {
           ? renderDashboard24(surface.payload, city.timezone)
           : renderDashboard(surface.forecast),
         {
-          headers: {
-            "content-type": "text/html; charset=utf-8",
-            "cache-control": "no-store"
-          }
+          headers: publicHeaders(
+            surface.forecast,
+            "dashboard",
+            { "content-type": "text/html; charset=utf-8" }
+          )
         }
       );
     }

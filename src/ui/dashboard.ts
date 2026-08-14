@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.5. Publication durcie : backup Legacy persistant, master vérifié, écriture D1 contrôlée et fallback testé.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.6. Les 4 surfaces publiques portent maintenant la même identité de génération et peuvent être contrôlées de bout en bout.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -190,7 +190,7 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button>'+
+    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button>'+
     '<div class="metric-section"><h3>Autorisation V24 — double confirmation</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
     (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
     '<div id="payloadView" style="margin-top:12px"></div>';
@@ -211,6 +211,83 @@ function renderEngine(d){
       });
       await loadEngine();
     }catch(err){engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>'}
+  };
+
+  function surfaceObservation(surface,response){
+    return {
+      surface,
+      status:response.status,
+      version:response.headers.get('x-loka-publication-version'),
+      generatedAt:response.headers.get('x-loka-generated-at'),
+      engine:response.headers.get('x-loka-engine'),
+      scene:response.headers.get('x-loka-scene'),
+      fingerprint:response.headers.get('x-loka-publication-fingerprint')
+    };
+  }
+
+  document.getElementById('checkCoherence').onclick=async()=>{
+    const btn=document.getElementById('checkCoherence');
+    const out=document.getElementById('payloadView');
+    btn.disabled=true;
+    out.innerHTML='<div class="muted">Contrôle réel des 4 surfaces publiques…</div>';
+
+    try{
+      const pre=await fetchJson('/api/admin/publication/coherence?city=tarnos',{
+        headers:{Authorization:'Bearer '+token()}
+      });
+
+      if(!pre.identity){
+        throw new Error('publication_identity_unavailable');
+      }
+
+      const reqs=[
+        ['api_latest','/api/latest?city=tarnos'],
+        ['api_decision','/api/decision?city=tarnos'],
+        ['dashboard','/?_loka_coherence='+Date.now()],
+        ['instagram','/instagram?_loka_coherence='+Date.now()]
+      ];
+
+      const observations=[];
+      for(const [surface,url] of reqs){
+        const response=await fetch(url,{
+          method:'GET',
+          cache:'no-store',
+          headers:{'Cache-Control':'no-cache'}
+        });
+        observations.push(surfaceObservation(surface,response));
+      }
+
+      const recorded=await fetchJson('/api/admin/publication/coherence/record?city=tarnos',{
+        method:'POST',
+        headers:{
+          Authorization:'Bearer '+token(),
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({observations})
+      });
+
+      const checks=Array.isArray(recorded.checks)?recorded.checks:[];
+      const cls=recorded.status==='PASS'?'good':'bad';
+
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.6 · COHÉRENCE PUBLIQUE</div>'+
+        '<div class="scene '+cls+'">'+e(recorded.status||'—')+'</div>'+
+        '<div class="bar-row"><span>Génération</span><strong>'+e(recorded.expected?.generatedAt||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Moteur</span><strong>'+e(recorded.expected?.engine||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Scène</span><strong>'+e(recorded.expected?.scene||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Fingerprint</span><strong>'+e((recorded.expected?.fingerprint||'').slice(0,12))+'…</strong></div>'+
+        checks.map(c=>
+          '<div class="bar-row"><span>'+e(c.surface)+
+          '<div class="muted">'+e((c.reasons||[]).join(', ')||'Même génération, moteur, scène et fingerprint.')+'</div></span>'+
+          '<strong class="'+(c.passed?'good':'bad')+'">'+(c.passed?'PASS':'FAIL')+'</strong></div>'
+        ).join('')+
+        '<div class="muted" style="margin-top:10px">Le contrôle vient de lire réellement /api/latest, /api/decision, / et /instagram depuis ce téléphone, puis d’archiver le résultat.</div>'+
+        '</div>';
+    }catch(err){
+      out.innerHTML='<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>';
+    }finally{
+      btn.disabled=false;
+    }
   };
 
   document.getElementById('testFallbacks').onclick=async()=>{

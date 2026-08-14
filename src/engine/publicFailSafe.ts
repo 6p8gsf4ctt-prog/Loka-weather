@@ -7,6 +7,7 @@ import {
 } from "./publicProduct";
 import { verifyV24MasterAsset } from "./masterAsset";
 import { loadLegacyPublicBackup } from "../storage/publicationSafety";
+import { verifyPublicationManifest } from "./publicationManifest";
 
 type Obj = Record<string, unknown>;
 
@@ -152,6 +153,24 @@ export async function resolvePublicSurfaceSafely(
       forecast,
       "persistent_legacy_backup_unavailable_at_request"
     );
+  }
+
+  const manifest = await verifyPublicationManifest(
+    stored.forecast
+  );
+
+  if (!manifest.valid) {
+    return {
+      engine: "LEGACY",
+      forecast: withRequestFallbackReason(
+        persistentBackup,
+        `publication_manifest_invalid:${manifest.reason}`,
+        "PERSISTENT_BACKUP"
+      ),
+      payload: null,
+      fallback: true,
+      reason: `publication_manifest_invalid:${manifest.reason}`
+    };
   }
 
   const master = await verifyV24MasterAsset(

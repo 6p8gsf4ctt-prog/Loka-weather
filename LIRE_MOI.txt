@@ -1,211 +1,235 @@
-LOKA V24 — BLOC 12.5
+LOKA V24 — BLOC 12.6
 ======================
 
 OBJECTIF
 --------
-Durcir le mécanisme de publication/fallback pour qu'une défaillance V24 ne
-puisse ni publier un produit incomplet, ni écraser le dernier produit sûr.
+Garantir qu'une génération officielle est IDENTIQUE sur les quatre surfaces :
 
-Ce bloc ne change PAS les critères de readiness.
-Avec NOT_READY, la production reste LEGACY.
+- /api/latest
+- /api/decision
+- /
+- /instagram
 
-NOUVELLE MIGRATION D1
----------------------
-AJOUTER ET APPLIQUER :
-migrations/0005_publication_safety.sql
+Le contrôle porte sur :
+- generatedAt
+- moteur effectif
+- scène
+- fingerprint SHA-256 du produit public
 
-Elle crée :
+AUCUNE surface ne doit pouvoir dériver silencieusement d'une autre.
 
-1. public_forecast_backup
-   - dernier forecast Legacy sûr
-   - forecast JSON complet
-   - checksum SHA-256
-   - une ligne par ville
+MIGRATION D1 OBLIGATOIRE
+------------------------
+Appliquer :
+migrations/0006_publication_coherence.sql
 
-2. publication_fallback_audit
-   - journal append-only des incidents de publication
-   - UPDATE/DELETE interdits par triggers
+Elle crée deux tables append-only :
 
-FICHIERS
---------
-AJOUTER
-- migrations/0005_publication_safety.sql
-- src/engine/masterAsset.ts
+1. publication_generation_audit
+   Une preuve immuable par génération réellement publiée.
+
+2. publication_surface_audit
+   Le résultat des contrôles réels des quatre surfaces.
+
+FICHIERS À AJOUTER
+------------------
+- migrations/0006_publication_coherence.sql
+- src/engine/publicationManifest.ts
+- src/storage/publicationAudit.ts
+
+FICHIERS À REMPLACER
+--------------------
 - src/engine/publicFailSafe.ts
-- src/engine/fallbackSelfTest.ts
 - src/storage/publicationSafety.ts
-
-REMPLACER
-- src/engine/publicProduct.ts
-- src/engine/activationGuard.ts
+- src/pipeline.ts
 - src/engine/engineMode.ts
 - src/engine/engineRuntime.ts
-- src/pipeline.ts
 - src/index.ts
 - src/ui/dashboard.ts
 
-Le ZIP inclut également les dépendances 12.4 nécessaires.
+Le ZIP contient également les dépendances 12.5 nécessaires.
 
-NIVEAU 1 — MASTER V24 RÉELLEMENT VÉRIFIÉ
------------------------------------------
-Le Worker possède déjà un binding Cloudflare :
-ASSETS -> ./public
+MANIFEST CANONIQUE
+------------------
+Chaque génération 12.6 reçoit :
 
-Le Bloc 12.5 l'utilise maintenant.
+diagnostics.publicationManifest
 
-Avant toute génération V24 officielle :
-- le master choisi est demandé via env.ASSETS
-- HTTP doit réussir
-- Content-Type doit être image/*
-- sinon activationGuard = BLOCKED
-- génération = LEGACY
+Il contient notamment :
+- city/date/generatedAt
+- effectiveEngine
+- scène
+- master V24 si applicable
+- score/confiance
+- éditorial
+- températures
+- hourly
+- état garde-fou/fallback
+- surfaceContractVersion
 
-Le master est également REVÉRIFIÉ à chaque requête publique V24.
+LOKA calcule un SHA-256 déterministe de ce contenu :
 
-Donc la suppression accidentelle d'un master après génération déclenche
-immédiatement le fallback Legacy.
+fingerprintSha256
 
-NIVEAU 2 — BACKUP LEGACY PERSISTANT
------------------------------------
-Avant de publier une génération V24 :
+Le même fingerprint doit apparaître partout.
 
-1. LOKA vérifie le snapshot Legacy inline.
-2. Il reconstruit le forecast Legacy complet.
-3. Il l'enregistre dans public_forecast_backup.
-4. Il calcule un SHA-256 du JSON.
+ÉCRITURE D1
+-----------
+Avant publication :
+- le manifest est attaché au forecast
+- le backup Legacy persistant reçoit lui aussi un manifest
 
-Si cette sauvegarde échoue :
-V24 N'EST PAS PUBLIÉ.
-La génération est forcée en Legacy.
+Après saveForecast :
+- LOKA relit la génération
+- vérifie le moteur
+- RECALCULE le fingerprint
+- compare au manifest stocké
 
-Le backup est aussi rafraîchi pendant les générations Legacy normales.
+Puis une ligne est ajoutée à :
+publication_generation_audit
 
-NIVEAU 3 — ÉCRITURE D1 SÉCURISÉE
----------------------------------
-La nouvelle publication suit :
+IMPORTANT :
+pour une génération V24, cette preuve d'audit est OBLIGATOIRE.
 
-prepareSafePublication()
-→ backup Legacy
-→ validation JSON
-→ commitSafePublication()
-→ écriture forecasts
-→ relecture D1
-→ vérification generatedAt + moteur effectif
+Si l'audit V24 ne peut pas être enregistré :
+→ V24 est abandonné
+→ récupération Legacy
+→ aucune génération V24 non traçable n'est conservée.
 
-Cas V24 :
-- write échoue -> tentative récupération Legacy
-- relecture incohérente -> réécriture Legacy
-- récupération Legacy échoue aussi -> exception
-  et le précédent forecast public reste l'unique produit de confiance
+Pour Legacy, une panne d'audit ne coupe pas la météo, mais la génération sera
+signalée PARTIAL et le contrôle 12.6 ne pourra pas être validé.
 
-LOKA ne doit jamais répondre que la nouvelle génération est publiée si
-l'écriture n'a pas été vérifiée.
+HEADERS PUBLICS
+---------------
+Les 4 surfaces officielles renvoient désormais :
 
-NIVEAU 4 — FALLBACK À LA REQUÊTE
----------------------------------
-Les 4 surfaces officielles passent par le même resolver sécurisé :
+x-loka-publication-version
+x-loka-generated-at
+x-loka-engine
+x-loka-scene
+x-loka-publication-fingerprint
+x-loka-surface
 
-/api/latest
-/api/decision
-/
-/instagram
+Exemple :
+x-loka-publication-version: 12.6.0
+x-loka-engine: LEGACY
+x-loka-scene: NUAGES
+x-loka-publication-fingerprint: ...
 
-Pour servir V24 il faut maintenant :
+Ces headers proviennent TOUS du même publicationManifest.
 
-- produit stocké V24 valide
-- guard PASS
-- backup Legacy persistant lisible + checksum valide
-- master officiel toujours disponible
-
-Si une vérification échoue :
-→ backup Legacy persistant
-
-Si D1 backup est indisponible :
-→ snapshot Legacy inline
-
-Si aucun fallback sûr n'existe :
-→ LOKA REFUSE de servir le V24
-→ HTTP 503 "Prévision temporairement indisponible"
-
-C'est volontairement plus sûr que de montrer une donnée incohérente.
-
-NIVEAU 5 — AUDIT FALLBACK
--------------------------
-Les incidents de publication sont enregistrés dans :
-publication_fallback_audit
-
-Stages :
-PREFLIGHT
-BACKUP
-WRITE
-VERIFY
-RECOVERY
-
-L'audit ne participe jamais au fonctionnement du fallback.
-Une panne de la table d'audit ne peut pas empêcher un rollback/fallback.
-
-NIVEAU 6 — SELF-TEST MOBILE
-----------------------------
+CONTRÔLE MOBILE RÉEL
+--------------------
 Nouveau bouton Admin :
-"Tester les fallbacks 12.5"
 
-Route privée :
-GET /api/admin/engine/fallback-self-test?city=tarnos
+"Contrôler cohérence 12.6"
 
-Le test est LECTURE SEULE et ne modifie jamais la production.
+Ce bouton ne simule pas les surfaces.
 
-Il contrôle notamment :
-- master V24 courant accessible
-- faux master absent correctement détecté
-- payload V24 corrompu refusé
-- guard BLOCKED => Legacy
-- restauration du snapshot Legacy
-- erreur JSON détectée avant D1
-- backup Legacy persistant + checksum
-- surface publique courante résolue sans danger
+Depuis Safari/Chrome sur ton téléphone, il appelle réellement :
+
+1. /api/latest
+2. /api/decision
+3. /
+4. /instagram
+
+Il lit leurs headers LOKA et vérifie que les quatre réponses ont exactement :
+
+- HTTP 2xx
+- version 12.6.0
+- même generatedAt
+- même moteur
+- même scène
+- même fingerprint
+
+Le résultat est ensuite envoyé au serveur qui le REVALIDE par rapport au
+manifest officiel courant.
+
+Puis le résultat PASS/FAIL est écrit dans :
+publication_surface_audit
+
+Ce test ne modifie :
+- ni forecast
+- ni engine_control
+- ni autorisation V24
+
+Il ajoute uniquement une ligne d'audit append-only.
+
+FALLBACKS
+---------
+Le Bloc 12.5 reste intégralement en place.
+
+En plus, une génération V24 n'est plus servie si son publicationManifest est
+absent, invalide ou si son fingerprint ne correspond plus au contenu réel.
+
+Dans ce cas :
+→ backup Legacy persistant
+→ sinon backup Legacy inline
+→ sinon 503 sécurisé
 
 INSTALLATION MOBILE
 -------------------
-1. Ajouter/appliquer 0005_publication_safety.sql dans Cloudflare D1.
-2. Ajouter les 4 nouveaux fichiers TypeScript.
-3. Remplacer les 7 fichiers indiqués.
-4. Déployer.
-5. Générer UNE nouvelle météo.
-   Cette génération crée/rafraîchit le backup Legacy.
-6. /admin -> Contrôler le moteur.
-7. "Tester les fallbacks 12.5".
+1. Appliquer migrations/0006_publication_coherence.sql dans D1.
+2. Ajouter/remplacer les fichiers du ZIP.
+3. Déployer.
+4. Générer UNE nouvelle météo.
+5. Admin -> Contrôler le moteur.
+6. Tester les fallbacks 12.5.
+7. Contrôler cohérence 12.6.
 
 RÉSULTAT ATTENDU ACTUEL
 -----------------------
-Comme le readiness est encore NOT_READY :
+Avec readiness NOT_READY :
 
 Production : LEGACY
-Readiness : NOT_READY
 
-Le self-test devrait retourner PASS.
+Après UNE génération 12.6 :
 
-Juste après le déploiement, avant la première nouvelle génération,
-persistent_legacy_backup peut être PENDING.
-Après une nouvelle génération il doit passer PASS.
+publicationManifest : présent
+publication_generation_audit : VERIFIED
 
-AUCUN TEST DU SELF-TEST NE MODIFIE LE FORECAST.
+Puis :
+Contrôler cohérence 12.6
+→ PASS
 
-IMPORTANT
----------
-Le Bloc 12.5 n'est pas notre test de panne final.
+Les quatre lignes doivent afficher PASS :
+api_latest
+api_decision
+dashboard
+instagram
 
-Il installe les mécanismes et un self-test non destructif.
+C'est une validation importante :
+elle prouve que le téléphone a réellement reçu le même produit sur les quatre
+surfaces officielles.
 
-Le Bloc 12.8 prévu dans la trajectoire fera plus tard les véritables tests
-de panne contrôlés :
-- panne D1 simulée
-- payload/master forcé invalide
-- modèles dégradés
-- erreurs de surface
-- récupération et rollback
+CAS PRE-12.6
+------------
+Juste après déploiement, avant la première nouvelle génération, l'ancien
+forecast peut ne pas avoir publicationManifest.
+
+C'est normal.
+
+Il faut générer UNE nouvelle météo avant de valider le Bloc 12.6.
+
+CE QUE 12.6 NE FAIT PAS ENCORE
+------------------------------
+Ce bloc ne signifie toujours pas GO LIVE Instagram.
+
+Il verrouille la cohérence technique avant notre Release Candidate.
 
 PROCHAINE ÉTAPE
 ---------------
-Bloc 12.6 :
-cohérence stricte de toutes les surfaces et audit d'une génération officielle
-(API / dashboard / Instagram / moteur réellement publié).
+Bloc 12.7 :
+assembler la chaîne fonctionnelle complète comme Release Candidate :
+
+données
+→ consensus
+→ V24
+→ garde-fous
+→ publication sûre
+→ manifest
+→ dashboard officiel
+→ Studio Instagram officiel
+→ contrôle de cohérence
+
+Le Bloc 12.7 sera une Release Candidate fonctionnelle, pas encore notre GO LIVE.
