@@ -1,57 +1,68 @@
-LOKA V24 — BLOC 4
+LOKA V24 — BLOC 5
 ====================
 
-AJOUTER
--------
-- src/engine/scenes24/scoring.ts
-- src/engine/scenes24/classifier.ts
+REMPLACER
+---------
+- src/engine/verdict.ts
 
-AUCUN FICHIER EXISTANT À REMPLACER
----------------------------------
-Ce bloc est volontairement isolé.
+AUCUN AUTRE FICHIER À MODIFIER.
 
-Ce que scoring.ts fait
-----------------------
-- score normalisé 0–100
-- pondération officielle :
-  * phenomenonFit 40%
-  * durationFit 25%
-  * structureFit 20%
-  * modelConfidence 15%
-- bonus de spécificité plafonné à +8
-- pénalité d'incertitude plafonnée à -15
-- confiance HIGH / MEDIUM / LOW
-- helpers de scoring continu
+OBJECTIF
+--------
+Brancher le moteur V24 en shadow mode lors de chaque génération réelle.
 
-Ce que classifier.ts fait
--------------------------
-- calcule les 24 candidats
-- applique les critères d'éligibilité
-- applique les conflits critiques :
-  * 22 ORAGEUX vs 24 PLUIE + VENT
-  * 24 vs 10/12/13
-  * 10 vs 06/14/20
-  * 15 vs 11
-  * 17/08 vs 23/09
-- 19 INSTABLE n'est jamais un fallback technique
-- applique le fallback unique :
-  * 16 si journée franchement lumineuse
-  * 21 si journée partagée mais lumineuse
-  * 09 si nuages dominants
-  * 18 comme fallback absolu
-- prépare l'hystérésis inter-générations avec previousSceneId
-- les phénomènes critiques 10/17/22/24 peuvent contourner l'hystérésis
+Fonctionnement après Bloc 5
+---------------------------
+1. Le moteur legacy analyse toujours la journée.
+2. chooseScene() legacy décide toujours forecast.scene.
+3. En parallèle :
+   - buildDayProfile() construit le profil V24 ;
+   - chooseScene24() calcule les 24 scènes.
+4. Le résultat V24 est stocké uniquement dans diagnostics.
 
-SHADOW MODE
------------
-IMPORTANT : verdict.ts et pipeline.ts ne sont PAS modifiés.
-chooseScene24() n'est donc encore appelé nulle part en production.
-forecast.scene reste fourni exclusivement par classifier.ts legacy 6 scènes.
+Nouveaux diagnostics
+---------------------
+diagnostics.sceneClassifierProduction = "legacy6"
 
-Étape suivante
+diagnostics.sceneLegacy = {
+  scene,
+  score,
+  version
+}
+
+diagnostics.scene24
+→ décision complète V24 :
+  sceneId, sceneKey, sceneLabel, score, confidence,
+  runnerUp, 24 candidats, reasons, fallbackUsed...
+
+diagnostics.dayProfile24
+→ profil complet de la journée.
+
+diagnostics.scene24Error
+→ null si V24 fonctionne.
+→ message d'erreur si V24 échoue.
+
+SECURITE CRITIQUE
+-----------------
+V24 est entouré d'un try/catch fail-open.
+
+Si profile.ts ou classifier.ts V24 plante :
+- scene24 devient null ;
+- scene24Error est renseigné ;
+- LE FORECAST LEGACY CONTINUE NORMALEMENT.
+
+Donc le Bloc 5 ne doit jamais empêcher la publication quotidienne actuelle.
+
+INCHANGE
+--------
+- forecast.scene = legacy
+- forecast.subtitle = legacy
+- forecast.decisionLog = legacy
+- /instagram utilise encore les 6 masters
+- aucun master V24 n'est encore chargé
+- aucun changement D1 nécessaire : diagnostics_json contient déjà les diagnostics
+
+ETAPE SUIVANTE
 --------------
-Bloc 5 : brancher V24 en shadow mode dans verdict.ts :
-- construire DayProfile
-- appeler chooseScene24()
-- stocker le résultat uniquement dans diagnostics.scene24
-- conserver forecast.scene = legacy
+Bloc 6 : exposer/visualiser proprement le shadow mode pour comparer
+Legacy vs V24 sur de vraies générations, avant de construire le Studio 24.

@@ -5,6 +5,10 @@ import { clamp, median, weightedSupport } from "./math";
 import { analyzeDay, chooseScene } from "./classifier";
 import { assertPublicLanguage, prolongedHeatLine, rainLine, subtitleFor, temperatureRange, thunderLine, windLine } from "./editorial";
 
+// V24 shadow-mode imports. These do not replace the legacy scene decision.
+import { buildDayProfile } from "./scenes24/profile";
+import { chooseScene24 } from "./scenes24/classifier";
+
 function pointsForDate(consensus: Map<string, ConsensusHour>, date: string): ConsensusHour[] {
   return [...consensus.values()].filter((p) => p.time.slice(0, 10) === date);
 }
@@ -52,15 +56,49 @@ function firstLastHour(points: ConsensusHour[]): [number | null, number | null] 
   return [hourOf(points[0].time), Math.min(22, hourOf(points[points.length - 1].time) + 1)];
 }
 
+/**
+ * V24 is deliberately fail-open while it is in shadow mode.
+ *
+ * Any error from DayProfile or the V24 classifier is captured into diagnostics
+ * and NEVER prevents the legacy V0.6.6 forecast from being produced.
+ */
+function buildV24Shadow(city: CityConfig, day: ConsensusHour[]): {
+  scene24: ReturnType<typeof chooseScene24> | null;
+  dayProfile24: ReturnType<typeof buildDayProfile> | null;
+  scene24Error: string | null;
+} {
+  try {
+    const dayProfile24 = buildDayProfile(city, day);
+    const scene24 = chooseScene24(dayProfile24);
+
+    return {
+      scene24,
+      dayProfile24,
+      scene24Error: null
+    };
+  } catch (error) {
+    return {
+      scene24: null,
+      dayProfile24: null,
+      scene24Error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
 export function buildLokaForecast(city: CityConfig, date: string, consensus: Map<string, ConsensusHour>, forecasts: ModelForecast[]): LokaForecast {
   const day = pointsForDate(consensus, date);
   if (!day.length) throw new Error(`No consensus data for ${date}`);
 
+  // Legacy production decision — remains authoritative in Bloc 5.
   const analysis = analyzeDay(city, day);
   const daytime = analysis.daytime;
   if (!daytime.length) throw new Error(`No daytime data for ${date}`);
 
   const { scene, decisionLog } = chooseScene(city, analysis);
+
+  // V24 shadow calculation. Result is diagnostic-only.
+  const v24Shadow = buildV24Shadow(city, day);
+
   const minTemp = Math.round(Math.min(...daytime.map((p) => p.temperatureC)));
   const maxTemp = Math.round(Math.max(...daytime.map((p) => p.temperatureC)));
   const tempSpread = median(daytime.map((p) => p.temperatureSpreadC));
@@ -118,10 +156,24 @@ export function buildLokaForecast(city: CityConfig, date: string, consensus: Map
   const diagnostics = {
     editorialVersion: "0.4.0",
     decisionConfigVersion: DECISION_CONFIG.version,
+
+    // Production/legacy contract remains untouched.
     scene,
     subtitle,
     summaryLines: publicLines,
     decisionLog,
+
+    // Bloc 5 — V24 shadow diagnostics only.
+    sceneClassifierProduction: "legacy6",
+    sceneLegacy: {
+      scene,
+      score: decisionLog.selectedScore,
+      version: decisionLog.version
+    },
+    scene24: v24Shadow.scene24,
+    dayProfile24: v24Shadow.dayProfile24,
+    scene24Error: v24Shadow.scene24Error,
+
     modelsReceived: forecasts.map((f) => f.modelId),
     modelCount: forecasts.length,
     maxTemperatureC: maxTemp,
@@ -139,7 +191,10 @@ export function buildLokaForecast(city: CityConfig, date: string, consensus: Map
     generatedAt: new Date().toISOString(),
     tempMaxC: maxTemp,
     tempMinC: minTemp,
+
+    // IMPORTANT: still the legacy 6-scene result in Bloc 5.
     scene,
+
     subtitle,
     summaryLines: publicLines,
     decisionLog,

@@ -1,10 +1,9 @@
 {
-  "scoringCreated": true,
-  "classifierCreated": true,
-  "all24Referenced": true,
-  "instableNotFallback": true,
-  "hysteresisPresent": true,
-  "conflictRulesPresent": true,
-  "productionFilesUntouched": true,
-  "typescriptCheck": "PASS"
+  "onlyProductionFileChanged": "src/engine/verdict.ts",
+  "legacySceneStillReturned": true,
+  "v24ShadowCalled": true,
+  "v24FailOpen": true,
+  "v24OnlyInDiagnostics": true,
+  "productionFlagLegacy": true,
+  "typescriptIntegrationCheck": "PASS"
 }
