@@ -1,138 +1,218 @@
-LOKA V24 — BLOC 12.3
+LOKA V24 — BLOC 12.4
 ======================
 
 OBJECTIF
 --------
-Installer le garde-fou EXACT de chaque génération avant le futur cutover V24.
+Premier CUTOVER PUBLIC RÉEL mais strictement conditionnel.
 
-Ce bloc utilise l'autorisation du Bloc 12.2, mais NE BASCULE TOUJOURS PAS
-les surfaces publiques.
+Une génération devient officiellement V24 uniquement si :
 
-AUCUNE MIGRATION D1.
-La migration 0004 du Bloc 12.2 doit déjà être appliquée.
+1. requested_mode = V24
+2. v24_approved = true
+3. readiness = READY_CANDIDATE
+4. décision V24 valide
+5. preuve APPROVED dans l'audit
+6. TOUS les garde-fous du Bloc 12.3 = PASS
+
+Sinon :
+MOTEUR PUBLIC = LEGACY
+
+AUCUNE NOUVELLE MIGRATION D1.
+Les migrations 0003 et 0004 doivent déjà être présentes.
 
 FICHIERS
 --------
 AJOUTER
-- src/engine/activationGuard.ts
+- src/engine/publicProduct.ts
+- src/ui/dashboard24.ts
+- src/ui/instagramOfficial24.ts
 
 REMPLACER
 - src/engine/engineMode.ts
 - src/engine/engineRuntime.ts
-- src/storage/engineApproval.ts
 - src/pipeline.ts
 - src/index.ts
 - src/ui/dashboard.ts
 
-GARDE-FOUS PAR GÉNÉRATION
--------------------------
-V24 ne peut être déclaré "prêt pour cutover" que si TOUS ces contrôles passent :
+Le ZIP inclut aussi les dépendances 12.3 nécessaires.
 
-1. requested_mode = V24
-2. v24_approved = true
-3. événement APPROVED présent dans l'audit append-only
-4. readiness courant = READY_CANDIDATE
-5. décision scene24 présente
-6. scene24Error absent
-7. dayProfile24 présent
-8. au moins 4 modèles météo disponibles
-9. futur payload V24 construit sans erreur
-10. score gagnant >= 55
-11. confiance = MEDIUM ou HIGH
-12. gap gagnant / runner-up >= 7 points
-    - si aucun runner-up : score >= 70 ET confiance HIGH
-13. scènes 08/17 brouillard :
-    visibilityMinKm physique obligatoire
-14. scène 22 orage :
-    au moins 1 h d'orage ET support >= 60 %
+COMMENT LE CUTOVER FONCTIONNE
+-----------------------------
+engineMode 12.4 vérifie d'abord les conditions globales :
 
-STATUTS
--------
-NOT_ARMED
-- LEGACY ou V24_PREVIEW demandé
-- aucune tentative de production
+LEGACY demandé
+→ resolver = LEGACY
 
-BLOCKED
-- V24 est demandé mais un garde-fou échoue
-- fallbackRequired = true
-- fallback = LEGACY
+V24_PREVIEW
+→ resolver = LEGACY
 
-PASS
-- tous les garde-fous de cette génération passent
-- activationReadyForCutover = true
-- MAIS cutover public encore verrouillé au Bloc 12.3
+V24 mais readiness insuffisant
+→ resolver = LEGACY
+
+V24 sans approbation
+→ resolver = LEGACY
+
+V24 + approbation + READY_CANDIDATE + scène valide
+→ resolver = V24 ARMÉ
+→ le garde-fou génération 12.3 reste obligatoire
+
+Ensuite engineRuntime applique la décision finale :
+
+resolver V24 + guard PASS
+→ génération publique V24
+
+resolver V24 + guard BLOCKED
+→ génération publique LEGACY
+→ generationFallbackRequired = true
+
+AUCUN "DEMI V24"
+----------------
+Quand une génération passe en V24, le runtime remplace ENSEMBLE :
+
+- forecast.scene
+- subtitle
+- summaryLines
+- mainVerdict
+- rainVerdict
+- notableEvent
+- decisionLog public
+- diagnostics.scene
+- diagnostics.subtitle
+- diagnostics.summaryLines
+- diagnostics.decisionLog
+- sceneClassifierProduction
+
+Cela est important car storage/db.ts reconstruit scene/subtitle/summaryLines
+depuis diagnostics_json lors de la lecture D1.
+
+Le produit V24 complet est sauvegardé dans :
+diagnostics.v24OfficialProduct
+
+Le produit Legacy complet est conservé dans :
+diagnostics.legacyPublicFallback
+
+FAIL-SAFE À LA LECTURE
+----------------------
+Même après sauvegarde, chaque surface publique revérifie :
+
+sceneEngine.effectiveProduction = V24
++
+v24ActivationGuard.status = PASS
++
+v24OfficialProduct valide
+
+Si une incohérence est détectée :
+la requête publique reconstruit immédiatement le fallback Legacy.
+
+Cela protège :
+- /api/latest
+- /api/decision
+- /
+- /instagram
+
+SURFACES PUBLIQUES
+------------------
+Quand la génération effective est LEGACY :
+
+/api/latest  -> Legacy
+/api/decision -> Legacy
+/             -> dashboard Legacy
+/instagram    -> Studio Legacy
+
+Quand la génération effective est V24 PASS :
+
+/api/latest  -> forecast public V24
+/api/decision -> forecast public V24
+/             -> nouveau dashboard officiel V24
+/instagram    -> nouveau Studio officiel V24
+
+Les routes QA restent séparées :
+
+/instagram24
+= Shadow / QA
+
+/preview24
+= prépublication V24
+
+/instagram24-preview
+= Studio prépublication V24
+
+ROLLBACK
+--------
+Le bouton "Revenir à Legacy" garde priorité absolue.
+
+Après rollback :
+requested_mode = LEGACY
+v24_approved = 0
+
+La prochaine génération est Legacy.
+
+Les requêtes publiques disposent également d'un fallback de lecture si un
+produit V24 stocké est incomplet ou invalide.
+
+ÉTAT ACTUEL
+-----------
+Avec ton readiness actuel NOT_READY :
+
+Bloc 12.4 NE CHANGERA RIEN au produit public.
+
+Même si le code de cutover existe :
+resolver = LEGACY
+dashboard = Legacy
+Instagram = Legacy
+
+Donc le déploiement du Bloc 12.4 n'est PAS une activation anticipée.
+
+TEST MOBILE MAINTENANT
+----------------------
+1. Déployer Bloc 12.4.
+2. Générer une nouvelle météo.
+3. Contrôler le moteur.
+4. Vérifier :
+   Production = LEGACY
+   Readiness = NOT_READY
+   Dernière génération publique = LEGACY
+5. Ouvrir /
+   -> fonctionnement normal Legacy
+6. Ouvrir /instagram
+   -> Studio Legacy
+7. Tester les garde-fous
+   -> NOT_ARMED ou BLOCKED selon le mode demandé
+8. Aucun V24 officiel ne doit apparaître.
+
+TEST FUTUR READY_CANDIDATE
+--------------------------
+Après double confirmation :
+
+Nouvelle génération
+→ si guard PASS :
+   Production = V24
+   / = dashboard V24
+   /instagram = Studio V24
+   /api/latest = V24
+
+→ si guard BLOCKED :
+   Production = LEGACY
+   fallback génération = LEGACY
+   toutes les surfaces restent Legacy
 
 IMPORTANT
 ---------
-Même avec :
-requested_mode = V24
-v24_approved = true
-readiness = READY_CANDIDATE
-guard = PASS
+Bloc 12.4 introduit le cutover technique réel.
+Il ne signifie PAS encore GO LIVE Instagram.
 
-le Bloc 12.3 conserve :
-effectiveProduction = LEGACY
-publicCutoverLockedUntilBloc12_4 = true
-
-Le Bloc 12.4 sera donc le premier bloc autorisé à brancher les surfaces
-publiques sur le produit V24 d'une génération PASS.
-
-FALLBACK DE GÉNÉRATION
-----------------------
-Si un garde-fou échoue :
-- forecast Legacy reste intact
-- sceneEngine.generationFallbackRequired = true
-- v24ActivationGuard.status = BLOCKED
-- la raison exacte est sauvegardée
-- aucune exception V24 ne bloque la météo officielle
-
-Le rollback administratif global du Bloc 11/12 reste disponible à tout moment.
-
-NOUVELLE ROUTE ADMIN
---------------------
-GET /api/admin/engine/activation-check?city=tarnos
-Authorization: Bearer ADMIN_TOKEN
-
-Elle recalcule les garde-fous sur le forecast courant et renvoie :
-- résolution moteur
-- statut PASS / BLOCKED / NOT_ARMED
-- chaque check OK / NON
-- fallback LEGACY
-- cutover public verrouillé
-
-ADMIN MOBILE
-------------
-Nouveau bouton :
-"Tester les garde-fous V24"
-
-Il affiche chaque critère individuellement.
-
-TEST AUJOURD'HUI
-----------------
-Avec l'état actuel :
-requested_mode = LEGACY
-readiness = NOT_READY
-
-Résultat attendu :
-status = NOT_ARMED
-activationReadyForCutover = NON
-production = LEGACY
-
-Si tu actives V24_PREVIEW :
-status reste NOT_ARMED
-car Preview n'est jamais un mode de production.
-
-Quand un jour READY_CANDIDATE + double confirmation seront acquis :
-requested_mode = V24
-v24_approved = OUI
-
-Le garde-fou pourra alors retourner :
-PASS
-ou
-BLOCKED avec la raison précise de la génération.
+Les prochains blocs 12.5 à 12.13 servent précisément à éprouver :
+- les pannes
+- les fallbacks
+- la cohérence des surfaces
+- le rollback
+- les 24 scènes
+- la procédure quotidienne
+avant la validation de mise en exploitation.
 
 PROCHAINE ÉTAPE
 ---------------
-Bloc 12.4 :
-brancher enfin les surfaces publiques sur V24 UNIQUEMENT pour une génération
-dont le garde-fou 12.3 est PASS, avec fallback immédiat vers Legacy sinon.
+Bloc 12.5 :
+durcir et tester systématiquement le fallback automatique de génération,
+y compris erreurs de master, produit public invalide, stockage, données météo
+dégradées et défaillances de surface.

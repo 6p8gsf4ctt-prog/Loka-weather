@@ -22,23 +22,31 @@ export interface SceneEngineResolution {
   requested: SceneEngineMode;
 
   /**
-   * Bloc 12.3 arms the exact per-generation activation guards.
-   * Public cutover is intentionally still locked until Bloc 12.4.
+   * This is the engine requested after global authorization/readiness checks.
+   * The per-generation activation guard remains authoritative and may force
+   * the actual generation back to LEGACY.
    */
-  effectiveProduction: "LEGACY";
+  effectiveProduction: "LEGACY" | "V24";
 
   previewEnabled: boolean;
   readiness: ReadinessStatus;
   v24Approved: boolean;
   activationGuardEnabled: boolean;
   reason: string;
-  productionActivationLocked: true;
+
+  /**
+   * false only when V24 has passed the global authorization/readiness layer.
+   * This does NOT bypass the per-generation activation guard.
+   */
+  productionActivationLocked: boolean;
 }
 
-const VERSION = "12.3.0";
+const VERSION = "12.4.0";
 
 export function normalizeSceneEngineMode(value: unknown): SceneEngineMode {
-  return value === "V24_PREVIEW" || value === "V24" ? value : "LEGACY";
+  return value === "V24_PREVIEW" || value === "V24"
+    ? value
+    : "LEGACY";
 }
 
 export function resolveSceneEngineMode(args: {
@@ -81,30 +89,57 @@ export function resolveSceneEngineMode(args: {
     };
   }
 
-  const guardsEnabled =
-    approved &&
-    args.readiness === "READY_CANDIDATE" &&
-    args.hasValidV24Decision;
-
-  let reason = "v24_activation_guard_armed";
-
   if (args.readiness !== "READY_CANDIDATE") {
-    reason = "readiness_not_ready";
-  } else if (!approved) {
-    reason = "v24_not_approved";
-  } else if (!args.hasValidV24Decision) {
-    reason = "no_valid_v24_decision";
+    return {
+      version: VERSION,
+      requested,
+      effectiveProduction: "LEGACY",
+      previewEnabled: args.hasValidV24Decision,
+      readiness: args.readiness,
+      v24Approved: approved,
+      activationGuardEnabled: false,
+      reason: "readiness_not_ready",
+      productionActivationLocked: true
+    };
+  }
+
+  if (!approved) {
+    return {
+      version: VERSION,
+      requested,
+      effectiveProduction: "LEGACY",
+      previewEnabled: args.hasValidV24Decision,
+      readiness: args.readiness,
+      v24Approved: false,
+      activationGuardEnabled: false,
+      reason: "v24_not_approved",
+      productionActivationLocked: true
+    };
+  }
+
+  if (!args.hasValidV24Decision) {
+    return {
+      version: VERSION,
+      requested,
+      effectiveProduction: "LEGACY",
+      previewEnabled: false,
+      readiness: args.readiness,
+      v24Approved: true,
+      activationGuardEnabled: false,
+      reason: "no_valid_v24_decision",
+      productionActivationLocked: true
+    };
   }
 
   return {
     version: VERSION,
     requested,
-    effectiveProduction: "LEGACY",
-    previewEnabled: args.hasValidV24Decision,
+    effectiveProduction: "V24",
+    previewEnabled: true,
     readiness: args.readiness,
-    v24Approved: approved,
-    activationGuardEnabled: guardsEnabled,
-    reason,
-    productionActivationLocked: true
+    v24Approved: true,
+    activationGuardEnabled: true,
+    reason: "v24_armed_generation_guard_required",
+    productionActivationLocked: false
   };
 }

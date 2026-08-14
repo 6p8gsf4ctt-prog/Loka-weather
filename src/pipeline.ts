@@ -128,7 +128,7 @@ async function runCity(env: Env, city: CityConfig, source: string): Promise<Loka
     await connectEngineSelector(env, forecast);
   } catch (error) {
     forecast.diagnostics.sceneEngine = {
-      version: "12.3.0",
+      version: "12.4.0",
       connectedInPipeline: true,
       requested: "LEGACY",
       resolverEffective: "LEGACY",
@@ -142,7 +142,7 @@ async function runCity(env: Env, city: CityConfig, source: string): Promise<Loka
       error: error instanceof Error ? error.message : String(error)
     };
     forecast.diagnostics.v24ActivationGuard = {
-      version: "12.3.0",
+      version: "12.4.0",
       status: "BLOCKED",
       evaluatedAt: new Date().toISOString(),
       fallbackRequired: true,

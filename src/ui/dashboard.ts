@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.3. Les garde-fous de génération V24 sont actifs ; le cutover public reste verrouillé sur Legacy.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.4. Le cutover public est conditionnel : V24 uniquement sur une génération PASS, sinon Legacy.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -157,11 +157,12 @@ async function loadReadiness(){
 
 function renderEngine(d){
   const c=d.control||{}, r=d.resolution||{}, pipe=d.pipeline||{}, pr=pipe.latestResolution||{}, pg=pipe.latestActivationGuard||{};
-  const effective=r.effectiveProduction||'LEGACY';
+  const resolverEffective=r.effectiveProduction||'LEGACY';
+  const effective=pipe.actualEffectiveProduction||pr.effectiveProduction||'LEGACY';
   const requested=r.requested||'LEGACY';
   const preview=!!r.previewEnabled;
   const pipelineConnected=pipe.connected===true;
-  const effectiveClass=effective==='LEGACY'?'good':'caution';
+  const effectiveClass=effective==='V24'?'good':'caution';
 
   engineStatusEl.innerHTML='<span class="'+effectiveClass+'">Production : '+e(effective)+'</span> · demandé : '+e(requested);
 
@@ -175,9 +176,9 @@ function renderEngine(d){
     '<div class="metric-section"><div class="card">'+
       '<div class="bar-row"><span>Mode demandé</span><strong>'+e(requested)+'</strong></div>'+
       '<div class="bar-row"><span>V24 approuvé</span><strong>'+(r.v24Approved?'OUI':'NON')+'</strong></div>'+
-      '<div class="bar-row"><span>Activation production</span><strong class="bad">VERROUILLÉE</strong></div>'+
+      '<div class="bar-row"><span>Cutover public</span><strong class="'+(resolverEffective==='V24'?'good':'caution')+'">'+(resolverEffective==='V24'?'ARMÉ · GARDE-FOU REQUIS':'NON ARMÉ')+'</strong></div>'+
       '<div class="bar-row"><span>Sélecteur dans le pipeline</span><strong class="'+(pipelineConnected?'good':'caution')+'">'+(pipelineConnected?'CONNECTÉ':'EN ATTENTE D’UNE GÉNÉRATION')+'</strong></div>'+
-      '<div class="bar-row"><span>Dernière génération effective</span><strong>'+e(pr.effectiveProduction||'—')+'</strong></div>'+
+      '<div class="bar-row"><span>Dernière génération publique</span><strong>'+e(pr.effectiveProduction||'—')+'</strong></div>'+
       '<div class="bar-row"><span>Raison pipeline</span><strong>'+e(pr.reason||'—')+'</strong></div>'+
       '<div class="bar-row"><span>Garde-fou génération</span><strong class="'+(pg.status==='PASS'?'good':(pg.status==='BLOCKED'?'bad':'caution'))+'">'+e(pg.status||'—')+'</strong></div>'+
       '<div class="bar-row"><span>Prêt pour cutover</span><strong class="'+(pg.activationReadyForCutover?'good':'caution')+'">'+(pg.activationReadyForCutover?'OUI':'NON')+'</strong></div>'+
@@ -229,7 +230,7 @@ function renderEngine(d){
         '<div class="scene '+cls+'">'+e(g.status||'—')+'</div>'+
         '<div class="meta">Raison : '+e(g.reason||'—')+'</div>'+
         '<div class="bar-row"><span>Fallback si blocage</span><strong>LEGACY</strong></div>'+
-        '<div class="bar-row"><span>Cutover public</span><strong class="bad">VERROUILLÉ BLOC 12.3</strong></div>'+
+        '<div class="bar-row"><span>Cutover public</span><strong class="bad">V24 SI PASS · LEGACY SINON</strong></div>'+
         rows+
         '</div>';
     }catch(err){
@@ -295,7 +296,7 @@ function renderApproval(data){
       '<div style="font-weight:750;margin:7px 0">'+e(pending.confirmationPhrase)+'</div>'+
       '<input id="approvalPhrase" autocomplete="off" autocapitalize="characters" placeholder="'+e(pending.confirmationPhrase)+'">'+
       '<button id="confirmApproval" class="locked">Confirmer l’autorisation V24</button>'+
-      '<div class="muted" style="margin-top:8px">Même après confirmation, Bloc 12.2 laisse la production sur LEGACY.</div>'+
+      '<div class="muted" style="margin-top:8px">Après confirmation, seule une nouvelle génération dont tous les garde-fous passent pourra devenir V24.</div>'+
       '</div>';
   }else{
     html+='<button id="prepareApproval" class="'+(ready?'locked':'secondary')+'" style="margin-top:12px">Préparer l’autorisation V24</button>'+
@@ -344,7 +345,7 @@ function renderApproval(data){
           confirmationPhrase:phrase
         })
       });
-      engineStatusEl.innerHTML='<span class="good">Autorisation V24 enregistrée — production toujours LEGACY.</span>';
+      engineStatusEl.innerHTML='<span class="good">Autorisation V24 enregistrée — la prochaine génération restera soumise aux garde-fous.</span>';
       await loadEngine();
       return;
     }catch(err){

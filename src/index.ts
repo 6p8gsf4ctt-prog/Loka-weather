@@ -9,6 +9,9 @@ import { buildV24PublicPayloadPreview } from "./engine/publicPreview";
 import { ensureEngineControl, requestV24Preview, rollbackToLegacy } from "./storage/engineControl";
 import { auditRollback, confirmV24Approval, getLatestV24ApprovalProof, getV24ApprovalOverview, prepareV24Approval } from "./storage/engineApproval";
 import { evaluateV24ActivationGuard } from "./engine/activationGuard";
+import { resolveStoredPublicSurface } from "./engine/publicProduct";
+import { renderDashboard24 } from "./ui/dashboard24";
+import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import type { Env, LokaForecast, Scene24Candidate, SceneDecisionV24, DayProfile } from "./types";
 import { renderAdmin, renderDashboard } from "./ui/dashboard";
 import { renderInstagramGenerator } from "./ui/instagram";
@@ -192,13 +195,15 @@ async function engineStatus(
       connected: latestPipelineResolution?.connectedInPipeline === true,
       generatedAt: latestForecastGeneratedAt,
       latestResolution: latestPipelineResolution,
-      latestActivationGuard
+      latestActivationGuard,
+      actualEffectiveProduction:
+        latestPipelineResolution?.effectiveProduction ?? "LEGACY"
     },
     invariant: {
-      forecastSceneStillLegacy: true,
-      productionActivationAvailable: false,
+      productionMayBeV24OnlyAfterGuardPass: true,
       rollbackAlwaysAvailable: true,
-      selectorConnectedToPipeline: true
+      selectorConnectedToPipeline: true,
+      requestTimeSurfaceFallback: "LEGACY"
     }
   };
 }
@@ -226,6 +231,13 @@ async function v24Prepublication(env:Env,citySlug:string){
   return {status,forecast,payload};
 }
 
+
+function publicForecastResponse(forecast: LokaForecast | null): LokaForecast | null {
+  if (!forecast) return null;
+  return resolveStoredPublicSurface(forecast).forecast;
+}
+
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -242,7 +254,9 @@ export default {
     if (url.pathname === "/api/latest") {
       const slug = url.searchParams.get("city") || "tarnos";
       if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
-      return json(await latestForecast(env.DB, slug));
+      return json(
+        publicForecastResponse(await latestForecast(env.DB, slug))
+      );
     }
 
     if (url.pathname === "/api/decision") {
@@ -252,7 +266,7 @@ export default {
       const forecast = await latestForecast(env.DB, slug);
       if (!forecast) return json({ error: "no_forecast" }, 404);
 
-      return json(forecast);
+      return json(publicForecastResponse(forecast));
     }
 
     if (url.pathname === "/api/shadow") {
@@ -343,7 +357,7 @@ export default {
       return json({
         error: "use_double_confirmation_flow",
         message:
-          "Bloc 12.3 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
+          "Bloc 12.4 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
       }, 409);
     }
 
@@ -384,18 +398,21 @@ export default {
           resolution,
           guard,
           safety: {
-            productionEngine: "LEGACY",
-            publicCutoverLocked: true,
+            resolverEngine: resolution.effectiveProduction,
+            guardStatus: guard.status,
+            cutoverWouldBeV24:
+              resolution.effectiveProduction === "V24" &&
+              guard.status === "PASS",
             fallbackIfBlocked: "LEGACY",
-            nextCutoverBlock: "12.4"
+            publicCutoverConditional: true
           }
         });
       } catch (error) {
         return json({
           error: error instanceof Error ? error.message : String(error),
           safety: {
-            productionEngine: "LEGACY",
-            publicCutoverLocked: true
+            fallbackEngine: "LEGACY",
+            publicCutoverConditional: true
           }
         }, 500);
       }
@@ -435,8 +452,8 @@ export default {
           safety: {
             doubleConfirmationRequired: true,
             readinessMustBe: "READY_CANDIDATE",
-            productionActivationLocked: true,
-            effectiveProduction: "LEGACY"
+            perGenerationGuardRequired: true,
+            publicCutoverConditional: true
           }
         });
       } catch (error) {
@@ -464,8 +481,8 @@ export default {
         if (!result.ok) {
           return json({
             ...result,
-            productionEngine: "LEGACY",
-            productionActivationLocked: true
+            currentGenerationUnchanged: true,
+            publicCutoverConditional: true
           }, result.error === "readiness_not_ready" ? 423 : 409);
         }
 
@@ -517,17 +534,17 @@ export default {
         if (!result.ok) {
           return json({
             ...result,
-            productionEngine: "LEGACY",
-            productionActivationLocked: true
+            currentGenerationUnchanged: true,
+            publicCutoverConditional: true
           }, result.error === "confirmation_phrase_mismatch" ? 400 : 409);
         }
 
         return json({
           ...result,
-          productionEngine: "LEGACY",
-          productionActivationLocked: true,
+          currentGenerationUnchanged: true,
+          publicCutoverConditional: true,
           nextStep:
-            "Approval stored. Bloc 12.3 peut maintenant évaluer les garde-fous de génération ; le cutover public reste verrouillé jusqu'au Bloc 12.4."
+            "Autorisation enregistrée. La prochaine génération pourra utiliser V24 uniquement si le garde-fou 12.4 passe ; sinon elle restera Legacy."
         });
       } catch (error) {
         return json({
@@ -648,9 +665,40 @@ export default {
       const city = getCity("tarnos")!;
       const forecast = await latestForecast(env.DB, "tarnos");
 
+      if (forecast) {
+        const surface = resolveStoredPublicSurface(forecast);
+
+        if (surface.engine === "V24") {
+          return new Response(
+            renderInstagramOfficial24(surface.payload, city.timezone),
+            {
+              headers: {
+                "content-type": "text/html; charset=utf-8",
+                "cache-control": "no-store"
+              }
+            }
+          );
+        }
+
+        return new Response(
+          renderInstagramGenerator(
+            surface.forecast,
+            city.latitude,
+            city.longitude,
+            city.timezone
+          ),
+          {
+            headers: {
+              "content-type": "text/html; charset=utf-8",
+              "cache-control": "no-store"
+            }
+          }
+        );
+      }
+
       return new Response(
         renderInstagramGenerator(
-          forecast,
+          null,
           city.latitude,
           city.longitude,
           city.timezone
@@ -705,14 +753,31 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/tarnos") {
+      const city = getCity("tarnos")!;
       const forecast = await latestForecast(env.DB, "tarnos");
 
-      return new Response(renderDashboard(forecast), {
-        headers: {
-          "content-type": "text/html; charset=utf-8",
-          "cache-control": "no-store"
+      if (!forecast) {
+        return new Response(renderDashboard(null), {
+          headers: {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        });
+      }
+
+      const surface = resolveStoredPublicSurface(forecast);
+
+      return new Response(
+        surface.engine === "V24"
+          ? renderDashboard24(surface.payload, city.timezone)
+          : renderDashboard(surface.forecast),
+        {
+          headers: {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
         }
-      });
+      );
     }
 
     return json({ error: "not_found" }, 404);
