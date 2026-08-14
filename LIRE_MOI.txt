@@ -1,69 +1,29 @@
-LOKA V24 — BLOC 7
-====================
+LOKA V24 — CORRECTIF BLOC 7
+===========================
 
-OBJECTIF
---------
-Installer les 24 masters officiels et créer un Studio V24 parallèle.
-AUCUNE BASCULE DE PRODUCTION.
-
-FICHIERS À AJOUTER
-------------------
-- src/ui/backgrounds24.ts
+REMPLACER UNIQUEMENT
 - src/ui/instagram24.ts
-- public/masters24/ (24 PNG officiels)
 
-FICHIERS À REMPLACER
---------------------
-- src/index.ts
-- wrangler.jsonc
+CAUSE
+-----
+Le fichier utilisait un template literal JavaScript (`...`) à l'intérieur du
+template literal TypeScript qui contient toute la page HTML. Le backtick interne
+fermait prématurément la chaîne TypeScript.
 
-ARCHITECTURE RETENUE
---------------------
-Les 24 PNG officiels pèsent environ 38 Mo au total.
-Ils NE SONT PAS convertis et NE SONT PAS embarqués en base64 dans le Worker.
-Ils sont conservés octet pour octet et servis par Cloudflare Static Assets.
+Erreur Cloudflare :
+Expected ";" but found "Températures"
 
-Cela évite de gonfler le bundle JavaScript du Worker tout en conservant les
-masters officiels exactement tels que livrés.
+CORRECTION
+----------
+La ligne concernée utilise maintenant une concaténation JavaScript classique :
+"Températures comprises entre " + forecast.tempMinC + " et " + forecast.tempMaxC + " degrés."
 
-La configuration ajoutée à wrangler.jsonc est :
-assets.directory = "./public"
-assets.binding = "ASSETS"
-assets.run_worker_first = true
+Aucun comportement métier n'est modifié.
 
-NOUVELLE PAGE
--------------
-/instagram24
-
-AUTO V24 :
-- lit diagnostics.scene24.sceneId ;
-- sélectionne le master officiel 01..24 ;
-- affiche les données variables du forecast courant ;
-- n'écrit rien dans forecast.scene ;
-- ne modifie pas /instagram.
-
-MODE MANUEL
------------
-Le sélecteur permet de contrôler les 24 masters indépendamment de la météo.
-
-INTEGRITE
----------
-24/24 fichiers contrôlés.
-Dimensions attendues : 1080 × 1350.
-SHA-256 contrôlés contre le manifest de livraison.
-Les fichiers public/masters24 sont des copies byte-for-byte des PNG fournis.
-
-IMPORTANT
----------
-/instagram reste le Studio Legacy officiel.
-Le Studio V24 est expérimental tant que le shadow n'a pas été validé sur
-plusieurs journées et que le rendu des 24 scènes n'a pas été contrôlé.
-
-TEST APRÈS DÉPLOIEMENT
-----------------------
-1. Ouvrir /instagram : le Studio actuel doit être inchangé.
-2. Ouvrir /instagram24.
-3. Vérifier AUTO V24.
-4. Parcourir manuellement les scènes 01 à 24.
-5. Vérifier qu'aucun master n'affiche une erreur de chargement.
-6. Télécharger/partager un PNG test.
+APRÈS REMPLACEMENT
+------------------
+1. Commit/push.
+2. Attendre le déploiement Cloudflare.
+3. Vérifier que le build Wrangler réussit.
+4. Ouvrir /instagram24.
+5. Contrôler AUTO V24 puis les scènes 01 à 24.

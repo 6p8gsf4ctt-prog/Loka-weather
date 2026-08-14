@@ -77,7 +77,7 @@ async function draw(){
  text(master.label,540,205,72,760,ink,"center");wrap(forecast.subtitle||forecast.mainVerdict||"",540,285,860,40,32,430,ink,"center",2);
  const hours=(forecast.hourly||[]).slice(0,6),xs=[145,310,470,630,790,950];
  hours.forEach((h,i)=>{text(String(h.hour).padStart(2,"0")+"h",xs[i],390,30,470,ink,"center");text(conditionIcon(h.condition),xs[i],485,68,400,ink,"center");text(String(h.temperatureC)+"°",xs[i],610,54,650,ink,"center")});
- const lines=[`Températures comprises entre ${forecast.tempMinC} et ${forecast.tempMaxC} degrés.`].concat((forecast.summaryLines||[]).filter(x=>x&&!String(x).toLowerCase().includes("températures comprises"))).slice(0,3);
+ const lines=["Températures comprises entre "+forecast.tempMinC+" et "+forecast.tempMaxC+" degrés."].concat((forecast.summaryLines||[]).filter(x=>x&&!String(x).toLowerCase().includes("températures comprises"))).slice(0,3);
  ctx.save();ctx.fillStyle="rgba(255,255,255,.84)";ctx.shadowColor="rgba(0,0,0,.10)";ctx.shadowBlur=18;roundRect(62,950,956,330,30);ctx.fill();ctx.restore();
  lines.forEach((line,i)=>{const y=1025+i*100;if(i){ctx.strokeStyle="rgba(23,33,43,.14)";ctx.beginPath();ctx.moveTo(95,y-50);ctx.lineTo(985,y-50);ctx.stroke()}wrap(line,120,y+10,840,36,28,430,panelInk,"left",2)});
  text("Ici, aujourd’hui.",540,1330,23,380,ink,"center");
