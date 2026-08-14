@@ -1,10 +1,11 @@
 {
-  "nativeEditorialFile": true,
-  "nativeSourceType": true,
-  "nativeSourceRuntime": true,
-  "dayProfileUsed": true,
-  "payloadStillNotPublishable": true,
-  "dashboardShowsV24Verdict": true,
+  "typescriptIntegrationCheck": "PASS",
   "migrationRequired": false,
-  "productionStillLegacy": true
+  "selectorConnectedInPipeline": true,
+  "productionHardLockedLegacy": true,
+  "runtimeLegacyRestoreGuard": true,
+  "readinessExcludesCurrentGeneration": true,
+  "controlAndReadinessFailuresFailSafe": true,
+  "forecastSceneCanBecomeV24": false,
+  "adminShowsPipelineState": true
 }

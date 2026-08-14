@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Plan de contrôle Bloc 11.1. La production est techniquement verrouillée sur Legacy.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.1. Le sélecteur est connecté au pipeline ; la production reste verrouillée sur Legacy.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -156,10 +156,11 @@ async function loadReadiness(){
 
 
 function renderEngine(d){
-  const c=d.control||{}, r=d.resolution||{};
+  const c=d.control||{}, r=d.resolution||{}, pipe=d.pipeline||{}, pr=pipe.latestResolution||{};
   const effective=r.effectiveProduction||'LEGACY';
   const requested=r.requested||'LEGACY';
   const preview=!!r.previewEnabled;
+  const pipelineConnected=pipe.connected===true;
   const effectiveClass=effective==='LEGACY'?'good':'caution';
 
   engineStatusEl.innerHTML='<span class="'+effectiveClass+'">Production : '+e(effective)+'</span> · demandé : '+e(requested);
@@ -175,6 +176,9 @@ function renderEngine(d){
       '<div class="bar-row"><span>Mode demandé</span><strong>'+e(requested)+'</strong></div>'+
       '<div class="bar-row"><span>V24 approuvé</span><strong>'+(r.v24Approved?'OUI':'NON')+'</strong></div>'+
       '<div class="bar-row"><span>Activation production</span><strong class="bad">VERROUILLÉE</strong></div>'+
+      '<div class="bar-row"><span>Sélecteur dans le pipeline</span><strong class="'+(pipelineConnected?'good':'caution')+'">'+(pipelineConnected?'CONNECTÉ':'EN ATTENTE D’UNE GÉNÉRATION')+'</strong></div>'+
+      '<div class="bar-row"><span>Dernière génération effective</span><strong>'+e(pr.effectiveProduction||'—')+'</strong></div>'+
+      '<div class="bar-row"><span>Raison pipeline</span><strong>'+e(pr.reason||'—')+'</strong></div>'+
       '<div class="bar-row"><span>Dernier rollback</span><strong>'+e(c.rollbackAt||'—')+'</strong></div>'+
       '<div class="bar-row"><span>Raison rollback</span><strong>'+e(c.rollbackReason||'—')+'</strong></div>'+
     '</div></div>'+

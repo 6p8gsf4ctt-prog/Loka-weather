@@ -1,28 +1,82 @@
-LOKA V24 — BLOC 11.3
+LOKA V24 — BLOC 12.1
+
+OBJECTIF
+Connecter réellement le sélecteur au pipeline de chaque génération sans
+permettre encore à V24 de devenir officiel.
 
 AJOUTER
-- src/engine/editorial24.ts
+- src/engine/engineRuntime.ts
 
 REMPLACER
-- src/engine/publicPreview.ts
+- src/engine/engineMode.ts
+- src/pipeline.ts
+- src/index.ts
 - src/ui/dashboard.ts
 
-src/index.ts est fourni pour rester aligné avec le Bloc 11.2.
+Le ZIP inclut publicPreview.ts et editorial24.ts pour cohérence.
 Aucune migration D1.
 
-Objectif : éditorial V24 natif pour les 24 scènes dans le payload Preview.
+NOUVEAU FLUX
+Legacy + V24 Shadow
+→ engine_control
+→ readiness historique
+→ resolveSceneEngineMode()
+→ applyEngineResolutionToForecast()
+→ shadow_history
+→ forecasts
 
-Sécurité :
-- publishable = false
-- productionEngine = LEGACY
-- forecast.scene reste Legacy
-- /instagram reste Legacy
-- /instagram24 reste Shadow
+VERROU ABSOLU
+effectiveProduction = LEGACY
 
-Test mobile :
-1. Preview V24 actif.
-2. Admin > Contrôler le moteur > Voir le futur payload V24.
-3. Vérifier Editorial source = v24_native_v1.
-4. Pour 09 COUVERT : Verdict V24 = Journée couverte.
-5. Vérifier Publishable = NON.
-6. Vérifier forecast.scene officiel = valeur Legacy actuelle.
+engineRuntime.ts capture puis restaure systématiquement :
+- forecast.scene
+- subtitle
+- summaryLines
+- mainVerdict
+- rainVerdict
+- notableEvent
+
+Une erreur de control/readiness/payload V24 ne bloque jamais la production
+Legacy.
+
+READINESS
+Le run courant n'est évalué qu'après les générations déjà archivées :
+readinessExcludesCurrentGeneration = true.
+Une génération ne peut donc pas contribuer à sa propre autorisation.
+
+DIAGNOSTICS
+Chaque nouvelle génération contient diagnostics.sceneEngine avec :
+- version 12.1.0
+- connectedInPipeline = true
+- requested
+- effectiveProduction = LEGACY
+- previewEnabled
+- readiness
+- reason
+- controlAvailable
+- v24CandidateAvailable
+
+ADMIN
+Après une nouvelle génération :
+- Sélecteur dans le pipeline = CONNECTÉ
+- Dernière génération effective = LEGACY
+- Raison pipeline visible
+
+TEST MOBILE
+1. Garder V24_PREVIEW actif.
+2. Déployer Bloc 12.1.
+3. Générer une nouvelle météo.
+4. Contrôler le moteur.
+5. Vérifier :
+   Production = LEGACY
+   demandé = V24_PREVIEW
+   Sélecteur pipeline = CONNECTÉ
+   Dernière génération effective = LEGACY
+6. /preview24 et /instagram24-preview restent disponibles.
+7. forecast.scene reste Legacy.
+8. Test demande V24 production reste refusé.
+9. Revenir à Legacy coupe les previews comme avant.
+
+Bloc 12.2 pourra ensuite construire l'autorisation réelle avec double
+confirmation et snapshot du readiness, mais elle restera refusée tant que
+READY_CANDIDATE n'est pas atteint.

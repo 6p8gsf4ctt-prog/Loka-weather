@@ -143,13 +143,24 @@ async function engineStatus(
   }
 
   let hasValidV24Decision = false;
+  let latestPipelineResolution: Record<string, unknown> | null = null;
+  let latestForecastGeneratedAt: string | null = null;
+
   try {
     const forecast = await latestForecast(env.DB, citySlug);
+    latestForecastGeneratedAt = forecast?.generatedAt ?? null;
+
     const scene24 = forecast?.diagnostics?.scene24;
     hasValidV24Decision =
       !!scene24 &&
       typeof scene24 === "object" &&
       typeof (scene24 as Record<string, unknown>).sceneId === "number";
+
+    const pipeline = forecast?.diagnostics?.sceneEngine;
+    latestPipelineResolution =
+      pipeline && typeof pipeline === "object"
+        ? pipeline as Record<string, unknown>
+        : null;
   } catch {
     hasValidV24Decision = false;
   }
@@ -168,10 +179,16 @@ async function engineStatus(
     citySlug,
     control,
     resolution,
+    pipeline: {
+      connected: latestPipelineResolution?.connectedInPipeline === true,
+      generatedAt: latestForecastGeneratedAt,
+      latestResolution: latestPipelineResolution
+    },
     invariant: {
       forecastSceneStillLegacy: true,
       productionActivationAvailable: false,
-      rollbackAlwaysAvailable: true
+      rollbackAlwaysAvailable: true,
+      selectorConnectedToPipeline: true
     }
   };
 }
@@ -312,8 +329,8 @@ export default {
         ...status,
         activation: {
           accepted: false,
-          error: "production_activation_locked_bloc_11_1",
-          message: "V24 production reste verrouillé dans le Bloc 11.1."
+          error: "production_activation_locked_bloc_12_1",
+          message: "V24 production reste verrouillé dans le Bloc 12.1."
         }
       }, 423);
     }
