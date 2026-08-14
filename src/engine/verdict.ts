@@ -8,6 +8,7 @@ import { assertPublicLanguage, prolongedHeatLine, rainLine, subtitleFor, tempera
 // V24 shadow-mode imports. These do not replace the legacy scene decision.
 import { buildDayProfile } from "./scenes24/profile";
 import { chooseScene24 } from "./scenes24/classifier";
+import { stabilizeScene24Decision } from "./scenes24/reliability";
 
 function pointsForDate(consensus: Map<string, ConsensusHour>, date: string): ConsensusHour[] {
   return [...consensus.values()].filter((p) => p.time.slice(0, 10) === date);
@@ -59,26 +60,33 @@ function firstLastHour(points: ConsensusHour[]): [number | null, number | null] 
 /**
  * V24 is deliberately fail-open while it is in shadow mode.
  *
- * Any error from DayProfile or the V24 classifier is captured into diagnostics
- * and NEVER prevents the legacy V0.6.6 forecast from being produced.
+ * Any error from DayProfile, classifier or reliability gate is captured into
+ * diagnostics and NEVER prevents the legacy forecast from being produced.
  */
 function buildV24Shadow(city: CityConfig, day: ConsensusHour[]): {
   scene24: ReturnType<typeof chooseScene24> | null;
+  scene24Raw: ReturnType<typeof chooseScene24> | null;
+  scene24Reliability: ReturnType<typeof stabilizeScene24Decision>["report"] | null;
   dayProfile24: ReturnType<typeof buildDayProfile> | null;
   scene24Error: string | null;
 } {
   try {
     const dayProfile24 = buildDayProfile(city, day);
-    const scene24 = chooseScene24(dayProfile24);
+    const scene24Raw = chooseScene24(dayProfile24);
+    const stabilized = stabilizeScene24Decision(dayProfile24, scene24Raw);
 
     return {
-      scene24,
+      scene24: stabilized.decision,
+      scene24Raw,
+      scene24Reliability: stabilized.report,
       dayProfile24,
       scene24Error: null
     };
   } catch (error) {
     return {
       scene24: null,
+      scene24Raw: null,
+      scene24Reliability: null,
       dayProfile24: null,
       scene24Error: error instanceof Error ? error.message : String(error)
     };
@@ -89,7 +97,7 @@ export function buildLokaForecast(city: CityConfig, date: string, consensus: Map
   const day = pointsForDate(consensus, date);
   if (!day.length) throw new Error(`No consensus data for ${date}`);
 
-  // Legacy production decision — remains authoritative in Bloc 5.
+  // Legacy production decision remains authoritative.
   const analysis = analyzeDay(city, day);
   const daytime = analysis.daytime;
   if (!daytime.length) throw new Error(`No daytime data for ${date}`);
@@ -163,14 +171,21 @@ export function buildLokaForecast(city: CityConfig, date: string, consensus: Map
     summaryLines: publicLines,
     decisionLog,
 
-    // Bloc 5 — V24 shadow diagnostics only.
+    // V24 shadow diagnostics.
     sceneClassifierProduction: "legacy6",
     sceneLegacy: {
       scene,
       score: decisionLog.selectedScore,
       version: decisionLog.version
     },
+
+    // scene24 is the stabilized recommendation consumed by Admin/Studio V24.
     scene24: v24Shadow.scene24,
+
+    // scene24Raw preserves the unfiltered classifier result for audit.
+    scene24Raw: v24Shadow.scene24Raw,
+    scene24Reliability: v24Shadow.scene24Reliability,
+
     dayProfile24: v24Shadow.dayProfile24,
     scene24Error: v24Shadow.scene24Error,
 
@@ -192,7 +207,7 @@ export function buildLokaForecast(city: CityConfig, date: string, consensus: Map
     tempMaxC: maxTemp,
     tempMinC: minTemp,
 
-    // IMPORTANT: still the legacy 6-scene result in Bloc 5.
+    // IMPORTANT: still the legacy 6-scene result.
     scene,
 
     subtitle,

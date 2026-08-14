@@ -1,3 +1,8 @@
 {
-  "typescriptCheck": "PASS"
+  "typescriptIntegrationCheck": "PASS",
+  "productionStillLegacy": true,
+  "rawDecisionPreserved": true,
+  "weakInstabilityGuard": true,
+  "lowConfidenceGuard": true,
+  "runnerUpRepair": true
 }

@@ -1,29 +1,33 @@
-LOKA V24 — CORRECTIF BLOC 7
-===========================
+LOKA V24 — BLOC 8
+====================
 
-REMPLACER UNIQUEMENT
-- src/ui/instagram24.ts
+AJOUTER
+- src/engine/scenes24/reliability.ts
 
-CAUSE
------
-Le fichier utilisait un template literal JavaScript (`...`) à l'intérieur du
-template literal TypeScript qui contient toute la page HTML. Le backtick interne
-fermait prématurément la chaîne TypeScript.
+REMPLACER
+- src/engine/verdict.ts
 
-Erreur Cloudflare :
-Expected ";" but found "Températures"
+Objectif : fiabiliser le shadow V24 avant toute bascule de production.
 
-CORRECTION
-----------
-La ligne concernée utilise maintenant une concaténation JavaScript classique :
-"Températures comprises entre " + forecast.tempMinC + " et " + forecast.tempMaxC + " degrés."
+Le premier test réel a montré :
+19 INSTABLE — 49.2 — LOW — aucun runner-up.
 
-Aucun comportement métier n'est modifié.
+Le garde-fou alpha.2 :
+- conserve la décision brute dans diagnostics.scene24Raw ;
+- publie la décision V24 stabilisée dans diagnostics.scene24 ;
+- ajoute diagnostics.scene24Reliability ;
+- rejette un 19 faible si l'instabilité n'est pas confirmée par plusieurs indices indépendants ;
+- challenge toute décision LOW < 65 par un fallback conservateur ;
+- ajoute un runner-up si le classificateur brut n'en fournit aucun.
 
-APRÈS REMPLACEMENT
-------------------
-1. Commit/push.
-2. Attendre le déploiement Cloudflare.
-3. Vérifier que le build Wrangler réussit.
-4. Ouvrir /instagram24.
-5. Contrôler AUTO V24 puis les scènes 01 à 24.
+Fallback conservateur :
+16 si lumineux ;
+21 si partagé lumineux ;
+09 si nuageux dominant ;
+18 sinon.
+
+Sécurité :
+forecast.scene reste Legacy 6 scènes.
+Le Studio officiel /instagram reste Legacy.
+Aucune migration D1.
+Le Studio /instagram24 suit uniquement la recommandation V24 stabilisée.
