@@ -33,6 +33,11 @@ import { renderInstagramGenerator } from "./ui/instagram";
 import { renderInstagram24 } from "./ui/instagram24";
 import { renderV24PrepublicationDashboard } from "./ui/prepublication24";
 import { renderInstagramPrepublication24 } from "./ui/instagramPrepublication24";
+import {
+  evaluateReleaseCandidate,
+  latestReleaseCandidateAudit,
+  recordReleaseCandidateAudit
+} from "./engine/releaseCandidate";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, {
@@ -442,7 +447,7 @@ export default {
       return json({
         error: "use_double_confirmation_flow",
         message:
-          "Bloc 12.6 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
+          "Bloc 12.7 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
       }, 409);
     }
 
@@ -704,6 +709,71 @@ export default {
       } catch (error) {
         return json({
           error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/release-candidate" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const report = await evaluateReleaseCandidate(env, slug);
+        const latestAudit =
+          await latestReleaseCandidateAudit(env.DB, slug);
+
+        return json({
+          ok: report.technicalStatus === "RC_TECHNICAL_READY",
+          report,
+          latestAudit,
+          safety: {
+            productionMutated: false,
+            engineControlMutated: false,
+            goLiveInstagram: false,
+            goLiveBlock: "12.13"
+          }
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error),
+          safety: {
+            productionMutated: false,
+            goLiveInstagram: false
+          }
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/release-candidate/validate" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const report = await evaluateReleaseCandidate(env, slug);
+        await recordReleaseCandidateAudit(env.DB, report);
+
+        return json({
+          ok: report.technicalStatus === "RC_TECHNICAL_READY",
+          report,
+          safety: {
+            productionMutated: false,
+            engineControlMutated: false,
+            goLiveInstagram: false,
+            auditOnlyMutation: true,
+            goLiveBlock: "12.13"
+          }
+        }, report.technicalStatus === "RC_TECHNICAL_READY" ? 200 : 409);
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error),
+          safety: {
+            productionMutated: false,
+            goLiveInstagram: false
+          }
         }, 500);
       }
     }
