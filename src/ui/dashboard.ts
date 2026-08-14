@@ -182,7 +182,9 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="locked" id="requestProd" style="margin-top:10px">Tester demande V24 production (verrouillée)</button><button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><div id="payloadView" style="margin-top:12px"></div>';
+    '<button class="locked" id="requestProd" style="margin-top:10px">Tester demande V24 production (verrouillée)</button><button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button>'+
+    (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
+    '<div id="payloadView" style="margin-top:12px"></div>';
 
   document.getElementById('enablePreview').onclick=async()=>{
     try{

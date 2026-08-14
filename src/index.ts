@@ -11,6 +11,8 @@ import type { Env, LokaForecast, Scene24Candidate, SceneDecisionV24, DayProfile 
 import { renderAdmin, renderDashboard } from "./ui/dashboard";
 import { renderInstagramGenerator } from "./ui/instagram";
 import { renderInstagram24 } from "./ui/instagram24";
+import { renderV24PrepublicationDashboard } from "./ui/prepublication24";
+import { renderInstagramPrepublication24 } from "./ui/instagramPrepublication24";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, {
@@ -172,6 +174,17 @@ async function engineStatus(
       rollbackAlwaysAvailable: true
     }
   };
+}
+
+
+async function v24Prepublication(env:Env,citySlug:string){
+  const status=await engineStatus(env,citySlug);
+  const resolution=status.resolution&&typeof status.resolution==="object"?status.resolution as Record<string,unknown>:{};
+  if(resolution.previewEnabled!==true) throw new Error("v24_preview_not_enabled");
+  const forecast=await latestForecast(env.DB,citySlug);
+  if(!forecast) throw new Error("no_forecast");
+  const payload=buildV24PublicPayloadPreview(forecast);
+  return {status,forecast,payload};
 }
 
 export default {
@@ -359,6 +372,19 @@ export default {
       }
     }
 
+    if (url.pathname === "/api/admin/v24/prepublication" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+      const slug=url.searchParams.get("city")||"tarnos";
+      if(!getCity(slug)) return json({error:"unknown_city"},404);
+      try{
+        const x=await v24Prepublication(env,slug);
+        return json({ok:true,mode:"V24_PREPUBLICATION",payload:x.payload,engine:x.status,surfaces:{dashboard:"/preview24",instagram:"/instagram24-preview"},safety:{publishable:false,productionEngine:"LEGACY",forecastSceneUnchanged:x.forecast.scene??null,requiresPreviewMode:true}});
+      }catch(error){
+        const m=error instanceof Error?error.message:String(error);
+        return json({error:m},m==="v24_preview_not_enabled"?423:409);
+      }
+    }
+
     if (url.pathname === "/api/history") {
       const slug = url.searchParams.get("city") || "tarnos";
       if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
@@ -411,6 +437,26 @@ export default {
           }
         }
       );
+    }
+
+    if (url.pathname === "/preview24") {
+      try{
+        const x=await v24Prepublication(env,"tarnos");
+        const city=getCity("tarnos")!;
+        return new Response(renderV24PrepublicationDashboard(x.payload,city.timezone),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow, noarchive"}});
+      }catch{
+        return new Response("V24 preview unavailable",{status:404,headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow, noarchive"}});
+      }
+    }
+
+    if (url.pathname === "/instagram24-preview") {
+      try{
+        const x=await v24Prepublication(env,"tarnos");
+        const city=getCity("tarnos")!;
+        return new Response(renderInstagramPrepublication24(x.payload,city.timezone),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow, noarchive"}});
+      }catch{
+        return new Response("V24 preview unavailable",{status:404,headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow, noarchive"}});
+      }
     }
 
     if (url.pathname === "/instagram24") {
