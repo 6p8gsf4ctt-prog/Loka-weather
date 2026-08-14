@@ -20,7 +20,13 @@ export type ReadinessStatus =
 export interface SceneEngineResolution {
   version: string;
   requested: SceneEngineMode;
+
+  /**
+   * Bloc 12.2 may create a real human approval in D1, but it still cannot
+   * publish V24. A later block must explicitly remove this literal lock.
+   */
   effectiveProduction: "LEGACY";
+
   previewEnabled: boolean;
   readiness: ReadinessStatus;
   v24Approved: boolean;
@@ -28,7 +34,7 @@ export interface SceneEngineResolution {
   productionActivationLocked: true;
 }
 
-const VERSION = "12.1.0";
+const VERSION = "12.2.0";
 
 export function normalizeSceneEngineMode(value: unknown): SceneEngineMode {
   return value === "V24_PREVIEW" || value === "V24" ? value : "LEGACY";
@@ -72,10 +78,17 @@ export function resolveSceneEngineMode(args: {
     };
   }
 
-  let reason = "production_activation_locked_bloc_12_1";
-  if (args.readiness !== "READY_CANDIDATE") reason = "readiness_not_ready";
-  else if (!approved) reason = "v24_not_approved";
-  else if (!args.hasValidV24Decision) reason = "no_valid_v24_decision";
+  let reason = "production_activation_locked_bloc_12_2";
+
+  if (args.readiness !== "READY_CANDIDATE") {
+    reason = "readiness_not_ready";
+  } else if (!approved) {
+    reason = "v24_not_approved";
+  } else if (!args.hasValidV24Decision) {
+    reason = "no_valid_v24_decision";
+  } else {
+    reason = "v24_authorized_waiting_activation_bloc_12_3";
+  }
 
   return {
     version: VERSION,

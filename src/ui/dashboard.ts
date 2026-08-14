@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.1. Le sélecteur est connecté au pipeline ; la production reste verrouillée sur Legacy.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.2. Double confirmation et audit sont actifs ; la production reste verrouillée sur Legacy.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -186,14 +186,15 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="locked" id="requestProd" style="margin-top:10px">Tester demande V24 production (verrouillée)</button><button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button>'+
+    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button>'+
+    '<div class="metric-section"><h3>Autorisation V24 — double confirmation</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
     (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
     '<div id="payloadView" style="margin-top:12px"></div>';
 
   document.getElementById('enablePreview').onclick=async()=>{
     try{
       const x=await fetchJson('/api/admin/engine/preview?city=tarnos',{method:'POST',headers:{Authorization:'Bearer '+token()}});
-      renderEngine(x);
+      await loadEngine();
     }catch(err){engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>'}
   };
 
@@ -204,24 +205,10 @@ function renderEngine(d){
         headers:{Authorization:'Bearer '+token(),'Content-Type':'application/json'},
         body:JSON.stringify({reason:'manual_mobile_admin'})
       });
-      renderEngine(x);
+      await loadEngine();
     }catch(err){engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>'}
   };
 
-  document.getElementById('requestProd').onclick=async()=>{
-    try{
-      await fetchJson('/api/admin/engine/request-v24?city=tarnos',{method:'POST',headers:{Authorization:'Bearer '+token()}});
-    }catch(err){
-      // 423 is expected in Bloc 11.1. Reload status to prove production stayed Legacy.
-      try{
-        const x=await fetchJson('/api/admin/engine?city=tarnos',{headers:{Authorization:'Bearer '+token()}});
-        renderEngine(x);
-        engineStatusEl.innerHTML='<span class="caution">Demande V24 refusée comme prévu — production toujours LEGACY.</span>';
-      }catch(err2){
-        engineStatusEl.innerHTML='<span class="error">'+e(err2&&err2.message?err2.message:String(err2))+'</span>';
-      }
-    }
-  };
   document.getElementById('showPayload').onclick=async()=>{
     const target=document.getElementById('payloadView');
     target.innerHTML='<div class="muted">Construction du preview…</div>';
@@ -247,11 +234,119 @@ function renderEngine(d){
   };
 }
 
+
+function renderApproval(data){
+  const target=document.getElementById('approvalView');
+  if(!target)return;
+
+  const readiness=data.readiness||{};
+  const control=data.control||{};
+  const pending=data.pendingChallenge||null;
+  const audit=Array.isArray(data.recentAudit)?data.recentAudit:[];
+  const ready=readiness.status==='READY_CANDIDATE';
+
+  let html=
+    '<div class="bar-row"><span>Readiness requis</span><strong>READY_CANDIDATE</strong></div>'+
+    '<div class="bar-row"><span>Readiness actuel</span><strong class="'+(ready?'good':'bad')+'">'+e(readiness.status||'—')+'</strong></div>'+
+    '<div class="bar-row"><span>V24 approuvé</span><strong>'+(control.v24Approved?'OUI':'NON')+'</strong></div>'+
+    '<div class="bar-row"><span>Production effective</span><strong class="good">LEGACY</strong></div>';
+
+  if(Array.isArray(readiness.blockers)&&readiness.blockers.length){
+    html+='<div style="margin-top:10px"><div class="metric-title">BLOQUANTS</div>'+
+      readiness.blockers.slice(0,6).map(x=>'<div class="muted" style="margin-top:6px">• '+e(x)+'</div>').join('')+
+      '</div>';
+  }
+
+  if(pending){
+    html+='<div class="readiness" style="margin-top:14px">'+
+      '<strong>Confirmation 2 / 2</strong>'+
+      '<div class="muted">Challenge valable jusqu’à '+e(pending.expiresAt)+'.</div>'+
+      '<div class="muted" style="margin-top:8px">Recopie exactement :</div>'+
+      '<div style="font-weight:750;margin:7px 0">'+e(pending.confirmationPhrase)+'</div>'+
+      '<input id="approvalPhrase" autocomplete="off" autocapitalize="characters" placeholder="'+e(pending.confirmationPhrase)+'">'+
+      '<button id="confirmApproval" class="locked">Confirmer l’autorisation V24</button>'+
+      '<div class="muted" style="margin-top:8px">Même après confirmation, Bloc 12.2 laisse la production sur LEGACY.</div>'+
+      '</div>';
+  }else{
+    html+='<button id="prepareApproval" class="'+(ready?'locked':'secondary')+'" style="margin-top:12px">Préparer l’autorisation V24</button>'+
+      '<div class="muted" style="margin-top:8px">'+
+      (ready
+        ?'Étape 1 / 2 : crée un snapshot immuable du readiness et un challenge de 10 minutes.'
+        :'Le serveur refusera l’autorisation tant que READY_CANDIDATE n’est pas atteint. Le refus sera audité.')+
+      '</div>';
+  }
+
+  if(audit.length){
+    html+='<div style="margin-top:16px"><div class="metric-title">AUDIT RÉCENT</div>'+
+      audit.slice(0,6).map(x=>
+        '<div class="bar-row"><span>'+e(x.eventType)+'<div class="muted">'+e(x.reason||'—')+'</div></span><strong>'+e((x.readinessStatus||'—'))+'</strong></div>'
+      ).join('')+
+      '</div>';
+  }
+
+  target.innerHTML=html;
+
+  const prepare=document.getElementById('prepareApproval');
+  if(prepare)prepare.onclick=async()=>{
+    prepare.disabled=true;
+    try{
+      await fetchJson('/api/admin/engine/approval/prepare?city=tarnos',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token()}
+      });
+      engineStatusEl.innerHTML='<span class="good">Challenge d’autorisation créé.</span>';
+    }catch(err){
+      engineStatusEl.innerHTML='<span class="caution">Autorisation refusée : '+e(err&&err.message?err.message:String(err))+'</span>';
+    }
+    await loadApproval();
+  };
+
+  const confirm=document.getElementById('confirmApproval');
+  if(confirm)confirm.onclick=async()=>{
+    const phrase=document.getElementById('approvalPhrase')?.value||'';
+    confirm.disabled=true;
+    try{
+      await fetchJson('/api/admin/engine/approval/confirm?city=tarnos',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token(),'Content-Type':'application/json'},
+        body:JSON.stringify({
+          challengeId:pending.challengeId,
+          confirmationPhrase:phrase
+        })
+      });
+      engineStatusEl.innerHTML='<span class="good">Autorisation V24 enregistrée — production toujours LEGACY.</span>';
+      await loadEngine();
+      return;
+    }catch(err){
+      engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>';
+    }
+    await loadApproval();
+  };
+}
+
+async function loadApproval(){
+  const target=document.getElementById('approvalView');
+  if(!target)return;
+
+  target.innerHTML='<div class="muted">Chargement de l’autorisation…</div>';
+
+  try{
+    const data=await fetchJson('/api/admin/engine/approval?city=tarnos',{
+      headers:{Authorization:'Bearer '+token()}
+    });
+    renderApproval(data);
+  }catch(err){
+    target.innerHTML='<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>';
+  }
+}
+
+
 async function loadEngine(){
   engineStatusEl.textContent='Chargement…';engineView.innerHTML='';
   try{
     const d=await fetchJson('/api/admin/engine?city=tarnos',{headers:{Authorization:'Bearer '+token()}});
     renderEngine(d);
+    await loadApproval();
   }catch(err){
     engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>';
   }

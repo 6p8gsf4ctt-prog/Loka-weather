@@ -1,11 +1,15 @@
 {
   "typescriptIntegrationCheck": "PASS",
-  "migrationRequired": false,
-  "selectorConnectedInPipeline": true,
+  "migrationRequired": "0004_engine_activation_audit.sql",
+  "doubleConfirmation": true,
+  "challengeTtlMinutes": 10,
+  "immutableReadinessSnapshot": true,
+  "snapshotSha256": true,
+  "appendOnlyAudit": true,
+  "readinessRequired": "READY_CANDIDATE",
+  "currentNotReadyWillBeRefused": true,
+  "approvalCanBeStoredWhenReady": true,
   "productionHardLockedLegacy": true,
-  "runtimeLegacyRestoreGuard": true,
-  "readinessExcludesCurrentGeneration": true,
-  "controlAndReadinessFailuresFailSafe": true,
   "forecastSceneCanBecomeV24": false,
-  "adminShowsPipelineState": true
+  "rollbackStillIndependent": true
 }

@@ -6,7 +6,8 @@ import { calculateShadowMetrics } from "./analytics/shadowMetrics";
 import { evaluateV24Readiness } from "./analytics/readiness";
 import { resolveSceneEngineMode } from "./engine/engineMode";
 import { buildV24PublicPayloadPreview } from "./engine/publicPreview";
-import { ensureEngineControl, requestV24Locked, requestV24Preview, rollbackToLegacy } from "./storage/engineControl";
+import { ensureEngineControl, requestV24Preview, rollbackToLegacy } from "./storage/engineControl";
+import { auditRollback, confirmV24Approval, getV24ApprovalOverview, prepareV24Approval } from "./storage/engineApproval";
 import type { Env, LokaForecast, Scene24Candidate, SceneDecisionV24, DayProfile } from "./types";
 import { renderAdmin, renderDashboard } from "./ui/dashboard";
 import { renderInstagramGenerator } from "./ui/instagram";
@@ -194,6 +195,18 @@ async function engineStatus(
 }
 
 
+
+async function approvalContext(env: Env, citySlug: string) {
+  const rows = await loadShadowMetricRows(env.DB, citySlug, 30, 1000);
+  const readiness = evaluateV24Readiness(rows);
+  const forecast = await latestForecast(env.DB, citySlug);
+
+  if (!forecast) throw new Error("no_forecast");
+
+  return { readiness, forecast };
+}
+
+
 async function v24Prepublication(env:Env,citySlug:string){
   const status=await engineStatus(env,citySlug);
   const resolution=status.resolution&&typeof status.resolution==="object"?status.resolution as Record<string,unknown>:{};
@@ -318,21 +331,146 @@ export default {
     if (url.pathname === "/api/admin/engine/request-v24" && request.method === "POST") {
       if (!isAuthorized(request, env)) return unauthorized();
 
+      return json({
+        error: "use_double_confirmation_flow",
+        message:
+          "Bloc 12.2 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
+      }, 409);
+    }
+
+    if (url.pathname === "/api/admin/engine/approval" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
       const slug = url.searchParams.get("city") || "tarnos";
       if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
 
-      // Persist the intention for audit/testing, but never approve production.
-      await requestV24Locked(env.DB, slug);
-      const status = await engineStatus(env, slug);
+      try {
+        const { readiness, forecast } = await approvalContext(env, slug);
+        const control = await ensureEngineControl(env.DB, slug);
+        const overview = await getV24ApprovalOverview(env.DB, slug);
 
-      return json({
-        ...status,
-        activation: {
-          accepted: false,
-          error: "production_activation_locked_bloc_12_1",
-          message: "V24 production reste verrouillé dans le Bloc 12.1."
+        return json({
+          ok: true,
+          citySlug: slug,
+          readiness: {
+            status: readiness.status,
+            summary: readiness.summary,
+            blockers: readiness.blockers,
+            sample: readiness.metrics.sample
+          },
+          forecast: {
+            generatedAt: forecast.generatedAt,
+            sceneLegacy: forecast.scene ?? null,
+            scene24:
+              forecast.diagnostics.scene24 &&
+              typeof forecast.diagnostics.scene24 === "object"
+                ? forecast.diagnostics.scene24
+                : null
+          },
+          control,
+          ...overview,
+          safety: {
+            doubleConfirmationRequired: true,
+            readinessMustBe: "READY_CANDIDATE",
+            productionActivationLocked: true,
+            effectiveProduction: "LEGACY"
+          }
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/engine/approval/prepare" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const { readiness, forecast } = await approvalContext(env, slug);
+        const result = await prepareV24Approval(
+          env.DB,
+          slug,
+          readiness,
+          forecast
+        );
+
+        if (!result.ok) {
+          return json({
+            ...result,
+            productionEngine: "LEGACY",
+            productionActivationLocked: true
+          }, result.error === "readiness_not_ready" ? 423 : 409);
         }
-      }, 423);
+
+        return json({
+          ...result,
+          productionEngine: "LEGACY",
+          productionActivationLocked: true
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/engine/approval/confirm" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      let body: {
+        challengeId?: unknown;
+        confirmationPhrase?: unknown;
+      } = {};
+
+      try {
+        body = await request.json() as typeof body;
+      } catch {
+        return json({ error: "invalid_json" }, 400);
+      }
+
+      if (
+        typeof body.challengeId !== "string" ||
+        typeof body.confirmationPhrase !== "string"
+      ) {
+        return json({ error: "challenge_and_phrase_required" }, 400);
+      }
+
+      try {
+        const { readiness, forecast } = await approvalContext(env, slug);
+        const result = await confirmV24Approval(env.DB, slug, {
+          challengeId: body.challengeId,
+          confirmationPhrase: body.confirmationPhrase,
+          readiness,
+          forecast
+        });
+
+        if (!result.ok) {
+          return json({
+            ...result,
+            productionEngine: "LEGACY",
+            productionActivationLocked: true
+          }, result.error === "confirmation_phrase_mismatch" ? 400 : 409);
+        }
+
+        return json({
+          ...result,
+          productionEngine: "LEGACY",
+          productionActivationLocked: true,
+          nextStep:
+            "Approval stored. Effective V24 production remains unavailable until a later Bloc 12 removes the lock."
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
     }
 
     if (url.pathname === "/api/admin/engine/rollback" && request.method === "POST") {
@@ -352,6 +490,13 @@ export default {
       }
 
       await rollbackToLegacy(env.DB, slug, reason);
+
+      try {
+        await auditRollback(env.DB, slug, reason);
+      } catch {
+        // Rollback remains authoritative even if the audit table is unavailable.
+      }
+
       return json(await engineStatus(env, slug));
     }
 
