@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.10. Drill de rollback réel : engine_control passe volontairement par Preview puis intent V24 non approuvé, et revient par le même rollback global que l’Admin.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.11. Audit final de Release Candidate : les preuves 12.5 à 12.10 sont recroisées sur la génération courante avant la répétition générale.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -190,7 +190,7 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button><button class="danger" id="rollbackDrill" style="margin-top:10px">Tester rollback réel 12.10</button>'+
+    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button><button class="danger" id="rollbackDrill" style="margin-top:10px">Tester rollback réel 12.10</button><button class="locked" id="finalAudit" style="margin-top:10px">Audit final RC 12.11</button>'+
     '<div class="metric-section"><h3>Autorisation V24 — double confirmation</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
     (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
     '<div id="payloadView" style="margin-top:12px"></div>';
@@ -224,6 +224,73 @@ function renderEngine(d){
       fingerprint:response.headers.get('x-loka-publication-fingerprint')
     };
   }
+
+  document.getElementById('finalAudit').onclick=async()=>{
+    const btn=document.getElementById('finalAudit');
+    const out=document.getElementById('payloadView');
+    btn.disabled=true;
+
+    out.innerHTML=
+      '<div class="card"><div class="label">BLOC 12.11 · AUDIT FINAL RC</div>'+
+      '<div class="muted">Étape 1/2 · rafraîchissement réel de la cohérence des 4 surfaces…</div></div>';
+
+    try{
+      const coherence=await runBrowserCoherenceForRC();
+
+      if(coherence.status!=='PASS'){
+        throw new Error(
+          'surface_coherence_'+String(coherence.status||'FAIL')
+        );
+      }
+
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.11 · AUDIT FINAL RC</div>'+
+        '<div class="muted">Étape 2/2 · recoupement serveur de toutes les preuves 12.5 → 12.10…</div></div>';
+
+      const x=await fetchJson('/api/admin/final-release-audit/run?city=tarnos',{
+        method:'POST',
+        headers:{
+          Authorization:'Bearer '+token()
+        }
+      });
+
+      const r=x.report||{};
+      const checks=Array.isArray(r.checks)?r.checks:[];
+      const cls=
+        r.status==='FINAL_RC_PASS'
+          ?'good'
+          :(r.status==='FINAL_RC_PENDING'
+            ?'caution'
+            :'bad');
+
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.11 · AUDIT FINAL RELEASE CANDIDATE</div>'+
+        '<div class="scene '+cls+'">'+e(r.status||'—')+'</div>'+
+        '<div class="bar-row"><span>Génération</span><strong>'+e(r.generatedAt||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Moteur public</span><strong>'+e(r.effectiveEngine||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Scène</span><strong>'+e(r.sceneKey||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Readiness météo</span><strong>'+e(r.summary?.readiness||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Prêt pour répétition 12.12</span><strong class="'+(r.summary?.rehearsalEligible?'good':'bad')+'">'+(r.summary?.rehearsalEligible?'OUI':'NON')+'</strong></div>'+
+        '<div class="bar-row"><span>GO LIVE Instagram</span><strong class="caution">NON · BLOC 12.13</strong></div>'+
+        checks.map(c=>
+          '<div class="bar-row"><span>'+e(c.label)+
+          '<div class="muted">'+e(c.detail||'')+'</div></span>'+
+          '<strong class="'+(c.status==='PASS'?'good':(c.status==='INFO'?'caution':(c.status==='PENDING'?'caution':'bad')))+'">'+e(c.status)+'</strong></div>'
+        ).join('')+
+        '<div class="muted" style="margin-top:12px">L’audit 12.11 ne change ni forecast, ni engine_control, ni autorisation V24. Une preuve append-only est enregistrée.</div>'+
+        '</div>';
+
+      await loadEngine();
+    }catch(err){
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.11 · AUDIT FINAL RC</div>'+
+        '<div class="scene bad">AUDIT NON VALIDÉ</div>'+
+        '<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>'+
+        '<div class="muted">Aucune activation V24 et aucune publication Instagram n’ont été déclenchées.</div></div>';
+    }finally{
+      btn.disabled=false;
+    }
+  };
 
   document.getElementById('rollbackDrill').onclick=async()=>{
     const btn=document.getElementById('rollbackDrill');

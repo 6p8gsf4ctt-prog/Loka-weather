@@ -57,6 +57,13 @@ import {
   latestRollbackDrillAudit,
   recordRollbackDrillAudit
 } from "./storage/rollbackDrillAudit";
+import {
+  evaluateFinalReleaseAudit
+} from "./engine/finalReleaseAudit";
+import {
+  latestFinalReleaseAudit,
+  recordFinalReleaseAudit
+} from "./storage/finalReleaseAudit";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, {
@@ -466,7 +473,7 @@ export default {
       return json({
         error: "use_double_confirmation_flow",
         message:
-          "Bloc 12.10 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
+          "Bloc 12.11 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
       }, 409);
     }
 
@@ -728,6 +735,81 @@ export default {
       } catch (error) {
         return json({
           error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/final-release-audit" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const latest = await latestFinalReleaseAudit(
+          env.DB,
+          slug
+        );
+
+        return json({
+          ok: true,
+          latest,
+          safety: {
+            productionMutated: false,
+            engineControlMutated: false,
+            goLiveInstagram: false,
+            nextBlock: "12.12"
+          }
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/final-release-audit/run" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const report =
+          await evaluateFinalReleaseAudit(
+            env,
+            slug
+          );
+
+        await recordFinalReleaseAudit(
+          env.DB,
+          report
+        );
+
+        return json({
+          ok:
+            report.status ===
+            "FINAL_RC_PASS",
+          report,
+          safety: report.safety
+        }, report.status === "FINAL_RC_PASS"
+          ? 200
+          : report.status === "FINAL_RC_PENDING"
+            ? 409
+            : 422
+        );
+      } catch (error) {
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error),
+          safety: {
+            productionMutated: false,
+            engineControlMutated: false,
+            goLiveInstagram: false
+          }
         }, 500);
       }
     }

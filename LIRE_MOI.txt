@@ -1,232 +1,204 @@
-LOKA V24 — BLOC 12.10
+LOKA V24 — BLOC 12.11
 =======================
 
-OBJECTIF
---------
-Tester le VRAI rollback administratif, de façon contrôlée, avant le GO LIVE.
+STATUT
+------
+BLOC 12.11 = AUDIT FINAL DE RELEASE CANDIDATE TECHNIQUE.
 
-Ce bloc est volontairement différent des tests 12.8 :
-
-12.8
-= simulations/injections sur clones et politique de récupération.
-
-12.10
-= vraie écriture temporaire dans engine_control
-  + vrai rollback global utilisé par l'Admin.
-
-AUCUN forecast n'est généré pendant le drill.
-Aucune approbation V24 n'est accordée.
-Aucune publication Instagram n'est déclenchée.
+Il ne constitue PAS le GO LIVE.
+Il autorise uniquement le passage à la répétition générale 12.12 si tout
+est PASS.
 
 MIGRATION D1 OBLIGATOIRE
 ------------------------
 Appliquer :
-migrations/0010_rollback_drill_audit.sql
+migrations/0011_final_release_audit.sql
 
 Elle crée :
-rollback_drill_audit
+final_release_audit
 
-La table est append-only.
+Cette table est append-only.
+
+Elle impose notamment :
+go_live_instagram = 0
+production_mutated = 0
+engine_control_mutated = 0
 
 FICHIERS À AJOUTER
 ------------------
-- migrations/0010_rollback_drill_audit.sql
-- src/storage/globalRollback.ts
-- src/engine/rollbackDrill.ts
-- src/storage/rollbackDrillAudit.ts
+- migrations/0011_final_release_audit.sql
+- src/engine/finalReleaseAudit.ts
+- src/storage/finalReleaseAudit.ts
 
 FICHIERS À REMPLACER
 --------------------
-- src/engine/engineMode.ts
-- src/engine/engineRuntime.ts
-- src/pipeline.ts
 - src/index.ts
 - src/ui/dashboard.ts
 
-Le ZIP inclut aussi les dépendances nécessaires.
+IMPORTANT :
+12.11 est volontairement audit-only.
 
-REFACTOR IMPORTANT
-------------------
-Le rollback manuel /api/admin/engine/rollback utilisait auparavant :
+Il ne remplace PAS :
+- engineMode
+- engineRuntime
+- pipeline
+- publicationSafety
+- globalRollback
 
-rollbackToLegacy()
-puis
-auditRollback()
+Nous réduisons ainsi le risque d'introduire un changement opérationnel juste
+avant la répétition générale.
 
-Le Bloc 12.10 centralise désormais cette séquence dans :
+Le dashboard inclus contient aussi le correctif JavaScript validé du Bloc
+12.10 pour le bouton « Générer la météo ».
 
-src/storage/globalRollback.ts
-executeGlobalRollback()
+NOUVEAU BOUTON
+--------------
+Admin :
+"Audit final RC 12.11"
 
-Cette fonction applique une règle fondamentale :
+Le bouton réalise deux étapes.
 
-1. rollbackToLegacy() d'abord
-2. vérification requested_mode = LEGACY
-3. vérification v24_approved = 0
-4. audit/cancel des challenges ensuite
-5. une panne d'audit ne peut JAMAIS annuler le rollback
+ÉTAPE 1 / 2
+Il relit réellement depuis le téléphone :
+- /api/latest
+- /api/decision
+- /
+- /instagram
 
-Le bouton Admin normal ET le drill 12.10 utilisent exactement cette même
-fonction.
+Puis il enregistre un nouveau contrôle de cohérence 12.6.
 
-PRÉCONDITIONS DU DRILL
-----------------------
-Le serveur REFUSE le test si l'état de départ n'est pas sûr.
+ÉTAPE 2 / 2
+Le serveur recroise toutes les preuves techniques.
 
-Il exige :
+CONTRÔLES BLOQUANTS
+-------------------
+1. Schéma D1 complet jusqu'à 0011
 
-- requested_mode = LEGACY
-- v24_approved = NON
-- surface publique effective = LEGACY
-- forecast manifesté / fingerprint disponible
-- aucun challenge V24 en attente
-- dernier Bloc 12.8 = PASS
-- dernier Bloc 12.9 = PASS
+2. Forecast officiel courant disponible
 
-Ainsi le test ne démarre jamais depuis un V24 réellement approuvé.
+3. Resolver public sécurisé disponible
 
-PHRASE DE CONFIRMATION
-----------------------
-Le bouton demande de taper exactement :
+4. publicationManifest / fingerprint exact
 
-TESTER ROLLBACK TARNOS
+5. État de départ sûr :
+   requested_mode = LEGACY
+   v24_approved = NON
+   aucun challenge V24 en attente
+   moteur public = LEGACY
 
-Sans cette phrase :
-REFUSED
-aucune mutation.
+6. publication_generation_audit correspondant exactement à la génération
+   courante
 
-SÉQUENCE RÉELLE
----------------
-ÉTAPE A
-engine_control est réellement écrit en :
+7. publication_surface_audit PASS, sur la même génération, la même scène,
+   le même moteur et le même fingerprint, contrôle de moins de 30 minutes
 
-requested_mode = V24_PREVIEW
-v24_approved = 0
+8. Self-test fallback 12.5 recalculé au moment de l'audit = PASS
 
-Vérification :
-la surface publique reste exactement la même génération Legacy.
+9. Release Candidate 12.7 recalculée au moment de l'audit =
+   RC_TECHNICAL_READY
 
-ÉTAPE B
-executeGlobalRollback()
+10. Dernier audit 12.8 :
+    PASS
+    0 FAIL
+    0 PENDING
+    >= 16 scénarios
+    même generatedAt que le produit public courant
 
-Attendu :
-requested_mode = LEGACY
-v24_approved = 0
+11. Dernier audit 12.9 :
+    PASS
+    24 scènes / 24
+    24 PASS
+    0 FAIL
+    0 PENDING
+    même generatedAt
 
-ÉTAPE C
-engine_control est réellement écrit avec un intent V24 NON APPROUVÉ :
+12. Dernier drill 12.10 :
+    PASS
+    rollbackVerified = true
+    publicIdentityUnchanged = true
+    emergencyCleanupUsed = false
+    LEGACY avant
+    LEGACY après
+    même generatedAt que la génération publique
 
-requested_mode = V24
-v24_approved = 0
+READINESS
+---------
+Le readiness météo reste affiché mais n'est PAS un contrôle bloquant pour
+l'audit technique 12.11.
 
-Ce n'est pas une activation :
-sans approval, V24 ne peut pas devenir officiel.
+Il est parfaitement possible d'obtenir :
 
-La surface publique doit rester strictement inchangée.
+FINAL_RC_PASS
++
+Readiness NOT_READY
++
+Production LEGACY
 
-ÉTAPE D
-executeGlobalRollback() à nouveau.
+Cela signifie :
+le logiciel est techniquement prêt pour la répétition générale,
+mais la V24 météo n'est toujours pas autorisée à devenir officielle.
 
-Attendu final obligatoire :
+STATUTS
+-------
+FINAL_RC_PASS
+Tous les contrôles techniques bloquants passent.
 
-requested_mode = LEGACY
-v24_approved = 0
+FINAL_RC_PENDING
+Aucun défaut dur, mais une preuve temporaire manque ou est périmée.
+Exemple :
+contrôle des 4 surfaces trop ancien.
 
-CONTRÔLES FINAUX
-----------------
-Le drill vérifie ensuite :
-
-- forecast.generatedAt identique avant/après
-- moteur public identique
-- scène identique
-- fingerprint identique
-- aucune approbation V24 observée
-- état final LEGACY
-- rollback global vérifié
+FINAL_RC_BLOCKED
+Au moins une preuve ou règle de sécurité est en échec.
 
 RÉSULTAT CIBLE
 --------------
-BLOC 12.10 · DRILL ROLLBACK
+BLOC 12.11 · AUDIT FINAL RELEASE CANDIDATE
 
-PASS
+FINAL_RC_PASS
 
-Avant                 LEGACY
-Après                 LEGACY
-V24 approuvé final    NON
-Forecast régénéré     NON
-Identité publique     INCHANGÉE
-Cleanup secours       NON
+Moteur public              LEGACY
+Readiness météo            NOT_READY (possible)
+Prêt pour répétition 12.12 OUI
+GO LIVE Instagram          NON · BLOC 12.13
 
-Tous les steps doivent être PASS.
+SÉCURITÉ
+--------
+Le Bloc 12.11 ne fait jamais :
+- saveForecast()
+- requestV24Preview()
+- requestV24Locked()
+- rollbackToLegacy()
+- prepareV24Approval()
+- confirmV24Approval()
 
-EMERGENCY CLEANUP
------------------
-Si une étape intermédiaire lance une exception après modification de
-engine_control, rollbackDrill.ts déclenche immédiatement :
-
-executeGlobalRollback(..., "bloc12_10_emergency_cleanup")
-
-Le rapport devient FAIL, même si le cleanup réussit.
-
-Donc :
-- cleanup utilisé = sécurité fonctionnelle
-- mais le Bloc 12.10 n'est PAS validé
-
-Si le cleanup échoue lui-même :
-ne pas poursuivre.
-Vérifier immédiatement l'Admin et utiliser le bouton manuel "Revenir à Legacy".
-
-AUDIT
------
-Chaque drill est enregistré dans :
-
-rollback_drill_audit
-
-L'audit enregistre notamment :
-- avant/après
-- fingerprint avant/après
-- Preview vérifié
-- intent V24 verrouillé vérifié
-- rollback vérifié
-- identité publique inchangée
-- cleanup éventuel
-
-La table impose :
-production_forecast_mutated = 0
-v24_approval_granted = 0
-
-IMPORTANT
----------
-Contrairement aux Blocs 12.8 et 12.9, ce test MODIFIE volontairement
-engine_control pendant quelques instants.
-
-C'est précisément le but du Bloc 12.10.
-
-Mais il ne touche jamais au forecast officiel et ne peut démarrer que lorsque
-V24 n'est pas approuvé.
+La seule écriture volontaire est :
+final_release_audit
 
 INSTALLATION MOBILE
 -------------------
-1. Appliquer migrations/0010_rollback_drill_audit.sql dans D1.
-2. Ajouter/remplacer les fichiers.
-3. Déployer.
-4. Vérifier en haut de /admin :
-   Production LEGACY
+1. Appliquer migrations/0011_final_release_audit.sql dans D1.
+2. Ajouter :
+   src/engine/finalReleaseAudit.ts
+   src/storage/finalReleaseAudit.ts
+3. Remplacer :
+   src/index.ts
+   src/ui/dashboard.ts
+4. Déployer.
+5. Vérifier que « Générer la météo » fonctionne toujours.
+6. Vérifier que l'état Admin est :
    requested LEGACY
    V24 approuvé NON
-5. Vérifier que 12.8 = PASS.
-6. Vérifier que 12.9 = PASS 24/24.
-7. Appuyer sur "Tester rollback réel 12.10".
-8. Taper :
-   TESTER ROLLBACK TARNOS
-9. Vérifier PASS.
-10. Recontrôler en haut :
-    Production LEGACY
-    requested LEGACY
-    V24 approuvé NON
+7. Appuyer sur :
+   Audit final RC 12.11
+
+Si FINAL_RC_PASS :
+le projet peut passer au Bloc 12.12.
+
+Si FINAL_RC_PENDING ou FINAL_RC_BLOCKED :
+ne pas passer au Bloc 12.12 avant d'avoir traité le contrôle indiqué.
 
 SUITE
 -----
-12.11 Audit final de Release Candidate
 12.12 Répétition générale complète sur téléphone
 12.13 GO LIVE V24 / Instagram
