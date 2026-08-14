@@ -22,5 +22,10 @@
       "database_id": "23c60a13-a134-40c9-b38e-2435e7fed368",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  }
 }

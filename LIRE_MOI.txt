@@ -1,63 +1,69 @@
-LOKA V24 — BLOC 6
+LOKA V24 — BLOC 7
 ====================
-
-REMPLACER
----------
-- src/index.ts
-- src/ui/dashboard.ts
 
 OBJECTIF
 --------
-Rendre le shadow mode V24 observable sans modifier la production.
+Installer les 24 masters officiels et créer un Studio V24 parallèle.
+AUCUNE BASCULE DE PRODUCTION.
 
-NOUVELLE ROUTE
---------------
-GET /api/shadow?city=tarnos
+FICHIERS À AJOUTER
+------------------
+- src/ui/backgrounds24.ts
+- src/ui/instagram24.ts
+- public/masters24/ (24 PNG officiels)
 
-Protection :
-Authorization: Bearer <ADMIN_TOKEN>
+FICHIERS À REMPLACER
+--------------------
+- src/index.ts
+- wrangler.jsonc
 
-La route renvoie une vue compacte :
-- moteur de production (legacy6)
-- scène Legacy + score + version
-- scène V24 + score + confiance
-- runner-up
-- top 5 candidats V24 éligibles
-- DayProfile compact
-- éventuelle erreur V24
+ARCHITECTURE RETENUE
+--------------------
+Les 24 PNG officiels pèsent environ 38 Mo au total.
+Ils NE SONT PAS convertis et NE SONT PAS embarqués en base64 dans le Worker.
+Ils sont conservés octet pour octet et servis par Cloudflare Static Assets.
 
-ADMIN
------
-/admin reçoit un bouton :
-"Comparer Legacy / V24"
+Cela évite de gonfler le bundle JavaScript du Worker tout en conservant les
+masters officiels exactement tels que livrés.
 
-Après une génération manuelle réussie, la comparaison est actualisée
-automatiquement.
+La configuration ajoutée à wrangler.jsonc est :
+assets.directory = "./public"
+assets.binding = "ASSETS"
+assets.run_worker_first = true
 
-SECURITE
---------
-- /api/shadow est ADMIN_TOKEN uniquement.
-- /instagram ne change pas.
-- forecast.scene ne change pas.
-- classifier legacy ne change pas.
-- aucune migration D1.
-- aucune ressource graphique V24.
-- /api/latest et /api/decision gardent leur comportement actuel.
+NOUVELLE PAGE
+-------------
+/instagram24
+
+AUTO V24 :
+- lit diagnostics.scene24.sceneId ;
+- sélectionne le master officiel 01..24 ;
+- affiche les données variables du forecast courant ;
+- n'écrit rien dans forecast.scene ;
+- ne modifie pas /instagram.
+
+MODE MANUEL
+-----------
+Le sélecteur permet de contrôler les 24 masters indépendamment de la météo.
+
+INTEGRITE
+---------
+24/24 fichiers contrôlés.
+Dimensions attendues : 1080 × 1350.
+SHA-256 contrôlés contre le manifest de livraison.
+Les fichiers public/masters24 sont des copies byte-for-byte des PNG fournis.
 
 IMPORTANT
 ---------
-Les générations enregistrées AVANT le Bloc 5 n'ont pas scene24/dayProfile24.
-Dans ce cas l'Admin affiche simplement qu'aucune décision V24 n'est disponible.
-Il faut une nouvelle génération après Bloc 5 pour observer le shadow V24.
+/instagram reste le Studio Legacy officiel.
+Le Studio V24 est expérimental tant que le shadow n'a pas été validé sur
+plusieurs journées et que le rendu des 24 scènes n'a pas été contrôlé.
 
-ETAPE SUIVANTE
---------------
-Après une vraie génération de test :
-1. lire Legacy vs V24 ;
-2. vérifier scene24Error = null ;
-3. inspecter les top candidats et DayProfile ;
-4. corriger le moteur si nécessaire.
-
-Si le shadow est sain, Bloc 7 :
-- préparer les 24 masters opérationnels ;
-- créer le nouveau Studio /instagram24 en parallèle de /instagram.
+TEST APRÈS DÉPLOIEMENT
+----------------------
+1. Ouvrir /instagram : le Studio actuel doit être inchangé.
+2. Ouvrir /instagram24.
+3. Vérifier AUTO V24.
+4. Parcourir manuellement les scènes 01 à 24.
+5. Vérifier qu'aucun master n'affiche une erreur de chargement.
+6. Télécharger/partager un PNG test.

@@ -4,6 +4,7 @@ import { forecastHistory, latestForecast } from "./storage/db";
 import type { Env, LokaForecast, Scene24Candidate, SceneDecisionV24, DayProfile } from "./types";
 import { renderAdmin, renderDashboard } from "./ui/dashboard";
 import { renderInstagramGenerator } from "./ui/instagram";
+import { renderInstagram24 } from "./ui/instagram24";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, {
@@ -199,6 +200,26 @@ export default {
 
       return new Response(
         renderInstagramGenerator(
+          forecast,
+          city.latitude,
+          city.longitude,
+          city.timezone
+        ),
+        {
+          headers: {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        }
+      );
+    }
+
+    if (url.pathname === "/instagram24") {
+      const city = getCity("tarnos")!;
+      const forecast = await latestForecast(env.DB, "tarnos");
+
+      return new Response(
+        renderInstagram24(
           forecast,
           city.latitude,
           city.longitude,
