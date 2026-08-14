@@ -247,12 +247,31 @@ function renderEngine(d){
         '<div class="card"><div class="label">BLOC 12.11 · AUDIT FINAL RC</div>'+
         '<div class="muted">Étape 2/2 · recoupement serveur de toutes les preuves 12.5 → 12.10…</div></div>';
 
-      const x=await fetchJson('/api/admin/final-release-audit/run?city=tarnos',{
+      const finalResponse=await fetch('/api/admin/final-release-audit/run?city=tarnos',{
         method:'POST',
         headers:{
           Authorization:'Bearer '+token()
-        }
+        },
+        cache:'no-store'
       });
+
+      const finalText=await finalResponse.text();
+      let x=null;
+      try{
+        x=finalText?JSON.parse(finalText):null;
+      }catch(parseError){
+        throw new Error(
+          'Réponse audit invalide ('+finalResponse.status+') : '+finalText.slice(0,220)
+        );
+      }
+
+      if(!x||!x.report){
+        throw new Error(
+          (x&&x.error)
+            ?x.error
+            :('HTTP '+finalResponse.status)
+        );
+      }
 
       const r=x.report||{};
       const checks=Array.isArray(r.checks)?r.checks:[];
@@ -266,6 +285,7 @@ function renderEngine(d){
       out.innerHTML=
         '<div class="card"><div class="label">BLOC 12.11 · AUDIT FINAL RELEASE CANDIDATE</div>'+
         '<div class="scene '+cls+'">'+e(r.status||'—')+'</div>'+
+        '<div class="bar-row"><span>HTTP audit</span><strong>'+e(finalResponse.status)+'</strong></div>'+
         '<div class="bar-row"><span>Génération</span><strong>'+e(r.generatedAt||'—')+'</strong></div>'+
         '<div class="bar-row"><span>Moteur public</span><strong>'+e(r.effectiveEngine||'—')+'</strong></div>'+
         '<div class="bar-row"><span>Scène</span><strong>'+e(r.sceneKey||'—')+'</strong></div>'+
