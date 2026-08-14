@@ -1,0 +1,31 @@
+LOKA V24 — BLOC 1
+====================
+
+Fichiers à ajouter/remplacer :
+
+AJOUTER
+- src/config/scenes24.ts
+- src/engine/scenes24/registry.ts
+
+REMPLACER
+- src/types.ts
+
+Sécurité
+--------
+Ce bloc ne change pas le comportement de production :
+- le type historique LokaScene reste inchangé ;
+- classifier.ts n'est pas modifié ;
+- verdict.ts n'est pas modifié ;
+- pipeline.ts n'est pas modifié ;
+- /instagram reste inchangé ;
+- aucun nouveau fichier n'est importé par le pipeline actuel.
+
+Le registre contient les 24 identifiants/noms/fichiers officiels issus de la
+livraison LOKA 24 masters. SCENE24_CONFIG contient les seuils validés durant
+la conception, mais n'est pas encore branché au moteur.
+
+IMPORTANT
+---------
+La connexion GitHub disponible dans cette session autorise la lecture mais
+a refusé l'écriture (HTTP 403). Le dossier est donc prêt à être ajouté au
+dépôt manuellement, sans modification automatique de GitHub.
