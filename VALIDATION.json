@@ -1,7 +1,13 @@
 {
-  "typescriptCheck": "PASS",
+  "typescriptIntegrationCheck": "PASS",
   "noMigration": true,
-  "productionUntouched": true,
-  "safariErrorHandling": true,
-  "d1CutoffSimplified": true
+  "productionStillLegacy": true,
+  "readinessStatuses": [
+    "NOT_READY",
+    "OBSERVATION",
+    "READY_CANDIDATE"
+  ],
+  "automaticProductionSwitch": false,
+  "familyHealthEnabled": true,
+  "protectedReadinessEndpoint": true
 }

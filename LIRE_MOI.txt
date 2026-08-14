@@ -1,55 +1,88 @@
-LOKA V24 — CORRECTIF BLOC 9.2.1
-================================
+LOKA V24 — BLOC 10
+===================
 
 OBJECTIF
 --------
-Corriger l'erreur mobile Safari affichée dans Calibration V24 :
-"SyntaxError: The string did not match the expected pattern."
+Créer le sas de validation final V24 avant toute éventuelle bascule de production.
+
+IMPORTANT
+---------
+Ce Bloc 10 NE BASCULE PAS forecast.scene.
+Legacy6 reste officiellement en production.
+READY_CANDIDATE signifie seulement : "les critères techniques sont satisfaits
+pour envisager une validation humaine".
 
 FICHIERS
 --------
+AJOUTER :
+- src/analytics/readiness.ts
+
 REMPLACER :
+- src/index.ts
 - src/ui/dashboard.ts
-- src/storage/shadowMetrics.ts
 
 AUCUNE MIGRATION D1.
 
-CORRECTIONS
------------
-1. Admin mobile :
-   - les réponses API sont d'abord lues comme texte ;
-   - elles sont ensuite parsées explicitement en JSON ;
-   - si Cloudflare/D1 renvoie du texte ou une page d'erreur, l'Admin affiche
-     maintenant le vrai statut HTTP et le début de la réponse au lieu d'un
-     SyntaxError Safari opaque.
+NOUVELLE ROUTE PRIVEE
+---------------------
+GET /api/shadow/readiness?city=tarnos&days=30
+Authorization: Bearer ADMIN_TOKEN
 
-2. Requête D1 metrics :
-   - suppression du modificateur SQLite dynamique :
-       date('now', '-' || ? || ' days')
-   - la date de coupure est désormais calculée en JavaScript au format YYYY-MM-DD
-     puis liée comme paramètre simple :
-       forecast_date >= ?
+STATUTS
+-------
+NOT_READY
+- échantillon encore trop petit :
+  minimum 7 jours, 21 générations et 10 transitions intra-journée.
 
-Cette forme est plus robuste avec D1 et évite les différences de parsing.
+OBSERVATION
+- échantillon suffisant pour analyser ;
+- mais un ou plusieurs critères du sas ne sont pas atteints.
+
+READY_CANDIDATE
+- tous les critères du sas sont atteints ;
+- aucune famille météo suffisamment observée n'est classée PROBLEM ;
+- validation humaine obligatoire avant toute bascule.
+
+CRITERES READY_CANDIDATE
+------------------------
+- au moins 14 jours Shadow
+- au moins 40 générations
+- au moins 20 transitions comparables
+- stabilité finale >= 85 %
+- gap moyen gagnant/runner-up >= 8 points
+- décisions serrées (<7 pts) <= 25 %
+- confiance LOW <= 25 %
+- interventions Reliability <= 25 %
+- modifications Raw -> Final <= 20 %
+
+FAMILLES PROBLEMATIQUES
+-----------------------
+Le Bloc 10 regroupe automatiquement les scènes via le registre officiel :
+LIGHT, VEIL, MIXED_SKY, VARIABILITY, TREND, WIND_COMBINATION, VISIBILITY,
+CLOUD, WIND, RAIN, INSTABILITY, THUNDER, RAIN_WIND.
+
+Une famille n'est évaluée qu'à partir de 3 générations.
+Elle peut être WATCH ou PROBLEM selon :
+- taux LOW
+- taux de correction Reliability
+- taux de décisions serrées
+
+ADMIN MOBILE
+------------
+Nouveau bouton :
+"Évaluer readiness V24"
+
+Affichage :
+- NOT READY / OBSERVATION / READY CANDIDATE
+- tous les critères et leur état OK/NON
+- bloquants
+- avertissements
+- santé par famille météo
 
 SECURITE
 --------
+- aucune écriture D1
+- aucune bascule automatique
 - forecast.scene inchangé
-- Legacy toujours officiel
-- aucune écriture supplémentaire
-- aucune migration
-- /instagram et /instagram24 inchangés
-
-TEST
-----
-Après déploiement :
-1. Ouvrir /admin
-2. Saisir ADMIN_TOKEN
-3. Appuyer sur "Analyser Shadow V24"
-
-Résultat attendu :
-- soit les cartes de calibration s'affichent ;
-- soit un message d'erreur précis "HTTP ..." apparaît, exploitable immédiatement.
-
-Si les cartes s'affichent, Bloc 9 est considéré techniquement opérationnel et
-nous pouvons passer au Bloc 10.
+- /instagram reste Legacy
+- /instagram24 reste Shadow
