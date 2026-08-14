@@ -282,6 +282,9 @@ export async function latestSurfaceCoherenceAudit(
   id: number;
   generatedAt: string;
   checkedAt: string;
+  expectedEngine: string;
+  expectedScene: string;
+  expectedFingerprint: string;
   status: "PASS" | "FAIL";
   reason: string;
 } | null> {
@@ -290,6 +293,9 @@ export async function latestSurfaceCoherenceAudit(
       id,
       generated_at,
       checked_at,
+      expected_engine,
+      expected_scene,
+      expected_fingerprint,
       status,
       reason
     FROM publication_surface_audit
@@ -300,6 +306,9 @@ export async function latestSurfaceCoherenceAudit(
     id: number;
     generated_at: string;
     checked_at: string;
+    expected_engine: string;
+    expected_scene: string;
+    expected_fingerprint: string;
     status: "PASS" | "FAIL";
     reason: string;
   }>();
@@ -308,6 +317,9 @@ export async function latestSurfaceCoherenceAudit(
     id: row.id,
     generatedAt: row.generated_at,
     checkedAt: row.checked_at,
+    expectedEngine: row.expected_engine,
+    expectedScene: row.expected_scene,
+    expectedFingerprint: row.expected_fingerprint,
     status: row.status,
     reason: row.reason
   } : null;

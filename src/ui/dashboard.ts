@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.6. Les 4 surfaces publiques portent maintenant la même identité de génération et peuvent être contrôlées de bout en bout.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.7. Release Candidate fonctionnelle : fallback, cohérence des 4 surfaces, manifest et audit de génération sont validés comme une seule chaîne.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -190,7 +190,7 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button>'+
+    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button>'+
     '<div class="metric-section"><h3>Autorisation V24 — double confirmation</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
     (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
     '<div id="payloadView" style="margin-top:12px"></div>';
@@ -224,6 +224,110 @@ function renderEngine(d){
       fingerprint:response.headers.get('x-loka-publication-fingerprint')
     };
   }
+
+  async function runBrowserCoherenceForRC(){
+    const pre=await fetchJson('/api/admin/publication/coherence?city=tarnos',{
+      headers:{Authorization:'Bearer '+token()}
+    });
+
+    if(!pre.identity){
+      throw new Error('publication_identity_unavailable');
+    }
+
+    const reqs=[
+      ['api_latest','/api/latest?city=tarnos&_rc='+Date.now()],
+      ['api_decision','/api/decision?city=tarnos&_rc='+Date.now()],
+      ['dashboard','/?_rc='+Date.now()],
+      ['instagram','/instagram?_rc='+Date.now()]
+    ];
+
+    const observations=[];
+
+    for(const [surface,url] of reqs){
+      const response=await fetch(url,{
+        method:'GET',
+        cache:'no-store',
+        headers:{'Cache-Control':'no-cache'}
+      });
+      observations.push(surfaceObservation(surface,response));
+    }
+
+    return fetchJson('/api/admin/publication/coherence/record?city=tarnos',{
+      method:'POST',
+      headers:{
+        Authorization:'Bearer '+token(),
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({observations})
+    });
+  }
+
+  document.getElementById('validateRC').onclick=async()=>{
+    const btn=document.getElementById('validateRC');
+    const out=document.getElementById('payloadView');
+    btn.disabled=true;
+
+    out.innerHTML=
+      '<div class="card"><div class="label">RELEASE CANDIDATE 12.7</div>'+
+      '<div class="muted">Étape 1/3 · self-test fallbacks…</div></div>';
+
+    try{
+      const fallback=await fetchJson('/api/admin/engine/fallback-self-test?city=tarnos',{
+        headers:{Authorization:'Bearer '+token()}
+      });
+
+      if(fallback.report?.status!=='PASS'){
+        throw new Error('fallback_self_test_'+String(fallback.report?.status||'FAIL'));
+      }
+
+      out.innerHTML=
+        '<div class="card"><div class="label">RELEASE CANDIDATE 12.7</div>'+
+        '<div class="muted">Étape 2/3 · lecture réelle des 4 surfaces publiques…</div></div>';
+
+      const coherence=await runBrowserCoherenceForRC();
+
+      if(coherence.status!=='PASS'){
+        throw new Error('surface_coherence_'+String(coherence.status||'FAIL'));
+      }
+
+      out.innerHTML=
+        '<div class="card"><div class="label">RELEASE CANDIDATE 12.7</div>'+
+        '<div class="muted">Étape 3/3 · validation serveur et audit immuable…</div></div>';
+
+      const x=await fetchJson('/api/admin/release-candidate/validate?city=tarnos',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token()}
+      });
+
+      const r=x.report||{},checks=Array.isArray(r.checks)?r.checks:[];
+      const cls=r.technicalStatus==='RC_TECHNICAL_READY'?'good':(r.technicalStatus==='RC_PENDING'?'caution':'bad');
+
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.7 · RELEASE CANDIDATE</div>'+
+        '<div class="scene '+cls+'">'+e(r.technicalStatus||'—')+'</div>'+
+        '<div class="bar-row"><span>Éligibilité activation</span><strong>'+e(r.activationEligibility||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Moteur public</span><strong>'+e(r.effectiveEngine||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Génération</span><strong>'+e(r.generatedAt||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Instagram GO LIVE</span><strong class="caution">NON · BLOC 12.13</strong></div>'+
+        checks.map(c=>
+          '<div class="bar-row"><span>'+e(c.label)+
+          '<div class="muted">'+e(c.detail||'')+'</div></span>'+
+          '<strong class="'+(c.status==='PASS'?'good':(c.status==='INFO'?'caution':'bad'))+'">'+e(c.status)+'</strong></div>'
+        ).join('')+
+        '<div class="muted" style="margin-top:10px">La validation 12.7 n’a modifié ni moteur, ni forecast, ni autorisation. Seul l’audit Release Candidate a été ajouté.</div>'+
+        '</div>';
+
+      await loadEngine();
+    }catch(err){
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.7 · RELEASE CANDIDATE</div>'+
+        '<div class="scene bad">RC NON VALIDÉE</div>'+
+        '<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>'+
+        '<div class="muted">Aucune activation V24 ni publication Instagram n’a été déclenchée.</div></div>';
+    }finally{
+      btn.disabled=false;
+    }
+  };
 
   document.getElementById('checkCoherence').onclick=async()=>{
     const btn=document.getElementById('checkCoherence');

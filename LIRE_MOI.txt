@@ -1,235 +1,249 @@
-LOKA V24 — BLOC 12.6
+LOKA V24 — BLOC 12.7
 ======================
+
+STATUT DE CE BLOC
+-----------------
+BLOC 12.7 = RELEASE CANDIDATE FONCTIONNELLE.
+
+Ce n'est PAS le GO LIVE Instagram.
+Le premier GO LIVE réel reste réservé au Bloc 12.13 après les blocs de panne,
+audit 24 scènes, rollback réel, audit final et répétition générale.
 
 OBJECTIF
 --------
-Garantir qu'une génération officielle est IDENTIQUE sur les quatre surfaces :
+Valider toute la chaîne LOKA comme UN SEUL PRODUIT :
 
+données météo
+→ consensus
+→ Legacy + V24
+→ DayProfile
+→ classifier 24 scènes
+→ Reliability
+→ selector moteur
+→ autorisation/readiness
+→ garde-fou de génération
+→ vérification master
+→ backup Legacy
+→ écriture D1 sécurisée
+→ publicationManifest
+→ audit génération
+→ /api/latest
+→ /api/decision
+→ dashboard
+→ Studio Instagram
+→ contrôle réel des 4 surfaces
+→ Release Candidate
+
+MIGRATION D1 OBLIGATOIRE
+------------------------
+Appliquer :
+migrations/0007_release_candidate.sql
+
+Elle crée :
+release_candidate_audit
+
+Cette table est append-only :
+UPDATE et DELETE interdits.
+
+Une validation RC ne modifie JAMAIS :
+- engine_control
+- forecast
+- readiness
+- autorisation V24
+
+Elle ajoute seulement une preuve d'audit.
+
+FICHIERS À AJOUTER
+------------------
+- migrations/0007_release_candidate.sql
+- src/engine/releaseCandidate.ts
+
+FICHIERS À REMPLACER
+--------------------
+- src/storage/publicationAudit.ts
+- src/engine/engineMode.ts
+- src/engine/engineRuntime.ts
+- src/pipeline.ts
+- src/index.ts
+- src/ui/dashboard.ts
+
+Le ZIP inclut aussi les dépendances 12.6 nécessaires.
+
+STATUTS RELEASE CANDIDATE
+-------------------------
+RC_TECHNICAL_READY
+Tous les contrôles techniques bloquants passent.
+
+RC_PENDING
+Aucun défaut dur, mais un prérequis temporaire manque.
+Exemple :
+- contrôle des 4 surfaces pas encore lancé
+- contrôle PASS trop ancien
+- backup pas encore créé juste après déploiement
+
+RC_BLOCKED
+Au moins un défaut technique bloquant existe.
+
+IMPORTANT :
+RC_TECHNICAL_READY ne signifie PAS READY_CANDIDATE météo.
+
+Les deux concepts sont différents :
+
+RC_TECHNICAL_READY
+= le logiciel complet fonctionne correctement.
+
+READY_CANDIDATE
+= l'historique météorologique V24 est assez mature pour autoriser une
+  future bascule.
+
+On peut donc avoir aujourd'hui :
+
+RC_TECHNICAL_READY
++
+readiness NOT_READY
++
+Production LEGACY
+
+C'est un état parfaitement normal.
+
+CONTRÔLES 12.7
+---------------
+Le serveur revérifie lui-même :
+
+1. Schéma D1 complet jusqu'à 0007
+2. Dernier forecast disponible
+3. Sélecteur moteur réellement connecté au pipeline
+4. scene24 + dayProfile24 présents
+5. Resolver public sûr disponible
+6. publicationManifest valide + fingerprint exact
+7. publication_generation_audit VERIFIED et identique
+8. Backup Legacy persistant + checksum valide
+9. Self-test fallbacks 12.5 = PASS
+10. publication_surface_audit = PASS
+11. Contrôle des 4 surfaces sur EXACTEMENT :
+    - même generatedAt
+    - même moteur
+    - même scène
+    - même fingerprint
+12. Contrôle surface récent (moins de 30 minutes)
+
+L'état readiness/approval est aussi affiché, mais il est INFORMATIF pour la
+Release Candidate technique.
+
+Il ne faut pas falsifier READY_CANDIDATE pour terminer le développement.
+
+NOUVEAU BOUTON MOBILE
+---------------------
+Admin :
+"Valider Release Candidate 12.7"
+
+Un seul appui exécute trois étapes.
+
+ÉTAPE 1 / 3
+Self-test fallbacks 12.5.
+Il doit être PASS.
+
+ÉTAPE 2 / 3
+Le téléphone appelle RÉELLEMENT :
 - /api/latest
 - /api/decision
 - /
 - /instagram
 
-Le contrôle porte sur :
-- generatedAt
-- moteur effectif
-- scène
-- fingerprint SHA-256 du produit public
+Le résultat est enregistré dans publication_surface_audit.
 
-AUCUNE surface ne doit pouvoir dériver silencieusement d'une autre.
+ÉTAPE 3 / 3
+Le serveur recalcule tous les contrôles 12.7 et ajoute une ligne immuable dans :
+release_candidate_audit
 
-MIGRATION D1 OBLIGATOIRE
-------------------------
-Appliquer :
-migrations/0006_publication_coherence.sql
+Aucune étape ne demande de terminal.
 
-Elle crée deux tables append-only :
+RÉSULTAT ATTENDU ACTUEL
+-----------------------
+Après :
+- migration 0007
+- déploiement
+- UNE nouvelle génération
+- backup 12.5 valide
+- manifest/audit 12.6 valides
 
-1. publication_generation_audit
-   Une preuve immuable par génération réellement publiée.
+le bouton peut retourner :
 
-2. publication_surface_audit
-   Le résultat des contrôles réels des quatre surfaces.
+RC_TECHNICAL_READY
 
-FICHIERS À AJOUTER
+Avec en parallèle quelque chose comme :
+
+Éligibilité activation : NOT_REQUESTED
+ou WAITING_READINESS
+
+Readiness : NOT_READY
+Moteur public : LEGACY
+Instagram GO LIVE : NON · BLOC 12.13
+
+C'est le résultat attendu.
+
+POURQUOI 12.7 PEUT ÊTRE VALIDÉ AVANT READY_CANDIDATE
+-----------------------------------------------------
+Nous ne voulons pas attendre plusieurs semaines pour découvrir un bug de
+plomberie logicielle.
+
+Bloc 12.7 valide que le PRODUIT est techniquement complet.
+
+Le readiness continuera ensuite à accumuler de vraies générations Shadow.
+
+Quand READY_CANDIDATE sera réellement atteint :
+le même logiciel déjà validé pourra passer par l'autorisation humaine et les
+garde-fous sans changement improvisé.
+
+SÉCURITÉ V24
+------------
+Les règles 12.4 / 12.5 / 12.6 restent inchangées.
+
+Une génération V24 exige toujours :
+- mode V24
+- autorisation humaine
+- READY_CANDIDATE
+- preuve APPROVED
+- garde-fou PASS
+- master accessible
+- backup Legacy valide
+- manifest valide
+- écriture D1 vérifiée
+- audit génération réussi
+
+Sinon :
+LEGACY.
+
+GO LIVE INSTAGRAM
+-----------------
+Le Bloc 12.7 écrit explicitement dans son audit :
+
+go_live_instagram = 0
+
+Cette colonne possède une contrainte D1 qui interdit même de lui donner 1
+dans cette version.
+
+Donc 12.7 ne peut pas être interprété comme une autorisation de publication.
+
+SUITE DU PROGRAMME
 ------------------
-- migrations/0006_publication_coherence.sql
-- src/engine/publicationManifest.ts
-- src/storage/publicationAudit.ts
-
-FICHIERS À REMPLACER
---------------------
-- src/engine/publicFailSafe.ts
-- src/storage/publicationSafety.ts
-- src/pipeline.ts
-- src/engine/engineMode.ts
-- src/engine/engineRuntime.ts
-- src/index.ts
-- src/ui/dashboard.ts
-
-Le ZIP contient également les dépendances 12.5 nécessaires.
-
-MANIFEST CANONIQUE
-------------------
-Chaque génération 12.6 reçoit :
-
-diagnostics.publicationManifest
-
-Il contient notamment :
-- city/date/generatedAt
-- effectiveEngine
-- scène
-- master V24 si applicable
-- score/confiance
-- éditorial
-- températures
-- hourly
-- état garde-fou/fallback
-- surfaceContractVersion
-
-LOKA calcule un SHA-256 déterministe de ce contenu :
-
-fingerprintSha256
-
-Le même fingerprint doit apparaître partout.
-
-ÉCRITURE D1
------------
-Avant publication :
-- le manifest est attaché au forecast
-- le backup Legacy persistant reçoit lui aussi un manifest
-
-Après saveForecast :
-- LOKA relit la génération
-- vérifie le moteur
-- RECALCULE le fingerprint
-- compare au manifest stocké
-
-Puis une ligne est ajoutée à :
-publication_generation_audit
-
-IMPORTANT :
-pour une génération V24, cette preuve d'audit est OBLIGATOIRE.
-
-Si l'audit V24 ne peut pas être enregistré :
-→ V24 est abandonné
-→ récupération Legacy
-→ aucune génération V24 non traçable n'est conservée.
-
-Pour Legacy, une panne d'audit ne coupe pas la météo, mais la génération sera
-signalée PARTIAL et le contrôle 12.6 ne pourra pas être validé.
-
-HEADERS PUBLICS
----------------
-Les 4 surfaces officielles renvoient désormais :
-
-x-loka-publication-version
-x-loka-generated-at
-x-loka-engine
-x-loka-scene
-x-loka-publication-fingerprint
-x-loka-surface
-
-Exemple :
-x-loka-publication-version: 12.6.0
-x-loka-engine: LEGACY
-x-loka-scene: NUAGES
-x-loka-publication-fingerprint: ...
-
-Ces headers proviennent TOUS du même publicationManifest.
-
-CONTRÔLE MOBILE RÉEL
---------------------
-Nouveau bouton Admin :
-
-"Contrôler cohérence 12.6"
-
-Ce bouton ne simule pas les surfaces.
-
-Depuis Safari/Chrome sur ton téléphone, il appelle réellement :
-
-1. /api/latest
-2. /api/decision
-3. /
-4. /instagram
-
-Il lit leurs headers LOKA et vérifie que les quatre réponses ont exactement :
-
-- HTTP 2xx
-- version 12.6.0
-- même generatedAt
-- même moteur
-- même scène
-- même fingerprint
-
-Le résultat est ensuite envoyé au serveur qui le REVALIDE par rapport au
-manifest officiel courant.
-
-Puis le résultat PASS/FAIL est écrit dans :
-publication_surface_audit
-
-Ce test ne modifie :
-- ni forecast
-- ni engine_control
-- ni autorisation V24
-
-Il ajoute uniquement une ligne d'audit append-only.
-
-FALLBACKS
----------
-Le Bloc 12.5 reste intégralement en place.
-
-En plus, une génération V24 n'est plus servie si son publicationManifest est
-absent, invalide ou si son fingerprint ne correspond plus au contenu réel.
-
-Dans ce cas :
-→ backup Legacy persistant
-→ sinon backup Legacy inline
-→ sinon 503 sécurisé
+12.8  Tests de panne et cas dégradés
+12.9  Audit exhaustif des 24 scènes / masters / éditoriaux
+12.10 Test de rollback réel
+12.11 Audit final de Release Candidate
+12.12 Répétition générale complète sur téléphone
+12.13 GO LIVE V24 / Instagram
 
 INSTALLATION MOBILE
 -------------------
-1. Appliquer migrations/0006_publication_coherence.sql dans D1.
-2. Ajouter/remplacer les fichiers du ZIP.
+1. Appliquer migrations/0007_release_candidate.sql dans D1.
+2. Ajouter/remplacer les fichiers.
 3. Déployer.
 4. Générer UNE nouvelle météo.
 5. Admin -> Contrôler le moteur.
 6. Tester les fallbacks 12.5.
 7. Contrôler cohérence 12.6.
+8. Valider Release Candidate 12.7.
 
-RÉSULTAT ATTENDU ACTUEL
------------------------
-Avec readiness NOT_READY :
-
-Production : LEGACY
-
-Après UNE génération 12.6 :
-
-publicationManifest : présent
-publication_generation_audit : VERIFIED
-
-Puis :
-Contrôler cohérence 12.6
-→ PASS
-
-Les quatre lignes doivent afficher PASS :
-api_latest
-api_decision
-dashboard
-instagram
-
-C'est une validation importante :
-elle prouve que le téléphone a réellement reçu le même produit sur les quatre
-surfaces officielles.
-
-CAS PRE-12.6
-------------
-Juste après déploiement, avant la première nouvelle génération, l'ancien
-forecast peut ne pas avoir publicationManifest.
-
-C'est normal.
-
-Il faut générer UNE nouvelle météo avant de valider le Bloc 12.6.
-
-CE QUE 12.6 NE FAIT PAS ENCORE
-------------------------------
-Ce bloc ne signifie toujours pas GO LIVE Instagram.
-
-Il verrouille la cohérence technique avant notre Release Candidate.
-
-PROCHAINE ÉTAPE
----------------
-Bloc 12.7 :
-assembler la chaîne fonctionnelle complète comme Release Candidate :
-
-données
-→ consensus
-→ V24
-→ garde-fous
-→ publication sûre
-→ manifest
-→ dashboard officiel
-→ Studio Instagram officiel
-→ contrôle de cohérence
-
-Le Bloc 12.7 sera une Release Candidate fonctionnelle, pas encore notre GO LIVE.
+Le bouton 12.7 refait lui-même les étapes critiques ; les étapes 6 et 7
+séparées restent utiles pour voir les détails avant la validation complète.
