@@ -33,12 +33,22 @@ function readinessClass(rate,good,caution,inverse=false){
   if(inverse){if(v<=good)return 'good';if(v<=caution)return 'caution';return 'bad'}
   if(v>=good)return 'good';if(v>=caution)return 'caution';return 'bad'
 }
+async function fetchJson(url,options){
+  const r=await fetch(url,options);
+  const text=await r.text();
+  let data=null;
+  try{data=text?JSON.parse(text):null}catch(parseError){
+    throw new Error('Réponse invalide ('+r.status+') : '+text.slice(0,220));
+  }
+  if(!r.ok){
+    throw new Error((data&&data.error)?data.error:('HTTP '+r.status));
+  }
+  return data;
+}
 async function loadShadow(){
   statusEl.textContent='Chargement…';comparison.innerHTML='';candidates.innerHTML='';
   try{
-    const r=await fetch('/api/shadow?city=tarnos',{headers:{Authorization:'Bearer '+token()}});
-    const d=await r.json();
-    if(!r.ok){throw new Error(d.error||('HTTP '+r.status))}
+    const d=await fetchJson('/api/shadow?city=tarnos',{headers:{Authorization:'Bearer '+token()}});
     if(d.error){
       statusEl.innerHTML='<span class="error">V24 erreur : '+e(d.error)+'</span>';
     }else if(!d.v24){
@@ -59,9 +69,7 @@ async function loadShadow(){
 async function loadMetrics(){
   metricsStatus.textContent='Analyse…';metricsView.innerHTML='';
   try{
-    const r=await fetch('/api/shadow/metrics?city=tarnos&days=14',{headers:{Authorization:'Bearer '+token()}});
-    const d=await r.json();
-    if(!r.ok){throw new Error(d.error||('HTTP '+r.status))}
+    const d=await fetchJson('/api/shadow/metrics?city=tarnos&days=14',{headers:{Authorization:'Bearer '+token()}});
     const sample=d.sample||{}, st=d.stability||{}, sc=d.scoring||{}, rel=d.reliability||{};
     metricsStatus.innerHTML='<span class="ok">Analyse chargée</span> · '+e(sample.generations??0)+' générations · '+e(sample.forecastDays??0)+' jours';
 
@@ -105,7 +113,7 @@ async function loadMetrics(){
         (Array.isArray(rel.reasons)&&rel.reasons.length?rel.reasons.map(x=>'<div class="bar-row"><span>'+e(x.reason)+'</span><strong>'+e(x.count)+'</strong></div>').join(''):'<div class="muted">Aucune raison Reliability enregistrée.</div>')+
       '</div></div>';
   }catch(err){
-    metricsStatus.innerHTML='<span class="error">'+e(err)+'</span>';
+    metricsStatus.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>';
   }
 }
 document.getElementById('shadow').onclick=loadShadow;

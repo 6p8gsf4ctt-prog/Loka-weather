@@ -9,14 +9,23 @@ interface Row {
   reliability_applied:number; reliability_reason:string|null;
 }
 
+function cutoffDate(days:number):string {
+  const now=new Date();
+  const utcMidnight=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate());
+  const cutoff=new Date(utcMidnight-(days-1)*86400000);
+  return cutoff.toISOString().slice(0,10);
+}
+
 export async function loadShadowMetricRows(
   db:D1Database,
   citySlug:string,
   days=14,
   limit=500
 ):Promise<ShadowMetricRow[]> {
-  const safeDays=Math.min(90,Math.max(1,days));
-  const safeLimit=Math.min(5000,Math.max(10,limit));
+  const safeDays=Math.min(90,Math.max(1,Math.trunc(days)||14));
+  const safeLimit=Math.min(5000,Math.max(10,Math.trunc(limit)||500));
+  const cutoff=cutoffDate(safeDays);
+
   const result=await db.prepare(`
     SELECT forecast_date, generated_at,
       raw_scene_id, raw_score, raw_confidence,
@@ -26,10 +35,10 @@ export async function loadShadowMetricRows(
       reliability_applied, reliability_reason
     FROM shadow_history
     WHERE city_slug = ?
-      AND forecast_date >= date('now', '-' || ? || ' days')
+      AND forecast_date >= ?
     ORDER BY generated_at ASC
     LIMIT ?
-  `).bind(citySlug,safeDays,safeLimit).all<Row>();
+  `).bind(citySlug,cutoff,safeLimit).all<Row>();
 
   return result.results.map((r:Row)=>({
     forecastDate:r.forecast_date, generatedAt:r.generated_at,

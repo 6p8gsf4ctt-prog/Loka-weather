@@ -1,8 +1,7 @@
 {
-  "typescriptIntegrationCheck": "PASS",
-  "noMigrationRequired": true,
-  "readOnly": true,
-  "productionSceneUntouched": true,
-  "sameDayTransitionsOnly": true,
-  "protectedEndpoint": true
+  "typescriptCheck": "PASS",
+  "noMigration": true,
+  "productionUntouched": true,
+  "safariErrorHandling": true,
+  "d1CutoffSimplified": true
 }
