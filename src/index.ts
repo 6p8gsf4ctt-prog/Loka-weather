@@ -38,6 +38,11 @@ import {
   latestReleaseCandidateAudit,
   recordReleaseCandidateAudit
 } from "./engine/releaseCandidate";
+import { runFaultInjectionLab } from "./engine/faultLab";
+import {
+  latestFaultInjectionAudit,
+  recordFaultInjectionAudit
+} from "./storage/faultAudit";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, {
@@ -447,7 +452,7 @@ export default {
       return json({
         error: "use_double_confirmation_flow",
         message:
-          "Bloc 12.7 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
+          "Bloc 12.8 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
       }, 409);
     }
 
@@ -709,6 +714,60 @@ export default {
       } catch (error) {
         return json({
           error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/fault-lab" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const latest = await latestFaultInjectionAudit(
+          env.DB,
+          slug
+        );
+
+        return json({
+          ok: true,
+          latest,
+          safety: {
+            productionMutated: false,
+            engineControlMutated: false
+          }
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/fault-lab/run" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const report = await runFaultInjectionLab(env, slug);
+        await recordFaultInjectionAudit(env.DB, report);
+
+        return json({
+          ok: report.status === "PASS",
+          report,
+          safety: report.safety
+        }, report.status === "FAIL" ? 409 : 200);
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error),
+          safety: {
+            productionMutated: false,
+            engineControlMutated: false,
+            forecastWritten: false
+          }
         }, 500);
       }
     }

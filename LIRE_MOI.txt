@@ -1,249 +1,213 @@
-LOKA V24 — BLOC 12.7
+LOKA V24 — BLOC 12.8
 ======================
-
-STATUT DE CE BLOC
------------------
-BLOC 12.7 = RELEASE CANDIDATE FONCTIONNELLE.
-
-Ce n'est PAS le GO LIVE Instagram.
-Le premier GO LIVE réel reste réservé au Bloc 12.13 après les blocs de panne,
-audit 24 scènes, rollback réel, audit final et répétition générale.
 
 OBJECTIF
 --------
-Valider toute la chaîne LOKA comme UN SEUL PRODUIT :
+Tester les pannes et cas dégradés AVANT le GO LIVE, sans casser ni modifier
+la production réelle.
 
-données météo
-→ consensus
-→ Legacy + V24
-→ DayProfile
-→ classifier 24 scènes
-→ Reliability
-→ selector moteur
-→ autorisation/readiness
-→ garde-fou de génération
-→ vérification master
-→ backup Legacy
-→ écriture D1 sécurisée
-→ publicationManifest
-→ audit génération
-→ /api/latest
-→ /api/decision
-→ dashboard
-→ Studio Instagram
-→ contrôle réel des 4 surfaces
-→ Release Candidate
+Le Bloc 12.8 introduit un laboratoire de panne contrôlé.
+
+AUCUNE panne n'est injectée dans :
+- forecasts
+- engine_control
+- readiness
+- autorisation V24
+- publication officielle
+
+Les scénarios sont exécutés sur des clones mémoire et sur la même politique
+de récupération utilisée par le code de production.
 
 MIGRATION D1 OBLIGATOIRE
 ------------------------
 Appliquer :
-migrations/0007_release_candidate.sql
+migrations/0008_fault_injection_audit.sql
 
 Elle crée :
-release_candidate_audit
+fault_injection_audit
 
-Cette table est append-only :
-UPDATE et DELETE interdits.
+Cette table est append-only.
 
-Une validation RC ne modifie JAMAIS :
-- engine_control
-- forecast
-- readiness
-- autorisation V24
-
-Elle ajoute seulement une preuve d'audit.
+Chaque exécution du laboratoire y écrit une seule preuve :
+- PASS / FAIL / PENDING
+- nombre de scénarios
+- résultat complet
+- production_mutated = 0
+- engine_control_mutated = 0
 
 FICHIERS À AJOUTER
 ------------------
-- migrations/0007_release_candidate.sql
-- src/engine/releaseCandidate.ts
+- migrations/0008_fault_injection_audit.sql
+- src/engine/publicationRecoveryPolicy.ts
+- src/engine/faultLab.ts
+- src/storage/faultAudit.ts
 
 FICHIERS À REMPLACER
 --------------------
-- src/storage/publicationAudit.ts
+- src/engine/publicFailSafe.ts
+- src/storage/publicationSafety.ts
 - src/engine/engineMode.ts
 - src/engine/engineRuntime.ts
 - src/pipeline.ts
 - src/index.ts
 - src/ui/dashboard.ts
 
-Le ZIP inclut aussi les dépendances 12.6 nécessaires.
+SCÉNARIOS TESTÉS
+----------------
+Le laboratoire couvre actuellement 16 scénarios.
 
-STATUTS RELEASE CANDIDATE
--------------------------
-RC_TECHNICAL_READY
-Tous les contrôles techniques bloquants passent.
+MOTEUR / DONNÉES
+1. readiness indisponible
+   attendu : LEGACY
 
-RC_PENDING
-Aucun défaut dur, mais un prérequis temporaire manque.
-Exemple :
-- contrôle des 4 surfaces pas encore lancé
-- contrôle PASS trop ancien
-- backup pas encore créé juste après déploiement
+2. autorisation V24 absente
+   attendu : LEGACY
 
-RC_BLOCKED
-Au moins un défaut technique bloquant existe.
+3. seulement 3 modèles météo
+   attendu : guard BLOCKED / model_count
 
-IMPORTANT :
-RC_TECHNICAL_READY ne signifie PAS READY_CANDIDATE météo.
+4. scene24Error
+   attendu : guard BLOCKED / scene24_error_free
 
-Les deux concepts sont différents :
+ASSETS
+5. master officiel absent avant cutover
+   attendu : guard BLOCKED / master_asset
 
-RC_TECHNICAL_READY
-= le logiciel complet fonctionne correctement.
+SURFACES PUBLIQUES
+6. master supprimé après une génération V24
+   attendu : fallback Legacy
 
-READY_CANDIDATE
-= l'historique météorologique V24 est assez mature pour autoriser une
-  future bascule.
+7. manifest/fingerprint altéré après écriture
+   attendu : fallback Legacy
 
-On peut donc avoir aujourd'hui :
+8. backup Legacy D1 indisponible mais snapshot inline valide
+   attendu : Legacy INLINE_BACKUP
 
-RC_TECHNICAL_READY
-+
-readiness NOT_READY
-+
-Production LEGACY
+9. backup D1 + snapshot inline absents
+   attendu : UNAVAILABLE / HTTP 503 sûr
+   et surtout JAMAIS V24 non vérifié
 
-C'est un état parfaitement normal.
+STOCKAGE / RÉCUPÉRATION
+10. échec création backup avant V24
+    attendu : FORCE_LEGACY_CURRENT
 
-CONTRÔLES 12.7
+11. échec écriture forecast V24
+    attendu : RECOVER_LEGACY
+
+12. échec relecture V24
+    attendu : RECOVER_LEGACY
+
+13. échec audit génération V24
+    attendu : RECOVER_LEGACY
+
+14. échec écriture génération Legacy
+    attendu : RETAIN_PREVIOUS_FORECAST
+
+15. échec écriture du recovery Legacy
+    attendu : RETAIN_PREVIOUS_FORECAST
+
+16. aucune sauvegarde disponible au moment d'une requête
+    attendu : SAFE_503
+
+POINT IMPORTANT
 ---------------
-Le serveur revérifie lui-même :
+Les scénarios 10 à 16 ne testent pas une copie théorique de la logique.
 
-1. Schéma D1 complet jusqu'à 0007
-2. Dernier forecast disponible
-3. Sélecteur moteur réellement connecté au pipeline
-4. scene24 + dayProfile24 présents
-5. Resolver public sûr disponible
-6. publicationManifest valide + fingerprint exact
-7. publication_generation_audit VERIFIED et identique
-8. Backup Legacy persistant + checksum valide
-9. Self-test fallbacks 12.5 = PASS
-10. publication_surface_audit = PASS
-11. Contrôle des 4 surfaces sur EXACTEMENT :
-    - même generatedAt
-    - même moteur
-    - même scène
-    - même fingerprint
-12. Contrôle surface récent (moins de 30 minutes)
+Le Bloc 12.8 extrait la politique dans :
+src/engine/publicationRecoveryPolicy.ts
 
-L'état readiness/approval est aussi affiché, mais il est INFORMATIF pour la
-Release Candidate technique.
+ET le vrai code de :
+src/storage/publicationSafety.ts
 
-Il ne faut pas falsifier READY_CANDIDATE pour terminer le développement.
+utilise désormais cette même politique.
+
+Le laboratoire vérifie donc la même machine de décision que la production.
+
+PUBLIC FAIL-SAFE TESTABLE
+-------------------------
+src/engine/publicFailSafe.ts expose maintenant :
+
+resolvePublicSurfaceWithDependencies()
+
+La production l'utilise avec les vraies dépendances :
+- backup D1
+- ASSETS Cloudflare
+
+Le laboratoire lui injecte des dépendances contrôlées :
+- backup absent
+- master absent
+- etc.
+
+Cela permet de tester les réactions réelles du resolver sans altérer D1.
 
 NOUVEAU BOUTON MOBILE
 ---------------------
 Admin :
-"Valider Release Candidate 12.7"
+"Tester pannes 12.8"
 
-Un seul appui exécute trois étapes.
+Le bouton lance :
+POST /api/admin/fault-lab/run?city=tarnos
 
-ÉTAPE 1 / 3
-Self-test fallbacks 12.5.
-Il doit être PASS.
+Résultat attendu :
+PASS
 
-ÉTAPE 2 / 3
-Le téléphone appelle RÉELLEMENT :
-- /api/latest
-- /api/decision
-- /
-- /instagram
+Un résultat PENDING est possible uniquement si la génération courante ne
+permet pas de construire un fixture V24 synthétique à partir de scene24 /
+DayProfile. Dans ce cas aucune donnée n'est inventée.
 
-Le résultat est enregistré dans publication_surface_audit.
+FAIL signifie qu'une règle de sécurité attendue n'a pas réagi comme prévu.
 
-ÉTAPE 3 / 3
-Le serveur recalcule tous les contrôles 12.7 et ajoute une ligne immuable dans :
-release_candidate_audit
+SÉCURITÉ
+--------
+Le laboratoire ne fait jamais :
+saveForecast()
+rollbackToLegacy()
+requestV24Preview()
+prepare/confirm V24 approval()
 
-Aucune étape ne demande de terminal.
+La seule écriture volontaire est :
+fault_injection_audit
 
-RÉSULTAT ATTENDU ACTUEL
------------------------
-Après :
-- migration 0007
-- déploiement
-- UNE nouvelle génération
-- backup 12.5 valide
-- manifest/audit 12.6 valides
-
-le bouton peut retourner :
-
-RC_TECHNICAL_READY
-
-Avec en parallèle quelque chose comme :
-
-Éligibilité activation : NOT_REQUESTED
-ou WAITING_READINESS
-
-Readiness : NOT_READY
-Moteur public : LEGACY
-Instagram GO LIVE : NON · BLOC 12.13
-
-C'est le résultat attendu.
-
-POURQUOI 12.7 PEUT ÊTRE VALIDÉ AVANT READY_CANDIDATE
------------------------------------------------------
-Nous ne voulons pas attendre plusieurs semaines pour découvrir un bug de
-plomberie logicielle.
-
-Bloc 12.7 valide que le PRODUIT est techniquement complet.
-
-Le readiness continuera ensuite à accumuler de vraies générations Shadow.
-
-Quand READY_CANDIDATE sera réellement atteint :
-le même logiciel déjà validé pourra passer par l'autorisation humaine et les
-garde-fous sans changement improvisé.
-
-SÉCURITÉ V24
-------------
-Les règles 12.4 / 12.5 / 12.6 restent inchangées.
-
-Une génération V24 exige toujours :
-- mode V24
-- autorisation humaine
-- READY_CANDIDATE
-- preuve APPROVED
-- garde-fou PASS
-- master accessible
-- backup Legacy valide
-- manifest valide
-- écriture D1 vérifiée
-- audit génération réussi
-
-Sinon :
-LEGACY.
-
-GO LIVE INSTAGRAM
------------------
-Le Bloc 12.7 écrit explicitement dans son audit :
-
-go_live_instagram = 0
-
-Cette colonne possède une contrainte D1 qui interdit même de lui donner 1
-dans cette version.
-
-Donc 12.7 ne peut pas être interprété comme une autorisation de publication.
-
-SUITE DU PROGRAMME
-------------------
-12.8  Tests de panne et cas dégradés
-12.9  Audit exhaustif des 24 scènes / masters / éditoriaux
-12.10 Test de rollback réel
-12.11 Audit final de Release Candidate
-12.12 Répétition générale complète sur téléphone
-12.13 GO LIVE V24 / Instagram
+Le test ne peut donc ni activer V24 ni modifier la météo officielle.
 
 INSTALLATION MOBILE
 -------------------
-1. Appliquer migrations/0007_release_candidate.sql dans D1.
+1. Appliquer migrations/0008_fault_injection_audit.sql dans D1.
 2. Ajouter/remplacer les fichiers.
 3. Déployer.
-4. Générer UNE nouvelle météo.
-5. Admin -> Contrôler le moteur.
-6. Tester les fallbacks 12.5.
-7. Contrôler cohérence 12.6.
-8. Valider Release Candidate 12.7.
+4. Générer une météo normale si nécessaire.
+5. /admin
+6. Tester pannes 12.8.
 
-Le bouton 12.7 refait lui-même les étapes critiques ; les étapes 6 et 7
-séparées restent utiles pour voir les détails avant la validation complète.
+VALIDATION ATTENDUE
+-------------------
+Idéalement :
+
+BLOC 12.8 · TESTS DE PANNE
+PASS
+Scénarios : 16
+FAIL : 0
+PENDING : 0
+
+Si PENDING > 0 :
+nous regardons le détail avant de considérer le bloc terminé.
+
+Si FAIL > 0 :
+on ne passe PAS au Bloc 12.9 avant correction.
+
+CE QUE 12.8 NE FAIT PAS
+-----------------------
+Ce n'est toujours pas le GO LIVE Instagram.
+
+Aucune panne réelle n'est volontairement déclenchée sur la base de production.
+Les tests destructifs seraient une mauvaise méthode sur une base unique.
+
+Le Bloc 12.10 testera le vrai rollback administratif de façon contrôlée.
+
+SUITE
+-----
+12.9  Audit exhaustif des 24 scènes, masters et éditoriaux
+12.10 Test de rollback réel
+12.11 Audit final Release Candidate
+12.12 Répétition générale téléphone
+12.13 GO LIVE V24 / Instagram

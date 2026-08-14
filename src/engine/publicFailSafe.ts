@@ -5,9 +5,13 @@ import {
   restoreLegacyPublicForecast,
   type V24OfficialPublicPayload
 } from "./publicProduct";
-import { verifyV24MasterAsset } from "./masterAsset";
+import {
+  verifyV24MasterAsset,
+  type V24MasterAvailability
+} from "./masterAsset";
 import { loadLegacyPublicBackup } from "../storage/publicationSafety";
 import { verifyPublicationManifest } from "./publicationManifest";
+import { requestFallbackAction } from "./publicationRecoveryPolicy";
 
 type Obj = Record<string, unknown>;
 
@@ -34,6 +38,16 @@ export type SafePublicSurface =
       reason: string;
     };
 
+export interface PublicFailSafeDependencies {
+  loadLegacyBackup(
+    citySlug: string
+  ): Promise<LokaForecast | null>;
+
+  verifyMaster(
+    masterUrl: string
+  ): Promise<V24MasterAvailability>;
+}
+
 function asObj(value: unknown): Obj | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as Obj
@@ -51,6 +65,7 @@ function withRequestFallbackReason(
   source: "PERSISTENT_BACKUP" | "INLINE_BACKUP"
 ): LokaForecast {
   const clone = JSON.parse(JSON.stringify(forecast)) as LokaForecast;
+
   clone.diagnostics.sceneEngine = {
     ...(asObj(clone.diagnostics.sceneEngine) ?? {}),
     effectiveProduction: "LEGACY",
@@ -59,35 +74,57 @@ function withRequestFallbackReason(
     requestTimeFallbackReason: reason,
     requestTimeFallbackSource: source
   };
+
   return clone;
 }
 
-async function fallbackToLegacy(
-  db: D1Database,
-  original: LokaForecast,
-  reason: string
-): Promise<SafePublicSurface> {
+async function loadPersistent(
+  deps: PublicFailSafeDependencies,
+  citySlug: string
+): Promise<LokaForecast | null> {
   try {
-    const persistent = await loadLegacyPublicBackup(db, original.citySlug);
-    if (persistent) {
-      return {
-        engine: "LEGACY",
-        forecast: withRequestFallbackReason(
-          persistent,
-          reason,
-          "PERSISTENT_BACKUP"
-        ),
-        payload: null,
-        fallback: true,
-        reason
-      };
-    }
+    return await deps.loadLegacyBackup(citySlug);
   } catch {
-    // Continue to inline fallback.
+    return null;
+  }
+}
+
+async function fallbackToLegacy(
+  deps: PublicFailSafeDependencies,
+  original: LokaForecast,
+  reason: string,
+  knownPersistent?: LokaForecast | null
+): Promise<SafePublicSurface> {
+  const persistent =
+    knownPersistent === undefined
+      ? await loadPersistent(deps, original.citySlug)
+      : knownPersistent;
+
+  const inlineAvailable =
+    hasValidLegacyPublicFallback(original);
+
+  const action = requestFallbackAction({
+    persistentLegacyAvailable: persistent !== null,
+    inlineLegacyAvailable: inlineAvailable
+  });
+
+  if (action === "SERVE_PERSISTENT_LEGACY" && persistent) {
+    return {
+      engine: "LEGACY",
+      forecast: withRequestFallbackReason(
+        persistent,
+        reason,
+        "PERSISTENT_BACKUP"
+      ),
+      payload: null,
+      fallback: true,
+      reason
+    };
   }
 
-  if (hasValidLegacyPublicFallback(original)) {
+  if (action === "SERVE_INLINE_LEGACY" && inlineAvailable) {
     const inline = restoreLegacyPublicForecast(original);
+
     return {
       engine: "LEGACY",
       forecast: withRequestFallbackReason(
@@ -110,9 +147,9 @@ async function fallbackToLegacy(
   };
 }
 
-export async function resolvePublicSurfaceSafely(
-  env: Env,
-  forecast: LokaForecast
+export async function resolvePublicSurfaceWithDependencies(
+  forecast: LokaForecast,
+  deps: PublicFailSafeDependencies
 ): Promise<SafePublicSurface> {
   const claim = claimsV24(forecast);
   const stored = resolveStoredPublicSurface(forecast);
@@ -129,29 +166,23 @@ export async function resolvePublicSurfaceSafely(
     }
 
     return fallbackToLegacy(
-      env.DB,
+      deps,
       forecast,
       "stored_v24_product_rejected"
     );
   }
 
-  // A V24 generation is never served unless a persistent Legacy backup is
-  // still readable right now.
-  let persistentBackup: LokaForecast | null = null;
-  try {
-    persistentBackup = await loadLegacyPublicBackup(
-      env.DB,
-      forecast.citySlug
-    );
-  } catch {
-    persistentBackup = null;
-  }
+  const persistentBackup = await loadPersistent(
+    deps,
+    forecast.citySlug
+  );
 
   if (!persistentBackup) {
     return fallbackToLegacy(
-      env.DB,
+      deps,
       forecast,
-      "persistent_legacy_backup_unavailable_at_request"
+      "persistent_legacy_backup_unavailable_at_request",
+      null
     );
   }
 
@@ -160,36 +191,25 @@ export async function resolvePublicSurfaceSafely(
   );
 
   if (!manifest.valid) {
-    return {
-      engine: "LEGACY",
-      forecast: withRequestFallbackReason(
-        persistentBackup,
-        `publication_manifest_invalid:${manifest.reason}`,
-        "PERSISTENT_BACKUP"
-      ),
-      payload: null,
-      fallback: true,
-      reason: `publication_manifest_invalid:${manifest.reason}`
-    };
+    return fallbackToLegacy(
+      deps,
+      forecast,
+      `publication_manifest_invalid:${manifest.reason}`,
+      persistentBackup
+    );
   }
 
-  const master = await verifyV24MasterAsset(
-    env,
+  const master = await deps.verifyMaster(
     stored.payload.scene.masterUrl
   );
 
   if (!master.available) {
-    return {
-      engine: "LEGACY",
-      forecast: withRequestFallbackReason(
-        persistentBackup,
-        `master_asset_unavailable_at_request:${master.reason}`,
-        "PERSISTENT_BACKUP"
-      ),
-      payload: null,
-      fallback: true,
-      reason: `master_asset_unavailable_at_request:${master.reason}`
-    };
+    return fallbackToLegacy(
+      deps,
+      forecast,
+      `master_asset_unavailable_at_request:${master.reason}`,
+      persistentBackup
+    );
   }
 
   return {
@@ -199,4 +219,19 @@ export async function resolvePublicSurfaceSafely(
     fallback: false,
     reason: "v24_public_product_verified"
   };
+}
+
+export async function resolvePublicSurfaceSafely(
+  env: Env,
+  forecast: LokaForecast
+): Promise<SafePublicSurface> {
+  return resolvePublicSurfaceWithDependencies(
+    forecast,
+    {
+      loadLegacyBackup: (citySlug) =>
+        loadLegacyPublicBackup(env.DB, citySlug),
+      verifyMaster: (masterUrl) =>
+        verifyV24MasterAsset(env, masterUrl)
+    }
+  );
 }

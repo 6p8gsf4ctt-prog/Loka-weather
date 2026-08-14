@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.7. Release Candidate fonctionnelle : fallback, cohérence des 4 surfaces, manifest et audit de génération sont validés comme une seule chaîne.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.8. Laboratoire de panne contrôlé : les défauts critiques sont injectés sans modifier la production, puis chaque réaction de sécurité est auditée.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -190,7 +190,7 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button>'+
+    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button>'+
     '<div class="metric-section"><h3>Autorisation V24 — double confirmation</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
     (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
     '<div id="payloadView" style="margin-top:12px"></div>';
@@ -224,6 +224,51 @@ function renderEngine(d){
       fingerprint:response.headers.get('x-loka-publication-fingerprint')
     };
   }
+
+  document.getElementById('runFaultLab').onclick=async()=>{
+    const btn=document.getElementById('runFaultLab');
+    const out=document.getElementById('payloadView');
+    btn.disabled=true;
+
+    out.innerHTML=
+      '<div class="card"><div class="label">BLOC 12.8 · LABORATOIRE DE PANNE</div>'+
+      '<div class="muted">Injection contrôlée en mémoire. Aucun forecast ni engine_control ne sera modifié.</div></div>';
+
+    try{
+      const x=await fetchJson('/api/admin/fault-lab/run?city=tarnos',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token()}
+      });
+
+      const r=x.report||{},items=Array.isArray(r.scenarios)?r.scenarios:[];
+      const cls=r.status==='PASS'?'good':(r.status==='PENDING'?'caution':'bad');
+
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.8 · TESTS DE PANNE</div>'+
+        '<div class="scene '+cls+'">'+e(r.status||'—')+'</div>'+
+        '<div class="bar-row"><span>Scénarios</span><strong>'+e(r.summary?.total??'—')+'</strong></div>'+
+        '<div class="bar-row"><span>PASS</span><strong class="good">'+e(r.summary?.passed??0)+'</strong></div>'+
+        '<div class="bar-row"><span>FAIL</span><strong class="bad">'+e(r.summary?.failed??0)+'</strong></div>'+
+        '<div class="bar-row"><span>PENDING</span><strong class="caution">'+e(r.summary?.pending??0)+'</strong></div>'+
+        items.map(t=>
+          '<div class="bar-row"><span>'+e(t.label)+
+          '<div class="muted">Attendu : '+e(t.expected)+'<br>Observé : '+e(t.observed)+'<br>'+e(t.safety||'')+'</div></span>'+
+          '<strong class="'+(t.status==='PASS'?'good':(t.status==='PENDING'?'caution':'bad'))+'">'+e(t.status)+'</strong></div>'
+        ).join('')+
+        '<div class="muted" style="margin-top:12px">Seule une ligne append-only de fault_injection_audit a été écrite. La météo officielle n’a pas été modifiée.</div>'+
+        '</div>';
+
+      await loadEngine();
+    }catch(err){
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.8 · TESTS DE PANNE</div>'+
+        '<div class="scene bad">TEST NON VALIDÉ</div>'+
+        '<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>'+
+        '<div class="muted">Aucune injection n’a été appliquée au forecast officiel.</div></div>';
+    }finally{
+      btn.disabled=false;
+    }
+  };
 
   async function runBrowserCoherenceForRC(){
     const pre=await fetchJson('/api/admin/publication/coherence?city=tarnos',{

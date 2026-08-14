@@ -13,6 +13,9 @@ import {
   ensurePublicationAuditReady,
   recordPublicationGenerationAudit
 } from "./publicationAudit";
+import {
+  publicationFailureAction
+} from "../engine/publicationRecoveryPolicy";
 
 type Obj = Record<string, unknown>;
 
@@ -114,7 +117,7 @@ function annotate(
 ): LokaForecast {
   const clone = cloneForecast(forecast);
   clone.diagnostics.publicationSafety = {
-    version: "12.6.0",
+    version: "12.8.0",
     ...(asObj(clone.diagnostics.publicationSafety) ?? {}),
     ...values
   };
@@ -348,7 +351,7 @@ export async function prepareSafePublication(
 
     prepared.diagnostics.publicationSafety = {
       ...(asObj(prepared.diagnostics.publicationSafety) ?? {}),
-      version: "12.6.0",
+      version: "12.8.0",
       backupReady
     };
 
@@ -438,6 +441,16 @@ export async function prepareSafePublication(
       "pre_v24_cutover_last_known_good"
     );
   } catch (error) {
+    const backupAction = publicationFailureAction({
+      stage: "PERSISTENT_BACKUP",
+      targetEngine: "V24",
+      legacyFallbackAvailable: true
+    });
+
+    if (backupAction !== "FORCE_LEGACY_CURRENT") {
+      throw new Error("unexpected_backup_failure_policy");
+    }
+
     const forced = annotate(fallback, {
       requestedEngine: "V24",
       effectiveEngine: "LEGACY",
@@ -544,7 +557,26 @@ async function recoverLegacy(
 
   const manifested = await attachPublicationManifest(recovered);
 
-  await saveForecast(db, manifested, source);
+  try {
+    await saveForecast(db, manifested, source);
+  } catch (error) {
+    const action = publicationFailureAction({
+      stage: "LEGACY_RECOVERY_WRITE",
+      targetEngine: "LEGACY",
+      legacyFallbackAvailable: true
+    });
+
+    if (action === "RETAIN_PREVIOUS_FORECAST") {
+      throw new Error(
+        `legacy_recovery_write_failed_previous_forecast_retained:${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+
+    throw error;
+  }
+
   const verified = await verifyCommitted(db, manifested, "LEGACY");
 
   let generationAuditRecorded = false;
@@ -605,7 +637,17 @@ export async function commitSafePublication(
       }
     });
 
-    if (preparation.fallbackForecast) {
+    const action = publicationFailureAction({
+      stage: "OFFICIAL_WRITE",
+      targetEngine: target,
+      legacyFallbackAvailable:
+        preparation.fallbackForecast !== null
+    });
+
+    if (
+      action === "RECOVER_LEGACY" &&
+      preparation.fallbackForecast
+    ) {
       try {
         return await recoverLegacy(
           db,
@@ -616,12 +658,13 @@ export async function commitSafePublication(
           error instanceof Error ? error.message : String(error)
         );
       } catch {
-        // If both writes fail, the previous public forecast remains the only
-        // trustworthy product. Do not claim the new generation was published.
+        // Recovery policy then retains the previously committed forecast.
       }
     }
 
-    throw new Error("publication_write_failed_previous_forecast_retained");
+    throw new Error(
+      "publication_write_failed_previous_forecast_retained"
+    );
   }
 
   let verified = false;
@@ -649,7 +692,17 @@ export async function commitSafePublication(
       reason: "publication_readback_not_verified"
     });
 
-    if (preparation.fallbackForecast) {
+    const action = publicationFailureAction({
+      stage: "READBACK_VERIFY",
+      targetEngine: target,
+      legacyFallbackAvailable:
+        preparation.fallbackForecast !== null
+    });
+
+    if (
+      action === "RECOVER_LEGACY" &&
+      preparation.fallbackForecast
+    ) {
       return recoverLegacy(
         db,
         preparation.fallbackForecast,
@@ -659,7 +712,9 @@ export async function commitSafePublication(
       );
     }
 
-    throw new Error("legacy_publication_readback_not_verified");
+    throw new Error(
+      "publication_readback_failed_previous_forecast_retained"
+    );
   }
 
   let generationAuditRecorded = false;
@@ -676,7 +731,17 @@ export async function commitSafePublication(
   }
 
   if (target === "V24" && !generationAuditRecorded) {
-    if (preparation.fallbackForecast) {
+    const action = publicationFailureAction({
+      stage: "GENERATION_AUDIT",
+      targetEngine: target,
+      legacyFallbackAvailable:
+        preparation.fallbackForecast !== null
+    });
+
+    if (
+      action === "RECOVER_LEGACY" &&
+      preparation.fallbackForecast
+    ) {
       return recoverLegacy(
         db,
         preparation.fallbackForecast,
@@ -687,7 +752,7 @@ export async function commitSafePublication(
     }
 
     throw new Error(
-      "v24_generation_audit_failed_without_legacy_fallback"
+      "v24_generation_audit_failed_previous_forecast_retained"
     );
   }
 

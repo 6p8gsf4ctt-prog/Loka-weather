@@ -41,7 +41,7 @@ export interface SceneEngineResolution {
   productionActivationLocked: boolean;
 }
 
-const VERSION = "12.7.0";
+const VERSION = "12.8.0";
 
 export function normalizeSceneEngineMode(value: unknown): SceneEngineMode {
   return value === "V24_PREVIEW" || value === "V24"
