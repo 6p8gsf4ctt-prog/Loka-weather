@@ -1,213 +1,213 @@
-LOKA V24 — BLOC 12.8
+LOKA V24 — BLOC 12.9
 ======================
 
 OBJECTIF
 --------
-Tester les pannes et cas dégradés AVANT le GO LIVE, sans casser ni modifier
-la production réelle.
+Auditer exhaustivement les 24 scènes officielles avant d'autoriser les
+étapes de rollback réel et d'audit final.
 
-Le Bloc 12.8 introduit un laboratoire de panne contrôlé.
+Le Bloc 12.9 vérifie chaque élément de la chaîne :
 
-AUCUNE panne n'est injectée dans :
-- forecasts
-- engine_control
-- readiness
-- autorisation V24
-- publication officielle
+registre
+→ ID
+→ key
+→ label
+→ family
+→ masterFileName
+→ lookup ID/key
+→ payload V24
+→ éditorial natif
+→ master physique via Cloudflare ASSETS
 
-Les scénarios sont exécutés sur des clones mémoire et sur la même politique
-de récupération utilisée par le code de production.
+Aucune scène n'est injectée dans la production.
 
 MIGRATION D1 OBLIGATOIRE
 ------------------------
 Appliquer :
-migrations/0008_fault_injection_audit.sql
+migrations/0009_scene_catalog_audit.sql
 
 Elle crée :
-fault_injection_audit
+scene_catalog_audit
 
-Cette table est append-only.
-
-Chaque exécution du laboratoire y écrit une seule preuve :
-- PASS / FAIL / PENDING
-- nombre de scénarios
-- résultat complet
-- production_mutated = 0
-- engine_control_mutated = 0
+La table est append-only :
+UPDATE et DELETE interdits.
 
 FICHIERS À AJOUTER
 ------------------
-- migrations/0008_fault_injection_audit.sql
-- src/engine/publicationRecoveryPolicy.ts
-- src/engine/faultLab.ts
-- src/storage/faultAudit.ts
+- migrations/0009_scene_catalog_audit.sql
+- src/engine/sceneCatalogAudit.ts
+- src/storage/sceneCatalogAudit.ts
 
 FICHIERS À REMPLACER
 --------------------
-- src/engine/publicFailSafe.ts
-- src/storage/publicationSafety.ts
 - src/engine/engineMode.ts
 - src/engine/engineRuntime.ts
 - src/pipeline.ts
 - src/index.ts
 - src/ui/dashboard.ts
 
-SCÉNARIOS TESTÉS
-----------------
-Le laboratoire couvre actuellement 16 scénarios.
+Le ZIP inclut aussi les dépendances nécessaires du Bloc 12.8.
 
-MOTEUR / DONNÉES
-1. readiness indisponible
-   attendu : LEGACY
+CE QUI EST CONTRÔLÉ AU NIVEAU DU REGISTRE
+-----------------------------------------
+- exactement 24 scènes
+- IDs exactement 01 → 24 dans l'ordre
+- 24 IDs uniques
+- 24 keys uniques
+- 24 noms de master uniques
+- key / label / family / description / master non vides
 
-2. autorisation V24 absente
-   attendu : LEGACY
+Pour chaque scène :
+- getScene24ById(id) retourne exactement la définition du registre
+- getScene24ByKey(key) retourne exactement la même définition
+- masterFileName doit être exactement :
 
-3. seulement 3 modèles météo
-   attendu : guard BLOCKED / model_count
+  NN_KEY.png
 
-4. scene24Error
-   attendu : guard BLOCKED / scene24_error_free
+Exemple :
+09_COUVERT.png
+24_PLUIE_PLUS_VENT.png
 
-ASSETS
-5. master officiel absent avant cutover
-   attendu : guard BLOCKED / master_asset
+AUDIT DU PAYLOAD PUBLIC
+-----------------------
+Pour chacune des 24 scènes, LOKA construit un forecast CLONÉ en mémoire et
+force uniquement le diagnostic scene24 du clone.
 
-SURFACES PUBLIQUES
-6. master supprimé après une génération V24
-   attendu : fallback Legacy
+Puis buildV24PublicPayloadPreview() doit réussir.
 
-7. manifest/fingerprint altéré après écriture
-   attendu : fallback Legacy
+Le test vérifie que le payload produit exactement :
+- le bon ID
+- la bonne key
+- le bon label
+- la bonne family
+- le bon masterFileName
+- la bonne URL /masters24/...
 
-8. backup Legacy D1 indisponible mais snapshot inline valide
-   attendu : Legacy INLINE_BACKUP
+Cela teste donc le même chemin registry → publicPreview utilisé par V24.
 
-9. backup D1 + snapshot inline absents
-   attendu : UNAVAILABLE / HTTP 503 sûr
-   et surtout JAMAIS V24 non vérifié
+AUDIT DES 24 ÉDITORIAUX
+-----------------------
+Le même build déclenche buildV24NativeEditorial() pour CHAQUE scène.
 
-STOCKAGE / RÉCUPÉRATION
-10. échec création backup avant V24
-    attendu : FORCE_LEGACY_CURRENT
+Le Bloc 12.9 vérifie :
+- source = v24_native_v1
+- subtitle non vide
+- mainVerdict non vide
+- rainVerdict non vide
+- 2 à 3 summaryLines
+- aucune ligne vide
+- mainVerdict = subtitle
+- 24 subtitles uniques
 
-11. échec écriture forecast V24
-    attendu : RECOVER_LEGACY
+Le test utilise une copie du DayProfile réel et active, sur cette copie,
+les branches correspondant à la scène :
+- dégradation
+- amélioration
+- pluie
+- vent
+- orage
+- brouillard
 
-12. échec relecture V24
-    attendu : RECOVER_LEGACY
+Cela permet de tester aussi les phrases conditionnelles sans modifier le
+forecast officiel.
 
-13. échec audit génération V24
-    attendu : RECOVER_LEGACY
+AUDIT DES 24 MASTERS PHYSIQUES
+-------------------------------
+Chaque master déclaré est réellement demandé via le binding Cloudflare :
 
-14. échec écriture génération Legacy
-    attendu : RETAIN_PREVIOUS_FORECAST
+ASSETS -> ./public
 
-15. échec écriture du recovery Legacy
-    attendu : RETAIN_PREVIOUS_FORECAST
+Pour chacune des 24 images :
+- binding ASSETS disponible
+- requête réussie
+- HTTP OK
+- Content-Type image/*
+- fichier accessible à /masters24/<masterFileName>
 
-16. aucune sauvegarde disponible au moment d'une requête
-    attendu : SAFE_503
-
-POINT IMPORTANT
----------------
-Les scénarios 10 à 16 ne testent pas une copie théorique de la logique.
-
-Le Bloc 12.8 extrait la politique dans :
-src/engine/publicationRecoveryPolicy.ts
-
-ET le vrai code de :
-src/storage/publicationSafety.ts
-
-utilise désormais cette même politique.
-
-Le laboratoire vérifie donc la même machine de décision que la production.
-
-PUBLIC FAIL-SAFE TESTABLE
--------------------------
-src/engine/publicFailSafe.ts expose maintenant :
-
-resolvePublicSurfaceWithDependencies()
-
-La production l'utilise avec les vraies dépendances :
-- backup D1
-- ASSETS Cloudflare
-
-Le laboratoire lui injecte des dépendances contrôlées :
-- backup absent
-- master absent
-- etc.
-
-Cela permet de tester les réactions réelles du resolver sans altérer D1.
+Donc le test ne se contente pas de regarder le nom du fichier dans le code.
 
 NOUVEAU BOUTON MOBILE
 ---------------------
 Admin :
-"Tester pannes 12.8"
+"Auditer 24 scènes 12.9"
 
-Le bouton lance :
-POST /api/admin/fault-lab/run?city=tarnos
+Il lance :
+POST /api/admin/scenes24/audit/run?city=tarnos
 
-Résultat attendu :
+Le résultat attendu est :
+
+BLOC 12.9 · CATALOGUE V24
 PASS
 
-Un résultat PENDING est possible uniquement si la génération courante ne
-permet pas de construire un fixture V24 synthétique à partir de scene24 /
-DayProfile. Dans ce cas aucune donnée n'est inventée.
+Scènes registre      24/24
+Scènes contrôlées    24/24
+Masters disponibles  24/24
+Éditoriaux valides   24/24
+PASS                 24
+FAIL                 0
+PENDING              0
 
-FAIL signifie qu'une règle de sécurité attendue n'a pas réagi comme prévu.
+Puis les 24 scènes sont affichées une par une.
 
 SÉCURITÉ
 --------
-Le laboratoire ne fait jamais :
-saveForecast()
-rollbackToLegacy()
-requestV24Preview()
-prepare/confirm V24 approval()
+Le Bloc 12.9 ne fait jamais :
+- saveForecast()
+- rollbackToLegacy()
+- activation V24
+- modification engine_control
+- modification readiness
+- modification d'un master
 
-La seule écriture volontaire est :
-fault_injection_audit
+Seule écriture :
+scene_catalog_audit
 
-Le test ne peut donc ni activer V24 ni modifier la météo officielle.
+Cette ligne d'audit contient le détail des 24 scènes.
+
+PENDING
+-------
+PENDING ne devrait apparaître que si ASSETS n'est pas disponible dans
+l'environnement où le test est exécuté.
+
+Sur le Worker Cloudflare normal, avec le binding ASSETS, le résultat attendu
+est PASS ou FAIL, pas PENDING.
+
+FAIL
+----
+Un seul FAIL suffit pour bloquer la validation du Bloc 12.9.
+
+Exemples :
+- master manquant
+- mauvais nom de fichier
+- key dupliquée
+- ID hors séquence
+- éditorial absent
+- payload impossible à construire
+- image non accessible
+
+On ne passe pas au Bloc 12.10 tant qu'un FAIL reste présent.
 
 INSTALLATION MOBILE
 -------------------
-1. Appliquer migrations/0008_fault_injection_audit.sql dans D1.
-2. Ajouter/remplacer les fichiers.
+1. Appliquer migrations/0009_scene_catalog_audit.sql dans D1.
+2. Ajouter/remplacer les fichiers du ZIP.
 3. Déployer.
 4. Générer une météo normale si nécessaire.
 5. /admin
-6. Tester pannes 12.8.
+6. Appuyer sur "Auditer 24 scènes 12.9".
+7. Vérifier PASS 24/24.
 
-VALIDATION ATTENDUE
--------------------
-Idéalement :
+ÉTAT DU PROJET
+--------------
+Le registre actuellement présent contient bien les 24 IDs officiels 01-24,
+et publicPreview construit les URLs à partir de /masters24/<masterFileName>.
 
-BLOC 12.8 · TESTS DE PANNE
-PASS
-Scénarios : 16
-FAIL : 0
-PENDING : 0
-
-Si PENDING > 0 :
-nous regardons le détail avant de considérer le bloc terminé.
-
-Si FAIL > 0 :
-on ne passe PAS au Bloc 12.9 avant correction.
-
-CE QUE 12.8 NE FAIT PAS
------------------------
-Ce n'est toujours pas le GO LIVE Instagram.
-
-Aucune panne réelle n'est volontairement déclenchée sur la base de production.
-Les tests destructifs seraient une mauvaise méthode sur une base unique.
-
-Le Bloc 12.10 testera le vrai rollback administratif de façon contrôlée.
+Le Bloc 12.9 transforme maintenant ces conventions en assertions exécutables
+et auditables dans le Worker.
 
 SUITE
 -----
-12.9  Audit exhaustif des 24 scènes, masters et éditoriaux
-12.10 Test de rollback réel
+12.10 Test de rollback réel contrôlé
 12.11 Audit final Release Candidate
 12.12 Répétition générale téléphone
 12.13 GO LIVE V24 / Instagram

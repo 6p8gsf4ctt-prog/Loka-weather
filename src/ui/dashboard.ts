@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.8. Laboratoire de panne contrôlé : les défauts critiques sont injectés sans modifier la production, puis chaque réaction de sécurité est auditée.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.9. Audit exhaustif du catalogue : 24 IDs, 24 clés, 24 masters physiques et 24 éditoriaux V24 sont contrôlés avant la suite.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -190,7 +190,7 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button>'+
+    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button>'+
     '<div class="metric-section"><h3>Autorisation V24 — double confirmation</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
     (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
     '<div id="payloadView" style="margin-top:12px"></div>';
@@ -224,6 +224,61 @@ function renderEngine(d){
       fingerprint:response.headers.get('x-loka-publication-fingerprint')
     };
   }
+
+  document.getElementById('auditScenes24').onclick=async()=>{
+    const btn=document.getElementById('auditScenes24');
+    const out=document.getElementById('payloadView');
+    btn.disabled=true;
+
+    out.innerHTML=
+      '<div class="card"><div class="label">BLOC 12.9 · AUDIT 24 SCÈNES</div>'+
+      '<div class="muted">Contrôle du registre, des 24 masters physiques et de la chaîne éditoriale complète…</div></div>';
+
+    try{
+      const x=await fetchJson('/api/admin/scenes24/audit/run?city=tarnos',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token()}
+      });
+
+      const r=x.report||{},items=Array.isArray(r.scenes)?r.scenes:[],reg=Array.isArray(r.registryChecks)?r.registryChecks:[];
+      const cls=r.status==='PASS'?'good':(r.status==='PENDING'?'caution':'bad');
+
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.9 · CATALOGUE V24</div>'+
+        '<div class="scene '+cls+'">'+e(r.status||'—')+'</div>'+
+        '<div class="bar-row"><span>Scènes registre</span><strong>'+e(r.summary?.registryCount??'—')+'/24</strong></div>'+
+        '<div class="bar-row"><span>Scènes contrôlées</span><strong>'+e(r.summary?.sceneCount??'—')+'/24</strong></div>'+
+        '<div class="bar-row"><span>Masters disponibles</span><strong class="'+((r.summary?.mastersAvailable===24)?'good':'bad')+'">'+e(r.summary?.mastersAvailable??0)+'/24</strong></div>'+
+        '<div class="bar-row"><span>Éditoriaux valides</span><strong class="'+((r.summary?.editorialsValid===24)?'good':'bad')+'">'+e(r.summary?.editorialsValid??0)+'/24</strong></div>'+
+        '<div class="bar-row"><span>PASS</span><strong class="good">'+e(r.summary?.passed??0)+'</strong></div>'+
+        '<div class="bar-row"><span>FAIL</span><strong class="bad">'+e(r.summary?.failed??0)+'</strong></div>'+
+        '<div class="bar-row"><span>PENDING</span><strong class="caution">'+e(r.summary?.pending??0)+'</strong></div>'+
+        '<div class="metric-title" style="margin-top:14px">REGISTRE</div>'+
+        reg.map(t=>
+          '<div class="bar-row"><span>'+e(t.id)+'<div class="muted">'+e(t.detail||'')+'</div></span><strong class="'+(t.status==='PASS'?'good':'bad')+'">'+e(t.status)+'</strong></div>'
+        ).join('')+
+        '<div class="metric-title" style="margin-top:14px">24 SCÈNES</div>'+
+        items.map(t=>
+          '<div class="bar-row"><span>'+String(t.id).padStart(2,'0')+' · '+e(t.label)+
+          '<div class="muted">'+e(t.family)+' · '+e(t.masterFileName)+'<br>'+
+          e(t.editorial?.subtitle||'—')+
+          ((t.errors||[]).length?'<br>Erreurs : '+e((t.errors||[]).join(', ')):'')+
+          '</div></span><strong class="'+(t.status==='PASS'?'good':(t.status==='PENDING'?'caution':'bad'))+'">'+e(t.status)+'</strong></div>'
+        ).join('')+
+        '<div class="muted" style="margin-top:12px">Aucune scène de production n’a été forcée. Le test construit les 24 payloads sur des clones et vérifie les vrais fichiers via ASSETS.</div>'+
+        '</div>';
+
+      await loadEngine();
+    }catch(err){
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.9 · AUDIT 24 SCÈNES</div>'+
+        '<div class="scene bad">AUDIT NON VALIDÉ</div>'+
+        '<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>'+
+        '<div class="muted">Aucun forecast officiel ni contrôle moteur n’a été modifié.</div></div>';
+    }finally{
+      btn.disabled=false;
+    }
+  };
 
   document.getElementById('runFaultLab').onclick=async()=>{
     const btn=document.getElementById('runFaultLab');
