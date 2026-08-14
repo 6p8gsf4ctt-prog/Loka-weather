@@ -1,10 +1,8 @@
 {
   "typescriptIntegrationCheck": "PASS",
-  "migrationRequired": "0003_engine_control.sql",
-  "productionHardLockedLegacy": true,
-  "previewRoute": true,
-  "lockedV24RequestRoute": true,
-  "rollbackRoute": true,
+  "migrationRequired": false,
   "forecastSceneModified": false,
-  "productionActivationAvailable": false
+  "payloadPublishable": false,
+  "productionStillLegacy": true,
+  "previewPayloadEndpoint": true
 }

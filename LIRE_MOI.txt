@@ -1,101 +1,45 @@
-LOKA V24 — BLOC 11.1
-======================
+LOKA V24 — BLOC 11.2
 
-OBJECTIF
---------
-Installer le plan de contrôle du futur sélecteur de moteur et le rollback
-SANS connecter V24 à forecast.scene.
+AJOUTER
+- src/engine/publicPreview.ts
 
-INVARIANT ABSOLU DE CE SOUS-BLOC
---------------------------------
-effectiveProduction = LEGACY
-
-Même si :
-- requested_mode = V24
-- readiness = READY_CANDIDATE
-- une décision V24 valide existe
-
-Bloc 11.1 ne contient aucune voie permettant de publier V24.
-
-FICHIERS
---------
-AJOUTER :
-- migrations/0003_engine_control.sql
-- src/engine/engineMode.ts
-- src/storage/engineControl.ts
-
-REMPLACER :
+REMPLACER
 - src/index.ts
 - src/ui/dashboard.ts
 
-MIGRATION
----------
-Créer engine_control, une ligne par ville.
+Aucune migration D1.
 
-État initial Tarnos :
-requested_mode = LEGACY
-v24_approved = 0
+Objectif :
+construire le futur payload public V24 sans modifier forecast.scene.
 
-ROUTES ADMIN
-------------
-GET  /api/admin/engine?city=tarnos
-POST /api/admin/engine/preview?city=tarnos
-POST /api/admin/engine/request-v24?city=tarnos
-POST /api/admin/engine/rollback?city=tarnos
+Nouvelle route privée :
+GET /api/admin/engine/preview-payload?city=tarnos
 
-Toutes nécessitent ADMIN_TOKEN.
+Le payload contient :
+- scène V24 id/key/label/family
+- masterFileName + masterUrl
+- score + confiance
+- températures
+- hourly
+- Raw / Reliability / runner-up
+- compatibilité Legacy
+- éditorial courant
 
-PREVIEW
--------
-/preview persiste requested_mode = V24_PREVIEW.
-La production reste LEGACY.
-previewEnabled indique seulement si une décision V24 valide est disponible.
+Sécurité :
+publishable = false
+productionEngine = LEGACY
+forecastSceneUnchanged = Legacy
 
-TEST DU DOUBLE VERROU
----------------------
-/request-v24 persiste l'intention V24 avec v24_approved = 0,
-puis retourne HTTP 423 :
-production_activation_locked_bloc_11_1
+L'éditorial est volontairement marqué :
+editorial.source = legacy_shared_v1
 
-Cette route existe uniquement pour prouver qu'une intention V24 ne suffit pas.
+Le Bloc 11.3 pourra ensuite construire un éditorial V24 natif sans mélanger
+cette responsabilité avec le contrat scène/master.
 
-ROLLBACK
---------
-/rollback :
-- requested_mode = LEGACY
-- v24_approved = 0
-- approved_at/by = NULL
-- rollback_at = maintenant
-- rollback_reason = raison fournie
-
-Le rollback ne dépend PAS de shadow_history ni de readiness.
-
-ADMIN MOBILE
-------------
-Nouveau bloc "Moteur météo" avec :
-- moteur officiel effectif
-- mode demandé
-- Preview active/inactive
-- readiness
-- raison de résolution
-- état d'approbation
-- dernier rollback
-- bouton Activer Preview V24
-- bouton Revenir à Legacy
-- bouton de test demande V24 production (doit être refusé)
-
-ORDRE D'INSTALLATION
---------------------
-1. Ajouter/remplacer les fichiers.
-2. Appliquer migrations/0003_engine_control.sql sur D1 distant.
-3. Déployer.
-4. /admin -> Contrôler le moteur.
-5. Vérifier : Production = LEGACY.
-6. Activer Preview -> Production doit rester LEGACY.
-7. Tester demande V24 -> doit être refusée.
-8. Rollback -> requested_mode revient LEGACY.
-
-IMPORTANT
----------
-Ne pas ajouter SCENE_ENGINE_MODE=V24 dans Cloudflare pour le moment.
-Ce sous-bloc permet de tester le contrat de sécurité sans aucune bascule.
+Test mobile :
+1. Preview V24 actif.
+2. Admin > Contrôler le moteur.
+3. Cliquer "Voir le futur payload V24".
+4. Vérifier scène/master V24.
+5. Vérifier Publishable = NON.
+6. Vérifier forecast.scene officiel = scène Legacy actuelle.

@@ -5,6 +5,7 @@ import { loadShadowMetricRows } from "./storage/shadowMetrics";
 import { calculateShadowMetrics } from "./analytics/shadowMetrics";
 import { evaluateV24Readiness } from "./analytics/readiness";
 import { resolveSceneEngineMode } from "./engine/engineMode";
+import { buildV24PublicPayloadPreview } from "./engine/publicPreview";
 import { ensureEngineControl, requestV24Locked, requestV24Preview, rollbackToLegacy } from "./storage/engineControl";
 import type { Env, LokaForecast, Scene24Candidate, SceneDecisionV24, DayProfile } from "./types";
 import { renderAdmin, renderDashboard } from "./ui/dashboard";
@@ -322,6 +323,40 @@ export default {
 
       await rollbackToLegacy(env.DB, slug, reason);
       return json(await engineStatus(env, slug));
+    }
+
+    if (url.pathname === "/api/admin/engine/preview-payload" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      const status = await engineStatus(env, slug);
+      const forecast = await latestForecast(env.DB, slug);
+      if (!forecast) return json({ error: "no_forecast" }, 404);
+
+      try {
+        const payload = buildV24PublicPayloadPreview(forecast);
+        return json({
+          ok: true,
+          engine: status,
+          payload,
+          safety: {
+            publishable: false,
+            forecastSceneUnchanged: forecast.scene ?? null,
+            productionEngine: "LEGACY"
+          }
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error),
+          safety: {
+            publishable: false,
+            forecastSceneUnchanged: forecast.scene ?? null,
+            productionEngine: "LEGACY"
+          }
+        }, 409);
+      }
     }
 
     if (url.pathname === "/api/history") {

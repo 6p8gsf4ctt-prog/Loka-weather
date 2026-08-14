@@ -182,7 +182,7 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="locked" id="requestProd" style="margin-top:10px">Tester demande V24 production (verrouillée)</button>';
+    '<button class="locked" id="requestProd" style="margin-top:10px">Tester demande V24 production (verrouillée)</button><button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><div id="payloadView" style="margin-top:12px"></div>';
 
   document.getElementById('enablePreview').onclick=async()=>{
     try{
@@ -214,6 +214,28 @@ function renderEngine(d){
       }catch(err2){
         engineStatusEl.innerHTML='<span class="error">'+e(err2&&err2.message?err2.message:String(err2))+'</span>';
       }
+    }
+  };
+  document.getElementById('showPayload').onclick=async()=>{
+    const target=document.getElementById('payloadView');
+    target.innerHTML='<div class="muted">Construction du preview…</div>';
+    try{
+      const x=await fetchJson('/api/admin/engine/preview-payload?city=tarnos',{headers:{Authorization:'Bearer '+token()}});
+      const p=x.payload||{}, s=p.scene||{}, ed=p.editorial||{}, t=p.temperatures||{}, dg=p.diagnostics||{};
+      target.innerHTML=
+        '<div class="card"><div class="label">FUTUR PRODUIT V24 — NON PUBLIABLE</div>'+
+        '<div class="scene">'+e(String(s.id||'').padStart(2,'0'))+' '+e(s.label||'—')+'</div>'+
+        '<div class="meta">'+e(s.family||'—')+' · score '+e(s.score??'—')+' · '+e(s.confidence||'—')+'</div>'+
+        '<div class="meta">Master : '+e(s.masterFileName||'—')+'</div>'+
+        '<div class="bar-row"><span>Températures</span><strong>'+e(t.minC??'—')+' → '+e(t.maxC??'—')+' °C</strong></div>'+
+        '<div class="bar-row"><span>Editorial source</span><strong>'+e(ed.source||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Verdict</span><strong>'+e(ed.mainVerdict||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Raw scene</span><strong>'+e(dg.scene24RawId??'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Reliability</span><strong>'+e(dg.reliabilityApplied===null?'—':(dg.reliabilityApplied?'OUI':'NON'))+'</strong></div>'+
+        '<div class="bar-row"><span>Publishable</span><strong class="bad">NON</strong></div>'+
+        '<div class="bar-row"><span>forecast.scene officiel</span><strong>'+e(p.legacyCompatibility?.forecastScene||'—')+'</strong></div></div>';
+    }catch(err){
+      target.innerHTML='<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>';
     }
   };
 }
