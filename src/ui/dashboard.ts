@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.9. Audit exhaustif du catalogue : 24 IDs, 24 clés, 24 masters physiques et 24 éditoriaux V24 sont contrôlés avant la suite.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.10. Drill de rollback réel : engine_control passe volontairement par Preview puis intent V24 non approuvé, et revient par le même rollback global que l’Admin.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -190,7 +190,7 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button>'+
+    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button><button class="danger" id="rollbackDrill" style="margin-top:10px">Tester rollback réel 12.10</button>'+
     '<div class="metric-section"><h3>Autorisation V24 — double confirmation</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
     (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
     '<div id="payloadView" style="margin-top:12px"></div>';
@@ -224,6 +224,70 @@ function renderEngine(d){
       fingerprint:response.headers.get('x-loka-publication-fingerprint')
     };
   }
+
+  document.getElementById('rollbackDrill').onclick=async()=>{
+    const btn=document.getElementById('rollbackDrill');
+    const out=document.getElementById('payloadView');
+    btn.disabled=true;
+
+    try{
+      const prep=await fetchJson('/api/admin/rollback-drill?city=tarnos',{
+        headers:{Authorization:'Bearer '+token()}
+      });
+
+      const phrase=String(prep.confirmationPhrase||'');
+      const entered=window.prompt(
+        'Test RÉEL du rollback global.\n\nLe test modifiera temporairement engine_control, mais ne générera aucune météo et n’accordera jamais V24.\n\nTape exactement :\n'+phrase
+      );
+
+      if(entered===null){
+        out.innerHTML='<div class="muted">Test rollback annulé. Aucune modification.</div>';
+        return;
+      }
+
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.10 · ROLLBACK RÉEL</div>'+
+        '<div class="muted">Drill en cours. État final obligatoire : LEGACY / V24 approuvé NON.</div></div>';
+
+      const x=await fetchJson('/api/admin/rollback-drill/run?city=tarnos',{
+        method:'POST',
+        headers:{
+          Authorization:'Bearer '+token(),
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({confirmationPhrase:entered})
+      });
+
+      const r=x.report||{},steps=Array.isArray(r.steps)?r.steps:[];
+      const cls=r.status==='PASS'?'good':(r.status==='REFUSED'?'caution':'bad');
+
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.10 · DRILL ROLLBACK</div>'+
+        '<div class="scene '+cls+'">'+e(r.status||'—')+'</div>'+
+        '<div class="bar-row"><span>Avant</span><strong>'+e(r.before?.control?.requestedMode||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Après</span><strong class="'+((r.after?.control?.requestedMode==='LEGACY'&&!r.after?.control?.v24Approved)?'good':'bad')+'">'+e(r.after?.control?.requestedMode||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>V24 approuvé final</span><strong class="'+(!r.after?.control?.v24Approved?'good':'bad')+'">'+(r.after?.control?.v24Approved?'OUI':'NON')+'</strong></div>'+
+        '<div class="bar-row"><span>Forecast régénéré</span><strong class="'+(r.summary?.forecastGenerationUnchanged?'good':'bad')+'">'+(r.summary?.forecastGenerationUnchanged?'NON':'OUI')+'</strong></div>'+
+        '<div class="bar-row"><span>Identité publique</span><strong class="'+(r.summary?.publicIdentityUnchanged?'good':'bad')+'">'+(r.summary?.publicIdentityUnchanged?'INCHANGÉE':'MODIFIÉE')+'</strong></div>'+
+        '<div class="bar-row"><span>Cleanup secours</span><strong class="'+(r.summary?.emergencyCleanupUsed?'caution':'good')+'">'+(r.summary?.emergencyCleanupUsed?'UTILISÉ':'NON')+'</strong></div>'+
+        steps.map(s=>
+          '<div class="bar-row"><span>'+e(s.id)+'<div class="muted">'+e(s.detail||'')+'</div></span><strong class="'+(s.status==='PASS'?'good':(s.status==='INFO'?'caution':'bad'))+'">'+e(s.status)+'</strong></div>'
+        ).join('')+
+        '<div class="muted" style="margin-top:12px">Ce test a réellement écrit engine_control, puis utilisé le rollback global officiel. Aucun forecast et aucune approbation V24 n’ont été créés.</div>'+
+        '</div>';
+
+      await loadEngine();
+    }catch(err){
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.10 · ROLLBACK RÉEL</div>'+
+        '<div class="scene bad">TEST NON VALIDÉ</div>'+
+        '<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>'+
+        '<div class="muted">Vérifie immédiatement en haut de l’Admin : Production LEGACY, requested LEGACY, V24 approuvé NON.</div></div>';
+      await loadEngine().catch(()=>{});
+    }finally{
+      btn.disabled=false;
+    }
+  };
 
   document.getElementById('auditScenes24').onclick=async()=>{
     const btn=document.getElementById('auditScenes24');

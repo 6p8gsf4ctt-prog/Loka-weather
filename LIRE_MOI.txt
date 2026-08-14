@@ -1,42 +1,39 @@
-LOKA V24 — BLOC 12.9
-======================
+LOKA V24 — BLOC 12.10
+=======================
 
 OBJECTIF
 --------
-Auditer exhaustivement les 24 scènes officielles avant d'autoriser les
-étapes de rollback réel et d'audit final.
+Tester le VRAI rollback administratif, de façon contrôlée, avant le GO LIVE.
 
-Le Bloc 12.9 vérifie chaque élément de la chaîne :
+Ce bloc est volontairement différent des tests 12.8 :
 
-registre
-→ ID
-→ key
-→ label
-→ family
-→ masterFileName
-→ lookup ID/key
-→ payload V24
-→ éditorial natif
-→ master physique via Cloudflare ASSETS
+12.8
+= simulations/injections sur clones et politique de récupération.
 
-Aucune scène n'est injectée dans la production.
+12.10
+= vraie écriture temporaire dans engine_control
+  + vrai rollback global utilisé par l'Admin.
+
+AUCUN forecast n'est généré pendant le drill.
+Aucune approbation V24 n'est accordée.
+Aucune publication Instagram n'est déclenchée.
 
 MIGRATION D1 OBLIGATOIRE
 ------------------------
 Appliquer :
-migrations/0009_scene_catalog_audit.sql
+migrations/0010_rollback_drill_audit.sql
 
 Elle crée :
-scene_catalog_audit
+rollback_drill_audit
 
-La table est append-only :
-UPDATE et DELETE interdits.
+La table est append-only.
 
 FICHIERS À AJOUTER
 ------------------
-- migrations/0009_scene_catalog_audit.sql
-- src/engine/sceneCatalogAudit.ts
-- src/storage/sceneCatalogAudit.ts
+- migrations/0010_rollback_drill_audit.sql
+- src/storage/globalRollback.ts
+- src/engine/rollbackDrill.ts
+- src/storage/rollbackDrillAudit.ts
 
 FICHIERS À REMPLACER
 --------------------
@@ -46,168 +43,190 @@ FICHIERS À REMPLACER
 - src/index.ts
 - src/ui/dashboard.ts
 
-Le ZIP inclut aussi les dépendances nécessaires du Bloc 12.8.
+Le ZIP inclut aussi les dépendances nécessaires.
 
-CE QUI EST CONTRÔLÉ AU NIVEAU DU REGISTRE
------------------------------------------
-- exactement 24 scènes
-- IDs exactement 01 → 24 dans l'ordre
-- 24 IDs uniques
-- 24 keys uniques
-- 24 noms de master uniques
-- key / label / family / description / master non vides
+REFACTOR IMPORTANT
+------------------
+Le rollback manuel /api/admin/engine/rollback utilisait auparavant :
 
-Pour chaque scène :
-- getScene24ById(id) retourne exactement la définition du registre
-- getScene24ByKey(key) retourne exactement la même définition
-- masterFileName doit être exactement :
+rollbackToLegacy()
+puis
+auditRollback()
 
-  NN_KEY.png
+Le Bloc 12.10 centralise désormais cette séquence dans :
 
-Exemple :
-09_COUVERT.png
-24_PLUIE_PLUS_VENT.png
+src/storage/globalRollback.ts
+executeGlobalRollback()
 
-AUDIT DU PAYLOAD PUBLIC
------------------------
-Pour chacune des 24 scènes, LOKA construit un forecast CLONÉ en mémoire et
-force uniquement le diagnostic scene24 du clone.
+Cette fonction applique une règle fondamentale :
 
-Puis buildV24PublicPayloadPreview() doit réussir.
+1. rollbackToLegacy() d'abord
+2. vérification requested_mode = LEGACY
+3. vérification v24_approved = 0
+4. audit/cancel des challenges ensuite
+5. une panne d'audit ne peut JAMAIS annuler le rollback
 
-Le test vérifie que le payload produit exactement :
-- le bon ID
-- la bonne key
-- le bon label
-- la bonne family
-- le bon masterFileName
-- la bonne URL /masters24/...
+Le bouton Admin normal ET le drill 12.10 utilisent exactement cette même
+fonction.
 
-Cela teste donc le même chemin registry → publicPreview utilisé par V24.
+PRÉCONDITIONS DU DRILL
+----------------------
+Le serveur REFUSE le test si l'état de départ n'est pas sûr.
 
-AUDIT DES 24 ÉDITORIAUX
------------------------
-Le même build déclenche buildV24NativeEditorial() pour CHAQUE scène.
+Il exige :
 
-Le Bloc 12.9 vérifie :
-- source = v24_native_v1
-- subtitle non vide
-- mainVerdict non vide
-- rainVerdict non vide
-- 2 à 3 summaryLines
-- aucune ligne vide
-- mainVerdict = subtitle
-- 24 subtitles uniques
+- requested_mode = LEGACY
+- v24_approved = NON
+- surface publique effective = LEGACY
+- forecast manifesté / fingerprint disponible
+- aucun challenge V24 en attente
+- dernier Bloc 12.8 = PASS
+- dernier Bloc 12.9 = PASS
 
-Le test utilise une copie du DayProfile réel et active, sur cette copie,
-les branches correspondant à la scène :
-- dégradation
-- amélioration
-- pluie
-- vent
-- orage
-- brouillard
+Ainsi le test ne démarre jamais depuis un V24 réellement approuvé.
 
-Cela permet de tester aussi les phrases conditionnelles sans modifier le
-forecast officiel.
+PHRASE DE CONFIRMATION
+----------------------
+Le bouton demande de taper exactement :
 
-AUDIT DES 24 MASTERS PHYSIQUES
--------------------------------
-Chaque master déclaré est réellement demandé via le binding Cloudflare :
+TESTER ROLLBACK TARNOS
 
-ASSETS -> ./public
+Sans cette phrase :
+REFUSED
+aucune mutation.
 
-Pour chacune des 24 images :
-- binding ASSETS disponible
-- requête réussie
-- HTTP OK
-- Content-Type image/*
-- fichier accessible à /masters24/<masterFileName>
+SÉQUENCE RÉELLE
+---------------
+ÉTAPE A
+engine_control est réellement écrit en :
 
-Donc le test ne se contente pas de regarder le nom du fichier dans le code.
+requested_mode = V24_PREVIEW
+v24_approved = 0
 
-NOUVEAU BOUTON MOBILE
----------------------
-Admin :
-"Auditer 24 scènes 12.9"
+Vérification :
+la surface publique reste exactement la même génération Legacy.
 
-Il lance :
-POST /api/admin/scenes24/audit/run?city=tarnos
+ÉTAPE B
+executeGlobalRollback()
 
-Le résultat attendu est :
+Attendu :
+requested_mode = LEGACY
+v24_approved = 0
 
-BLOC 12.9 · CATALOGUE V24
+ÉTAPE C
+engine_control est réellement écrit avec un intent V24 NON APPROUVÉ :
+
+requested_mode = V24
+v24_approved = 0
+
+Ce n'est pas une activation :
+sans approval, V24 ne peut pas devenir officiel.
+
+La surface publique doit rester strictement inchangée.
+
+ÉTAPE D
+executeGlobalRollback() à nouveau.
+
+Attendu final obligatoire :
+
+requested_mode = LEGACY
+v24_approved = 0
+
+CONTRÔLES FINAUX
+----------------
+Le drill vérifie ensuite :
+
+- forecast.generatedAt identique avant/après
+- moteur public identique
+- scène identique
+- fingerprint identique
+- aucune approbation V24 observée
+- état final LEGACY
+- rollback global vérifié
+
+RÉSULTAT CIBLE
+--------------
+BLOC 12.10 · DRILL ROLLBACK
+
 PASS
 
-Scènes registre      24/24
-Scènes contrôlées    24/24
-Masters disponibles  24/24
-Éditoriaux valides   24/24
-PASS                 24
-FAIL                 0
-PENDING              0
+Avant                 LEGACY
+Après                 LEGACY
+V24 approuvé final    NON
+Forecast régénéré     NON
+Identité publique     INCHANGÉE
+Cleanup secours       NON
 
-Puis les 24 scènes sont affichées une par une.
+Tous les steps doivent être PASS.
 
-SÉCURITÉ
---------
-Le Bloc 12.9 ne fait jamais :
-- saveForecast()
-- rollbackToLegacy()
-- activation V24
-- modification engine_control
-- modification readiness
-- modification d'un master
+EMERGENCY CLEANUP
+-----------------
+Si une étape intermédiaire lance une exception après modification de
+engine_control, rollbackDrill.ts déclenche immédiatement :
 
-Seule écriture :
-scene_catalog_audit
+executeGlobalRollback(..., "bloc12_10_emergency_cleanup")
 
-Cette ligne d'audit contient le détail des 24 scènes.
+Le rapport devient FAIL, même si le cleanup réussit.
 
-PENDING
--------
-PENDING ne devrait apparaître que si ASSETS n'est pas disponible dans
-l'environnement où le test est exécuté.
+Donc :
+- cleanup utilisé = sécurité fonctionnelle
+- mais le Bloc 12.10 n'est PAS validé
 
-Sur le Worker Cloudflare normal, avec le binding ASSETS, le résultat attendu
-est PASS ou FAIL, pas PENDING.
+Si le cleanup échoue lui-même :
+ne pas poursuivre.
+Vérifier immédiatement l'Admin et utiliser le bouton manuel "Revenir à Legacy".
 
-FAIL
-----
-Un seul FAIL suffit pour bloquer la validation du Bloc 12.9.
+AUDIT
+-----
+Chaque drill est enregistré dans :
 
-Exemples :
-- master manquant
-- mauvais nom de fichier
-- key dupliquée
-- ID hors séquence
-- éditorial absent
-- payload impossible à construire
-- image non accessible
+rollback_drill_audit
 
-On ne passe pas au Bloc 12.10 tant qu'un FAIL reste présent.
+L'audit enregistre notamment :
+- avant/après
+- fingerprint avant/après
+- Preview vérifié
+- intent V24 verrouillé vérifié
+- rollback vérifié
+- identité publique inchangée
+- cleanup éventuel
+
+La table impose :
+production_forecast_mutated = 0
+v24_approval_granted = 0
+
+IMPORTANT
+---------
+Contrairement aux Blocs 12.8 et 12.9, ce test MODIFIE volontairement
+engine_control pendant quelques instants.
+
+C'est précisément le but du Bloc 12.10.
+
+Mais il ne touche jamais au forecast officiel et ne peut démarrer que lorsque
+V24 n'est pas approuvé.
 
 INSTALLATION MOBILE
 -------------------
-1. Appliquer migrations/0009_scene_catalog_audit.sql dans D1.
-2. Ajouter/remplacer les fichiers du ZIP.
+1. Appliquer migrations/0010_rollback_drill_audit.sql dans D1.
+2. Ajouter/remplacer les fichiers.
 3. Déployer.
-4. Générer une météo normale si nécessaire.
-5. /admin
-6. Appuyer sur "Auditer 24 scènes 12.9".
-7. Vérifier PASS 24/24.
-
-ÉTAT DU PROJET
---------------
-Le registre actuellement présent contient bien les 24 IDs officiels 01-24,
-et publicPreview construit les URLs à partir de /masters24/<masterFileName>.
-
-Le Bloc 12.9 transforme maintenant ces conventions en assertions exécutables
-et auditables dans le Worker.
+4. Vérifier en haut de /admin :
+   Production LEGACY
+   requested LEGACY
+   V24 approuvé NON
+5. Vérifier que 12.8 = PASS.
+6. Vérifier que 12.9 = PASS 24/24.
+7. Appuyer sur "Tester rollback réel 12.10".
+8. Taper :
+   TESTER ROLLBACK TARNOS
+9. Vérifier PASS.
+10. Recontrôler en haut :
+    Production LEGACY
+    requested LEGACY
+    V24 approuvé NON
 
 SUITE
 -----
-12.10 Test de rollback réel contrôlé
-12.11 Audit final Release Candidate
-12.12 Répétition générale téléphone
+12.11 Audit final de Release Candidate
+12.12 Répétition générale complète sur téléphone
 12.13 GO LIVE V24 / Instagram

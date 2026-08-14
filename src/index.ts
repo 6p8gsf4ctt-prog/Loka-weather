@@ -6,8 +6,8 @@ import { calculateShadowMetrics } from "./analytics/shadowMetrics";
 import { evaluateV24Readiness } from "./analytics/readiness";
 import { resolveSceneEngineMode } from "./engine/engineMode";
 import { buildV24PublicPayloadPreview } from "./engine/publicPreview";
-import { ensureEngineControl, requestV24Preview, rollbackToLegacy } from "./storage/engineControl";
-import { auditRollback, confirmV24Approval, getLatestV24ApprovalProof, getV24ApprovalOverview, prepareV24Approval } from "./storage/engineApproval";
+import { ensureEngineControl, requestV24Preview } from "./storage/engineControl";
+import { confirmV24Approval, getLatestV24ApprovalProof, getV24ApprovalOverview, prepareV24Approval } from "./storage/engineApproval";
 import { evaluateV24ActivationGuard } from "./engine/activationGuard";
 import { verifyV24CandidateMasterAsset } from "./engine/masterAsset";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
@@ -48,6 +48,15 @@ import {
   latestSceneCatalogAudit,
   recordSceneCatalogAudit
 } from "./storage/sceneCatalogAudit";
+import { executeGlobalRollback } from "./storage/globalRollback";
+import {
+  rollbackDrillPhrase,
+  runRollbackDrill
+} from "./engine/rollbackDrill";
+import {
+  latestRollbackDrillAudit,
+  recordRollbackDrillAudit
+} from "./storage/rollbackDrillAudit";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, {
@@ -457,7 +466,7 @@ export default {
       return json({
         error: "use_double_confirmation_flow",
         message:
-          "Bloc 12.9 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
+          "Bloc 12.10 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
       }, 409);
     }
 
@@ -719,6 +728,115 @@ export default {
       } catch (error) {
         return json({
           error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/rollback-drill" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const latest = await latestRollbackDrillAudit(
+          env.DB,
+          slug
+        );
+
+        return json({
+          ok: true,
+          confirmationPhrase:
+            rollbackDrillPhrase(slug),
+          latest,
+          safety: {
+            requiresPristineLegacy: true,
+            requiresV24ApprovedFalse: true,
+            mutatesEngineControlTemporarily: true,
+            writesForecast: false,
+            grantsV24Approval: false,
+            goLiveInstagram: false
+          }
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/rollback-drill/run" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      let body: {
+        confirmationPhrase?: unknown;
+      } = {};
+
+      try {
+        body = await request.json() as typeof body;
+      } catch {
+        return json({
+          error: "invalid_json"
+        }, 400);
+      }
+
+      if (
+        typeof body.confirmationPhrase !== "string"
+      ) {
+        return json({
+          error: "confirmation_phrase_required"
+        }, 400);
+      }
+
+      try {
+        const report = await runRollbackDrill(
+          env,
+          slug,
+          body.confirmationPhrase
+        );
+
+        try {
+          await recordRollbackDrillAudit(
+            env.DB,
+            report
+          );
+        } catch (auditError) {
+          // The drill has already restored LEGACY. Surface audit failure
+          // explicitly without attempting any new engine mutation.
+          return json({
+            error: "rollback_drill_audit_write_failed",
+            detail: auditError instanceof Error
+              ? auditError.message
+              : String(auditError),
+            report,
+            safety: report.safety
+          }, 500);
+        }
+
+        return json({
+          ok: report.status === "PASS",
+          report
+        }, report.status === "PASS"
+          ? 200
+          : report.status === "REFUSED"
+            ? 409
+            : 500
+        );
+      } catch (error) {
+        // runRollbackDrill owns emergency cleanup. Do not perform a second
+        // independent mutation here.
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error),
+          safety: {
+            goLiveInstagram: false
+          }
         }, 500);
       }
     }
@@ -1062,13 +1180,11 @@ export default {
         // Body is optional; rollback must remain easy.
       }
 
-      await rollbackToLegacy(env.DB, slug, reason);
-
-      try {
-        await auditRollback(env.DB, slug, reason);
-      } catch {
-        // Rollback remains authoritative even if the audit table is unavailable.
-      }
+      await executeGlobalRollback(
+        env.DB,
+        slug,
+        reason
+      );
 
       return json(await engineStatus(env, slug));
     }
