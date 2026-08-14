@@ -1,8 +1,10 @@
 {
-  "typescriptIntegrationCheck": "PASS",
+  "nativeEditorialFile": true,
+  "nativeSourceType": true,
+  "nativeSourceRuntime": true,
+  "dayProfileUsed": true,
+  "payloadStillNotPublishable": true,
+  "dashboardShowsV24Verdict": true,
   "migrationRequired": false,
-  "forecastSceneModified": false,
-  "payloadPublishable": false,
-  "productionStillLegacy": true,
-  "previewPayloadEndpoint": true
+  "productionStillLegacy": true
 }

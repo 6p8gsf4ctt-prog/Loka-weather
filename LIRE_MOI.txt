@@ -1,45 +1,28 @@
-LOKA V24 — BLOC 11.2
+LOKA V24 — BLOC 11.3
 
 AJOUTER
-- src/engine/publicPreview.ts
+- src/engine/editorial24.ts
 
 REMPLACER
-- src/index.ts
+- src/engine/publicPreview.ts
 - src/ui/dashboard.ts
 
+src/index.ts est fourni pour rester aligné avec le Bloc 11.2.
 Aucune migration D1.
 
-Objectif :
-construire le futur payload public V24 sans modifier forecast.scene.
-
-Nouvelle route privée :
-GET /api/admin/engine/preview-payload?city=tarnos
-
-Le payload contient :
-- scène V24 id/key/label/family
-- masterFileName + masterUrl
-- score + confiance
-- températures
-- hourly
-- Raw / Reliability / runner-up
-- compatibilité Legacy
-- éditorial courant
+Objectif : éditorial V24 natif pour les 24 scènes dans le payload Preview.
 
 Sécurité :
-publishable = false
-productionEngine = LEGACY
-forecastSceneUnchanged = Legacy
-
-L'éditorial est volontairement marqué :
-editorial.source = legacy_shared_v1
-
-Le Bloc 11.3 pourra ensuite construire un éditorial V24 natif sans mélanger
-cette responsabilité avec le contrat scène/master.
+- publishable = false
+- productionEngine = LEGACY
+- forecast.scene reste Legacy
+- /instagram reste Legacy
+- /instagram24 reste Shadow
 
 Test mobile :
 1. Preview V24 actif.
-2. Admin > Contrôler le moteur.
-3. Cliquer "Voir le futur payload V24".
-4. Vérifier scène/master V24.
+2. Admin > Contrôler le moteur > Voir le futur payload V24.
+3. Vérifier Editorial source = v24_native_v1.
+4. Pour 09 COUVERT : Verdict V24 = Journée couverte.
 5. Vérifier Publishable = NON.
-6. Vérifier forecast.scene officiel = scène Legacy actuelle.
+6. Vérifier forecast.scene officiel = valeur Legacy actuelle.

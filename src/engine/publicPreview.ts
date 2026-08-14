@@ -1,5 +1,6 @@
 import type { LokaForecast, Scene24Confidence, Scene24Family, Scene24Id, Scene24Key } from "../types";
 import { getScene24ById } from "./scenes24/registry";
+import { buildV24NativeEditorial } from "./editorial24";
 
 export interface V24PublicPayloadPreview {
   version: "11.2.0";
@@ -21,7 +22,7 @@ export interface V24PublicPayloadPreview {
     confidence: Scene24Confidence;
   };
   editorial: {
-    source: "legacy_shared_v1";
+    source: "v24_native_v1";
     subtitle: string | null;
     summaryLines: string[];
     mainVerdict: string;
@@ -71,6 +72,10 @@ export function buildV24PublicPayloadPreview(forecast:LokaForecast):V24PublicPay
   const runnerId=runner?asNum(runner.sceneId):null;
   const runnerScore=runner?asNum(runner.score):null;
 
+  const profile=d.dayProfile24 as import("../types").DayProfile | undefined;
+  if(!profile || typeof profile!=="object") throw new Error("v24_preview_unavailable_no_day_profile");
+  const editorial=buildV24NativeEditorial({sceneId:id,profile,forecast});
+
   return {
     version:"11.2.0",
     mode:"V24_PREVIEW",
@@ -91,12 +96,12 @@ export function buildV24PublicPayloadPreview(forecast:LokaForecast):V24PublicPay
       confidence
     },
     editorial:{
-      source:"legacy_shared_v1",
-      subtitle:forecast.subtitle??null,
-      summaryLines:forecast.summaryLines??[],
-      mainVerdict:forecast.mainVerdict,
-      rainVerdict:forecast.rainVerdict,
-      notableEvent:forecast.notableEvent
+      source:"v24_native_v1",
+      subtitle:editorial.subtitle,
+      summaryLines:editorial.summaryLines,
+      mainVerdict:editorial.mainVerdict,
+      rainVerdict:editorial.rainVerdict,
+      notableEvent:editorial.notableEvent
     },
     temperatures:{minC:forecast.tempMinC,maxC:forecast.tempMaxC},
     hourly:forecast.hourly,

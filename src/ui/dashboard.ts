@@ -228,8 +228,9 @@ function renderEngine(d){
         '<div class="meta">'+e(s.family||'—')+' · score '+e(s.score??'—')+' · '+e(s.confidence||'—')+'</div>'+
         '<div class="meta">Master : '+e(s.masterFileName||'—')+'</div>'+
         '<div class="bar-row"><span>Températures</span><strong>'+e(t.minC??'—')+' → '+e(t.maxC??'—')+' °C</strong></div>'+
-        '<div class="bar-row"><span>Editorial source</span><strong>'+e(ed.source||'—')+'</strong></div>'+
-        '<div class="bar-row"><span>Verdict</span><strong>'+e(ed.mainVerdict||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Editorial source</span><strong class="good">'+e(ed.source||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Verdict V24</span><strong>'+e(ed.mainVerdict||'—')+'</strong></div>'+
+        '<div class="bar-row"><span>Résumé V24</span><strong>'+e(Array.isArray(ed.summaryLines)?ed.summaryLines.join(' '):'—')+'</strong></div>'+
         '<div class="bar-row"><span>Raw scene</span><strong>'+e(dg.scene24RawId??'—')+'</strong></div>'+
         '<div class="bar-row"><span>Reliability</span><strong>'+e(dg.reliabilityApplied===null?'—':(dg.reliabilityApplied?'OUI':'NON'))+'</strong></div>'+
         '<div class="bar-row"><span>Publishable</span><strong class="bad">NON</strong></div>'+
