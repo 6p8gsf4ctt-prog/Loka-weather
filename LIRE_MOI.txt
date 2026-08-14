@@ -1,88 +1,101 @@
-LOKA V24 — BLOC 10
-===================
+LOKA V24 — BLOC 11.1
+======================
 
 OBJECTIF
 --------
-Créer le sas de validation final V24 avant toute éventuelle bascule de production.
+Installer le plan de contrôle du futur sélecteur de moteur et le rollback
+SANS connecter V24 à forecast.scene.
 
-IMPORTANT
----------
-Ce Bloc 10 NE BASCULE PAS forecast.scene.
-Legacy6 reste officiellement en production.
-READY_CANDIDATE signifie seulement : "les critères techniques sont satisfaits
-pour envisager une validation humaine".
+INVARIANT ABSOLU DE CE SOUS-BLOC
+--------------------------------
+effectiveProduction = LEGACY
+
+Même si :
+- requested_mode = V24
+- readiness = READY_CANDIDATE
+- une décision V24 valide existe
+
+Bloc 11.1 ne contient aucune voie permettant de publier V24.
 
 FICHIERS
 --------
 AJOUTER :
-- src/analytics/readiness.ts
+- migrations/0003_engine_control.sql
+- src/engine/engineMode.ts
+- src/storage/engineControl.ts
 
 REMPLACER :
 - src/index.ts
 - src/ui/dashboard.ts
 
-AUCUNE MIGRATION D1.
+MIGRATION
+---------
+Créer engine_control, une ligne par ville.
 
-NOUVELLE ROUTE PRIVEE
----------------------
-GET /api/shadow/readiness?city=tarnos&days=30
-Authorization: Bearer ADMIN_TOKEN
+État initial Tarnos :
+requested_mode = LEGACY
+v24_approved = 0
 
-STATUTS
+ROUTES ADMIN
+------------
+GET  /api/admin/engine?city=tarnos
+POST /api/admin/engine/preview?city=tarnos
+POST /api/admin/engine/request-v24?city=tarnos
+POST /api/admin/engine/rollback?city=tarnos
+
+Toutes nécessitent ADMIN_TOKEN.
+
+PREVIEW
 -------
-NOT_READY
-- échantillon encore trop petit :
-  minimum 7 jours, 21 générations et 10 transitions intra-journée.
+/preview persiste requested_mode = V24_PREVIEW.
+La production reste LEGACY.
+previewEnabled indique seulement si une décision V24 valide est disponible.
 
-OBSERVATION
-- échantillon suffisant pour analyser ;
-- mais un ou plusieurs critères du sas ne sont pas atteints.
+TEST DU DOUBLE VERROU
+---------------------
+/request-v24 persiste l'intention V24 avec v24_approved = 0,
+puis retourne HTTP 423 :
+production_activation_locked_bloc_11_1
 
-READY_CANDIDATE
-- tous les critères du sas sont atteints ;
-- aucune famille météo suffisamment observée n'est classée PROBLEM ;
-- validation humaine obligatoire avant toute bascule.
+Cette route existe uniquement pour prouver qu'une intention V24 ne suffit pas.
 
-CRITERES READY_CANDIDATE
-------------------------
-- au moins 14 jours Shadow
-- au moins 40 générations
-- au moins 20 transitions comparables
-- stabilité finale >= 85 %
-- gap moyen gagnant/runner-up >= 8 points
-- décisions serrées (<7 pts) <= 25 %
-- confiance LOW <= 25 %
-- interventions Reliability <= 25 %
-- modifications Raw -> Final <= 20 %
+ROLLBACK
+--------
+/rollback :
+- requested_mode = LEGACY
+- v24_approved = 0
+- approved_at/by = NULL
+- rollback_at = maintenant
+- rollback_reason = raison fournie
 
-FAMILLES PROBLEMATIQUES
------------------------
-Le Bloc 10 regroupe automatiquement les scènes via le registre officiel :
-LIGHT, VEIL, MIXED_SKY, VARIABILITY, TREND, WIND_COMBINATION, VISIBILITY,
-CLOUD, WIND, RAIN, INSTABILITY, THUNDER, RAIN_WIND.
-
-Une famille n'est évaluée qu'à partir de 3 générations.
-Elle peut être WATCH ou PROBLEM selon :
-- taux LOW
-- taux de correction Reliability
-- taux de décisions serrées
+Le rollback ne dépend PAS de shadow_history ni de readiness.
 
 ADMIN MOBILE
 ------------
-Nouveau bouton :
-"Évaluer readiness V24"
+Nouveau bloc "Moteur météo" avec :
+- moteur officiel effectif
+- mode demandé
+- Preview active/inactive
+- readiness
+- raison de résolution
+- état d'approbation
+- dernier rollback
+- bouton Activer Preview V24
+- bouton Revenir à Legacy
+- bouton de test demande V24 production (doit être refusé)
 
-Affichage :
-- NOT READY / OBSERVATION / READY CANDIDATE
-- tous les critères et leur état OK/NON
-- bloquants
-- avertissements
-- santé par famille météo
+ORDRE D'INSTALLATION
+--------------------
+1. Ajouter/remplacer les fichiers.
+2. Appliquer migrations/0003_engine_control.sql sur D1 distant.
+3. Déployer.
+4. /admin -> Contrôler le moteur.
+5. Vérifier : Production = LEGACY.
+6. Activer Preview -> Production doit rester LEGACY.
+7. Tester demande V24 -> doit être refusée.
+8. Rollback -> requested_mode revient LEGACY.
 
-SECURITE
---------
-- aucune écriture D1
-- aucune bascule automatique
-- forecast.scene inchangé
-- /instagram reste Legacy
-- /instagram24 reste Shadow
+IMPORTANT
+---------
+Ne pas ajouter SCENE_ENGINE_MODE=V24 dans Cloudflare pour le moment.
+Ce sous-bloc permet de tester le contrat de sécurité sans aucune bascule.

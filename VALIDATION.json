@@ -1,13 +1,10 @@
 {
   "typescriptIntegrationCheck": "PASS",
-  "noMigration": true,
-  "productionStillLegacy": true,
-  "readinessStatuses": [
-    "NOT_READY",
-    "OBSERVATION",
-    "READY_CANDIDATE"
-  ],
-  "automaticProductionSwitch": false,
-  "familyHealthEnabled": true,
-  "protectedReadinessEndpoint": true
+  "migrationRequired": "0003_engine_control.sql",
+  "productionHardLockedLegacy": true,
+  "previewRoute": true,
+  "lockedV24RequestRoute": true,
+  "rollbackRoute": true,
+  "forecastSceneModified": false,
+  "productionActivationAvailable": false
 }

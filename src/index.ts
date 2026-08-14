@@ -4,6 +4,8 @@ import { forecastHistory, latestForecast, shadowHistory, shadowHistoryForDate } 
 import { loadShadowMetricRows } from "./storage/shadowMetrics";
 import { calculateShadowMetrics } from "./analytics/shadowMetrics";
 import { evaluateV24Readiness } from "./analytics/readiness";
+import { resolveSceneEngineMode } from "./engine/engineMode";
+import { ensureEngineControl, requestV24Locked, requestV24Preview, rollbackToLegacy } from "./storage/engineControl";
 import type { Env, LokaForecast, Scene24Candidate, SceneDecisionV24, DayProfile } from "./types";
 import { renderAdmin, renderDashboard } from "./ui/dashboard";
 import { renderInstagramGenerator } from "./ui/instagram";
@@ -121,6 +123,56 @@ function compactShadowComparison(forecast: LokaForecast): unknown {
   };
 }
 
+
+async function engineStatus(
+  env: Env,
+  citySlug: string
+): Promise<Record<string, unknown>> {
+  const control = await ensureEngineControl(env.DB, citySlug);
+
+  let readinessStatus: "NOT_READY" | "OBSERVATION" | "READY_CANDIDATE" | "UNAVAILABLE" = "UNAVAILABLE";
+  try {
+    const rows = await loadShadowMetricRows(env.DB, citySlug, 30, 1000);
+    readinessStatus = evaluateV24Readiness(rows).status;
+  } catch {
+    // Engine control and rollback must remain available even if analytics fail.
+    readinessStatus = "UNAVAILABLE";
+  }
+
+  let hasValidV24Decision = false;
+  try {
+    const forecast = await latestForecast(env.DB, citySlug);
+    const scene24 = forecast?.diagnostics?.scene24;
+    hasValidV24Decision =
+      !!scene24 &&
+      typeof scene24 === "object" &&
+      typeof (scene24 as Record<string, unknown>).sceneId === "number";
+  } catch {
+    hasValidV24Decision = false;
+  }
+
+  const configuredMode = (env as Env & { SCENE_ENGINE_MODE?: string }).SCENE_ENGINE_MODE;
+
+  const resolution = resolveSceneEngineMode({
+    configuredMode,
+    control,
+    readiness: readinessStatus,
+    hasValidV24Decision
+  });
+
+  return {
+    ok: true,
+    citySlug,
+    control,
+    resolution,
+    invariant: {
+      forecastSceneStillLegacy: true,
+      productionActivationAvailable: false,
+      rollbackAlwaysAvailable: true
+    }
+  };
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -204,6 +256,72 @@ export default {
       const rows = await loadShadowMetricRows(env.DB, slug, days, limit);
 
       return json(evaluateV24Readiness(rows));
+    }
+
+    // Bloc 11.1 — engine control plane.
+    if (url.pathname === "/api/admin/engine" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        return json(await engineStatus(env, slug));
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/engine/preview" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      await requestV24Preview(env.DB, slug);
+      return json(await engineStatus(env, slug));
+    }
+
+    if (url.pathname === "/api/admin/engine/request-v24" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      // Persist the intention for audit/testing, but never approve production.
+      await requestV24Locked(env.DB, slug);
+      const status = await engineStatus(env, slug);
+
+      return json({
+        ...status,
+        activation: {
+          accepted: false,
+          error: "production_activation_locked_bloc_11_1",
+          message: "V24 production reste verrouillé dans le Bloc 11.1."
+        }
+      }, 423);
+    }
+
+    if (url.pathname === "/api/admin/engine/rollback" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      let reason = "manual_admin_rollback";
+      try {
+        const body = await request.json() as { reason?: unknown };
+        if (typeof body?.reason === "string" && body.reason.trim()) {
+          reason = body.reason.trim();
+        }
+      } catch {
+        // Body is optional; rollback must remain easy.
+      }
+
+      await rollbackToLegacy(env.DB, slug, reason);
+      return json(await engineStatus(env, slug));
     }
 
     if (url.pathname === "/api/history") {
