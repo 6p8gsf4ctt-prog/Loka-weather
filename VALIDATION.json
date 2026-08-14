@@ -1,0 +1,7 @@
+{
+  "typesHasLowMidHigh": true,
+  "modelsRequestsLowMidHigh": true,
+  "adapterParsesLowMidHigh": true,
+  "consensusPreservesNull": true,
+  "legacySceneUnchanged": true
+}

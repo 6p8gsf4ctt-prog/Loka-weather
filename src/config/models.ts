@@ -41,6 +41,12 @@ export const HOURLY_VARIABLES = [
   "precipitation",
   "rain",
   "cloud_cover",
+
+  // V24 — cloud layers. The legacy classifier still uses cloud_cover only.
+  "cloud_cover_low",
+  "cloud_cover_mid",
+  "cloud_cover_high",
+
   "wind_speed_10m",
   "wind_gusts_10m",
   "weather_code"

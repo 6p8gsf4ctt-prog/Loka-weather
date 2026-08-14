@@ -63,6 +63,12 @@ export async function fetchModelForecast(
     precipitationMm: numeric(hourly.precipitation, i) ?? 0,
     rainMm: numeric(hourly.rain, i) ?? 0,
     cloudCoverPct: numeric(hourly.cloud_cover, i),
+
+    // V24 — nullable cloud layers; missing must never become 0%.
+    cloudCoverLowPct: numeric(hourly.cloud_cover_low, i),
+    cloudCoverMidPct: numeric(hourly.cloud_cover_mid, i),
+    cloudCoverHighPct: numeric(hourly.cloud_cover_high, i),
+
     windSpeedKmh: numeric(hourly.wind_speed_10m, i),
     windGustKmh: numeric(hourly.wind_gusts_10m, i),
     weatherCode: numeric(hourly.weather_code, i)

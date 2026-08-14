@@ -46,6 +46,15 @@ export interface HourPoint {
   precipitationMm: number;
   rainMm: number;
   cloudCoverPct: number | null;
+
+  /**
+   * V24 cloud layers. Nullable by design: a missing model variable must never
+   * be interpreted as 0% cloud cover.
+   */
+  cloudCoverLowPct: number | null;
+  cloudCoverMidPct: number | null;
+  cloudCoverHighPct: number | null;
+
   windSpeedKmh: number | null;
   windGustKmh: number | null;
   weatherCode: number | null;
@@ -68,6 +77,21 @@ export interface ConsensusHour {
   apparentTemperatureC: number;
   precipitationMm: number;
   cloudCoverPct: number;
+
+  /**
+   * V24 weighted cloud-layer consensus.
+   * null means no usable layer value was supplied by any contributing model.
+   */
+  cloudCoverLowPct: number | null;
+  cloudCoverMidPct: number | null;
+  cloudCoverHighPct: number | null;
+
+  /**
+   * Number of models contributing at least one usable low/mid/high layer
+   * value for this hour. Used later by V24 confidence/uncertainty scoring.
+   */
+  cloudLayerModelCount: number;
+
   windSpeedKmh: number;
   windGustKmh: number;
   modelCount: number;

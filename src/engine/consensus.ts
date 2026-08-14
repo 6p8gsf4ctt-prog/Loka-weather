@@ -28,6 +28,22 @@ function weightedBooleanSupport(
   }, 0) / total;
 }
 
+/**
+ * Unlike the legacy weightedMean helper, this keeps "no layer data" as null
+ * instead of converting absence into a false 0% cloud-cover signal.
+ */
+function weightedMeanNullable(values: Array<[number | null, number]>): number | null {
+  const valid = values.filter((x): x is [number, number] => x[0] !== null && Number.isFinite(x[0]));
+  if (!valid.length) return null;
+
+  const totalWeight = valid.reduce((sum, [, weight]) => sum + weight, 0);
+  if (totalWeight <= 0) {
+    return valid.reduce((sum, [value]) => sum + value, 0) / valid.length;
+  }
+
+  return valid.reduce((sum, [value, weight]) => sum + value * weight, 0) / totalWeight;
+}
+
 export function buildConsensus(forecasts: ModelForecast[]): Map<string, ConsensusHour> {
   const byTime = new Map<string, Array<{ forecast: ModelForecast; index: number }>>();
 
@@ -47,9 +63,17 @@ export function buildConsensus(forecasts: ModelForecast[]): Map<string, Consensu
     const apparentValues: Array<[number | null, number]> = [];
     const precipValues: Array<[number, number]> = [];
     const cloudValues: Array<[number | null, number]> = [];
+
+    // V24 — separate layer consensus.
+    const cloudLowValues: Array<[number | null, number]> = [];
+    const cloudMidValues: Array<[number | null, number]> = [];
+    const cloudHighValues: Array<[number | null, number]> = [];
+
     const windValues: Array<[number | null, number]> = [];
     const gustValues: Array<[number | null, number]> = [];
     const temps: number[] = [];
+
+    let cloudLayerModelCount = 0;
 
     for (const { forecast, index } of rows) {
       const point = forecast.hourly[index];
@@ -59,6 +83,19 @@ export function buildConsensus(forecasts: ModelForecast[]): Map<string, Consensu
       apparentValues.push([point.apparentTemperatureC ?? point.temperatureC, weight]);
       precipValues.push([point.precipitationMm, weight]);
       cloudValues.push([point.cloudCoverPct, weight]);
+
+      cloudLowValues.push([point.cloudCoverLowPct, weight]);
+      cloudMidValues.push([point.cloudCoverMidPct, weight]);
+      cloudHighValues.push([point.cloudCoverHighPct, weight]);
+
+      if (
+        point.cloudCoverLowPct !== null ||
+        point.cloudCoverMidPct !== null ||
+        point.cloudCoverHighPct !== null
+      ) {
+        cloudLayerModelCount++;
+      }
+
       windValues.push([point.windSpeedKmh, weight]);
       gustValues.push([point.windGustKmh, weight]);
 
@@ -71,6 +108,12 @@ export function buildConsensus(forecasts: ModelForecast[]): Map<string, Consensu
       apparentTemperatureC: weightedMean(apparentValues),
       precipitationMm: weightedMean(precipValues),
       cloudCoverPct: weightedMean(cloudValues),
+
+      cloudCoverLowPct: weightedMeanNullable(cloudLowValues),
+      cloudCoverMidPct: weightedMeanNullable(cloudMidValues),
+      cloudCoverHighPct: weightedMeanNullable(cloudHighValues),
+      cloudLayerModelCount,
+
       windSpeedKmh: weightedMean(windValues),
       windGustKmh: weightedMean(gustValues),
       modelCount: rows.length,
