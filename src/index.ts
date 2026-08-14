@@ -7,7 +7,8 @@ import { evaluateV24Readiness } from "./analytics/readiness";
 import { resolveSceneEngineMode } from "./engine/engineMode";
 import { buildV24PublicPayloadPreview } from "./engine/publicPreview";
 import { ensureEngineControl, requestV24Preview, rollbackToLegacy } from "./storage/engineControl";
-import { auditRollback, confirmV24Approval, getV24ApprovalOverview, prepareV24Approval } from "./storage/engineApproval";
+import { auditRollback, confirmV24Approval, getLatestV24ApprovalProof, getV24ApprovalOverview, prepareV24Approval } from "./storage/engineApproval";
+import { evaluateV24ActivationGuard } from "./engine/activationGuard";
 import type { Env, LokaForecast, Scene24Candidate, SceneDecisionV24, DayProfile } from "./types";
 import { renderAdmin, renderDashboard } from "./ui/dashboard";
 import { renderInstagramGenerator } from "./ui/instagram";
@@ -145,6 +146,7 @@ async function engineStatus(
 
   let hasValidV24Decision = false;
   let latestPipelineResolution: Record<string, unknown> | null = null;
+  let latestActivationGuard: Record<string, unknown> | null = null;
   let latestForecastGeneratedAt: string | null = null;
 
   try {
@@ -161,6 +163,12 @@ async function engineStatus(
     latestPipelineResolution =
       pipeline && typeof pipeline === "object"
         ? pipeline as Record<string, unknown>
+        : null;
+
+    const guard = forecast?.diagnostics?.v24ActivationGuard;
+    latestActivationGuard =
+      guard && typeof guard === "object"
+        ? guard as Record<string, unknown>
         : null;
   } catch {
     hasValidV24Decision = false;
@@ -183,7 +191,8 @@ async function engineStatus(
     pipeline: {
       connected: latestPipelineResolution?.connectedInPipeline === true,
       generatedAt: latestForecastGeneratedAt,
-      latestResolution: latestPipelineResolution
+      latestResolution: latestPipelineResolution,
+      latestActivationGuard
     },
     invariant: {
       forecastSceneStillLegacy: true,
@@ -334,8 +343,62 @@ export default {
       return json({
         error: "use_double_confirmation_flow",
         message:
-          "Bloc 12.2 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
+          "Bloc 12.3 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
       }, 409);
+    }
+
+    if (url.pathname === "/api/admin/engine/activation-check" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const { readiness, forecast } = await approvalContext(env, slug);
+        const control = await ensureEngineControl(env.DB, slug);
+        const proof = await getLatestV24ApprovalProof(env.DB, slug);
+
+        const configuredMode =
+          (env as Env & { SCENE_ENGINE_MODE?: string }).SCENE_ENGINE_MODE;
+
+        const scene24 = forecast.diagnostics.scene24;
+        const resolution = resolveSceneEngineMode({
+          configuredMode,
+          control,
+          readiness: readiness.status,
+          hasValidV24Decision:
+            !!scene24 &&
+            typeof scene24 === "object" &&
+            typeof (scene24 as Record<string, unknown>).sceneId === "number"
+        });
+
+        const guard = evaluateV24ActivationGuard({
+          forecast,
+          resolution,
+          approvalProof: proof
+        });
+
+        return json({
+          ok: true,
+          citySlug: slug,
+          resolution,
+          guard,
+          safety: {
+            productionEngine: "LEGACY",
+            publicCutoverLocked: true,
+            fallbackIfBlocked: "LEGACY",
+            nextCutoverBlock: "12.4"
+          }
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error),
+          safety: {
+            productionEngine: "LEGACY",
+            publicCutoverLocked: true
+          }
+        }, 500);
+      }
     }
 
     if (url.pathname === "/api/admin/engine/approval" && request.method === "GET") {
@@ -464,7 +527,7 @@ export default {
           productionEngine: "LEGACY",
           productionActivationLocked: true,
           nextStep:
-            "Approval stored. Effective V24 production remains unavailable until a later Bloc 12 removes the lock."
+            "Approval stored. Bloc 12.3 peut maintenant évaluer les garde-fous de génération ; le cutover public reste verrouillé jusqu'au Bloc 12.4."
         });
       } catch (error) {
         return json({

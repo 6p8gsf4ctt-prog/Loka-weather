@@ -4,8 +4,10 @@ import { buildConsensus } from "./engine/consensus";
 import { buildLokaForecast } from "./engine/verdict";
 import { resolveSceneEngineMode, type ReadinessStatus } from "./engine/engineMode";
 import { applyEngineResolutionToForecast } from "./engine/engineRuntime";
+import { evaluateV24ActivationGuard } from "./engine/activationGuard";
 import { saveForecast, saveRun, saveShadowHistory } from "./storage/db";
 import { getEngineControl } from "./storage/engineControl";
+import { getLatestV24ApprovalProof } from "./storage/engineApproval";
 import { loadShadowMetricRows } from "./storage/shadowMetrics";
 import { evaluateV24Readiness } from "./analytics/readiness";
 import type { CityConfig, Env, LokaForecast, ModelForecast } from "./types";
@@ -63,6 +65,20 @@ async function connectEngineSelector(env: Env, forecast: LokaForecast): Promise<
     hasValidV24Decision: hasValidV24Decision(forecast)
   });
 
+  let approvalProof = null;
+  try {
+    approvalProof = await getLatestV24ApprovalProof(env.DB, forecast.citySlug);
+  } catch {
+    // Missing approval audit must block V24, never block Legacy.
+    approvalProof = null;
+  }
+
+  const activationGuard = evaluateV24ActivationGuard({
+    forecast,
+    resolution,
+    approvalProof
+  });
+
   applyEngineResolutionToForecast({
     forecast,
     resolution,
@@ -70,7 +86,8 @@ async function connectEngineSelector(env: Env, forecast: LokaForecast): Promise<
       controlAvailable,
       controlError,
       readinessError,
-      readinessExcludesCurrentGeneration: true
+      readinessExcludesCurrentGeneration: true,
+      activationGuard
     }
   });
 }
@@ -111,7 +128,7 @@ async function runCity(env: Env, city: CityConfig, source: string): Promise<Loka
     await connectEngineSelector(env, forecast);
   } catch (error) {
     forecast.diagnostics.sceneEngine = {
-      version: "12.1.0",
+      version: "12.3.0",
       connectedInPipeline: true,
       requested: "LEGACY",
       resolverEffective: "LEGACY",
@@ -123,6 +140,16 @@ async function runCity(env: Env, city: CityConfig, source: string): Promise<Loka
       reason: "pipeline_selector_exception_forced_legacy",
       runtimeForcedLegacy: true,
       error: error instanceof Error ? error.message : String(error)
+    };
+    forecast.diagnostics.v24ActivationGuard = {
+      version: "12.3.0",
+      status: "BLOCKED",
+      evaluatedAt: new Date().toISOString(),
+      fallbackRequired: true,
+      activationReadyForCutover: false,
+      reason: "pipeline_selector_exception_forced_legacy",
+      checks: [],
+      candidate: null
     };
     forecast.diagnostics.sceneClassifierProduction = "legacy6";
   }

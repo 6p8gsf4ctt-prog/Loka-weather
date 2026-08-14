@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.2. Double confirmation et audit sont actifs ; la production reste verrouillée sur Legacy.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.3. Les garde-fous de génération V24 sont actifs ; le cutover public reste verrouillé sur Legacy.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -156,7 +156,7 @@ async function loadReadiness(){
 
 
 function renderEngine(d){
-  const c=d.control||{}, r=d.resolution||{}, pipe=d.pipeline||{}, pr=pipe.latestResolution||{};
+  const c=d.control||{}, r=d.resolution||{}, pipe=d.pipeline||{}, pr=pipe.latestResolution||{}, pg=pipe.latestActivationGuard||{};
   const effective=r.effectiveProduction||'LEGACY';
   const requested=r.requested||'LEGACY';
   const preview=!!r.previewEnabled;
@@ -179,6 +179,9 @@ function renderEngine(d){
       '<div class="bar-row"><span>Sélecteur dans le pipeline</span><strong class="'+(pipelineConnected?'good':'caution')+'">'+(pipelineConnected?'CONNECTÉ':'EN ATTENTE D’UNE GÉNÉRATION')+'</strong></div>'+
       '<div class="bar-row"><span>Dernière génération effective</span><strong>'+e(pr.effectiveProduction||'—')+'</strong></div>'+
       '<div class="bar-row"><span>Raison pipeline</span><strong>'+e(pr.reason||'—')+'</strong></div>'+
+      '<div class="bar-row"><span>Garde-fou génération</span><strong class="'+(pg.status==='PASS'?'good':(pg.status==='BLOCKED'?'bad':'caution'))+'">'+e(pg.status||'—')+'</strong></div>'+
+      '<div class="bar-row"><span>Prêt pour cutover</span><strong class="'+(pg.activationReadyForCutover?'good':'caution')+'">'+(pg.activationReadyForCutover?'OUI':'NON')+'</strong></div>'+
+      '<div class="bar-row"><span>Fallback génération</span><strong>'+(pg.fallbackRequired?'LEGACY':'—')+'</strong></div>'+
       '<div class="bar-row"><span>Dernier rollback</span><strong>'+e(c.rollbackAt||'—')+'</strong></div>'+
       '<div class="bar-row"><span>Raison rollback</span><strong>'+e(c.rollbackReason||'—')+'</strong></div>'+
     '</div></div>'+
@@ -186,7 +189,7 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button>'+
+    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button>'+
     '<div class="metric-section"><h3>Autorisation V24 — double confirmation</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
     (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
     '<div id="payloadView" style="margin-top:12px"></div>';
@@ -207,6 +210,33 @@ function renderEngine(d){
       });
       await loadEngine();
     }catch(err){engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>'}
+  };
+
+  document.getElementById('checkActivation').onclick=async()=>{
+    const btn=document.getElementById('checkActivation');
+    btn.disabled=true;
+    try{
+      const x=await fetchJson('/api/admin/engine/activation-check?city=tarnos',{
+        headers:{Authorization:'Bearer '+token()}
+      });
+      const g=x.guard||{},checks=Array.isArray(g.checks)?g.checks:[];
+      const cls=g.status==='PASS'?'good':(g.status==='BLOCKED'?'bad':'caution');
+      const rows=checks.map(c=>
+        '<div class="bar-row"><span>'+e(c.label)+'<div class="muted">'+e(c.reason||'')+'</div></span><strong class="'+(c.passed?'good':'bad')+'">'+(c.passed?'OK':'NON')+'</strong></div>'
+      ).join('');
+      document.getElementById('payloadView').innerHTML=
+        '<div class="card"><div class="label">GARDE-FOUS ACTIVATION V24</div>'+
+        '<div class="scene '+cls+'">'+e(g.status||'—')+'</div>'+
+        '<div class="meta">Raison : '+e(g.reason||'—')+'</div>'+
+        '<div class="bar-row"><span>Fallback si blocage</span><strong>LEGACY</strong></div>'+
+        '<div class="bar-row"><span>Cutover public</span><strong class="bad">VERROUILLÉ BLOC 12.3</strong></div>'+
+        rows+
+        '</div>';
+    }catch(err){
+      document.getElementById('payloadView').innerHTML='<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>';
+    }finally{
+      btn.disabled=false;
+    }
   };
 
   document.getElementById('showPayload').onclick=async()=>{

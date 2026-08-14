@@ -1,12 +1,14 @@
 import type { LokaForecast } from "../types";
 import type { SceneEngineResolution } from "./engineMode";
 import { buildV24PublicPayloadPreview } from "./publicPreview";
+import type { V24ActivationGuardResult } from "./activationGuard";
 
 export interface PipelineEngineInputs {
   controlAvailable: boolean;
   controlError: string | null;
   readinessError: string | null;
   readinessExcludesCurrentGeneration: true;
+  activationGuard: V24ActivationGuardResult;
 }
 
 export function applyEngineResolutionToForecast(args: {
@@ -47,7 +49,7 @@ export function applyEngineResolutionToForecast(args: {
   forecast.notableEvent = legacy.notableEvent;
 
   forecast.diagnostics.sceneEngine = {
-    version: "12.1.0",
+    version: "12.3.0",
     connectedInPipeline: true,
     evaluatedAt: new Date().toISOString(),
     requested: resolution.requested,
@@ -64,8 +66,16 @@ export function applyEngineResolutionToForecast(args: {
     readinessError: inputs.readinessError,
     readinessExcludesCurrentGeneration: inputs.readinessExcludesCurrentGeneration,
     v24CandidateAvailable: candidate !== null,
-    v24CandidateError: candidateError
+    v24CandidateError: candidateError,
+
+    activationGuardStatus: inputs.activationGuard.status,
+    activationGuardReason: inputs.activationGuard.reason,
+    activationReadyForCutover: inputs.activationGuard.activationReadyForCutover,
+    generationFallbackRequired: inputs.activationGuard.fallbackRequired,
+    publicCutoverLockedUntilBloc12_4: true
   };
+
+  forecast.diagnostics.v24ActivationGuard = inputs.activationGuard;
 
   forecast.diagnostics.v24PublicCandidate = candidate ? {
     version: candidate.version,

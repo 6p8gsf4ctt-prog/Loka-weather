@@ -648,3 +648,41 @@ export async function auditRollback(
     reason
   });
 }
+
+
+export async function getLatestV24ApprovalProof(
+  db: D1Database,
+  citySlug: string
+): Promise<{
+  eventId: string;
+  eventAt: string;
+  challengeId: string | null;
+  readinessFingerprint: string | null;
+} | null> {
+  const row = await db.prepare(`
+    SELECT
+      event_id,
+      event_at,
+      challenge_id,
+      readiness_fingerprint
+    FROM engine_activation_audit
+    WHERE city_slug = ?
+      AND event_type = 'APPROVED'
+    ORDER BY id DESC
+    LIMIT 1
+  `).bind(citySlug).first<{
+    event_id: string;
+    event_at: string;
+    challenge_id: string | null;
+    readiness_fingerprint: string | null;
+  }>();
+
+  if (!row) return null;
+
+  return {
+    eventId: row.event_id,
+    eventAt: row.event_at,
+    challengeId: row.challenge_id,
+    readinessFingerprint: row.readiness_fingerprint
+  };
+}

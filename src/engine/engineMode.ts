@@ -22,19 +22,20 @@ export interface SceneEngineResolution {
   requested: SceneEngineMode;
 
   /**
-   * Bloc 12.2 may create a real human approval in D1, but it still cannot
-   * publish V24. A later block must explicitly remove this literal lock.
+   * Bloc 12.3 arms the exact per-generation activation guards.
+   * Public cutover is intentionally still locked until Bloc 12.4.
    */
   effectiveProduction: "LEGACY";
 
   previewEnabled: boolean;
   readiness: ReadinessStatus;
   v24Approved: boolean;
+  activationGuardEnabled: boolean;
   reason: string;
   productionActivationLocked: true;
 }
 
-const VERSION = "12.2.0";
+const VERSION = "12.3.0";
 
 export function normalizeSceneEngineMode(value: unknown): SceneEngineMode {
   return value === "V24_PREVIEW" || value === "V24" ? value : "LEGACY";
@@ -58,6 +59,7 @@ export function resolveSceneEngineMode(args: {
       previewEnabled: false,
       readiness: args.readiness,
       v24Approved: approved,
+      activationGuardEnabled: false,
       reason: "legacy_requested",
       productionActivationLocked: true
     };
@@ -71,6 +73,7 @@ export function resolveSceneEngineMode(args: {
       previewEnabled: args.hasValidV24Decision,
       readiness: args.readiness,
       v24Approved: approved,
+      activationGuardEnabled: false,
       reason: args.hasValidV24Decision
         ? "preview_enabled_production_locked"
         : "preview_unavailable_no_valid_v24",
@@ -78,7 +81,12 @@ export function resolveSceneEngineMode(args: {
     };
   }
 
-  let reason = "production_activation_locked_bloc_12_2";
+  const guardsEnabled =
+    approved &&
+    args.readiness === "READY_CANDIDATE" &&
+    args.hasValidV24Decision;
+
+  let reason = "v24_activation_guard_armed";
 
   if (args.readiness !== "READY_CANDIDATE") {
     reason = "readiness_not_ready";
@@ -86,8 +94,6 @@ export function resolveSceneEngineMode(args: {
     reason = "v24_not_approved";
   } else if (!args.hasValidV24Decision) {
     reason = "no_valid_v24_decision";
-  } else {
-    reason = "v24_authorized_waiting_activation_bloc_12_3";
   }
 
   return {
@@ -97,6 +103,7 @@ export function resolveSceneEngineMode(args: {
     previewEnabled: args.hasValidV24Decision,
     readiness: args.readiness,
     v24Approved: approved,
+    activationGuardEnabled: guardsEnabled,
     reason,
     productionActivationLocked: true
   };

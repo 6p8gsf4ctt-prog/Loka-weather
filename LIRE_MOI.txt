@@ -1,151 +1,138 @@
-LOKA V24 — BLOC 12.2
+LOKA V24 — BLOC 12.3
 ======================
 
 OBJECTIF
 --------
-Installer la vraie procédure d'AUTORISATION ADMINISTRATIVE V24 :
-- readiness obligatoire
-- double confirmation
-- snapshot immuable
-- challenge expirant
-- audit append-only
+Installer le garde-fou EXACT de chaque génération avant le futur cutover V24.
 
-IMPORTANT
----------
-Bloc 12.2 N'ACTIVE TOUJOURS PAS V24 officiellement.
+Ce bloc utilise l'autorisation du Bloc 12.2, mais NE BASCULE TOUJOURS PAS
+les surfaces publiques.
 
-Même après une autorisation réussie :
-effectiveProduction = LEGACY
-productionActivationLocked = true
-
-L'autorisation prépare seulement l'étape technique suivante.
+AUCUNE MIGRATION D1.
+La migration 0004 du Bloc 12.2 doit déjà être appliquée.
 
 FICHIERS
 --------
 AJOUTER
-- migrations/0004_engine_activation_audit.sql
-- src/storage/engineApproval.ts
+- src/engine/activationGuard.ts
 
 REMPLACER
 - src/engine/engineMode.ts
+- src/engine/engineRuntime.ts
+- src/storage/engineApproval.ts
+- src/pipeline.ts
 - src/index.ts
 - src/ui/dashboard.ts
 
-Le ZIP inclut aussi les fichiers Bloc 12.1 nécessaires à la cohérence.
+GARDE-FOUS PAR GÉNÉRATION
+-------------------------
+V24 ne peut être déclaré "prêt pour cutover" que si TOUS ces contrôles passent :
 
-MIGRATION D1
-------------
-0004 crée :
-1. engine_approval_challenge
-2. engine_activation_audit
+1. requested_mode = V24
+2. v24_approved = true
+3. événement APPROVED présent dans l'audit append-only
+4. readiness courant = READY_CANDIDATE
+5. décision scene24 présente
+6. scene24Error absent
+7. dayProfile24 présent
+8. au moins 4 modèles météo disponibles
+9. futur payload V24 construit sans erreur
+10. score gagnant >= 55
+11. confiance = MEDIUM ou HIGH
+12. gap gagnant / runner-up >= 7 points
+    - si aucun runner-up : score >= 70 ET confiance HIGH
+13. scènes 08/17 brouillard :
+    visibilityMinKm physique obligatoire
+14. scène 22 orage :
+    au moins 1 h d'orage ET support >= 60 %
 
-engine_activation_audit est APPEND-ONLY :
-deux triggers D1 interdisent UPDATE et DELETE.
+STATUTS
+-------
+NOT_ARMED
+- LEGACY ou V24_PREVIEW demandé
+- aucune tentative de production
 
-DOUBLE CONFIRMATION
--------------------
-Étape 1 :
-POST /api/admin/engine/approval/prepare
+BLOCKED
+- V24 est demandé mais un garde-fou échoue
+- fallbackRequired = true
+- fallback = LEGACY
 
-Le serveur exige :
-readiness.status = READY_CANDIDATE
+PASS
+- tous les garde-fous de cette génération passent
+- activationReadyForCutover = true
+- MAIS cutover public encore verrouillé au Bloc 12.3
 
-Si LOKA est NOT_READY ou OBSERVATION :
-- HTTP 423
-- aucune approbation
-- PREPARE_REFUSED ajouté dans l'audit
-
-Si READY_CANDIDATE :
-- snapshot readiness + forecast V24
-- SHA-256 du snapshot
-- challenge de 10 minutes
-- événement PREPARED
-
-Étape 2 :
-POST /api/admin/engine/approval/confirm
-
-L'Admin doit recopier exactement :
-ACTIVER V24 TARNOS
-
-Avant d'accepter, le serveur revérifie :
-- challenge encore PENDING
-- challenge non expiré
-- phrase exacte
-- readiness toujours READY_CANDIDATE
-- snapshot/fingerprint STRICTEMENT identique
-- forecast V24 identique
-
-Si l'historique ou la génération change entre les deux confirmations :
-le challenge est annulé et il faut recommencer.
-
-APRÈS CONFIRMATION RÉUSSIE
---------------------------
-engine_control devient :
+IMPORTANT
+---------
+Même avec :
 requested_mode = V24
-v24_approved = 1
-approved_at = ...
-approved_by = admin_double_confirmation
+v24_approved = true
+readiness = READY_CANDIDATE
+guard = PASS
 
-MAIS engineMode 12.2 retourne encore :
+le Bloc 12.3 conserve :
 effectiveProduction = LEGACY
-reason = v24_authorized_waiting_activation_bloc_12_3
+publicCutoverLockedUntilBloc12_4 = true
 
-Donc aucune publication V24 n'est possible dans ce bloc.
+Le Bloc 12.4 sera donc le premier bloc autorisé à brancher les surfaces
+publiques sur le produit V24 d'une génération PASS.
 
-ROUTES
-------
-GET  /api/admin/engine/approval
-POST /api/admin/engine/approval/prepare
-POST /api/admin/engine/approval/confirm
+FALLBACK DE GÉNÉRATION
+----------------------
+Si un garde-fou échoue :
+- forecast Legacy reste intact
+- sceneEngine.generationFallbackRequired = true
+- v24ActivationGuard.status = BLOCKED
+- la raison exacte est sauvegardée
+- aucune exception V24 ne bloque la météo officielle
 
-L'ancienne route :
-POST /api/admin/engine/request-v24
-ne modifie plus rien et renvoie :
-use_double_confirmation_flow
+Le rollback administratif global du Bloc 11/12 reste disponible à tout moment.
 
-ROLLBACK
---------
-Le rollback reste prioritaire et indépendant.
+NOUVELLE ROUTE ADMIN
+--------------------
+GET /api/admin/engine/activation-check?city=tarnos
+Authorization: Bearer ADMIN_TOKEN
 
-Après rollback réussi :
-- requested_mode = LEGACY
-- v24_approved = 0
-- challenges PENDING annulés
-- événement ROLLBACK ajouté à l'audit si possible
+Elle recalcule les garde-fous sur le forecast courant et renvoie :
+- résolution moteur
+- statut PASS / BLOCKED / NOT_ARMED
+- chaque check OK / NON
+- fallback LEGACY
+- cutover public verrouillé
 
-Si l'audit D1 échoue, le rollback RESTE réussi.
+ADMIN MOBILE
+------------
+Nouveau bouton :
+"Tester les garde-fous V24"
 
-TEST MOBILE AUJOURD'HUI
------------------------
-Comme readiness = NOT_READY :
+Il affiche chaque critère individuellement.
 
-1. Appliquer migration 0004 sur D1 distant.
-2. Déployer.
-3. /admin > Contrôler le moteur.
-4. Dans "Autorisation V24 — double confirmation" :
-   readiness actuel = NOT_READY
-   production effective = LEGACY
-5. Appuyer "Préparer l'autorisation V24".
-6. Résultat attendu :
-   autorisation refusée / readiness_not_ready
-7. Recharger "Contrôler le moteur".
-8. Dans AUDIT RÉCENT :
-   PREPARE_REFUSED
-   readiness NOT_READY
-9. Production doit rester LEGACY.
-10. V24 approuvé doit rester NON.
+TEST AUJOURD'HUI
+----------------
+Avec l'état actuel :
+requested_mode = LEGACY
+readiness = NOT_READY
 
-TEST FUTUR QUAND READY_CANDIDATE
---------------------------------
-1. Préparer autorisation.
-2. Un challenge de 10 minutes apparaît.
-3. Recopier ACTIVER V24 TARNOS.
-4. Confirmer.
-5. V24 approuvé = OUI.
-6. requested_mode = V24.
-7. Production effective = TOUJOURS LEGACY.
-8. Raison :
-   v24_authorized_waiting_activation_bloc_12_3
+Résultat attendu :
+status = NOT_ARMED
+activationReadyForCutover = NON
+production = LEGACY
 
-C'est seulement le Bloc 12.3+ qui pourra utiliser cette autorisation pour
-préparer une vraie activation de génération avec rollback automatique.
+Si tu actives V24_PREVIEW :
+status reste NOT_ARMED
+car Preview n'est jamais un mode de production.
+
+Quand un jour READY_CANDIDATE + double confirmation seront acquis :
+requested_mode = V24
+v24_approved = OUI
+
+Le garde-fou pourra alors retourner :
+PASS
+ou
+BLOCKED avec la raison précise de la génération.
+
+PROCHAINE ÉTAPE
+---------------
+Bloc 12.4 :
+brancher enfin les surfaces publiques sur V24 UNIQUEMENT pour une génération
+dont le garde-fou 12.3 est PASS, avec fallback immédiat vers Legacy sinon.
