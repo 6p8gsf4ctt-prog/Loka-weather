@@ -1,33 +1,90 @@
-LOKA V24 — BLOC 8
+LOKA V24 — BLOC 9
 ====================
 
-AJOUTER
-- src/engine/scenes24/reliability.ts
+OBJECTIF
+--------
+Créer un historique append-only de chaque génération V24 shadow sans modifier
+forecast.scene ni le moteur Legacy.
 
-REMPLACER
-- src/engine/verdict.ts
+AUDIT
+-----
+Avant Bloc 9 :
+- forecasts possède UNIQUE(city_slug, forecast_date)
+- saveForecast() fait ON CONFLICT ... DO UPDATE
+- une nouvelle génération du même jour écrase donc la précédente
+- diagnostics_json conserve un snapshot riche, mais seulement le dernier du jour
+- runs est append-only, mais n'archive que statut/modèles/durée
+- /api/history lit forecasts : il fournit donc un historique quotidien, pas
+  un historique des générations successives
 
-Objectif : fiabiliser le shadow V24 avant toute bascule de production.
+CONCLUSION :
+l'architecture actuelle ne permet pas d'étudier les changements V24
+intra-journée (09 → 18 → 09, scores, garde-fous, etc.).
 
-Le premier test réel a montré :
-19 INSTABLE — 49.2 — LOW — aucun runner-up.
+FICHIERS
+--------
+AJOUTER :
+- migrations/0002_shadow_history.sql
 
-Le garde-fou alpha.2 :
-- conserve la décision brute dans diagnostics.scene24Raw ;
-- publie la décision V24 stabilisée dans diagnostics.scene24 ;
-- ajoute diagnostics.scene24Reliability ;
-- rejette un 19 faible si l'instabilité n'est pas confirmée par plusieurs indices indépendants ;
-- challenge toute décision LOW < 65 par un fallback conservateur ;
-- ajoute un runner-up si le classificateur brut n'en fournit aucun.
+REMPLACER :
+- src/storage/db.ts
+- src/pipeline.ts
+- src/index.ts
 
-Fallback conservateur :
-16 si lumineux ;
-21 si partagé lumineux ;
-09 si nuageux dominant ;
-18 sinon.
+NOUVELLE TABLE
+--------------
+shadow_history
 
-Sécurité :
-forecast.scene reste Legacy 6 scènes.
-Le Studio officiel /instagram reste Legacy.
-Aucune migration D1.
-Le Studio /instagram24 suit uniquement la recommandation V24 stabilisée.
+Une ligne immuable par génération :
+- date et generated_at
+- source cron/manual
+- scène Legacy officielle
+- V24 brut
+- V24 stabilisé
+- scores/confiances
+- runner-up
+- fallback/hystérésis
+- rapport reliability
+- modèles reçus/échoués
+- DayProfile complet
+- candidats complets
+
+UNIQUE(city_slug, generated_at) évite les doublons exacts.
+
+NOUVELLE ROUTE PRIVEE
+---------------------
+GET /api/shadow/history?city=tarnos&limit=30
+Authorization: Bearer ADMIN_TOKEN
+
+Options :
+- &date=2026-08-14  -> toutes les générations de cette journée
+- &detail=1         -> ajoute JSON complets : profil/candidats/raw/reliability
+
+SECURITE
+--------
+saveShadowHistory() est entouré d'un try/catch dans pipeline.ts.
+Si l'archive shadow échoue :
+- forecast.diagnostics.shadowArchive.status = "failed"
+- la prévision officielle continue
+- saveForecast() continue
+- forecast.scene reste Legacy
+
+ORDRE DE DEPLOIEMENT
+--------------------
+1. Ajouter les 4 fichiers dans GitHub.
+2. Appliquer la migration D1 AVANT de déclencher de nouvelles générations.
+3. Déployer le Worker.
+4. Générer une météo depuis /admin.
+5. Vérifier /api/latest :
+   diagnostics.shadowArchive.status doit être "ok".
+6. Tester /api/shadow/history avec ADMIN_TOKEN.
+
+MIGRATION
+---------
+Local :
+npx wrangler d1 migrations apply loka-weather --local
+
+Distant :
+npx wrangler d1 migrations apply loka-weather --remote
+
+Aucune donnée forecasts/runs n'est supprimée ou modifiée.

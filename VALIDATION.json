@@ -1,8 +1,9 @@
 {
-  "typescriptIntegrationCheck": "PASS",
-  "productionStillLegacy": true,
-  "rawDecisionPreserved": true,
-  "weakInstabilityGuard": true,
-  "lowConfidenceGuard": true,
-  "runnerUpRepair": true
+  "migrationCreatesAppendOnlyTable": true,
+  "forecastTableUntouched": true,
+  "saveShadowFailOpen": true,
+  "forecastSceneNotChanged": true,
+  "historyRouteProtected": true,
+  "dateHistorySupported": true,
+  "detailSupported": true
 }

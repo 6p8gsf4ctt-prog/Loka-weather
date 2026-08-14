@@ -2,7 +2,7 @@ import { CITIES } from "./config/cities";
 import { MODELS } from "./config/models";
 import { buildConsensus } from "./engine/consensus";
 import { buildLokaForecast } from "./engine/verdict";
-import { saveForecast, saveRun } from "./storage/db";
+import { saveForecast, saveRun, saveShadowHistory } from "./storage/db";
 import type { CityConfig, Env, LokaForecast, ModelForecast } from "./types";
 import { fetchModelForecast } from "./weather/openMeteo";
 
@@ -49,7 +49,26 @@ async function runCity(env: Env, city: CityConfig, source: string): Promise<Loka
   forecast.diagnostics.modelsFailed = failures;
   forecast.diagnostics.source = source;
 
+  // Bloc 9: append the V24 shadow snapshot before updating the daily forecast.
+  // This archive is diagnostic-only and must never block official production.
+  try {
+    await saveShadowHistory(
+      env.DB,
+      forecast,
+      source,
+      forecasts.map((f) => f.modelId),
+      failures
+    );
+    forecast.diagnostics.shadowArchive = { status: "ok" };
+  } catch (error) {
+    forecast.diagnostics.shadowArchive = {
+      status: "failed",
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+
   await saveForecast(env.DB, forecast, source);
+
   await saveRun(env.DB, {
     citySlug: city.slug,
     forecastDate: targetDate,

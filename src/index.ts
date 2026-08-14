@@ -1,6 +1,6 @@
 import { getCity } from "./config/cities";
 import { runAllCities, runOneCity } from "./pipeline";
-import { forecastHistory, latestForecast } from "./storage/db";
+import { forecastHistory, latestForecast, shadowHistory, shadowHistoryForDate } from "./storage/db";
 import type { Env, LokaForecast, Scene24Candidate, SceneDecisionV24, DayProfile } from "./types";
 import { renderAdmin, renderDashboard } from "./ui/dashboard";
 import { renderInstagramGenerator } from "./ui/instagram";
@@ -147,7 +147,6 @@ export default {
       return json(forecast);
     }
 
-    // Bloc 6: protected, compact shadow-mode observability.
     if (url.pathname === "/api/shadow") {
       if (!isAuthorized(request, env)) return unauthorized();
 
@@ -158,6 +157,24 @@ export default {
       if (!forecast) return json({ error: "no_forecast" }, 404);
 
       return json(compactShadowComparison(forecast));
+    }
+
+    // Bloc 9: append-only historical V24 shadow generations.
+    if (url.pathname === "/api/shadow/history") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      const includeDetail = url.searchParams.get("detail") === "1";
+      const date = url.searchParams.get("date");
+
+      if (date) {
+        return json(await shadowHistoryForDate(env.DB, slug, date, includeDetail));
+      }
+
+      const limit = Number(url.searchParams.get("limit") || 30);
+      return json(await shadowHistory(env.DB, slug, limit, includeDetail));
     }
 
     if (url.pathname === "/api/history") {
