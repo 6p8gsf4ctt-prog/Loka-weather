@@ -1,238 +1,150 @@
-LOKA V24 — BLOC 12.15
+LOKA V24 — BLOC 12.16
 =======================
 
 OBJET
 -----
-Fenêtre de certification / gel temporaire des générations.
+Certification finale du système / handover opérationnel.
 
-Le problème opérationnel traité est réel :
-les preuves 12.8, 12.9, 12.10, FINAL_RC et REHEARSAL sont attachées à une
-génération précise. Une nouvelle génération entre deux étapes les rend
-immédiatement périmées.
+12.16 est volontairement le DERNIER bloc d'architecture de la série 12.x.
+Il ne rajoute aucun mécanisme d'activation et ne modifie pas le pipeline météo.
 
-Le 12.15 protège la génération choisie pendant la recertification finale.
+RÔLES DÉFINITIFS
+----------------
+12.13 = GO LIVE V24 final
+12.14 = supervision production / stabilisation
+12.15 = fenêtre de certification / gel de génération
+12.16 = certification technique finale + runbook d'exploitation
 
-MIGRATION D1 OBLIGATOIRE
-------------------------
+MIGRATION D1
+------------
 Appliquer :
-migrations/0015_certification_window.sql
+migrations/0016_final_operational_handover.sql
 
 Elle crée :
-- certification_window
-- certification_window_audit
+operational_handover_audit
 
-certification_window_audit est append-only.
+La table est append-only et interdit explicitement :
+production_mutated = 1
+v24_activated = 1
+rollback_triggered = 1
 
 FICHIERS À AJOUTER
 ------------------
-- migrations/0015_certification_window.sql
-- src/engine/certificationWindow15.ts
-- src/storage/certificationWindow.ts
+- migrations/0016_final_operational_handover.sql
+- src/engine/operationalHandover16.ts
+- src/storage/operationalHandover.ts
 
 FICHIERS À REMPLACER
 --------------------
-- src/pipeline.ts
-- src/engine/goLive13.ts
-- src/engine/productionSupervisor.ts
 - src/index.ts
 - src/ui/dashboard.ts
 
-INSTALLER 12.15 N'OUVRE AUCUNE FENÊTRE
---------------------------------------
-Aujourd'hui :
-readiness = NOT_READY
-
-Résultat attendu :
-Fenêtre certification 12.15 = INACTIVE
-Readiness actuel = NOT_READY
-
-Aucune génération n'est bloquée.
-
-OUVERTURE
+IMPORTANT
 ---------
-La fenêtre ne peut être ouverte que si :
+Le pipeline n'est PAS modifié dans le Bloc 12.16.
+Le mécanisme GO LIVE n'est PAS modifié.
+Le rollback n'est PAS modifié.
+La fenêtre 12.15 n'est PAS modifiée.
 
-- readiness = READY_CANDIDATE
-- production publique = LEGACY
-- requested_mode = LEGACY
-- V24 approuvé = NON
-- identité/fingerprint publics disponibles
+Le 12.16 certifie seulement que tout est présent et cohérent.
 
-Phrase exacte :
+CONTRÔLES FINAUX
+----------------
+Le 12.16 vérifie notamment :
+- 22 tables D1 critiques présentes
+- identité publique disponible
+- backup Legacy persistant
+- engine_control cohérent avec le moteur public
+- superviseur 12.14 disponible
+- fenêtre 12.15 disponible
+- workflow GO LIVE 12.13 disponible
+- chaîne technique globale complète
 
-GELER CERTIFICATION TARNOS
+STATUT ATTENDU AUJOURD'HUI
+--------------------------
+Avec :
+production = LEGACY
+readiness = NOT_READY
+12.14 = WAITING_READINESS
+12.15 = INACTIVE
+12.13 = BLOCKED
 
-DURÉE
------
-45 minutes maximum.
+le statut FINAL attendu est :
 
-La fenêtre mémorise :
-- generatedAt
-- moteur public
-- scène
-- fingerprint
-- readiness
-- fingerprint readiness
+SYSTEM_READY_WAITING_READINESS
 
-PENDANT LA FENÊTRE
-------------------
-Bloqué :
-- bouton « Générer la météo »
-- génération cron
+et :
 
-Autorisé :
-- tous les audits 12.8 -> 12.12
-- Preview V24 nécessaire au 12.12
-- rollback drills
-- UNE génération spéciale de cutover source=go_live_12_13
+Architecture finalisée       OUI
+Chaîne technique complète    PASS
+Schéma D1 complet             PASS
+Backup Legacy                 PASS
 
-Le forecast officiel courant reste inchangé pendant la recertification.
+Ce statut signifie exactement :
 
-RÉPONSE DU BOUTON GÉNÉRER
--------------------------
-Si l'utilisateur tente une génération manuelle pendant la fenêtre :
+VERSION TECHNIQUE TERMINÉE.
 
-HTTP 423
+Il ne signifie PAS que la météo V24 peut être activée aujourd'hui.
+Il signifie qu'aucun nouveau bloc d'architecture n'est requis pour attendre
+READY_CANDIDATE puis effectuer le process déjà construit.
 
-certification_window_generation_blocked:<window_id>
+QUAND READY_CANDIDATE ARRIVE
+----------------------------
+Le 12.16 évoluera automatiquement vers :
 
-Cela est volontaire.
+SYSTEM_READY_FOR_CERTIFICATION
 
-CRON
-----
-Si le cron de 05:00 tombe pendant la fenêtre :
-la génération de cette ville est simplement ignorée.
+Process :
+1. ouvrir fenêtre 12.15
+2. 12.8
+3. 12.9
+4. 12.10
+5. 12.11
+6. 12.12
+7. 12.13
 
-Un événement append-only :
-GENERATION_BLOCKED
-est enregistré.
+Lorsque toutes les preuves sont alignées :
 
-Aucune erreur météo globale n'est déclenchée.
+SYSTEM_READY_FOR_GO_LIVE
 
-SÉCURITÉ ASYMÉTRIQUE
---------------------
-Si D1 12.15 lui-même est indisponible :
+APRÈS GO LIVE
+-------------
+Si V24 est officielle et saine :
 
-- génération météo normale :
-  FAIL-OPEN
-  La météo Legacy continue. Le verrou opérationnel ne doit jamais casser la
-  production météo.
+SYSTEM_READY_V24_LIVE
 
-- activation V24 :
-  FAIL-CLOSED
-  Le 12.13 exige une fenêtre ACTIVE et courante. Aucun GO LIVE sans preuve
-  12.15.
+Le Studio Instagram officiel devient alors la surface à utiliser pour la
+publication manuelle.
 
-NOUVEAU PROCESS FINAL
----------------------
-Quand le 12.14 passe :
+Si la supervision 12.14 est en WATCH :
 
-RECERTIFICATION_REQUIRED
+SYSTEM_LIVE_WATCH
 
-Faire :
+Si une incohérence technique apparaît :
 
-1. Ouvrir « Fenêtre certification 12.15 »
-2. Taper :
-   GELER CERTIFICATION TARNOS
+SYSTEM_BLOCKED
 
-3. Vérifier :
-   ACTIVE
-   même generatedAt
-   même fingerprint
-   expiration < 45 min
-
-4. Sans générer de nouvelle météo :
-   12.8  PASS 16/16
-   12.9  PASS 24/24
-   12.10 PASS
-   12.11 FINAL_RC_PASS
-   12.12 REHEARSAL_PASS
-
-5. Revenir immédiatement à 12.13.
-
-6. Le GO LIVE 12.13 doit afficher :
-   Fenêtre certification 12.15 = ACTIVE
-
-7. Préparer puis confirmer le GO LIVE.
-
-8. La génération de cutover 12.13 est la seule génération autorisée pendant
-   le gel.
-
-FIN DE FENÊTRE
---------------
-Après un vrai essai GO LIVE :
-
-- succès GO_LIVE_ACTIVE :
-  fenêtre = CONSUMED
-
-- GO_LIVE_ABORTED :
-  fenêtre = CONSUMED
-
-Si l'opérateur annule :
-fenêtre = CANCELLED
-
-Si 45 minutes passent :
-fenêtre = EXPIRED
-
-Une fenêtre expirée ne peut jamais être réutilisée.
-
-ROLLBACK MANUEL
----------------
-Le bouton Admin global « Revenir à Legacy » annule aussi toute fenêtre
-certification ACTIVE.
-
-Les rollback drills internes 12.10 et 12.12 ne l'annulent PAS.
-
-12.13 RENFORCÉ
---------------
-Après installation du 12.15, le 12.13 ajoute un contrôle bloquant :
-
-certification_window_current
-
-Il exige :
-- fenêtre ACTIVE
-- même generatedAt
-- même fingerprint
-- readiness READY_CANDIDATE
-
-Donc une course entre recertification et nouvelle génération n'est plus
-possible par le workflow normal.
-
-PANNEAU ADMIN
+ACTIONS ADMIN
 -------------
 Nouveau bouton :
+Certification finale système 12.16
 
-Fenêtre certification 12.15
+Le panneau affiche l'état courant.
 
-Le panneau affiche :
-- ACTIVE / INACTIVE / STALE
-- readiness
-- génération courante
-- moteur public
-- génération manuelle autorisée/bloquée
-- cron autorisé/bloqué
-- cutover 12.13 autorisé
-- window ID
-- expiration
-- audit récent
+Le bouton :
+Enregistrer certification 12.16
 
-RÉSULTAT ATTENDU AUJOURD'HUI
-----------------------------
-INACTIVE
-Readiness NOT_READY
-Génération manuelle AUTORISÉE
-Cron AUTORISÉ
-GO LIVE toujours BLOCKED
-
-C'est le bon résultat.
+écrit seulement une preuve append-only.
+Il ne génère aucune météo.
+Il ne change engine_control.
+Il n'active pas V24.
+Il ne rollback pas.
 
 VALIDATION PACKAGE
 ------------------
 - TypeScript : PASS
-- JavaScript Admin réellement rendu : PASS
-- aucune activation à l'installation
-- génération normale non bloquée sans fenêtre
-- GO LIVE fail-closed sans fenêtre
-- source go_live_12_13 autorisée pendant fenêtre
-- expiration automatique
-- audit append-only
+- JavaScript Admin rendu : PASS
+- pipeline modifié : NON
+- activation V24 : NON
+- rollback : NON
+- génération météo : NON

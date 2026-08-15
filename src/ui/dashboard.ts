@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.15. Fenêtre de certification : gèle temporairement la génération courante pour sécuriser 12.8 → 12.13 sans interrompre le fallback ni le rollback.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.16. Handover final : certifie que l’architecture, les verrous, le rollback et le process GO LIVE sont complets sans activer V24.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -190,10 +190,11 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button><button class="danger" id="rollbackDrill" style="margin-top:10px">Tester rollback réel 12.10</button><button class="locked" id="finalAudit" style="margin-top:10px">Audit final RC 12.11</button><button class="locked" id="mobileRehearsal" style="margin-top:10px">Répétition générale 12.12</button><button class="danger" id="goLive13" style="margin-top:10px">GO LIVE V24 · 12.13</button><button class="secondary" id="supervisor14" style="margin-top:10px">Supervision production 12.14</button><button class="locked" id="certWindow15" style="margin-top:10px">Fenêtre certification 12.15</button>'+
+    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button><button class="danger" id="rollbackDrill" style="margin-top:10px">Tester rollback réel 12.10</button><button class="locked" id="finalAudit" style="margin-top:10px">Audit final RC 12.11</button><button class="locked" id="mobileRehearsal" style="margin-top:10px">Répétition générale 12.12</button><button class="danger" id="goLive13" style="margin-top:10px">GO LIVE V24 · 12.13</button><button class="secondary" id="supervisor14" style="margin-top:10px">Supervision production 12.14</button><button class="locked" id="certWindow15" style="margin-top:10px">Fenêtre certification 12.15</button><button class="secondary" id="handover16" style="margin-top:10px">Certification finale système 12.16</button>'+
     '<div class="metric-section"><h3>GO LIVE V24 — contrôle final</h3><div id="goLiveView" class="card"><div class="muted">Chargement…</div></div></div>'+
     '<div class="metric-section"><h3>Supervision production — Bloc 12.14</h3><div id="supervisorView" class="card"><div class="muted">Chargement…</div></div></div>'+
     '<div class="metric-section"><h3>Fenêtre de certification — Bloc 12.15</h3><div id="certWindowView" class="card"><div class="muted">Chargement…</div></div></div>'+
+    '<div class="metric-section"><h3>Certification finale système — Bloc 12.16</h3><div id="handoverView" class="card"><div class="muted">Chargement…</div></div></div>'+
     '<div class="metric-section"><h3>Autorisation V24 historique</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
     (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
     '<div id="payloadView" style="margin-top:12px"></div>';
@@ -1403,6 +1404,97 @@ async function loadCertWindow15(){
 }
 
 
+function renderHandover16(data){
+  const target=document.getElementById('handoverView');
+  if(!target)return;
+
+  const r=data.report||{};
+  const checks=Array.isArray(r.checks)?r.checks:[];
+  const recent=Array.isArray(data.recent)?data.recent:[];
+
+  const goodStatuses=[
+    'SYSTEM_READY_WAITING_READINESS',
+    'SYSTEM_READY_FOR_CERTIFICATION',
+    'SYSTEM_READY_FOR_GO_LIVE',
+    'SYSTEM_READY_V24_LIVE'
+  ];
+
+  const cls=goodStatuses.includes(r.status)
+    ?'good'
+    :(r.status==='SYSTEM_LIVE_WATCH'?'caution':'bad');
+
+  let html=
+    '<div class="scene '+cls+'">'+e(r.status||'—')+'</div>'+ 
+    '<div class="bar-row"><span>Release système</span><strong>12.16.0</strong></div>'+ 
+    '<div class="bar-row"><span>Architecture finalisée</span><strong class="'+(r.architectureComplete?'good':'bad')+'">'+(r.architectureComplete?'OUI':'NON')+'</strong></div>'+ 
+    '<div class="bar-row"><span>Chaîne technique complète</span><strong class="'+(r.technicalChainComplete?'good':'bad')+'">'+(r.technicalChainComplete?'PASS':'FAIL')+'</strong></div>'+ 
+    '<div class="bar-row"><span>Schéma D1 complet</span><strong class="'+(r.schemaComplete?'good':'bad')+'">'+(r.schemaComplete?'PASS':'FAIL')+'</strong></div>'+ 
+    '<div class="bar-row"><span>Moteur public</span><strong>'+e(r.publicEngine||'—')+'</strong></div>'+ 
+    '<div class="bar-row"><span>Readiness</span><strong>'+e(r.readinessStatus||'—')+'</strong></div>'+ 
+    '<div class="bar-row"><span>Supervision 12.14</span><strong>'+e(r.supervisorStatus||'—')+'</strong></div>'+ 
+    '<div class="bar-row"><span>Fenêtre 12.15</span><strong>'+e(r.certificationWindowStatus||'—')+'</strong></div>'+ 
+    '<div class="bar-row"><span>GO LIVE 12.13</span><strong>'+e(r.goLiveStatus||'—')+'</strong></div>'+ 
+    '<div class="bar-row"><span>Backup Legacy</span><strong class="'+(r.legacyBackupAvailable?'good':'bad')+'">'+(r.legacyBackupAvailable?'PASS':'FAIL')+'</strong></div>'+ 
+    '<div class="readiness" style="margin-top:14px"><strong>ÉTAT FINAL / RUNBOOK</strong><div class="muted" style="margin-top:7px">'+e(r.recommendation||'—')+'</div></div>'+ 
+    '<div style="margin-top:16px"><div class="metric-title">CONTRÔLES FINAUX</div>'+ 
+    checks.map(c=>'<div class="bar-row"><span>'+e(c.id)+'<div class="muted">'+e(c.detail||'')+'</div></span><strong class="'+(c.status==='PASS'?'good':(c.status==='INFO'?'caution':'bad'))+'">'+e(c.status)+'</strong></div>').join('')+ 
+    '</div>'+ 
+    '<button id="recordHandover16" class="secondary" style="margin-top:14px">Enregistrer certification 12.16</button>'+ 
+    '<div class="muted" style="margin-top:10px">Cette certification est purement observationnelle : elle ne génère pas de météo, n’active pas V24 et ne déclenche aucun rollback.</div>';
+
+  if(recent.length){
+    html+='<div style="margin-top:16px"><div class="metric-title">CERTIFICATIONS RÉCENTES</div>'+ 
+      recent.slice(0,8).map(x=>'<div class="bar-row"><span>#'+e(x.id)+' · '+e(x.evaluatedAt)+'<div class="muted">'+e(x.publicEngine||'—')+' · '+e(x.readinessStatus||'—')+'</div></span><strong class="'+(goodStatuses.includes(x.status)?'good':(x.status==='SYSTEM_LIVE_WATCH'?'caution':'bad'))+'">'+e(x.status)+'</strong></div>').join('')+ 
+      '</div>';
+  }
+
+  target.innerHTML=html;
+
+  const record=document.getElementById('recordHandover16');
+  if(record)record.onclick=async()=>{
+    record.disabled=true;
+    try{
+      const response=await fetch('/api/admin/final-handover/certify?city=tarnos',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token()},
+        cache:'no-store'
+      });
+
+      const text=await response.text();
+      let x=null;
+      try{x=text?JSON.parse(text):null}catch{}
+
+      if(!x?.recorded){
+        throw new Error(x?.error||('HTTP '+response.status));
+      }
+
+      engineStatusEl.innerHTML='<span class="'+(x.report?.technicalChainComplete?'good':'error')+'">Certification 12.16 enregistrée · '+e(x.report?.status||'—')+'</span>';
+      await loadHandover16();
+    }catch(err){
+      engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>';
+    }finally{
+      record.disabled=false;
+    }
+  };
+}
+
+async function loadHandover16(){
+  const target=document.getElementById('handoverView');
+  if(!target)return;
+
+  target.innerHTML='<div class="muted">Certification système 12.16…</div>';
+
+  try{
+    const data=await fetchJson('/api/admin/final-handover?city=tarnos',{
+      headers:{Authorization:'Bearer '+token()}
+    });
+    renderHandover16(data);
+  }catch(err){
+    target.innerHTML='<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>';
+  }
+}
+
+
 async function loadApproval(){
   const target=document.getElementById('approvalView');
   if(!target)return;
@@ -1429,6 +1521,7 @@ async function loadEngine(){
     await loadGoLive13();
     await loadSupervisor14();
     await loadCertWindow15();
+    await loadHandover16();
   }catch(err){
     engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>';
   }
@@ -1441,6 +1534,7 @@ document.getElementById('engineBtn').onclick=loadEngine;
 document.addEventListener('click',event=>{const t=event.target;if(t&&t.id==='goLive13'){loadGoLive13();document.getElementById('goLiveView')?.scrollIntoView({behavior:'smooth',block:'start'});}});
 document.addEventListener('click',event=>{const t=event.target;if(t&&t.id==='supervisor14'){loadSupervisor14(true);document.getElementById('supervisorView')?.scrollIntoView({behavior:'smooth',block:'start'});}});
 document.addEventListener('click',event=>{const t=event.target;if(t&&t.id==='certWindow15'){loadCertWindow15();document.getElementById('certWindowView')?.scrollIntoView({behavior:'smooth',block:'start'});}});
+document.addEventListener('click',event=>{const t=event.target;if(t&&t.id==='handover16'){loadHandover16();document.getElementById('handoverView')?.scrollIntoView({behavior:'smooth',block:'start'});}});
 document.getElementById('run').onclick=async()=>{
   out.textContent='Génération…';
   try{

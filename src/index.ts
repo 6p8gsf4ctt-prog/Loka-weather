@@ -93,6 +93,11 @@ import {
 import {
   closeCertificationWindow
 } from "./storage/certificationWindow";
+import { evaluateOperationalHandover } from "./engine/operationalHandover16";
+import {
+  recentOperationalHandoverAudits,
+  recordOperationalHandoverAudit
+} from "./storage/operationalHandover";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, {
@@ -502,7 +507,7 @@ export default {
       return json({
         error: "use_double_confirmation_flow",
         message:
-          "Bloc 12.15 exige le workflow final /api/admin/go-live. Aucun état moteur n'a été modifié."
+          "Bloc 12.16 exige le workflow final /api/admin/go-live. Aucun état moteur n'a été modifié."
       }, 409);
     }
 
@@ -764,6 +769,87 @@ export default {
       } catch (error) {
         return json({
           error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/final-handover" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const report = await evaluateOperationalHandover(
+          env,
+          slug
+        );
+
+        const recent = await recentOperationalHandoverAudits(
+          env.DB,
+          slug,
+          12
+        );
+
+        return json({
+          ok: true,
+          report,
+          recent,
+          release: {
+            version: "12.16.0",
+            architectureFinalized: report.architectureComplete,
+            activationMechanism: "12.13",
+            productionSupervisor: "12.14",
+            certificationWindow: "12.15",
+            finalHandover: "12.16"
+          }
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error),
+          safety: {
+            productionMutated: false,
+            v24Activated: false,
+            rollbackTriggered: false
+          }
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/final-handover/certify" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const report = await evaluateOperationalHandover(
+          env,
+          slug
+        );
+
+        await recordOperationalHandoverAudit(
+          env.DB,
+          report
+        );
+
+        return json({
+          ok: report.technicalChainComplete,
+          report,
+          recorded: true
+        }, report.technicalChainComplete ? 200 : 422);
+      } catch (error) {
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error),
+          safety: {
+            productionMutated: false,
+            v24Activated: false,
+            rollbackTriggered: false
+          }
         }, 500);
       }
     }
