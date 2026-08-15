@@ -138,7 +138,7 @@ const state=${data};
 const f=state.forecast;
 const cfg={timezone:state.timezone};
 const visual=state.visual;
-const solar=state.solar||{dawn:null,sunrise:null,solarNoon:null,sunset:null,dusk:null};
+const solar=state.solar||{dawn:null,sunrise:null,solarNoon:null,sunset:null,dusk:null,daylightMinutes:null,daylightDeltaMinutes:null};
 const canvas=document.getElementById('post');
 const ctx=canvas.getContext('2d');
 
@@ -284,7 +284,7 @@ function solarTimeline(ink,dark){
   const events=[
     {key:'dawn',label:'AUBE',kind:'dawn'},
     {key:'sunrise',label:'LEVER',kind:'sunrise'},
-    {key:'solarNoon',label:'MIDI SOL.',kind:'noon'},
+    {key:'solarNoon',label:'AU PLUS HAUT',kind:'noon'},
     {key:'sunset',label:'COUCHER',kind:'sunset'},
     {key:'dusk',label:'CRÉPUSCULE',kind:'dusk'}
   ];
@@ -315,7 +315,7 @@ function solarTimeline(ink,dark){
   events.forEach((event,i)=>{
     const value=solar[event.key]||'—';
     text(value,xs[i],timeY,23,650,ink,'center');
-    text(event.label,xs[i],labelY,16,650,ink,'center');
+    text(event.label,xs[i],labelY,event.kind==='noon'?14:16,650,ink,'center');
     solarEventIcon(
       xs[i],
       iconY,
@@ -323,6 +323,24 @@ function solarTimeline(ink,dark){
       ink
     );
   });
+
+  if(Number.isFinite(solar.daylightDeltaMinutes)){
+    const delta=Math.round(solar.daylightDeltaMinutes);
+    const sign=delta>0?'+':delta<0?'−':'±';
+    const value=Math.abs(delta);
+
+    text(
+      'JOUR '+sign+String(value)+' min',
+      540,
+      848,
+      15,
+      620,
+      dark
+        ? 'rgba(255,255,255,.78)'
+        : 'rgba(23,33,43,.62)',
+      'center'
+    );
+  }
 }
 
 function glassPanel(x,y,w,h,r,dark){

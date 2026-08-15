@@ -42,7 +42,7 @@ CYCLE SOLAIRE
 -------------
 Le visuel affiche désormais cinq repères :
 
-AUBE · LEVER · MIDI SOL. · COUCHER · CRÉPUSCULE
+AUBE · LEVER · AU PLUS HAUT · COUCHER · CRÉPUSCULE
 
 AUBE / CRÉPUSCULE = crépuscule civil, Soleil à -6° sous l'horizon.
 LEVER / COUCHER = horizon apparent standard.
@@ -87,3 +87,25 @@ Remplacer les 7 fichiers listés ci-dessus, puis déployer.
 Aucune commande SQL à exécuter.
 Après déploiement, lancer une nouvelle génération météo pour que le forecast
 stocké contienne les 9 nouveaux horaires.
+
+
+AJUSTEMENT FINAL DE LA 12.16.4
+------------------------------
+Le libellé « MIDI SOL. » est remplacé par :
+
+AU PLUS HAUT
+
+afin de rendre immédiatement compréhensible le moment où le Soleil atteint
+son point le plus haut dans le ciel.
+
+Une variation discrète de la durée du jour est également ajoutée sous la
+trajectoire solaire :
+
+JOUR +N min
+ou
+JOUR −N min
+
+Cette valeur compare la durée lever → coucher du jour avec celle de la veille.
+Elle est arrondie à la minute la plus proche.
+
+Cette donnée est purement informative et n'entre dans aucun calcul météo.

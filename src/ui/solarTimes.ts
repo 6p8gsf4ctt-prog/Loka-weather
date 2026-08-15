@@ -4,6 +4,8 @@ export interface SolarTimes {
   solarNoon: string | null;
   sunset: string | null;
   dusk: string | null;
+  daylightMinutes: number | null;
+  daylightDeltaMinutes: number | null;
   method: "NOAA";
   twilight: "CIVIL";
 }
@@ -109,6 +111,51 @@ function midpointUtcHours(
   return normalizeHours(start + (adjustedEnd - start) / 2);
 }
 
+function daylightMinutes(
+  sunriseUtc: number | null,
+  sunsetUtc: number | null
+): number | null {
+  if (sunriseUtc === null || sunsetUtc === null) {
+    return null;
+  }
+
+  let adjustedSunset = sunsetUtc;
+  if (adjustedSunset < sunriseUtc) {
+    adjustedSunset += 24;
+  }
+
+  return Math.round(
+    (adjustedSunset - sunriseUtc) * 60
+  );
+}
+
+function previousDateParts(
+  year: number,
+  month: number,
+  day: number
+): {
+  year: number;
+  month: number;
+  day: number;
+} {
+  const d = new Date(
+    Date.UTC(
+      year,
+      month - 1,
+      day - 1,
+      12,
+      0,
+      0
+    )
+  );
+
+  return {
+    year: d.getUTCFullYear(),
+    month: d.getUTCMonth() + 1,
+    day: d.getUTCDate()
+  };
+}
+
 function formatUtcHours(
   year: number,
   month: number,
@@ -166,6 +213,8 @@ export function calculateSolarTimes(
       solarNoon: null,
       sunset: null,
       dusk: null,
+      daylightMinutes: null,
+      daylightDeltaMinutes: null,
       method: "NOAA",
       twilight: "CIVIL"
     };
@@ -208,12 +257,63 @@ export function calculateSolarTimes(
     sunsetUtc
   );
 
+  const todayDaylightMinutes =
+    daylightMinutes(
+      sunriseUtc,
+      sunsetUtc
+    );
+
+  const previous =
+    previousDateParts(
+      year,
+      month,
+      day
+    );
+
+  const previousSunriseUtc =
+    solarUtcHours(
+      previous.year,
+      previous.month,
+      previous.day,
+      latitude,
+      longitude,
+      true,
+      OFFICIAL_ZENITH
+    );
+
+  const previousSunsetUtc =
+    solarUtcHours(
+      previous.year,
+      previous.month,
+      previous.day,
+      latitude,
+      longitude,
+      false,
+      OFFICIAL_ZENITH
+    );
+
+  const previousDaylightMinutes =
+    daylightMinutes(
+      previousSunriseUtc,
+      previousSunsetUtc
+    );
+
+  const daylightDeltaMinutes =
+    todayDaylightMinutes !== null &&
+    previousDaylightMinutes !== null
+      ? todayDaylightMinutes -
+        previousDaylightMinutes
+      : null;
+
   return {
     dawn: formatUtcHours(year, month, day, dawnUtc, timezone),
     sunrise: formatUtcHours(year, month, day, sunriseUtc, timezone),
     solarNoon: formatUtcHours(year, month, day, solarNoonUtc, timezone),
     sunset: formatUtcHours(year, month, day, sunsetUtc, timezone),
     dusk: formatUtcHours(year, month, day, duskUtc, timezone),
+    daylightMinutes:
+      todayDaylightMinutes,
+    daylightDeltaMinutes,
     method: "NOAA",
     twilight: "CIVIL"
   };
