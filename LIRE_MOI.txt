@@ -1,105 +1,77 @@
-LOKA V24 — VERSION 12.16.1
+LOKA — VERSION 12.16.3
 ==========================
 
 OBJET
 -----
-Finition produit / nettoyage de l'interface quotidienne.
+Version cumulative prête à installer directement après la 12.16.1.
 
-Aucune migration D1.
-Aucun changement du pipeline.
-Aucun changement du scoring météo.
-Aucun changement du readiness.
-Aucun changement du GO LIVE 12.13.
-Aucun changement du rollback.
+Elle reprend :
+- les horaires de lever et coucher du soleil de la 12.16.2 ;
+- le nouveau bloc éditorial translucide validé pour le bas du visuel.
+
+AUCUNE MIGRATION D1.
 
 FICHIERS À AJOUTER
 ------------------
-src/ui/instagramDaily.ts
+src/ui/solarTimes.ts
 
 FICHIERS À REMPLACER
 --------------------
-src/ui/dashboard.ts
+src/ui/instagramDaily.ts
+src/ui/instagramOfficial24.ts
 src/index.ts
 
-NOUVELLE INTERFACE QUOTIDIENNE
-------------------------------
-/admin devient une page simple :
+LEVER / COUCHER DU SOLEIL
+-------------------------
+Conservé intégralement depuis la 12.16.2 :
+- calcul astronomique local ;
+- date du forecast ;
+- latitude / longitude de Tarnos ;
+- fuseau Europe/Paris ;
+- aucun appel API supplémentaire.
 
-LOKA!
-Météo & visuel Instagram
-
-- ADMIN_TOKEN
-- Générer la météo
-- Créer le visuel Instagram
-- Voir la météo publique
-- lien discret « Outils techniques »
-
-Les rapports Shadow, readiness, audits 12.x, GO LIVE, supervision, etc.
-ne sont plus affichés dans l'interface quotidienne.
-
-Ils restent intégralement disponibles ici :
-
-/admin-tech
-
-Le même ADMIN_TOKEN continue d'être utilisé.
-
-NOUVEAU STUDIO INSTAGRAM LEGACY
+NOUVEAU BLOC ÉDITORIAL — 12.16.3
 --------------------------------
-/instagram n'utilise plus l'ancien Studio V0.6.6.1 lorsque le moteur officiel
-est Legacy.
+L'ancien panneau blanc opaque est remplacé par un rendu de type verre
+translucide intégré à l'image :
 
-Il utilise maintenant un Studio beaucoup plus propre :
-- aperçu unique du visuel du jour
-- Partager / enregistrer
-- Retour
-- aucune liste de masters
-- aucun bouton QA
-- aucun détail de migration ou d'audit
+- fond du master visible à travers le bloc ;
+- léger flou du contenu situé derrière le panneau quand le navigateur
+  supporte Canvas filter ;
+- voile blanc translucide ;
+- reflet supérieur très léger ;
+- double liseré lumineux ;
+- ombre douce ;
+- texte sombre renforcé pour conserver une excellente lisibilité.
 
-IMPORTANT :
-la décision météo reste 100 % celle du produit public officiel Legacy.
+Le panneau est également légèrement plus compact et davantage détaché des
+bords afin de mieux correspondre au visuel validé.
 
-Le nouveau Studio n'utilise AUCUNE décision Shadow V24.
+LEGACY + V24
+------------
+Le même traitement est appliqué :
+- au Studio quotidien Legacy utilisable aujourd'hui ;
+- au futur Studio officiel V24 après GO LIVE.
 
-Seule la couche graphique utilise des masters modernes déjà présents dans
-/masters24/ :
+SÉCURITÉ
+--------
+Aucun changement :
+- moteur météo ;
+- scoring ;
+- readiness ;
+- Shadow ;
+- pipeline ;
+- GO LIVE ;
+- rollback ;
+- D1.
 
-SOLEIL     -> 01_GRAND_SOLEIL.png
-NUAGES     -> 09_COUVERT.png
-PLUIE      -> 12_PLUIE_SOUTENUE.png
-ORAGES     -> 22_ORAGEUX.png
-VENT FORT  -> 10_VENT_FORT.png
-INSTABLE   -> 19_INSTABLE.png
+INSTALLATION
+------------
+1. Ajouter src/ui/solarTimes.ts
+2. Remplacer src/ui/instagramDaily.ts
+3. Remplacer src/ui/instagramOfficial24.ts
+4. Remplacer src/index.ts
+5. Déployer
+6. Recharger /instagram
 
-Ce mapping est VISUEL uniquement.
-
-Les textes, températures, horaires et conditions viennent du forecast officiel
-actuellement servi par LOKA.
-
-APRÈS GO LIVE V24
------------------
-Le comportement existant est conservé :
-
-si la surface publique effective est V24,
-/instagram continue d'utiliser renderInstagramOfficial24.
-
-Donc :
-- avant GO LIVE : nouveau Studio propre + météo Legacy officielle
-- après GO LIVE : Studio V24 officiel
-
-ROUTES
-------
-/admin       = interface quotidienne
-/admin-tech  = console technique complète
-/instagram   = Studio officiel du moteur effectif
-/            = météo publique
-
-VALIDATION
-----------
-TypeScript : PASS
-JavaScript interface quotidienne : PASS
-JavaScript Studio Instagram : PASS
-Pipeline modifié : NON
-D1 modifié : NON
-V24 activée : NON
-Readiness contourné : NON
+Aucune commande SQL à exécuter.

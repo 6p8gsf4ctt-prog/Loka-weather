@@ -1,25 +1,24 @@
 {
-  "version": "12.16.1",
+  "version": "12.16.3",
+  "cumulativeFrom": "12.16.2",
   "migrationRequired": false,
-  "filesAdded": [
-    "src/ui/instagramDaily.ts"
-  ],
-  "filesReplaced": [
-    "src/ui/dashboard.ts",
-    "src/index.ts"
-  ],
-  "dailyAdminRoute": "/admin",
-  "technicalAdminRoute": "/admin-tech",
-  "legacyInstagramUsesCleanStudio": true,
-  "legacyDecisionSource": "official_public_forecast_only",
-  "shadowV24DecisionUsedForLegacyInstagram": false,
+  "sunriseSunsetRetained": true,
+  "liquidGlassEditorialPanel": true,
+  "legacyInstagramUpdated": true,
+  "officialV24InstagramUpdated": true,
+  "databaseModified": false,
   "pipelineModified": false,
-  "d1Modified": false,
+  "scoringModified": false,
   "readinessModified": false,
   "goLiveModified": false,
   "rollbackModified": false,
-  "automaticV24Activation": false,
-  "typescriptUiCheck": "PASS",
-  "renderedDailyAdminJavaScript": "PASS",
-  "renderedInstagramJavaScript": "PASS"
+  "typescriptValidation": "PASS",
+  "browserJavaScriptDaily": "PASS",
+  "browserJavaScriptV24": "PASS",
+  "solarSanityTarnos20260815": {
+    "sunrise": "07:10",
+    "sunset": "21:09",
+    "method": "NOAA"
+  },
+  "glassFallbackWithoutCanvasFilter": true
 }

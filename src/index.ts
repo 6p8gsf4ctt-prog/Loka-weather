@@ -1984,7 +1984,12 @@ export default {
 
         if (surface.engine === "V24") {
           return new Response(
-            renderInstagramOfficial24(surface.payload, city.timezone),
+            renderInstagramOfficial24(
+              surface.payload,
+              city.latitude,
+              city.longitude,
+              city.timezone
+            ),
             {
               headers: {
                 "content-type": "text/html; charset=utf-8",
@@ -1997,6 +2002,8 @@ export default {
         return new Response(
           renderInstagramDaily(
             surface.forecast,
+            city.latitude,
+            city.longitude,
             city.timezone
           ),
           {

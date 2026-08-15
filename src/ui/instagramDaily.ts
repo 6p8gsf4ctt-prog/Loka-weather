@@ -1,6 +1,9 @@
 import type {
   LokaForecast
 } from "../types";
+import {
+  calculateSolarTimes
+} from "./solarTimes";
 
 type LegacyScene =
   | "SOLEIL"
@@ -62,13 +65,23 @@ function visualFor(
 
 export function renderInstagramDaily(
   forecast: LokaForecast,
+  latitude: number,
+  longitude: number,
   timezone: string
 ): string {
   const visual = visualFor(forecast);
+  const solar = calculateSolarTimes(
+    forecast.date,
+    latitude,
+    longitude,
+    timezone
+  );
+
   const data = JSON.stringify({
     forecast,
     timezone,
-    visual
+    visual,
+    solar
   }).replace(/</g, "\\u003c");
 
   return `<!doctype html>
@@ -125,6 +138,7 @@ const state=${data};
 const f=state.forecast;
 const cfg={timezone:state.timezone};
 const visual=state.visual;
+const solar=state.solar||{sunrise:null,sunset:null};
 const canvas=document.getElementById('post');
 const ctx=canvas.getContext('2d');
 
@@ -199,6 +213,127 @@ function icon(condition){
   if(c.includes('brouillard')||c.includes('brume'))return '≋';
   return '☁';
 }
+function solarBar(ink,dark){
+  if(!solar.sunrise&&!solar.sunset)return;
+
+  ctx.save();
+  ctx.fillStyle=dark
+    ? 'rgba(17,24,31,.45)'
+    : 'rgba(255,255,255,.62)';
+  rr(245,690,590,116,30);
+  ctx.fill();
+  ctx.restore();
+
+  text('Lever',330,735,22,500,ink,'center');
+  text(solar.sunrise||'—',330,780,34,700,ink,'center');
+
+  ctx.save();
+  ctx.strokeStyle=dark
+    ? 'rgba(255,255,255,.28)'
+    : 'rgba(23,33,43,.18)';
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(540,715);
+  ctx.lineTo(540,785);
+  ctx.stroke();
+  ctx.restore();
+
+  text('Coucher',750,735,22,500,ink,'center');
+  text(solar.sunset||'—',750,780,34,700,ink,'center');
+}
+
+function glassPanel(x,y,w,h,r,dark){
+  const bleed=32;
+  const sx=Math.max(0,x-bleed);
+  const sy=Math.max(0,y-bleed);
+  const sw=Math.min(canvas.width-sx,w+bleed*2);
+  const sh=Math.min(canvas.height-sy,h+bleed*2);
+
+  const sample=document.createElement('canvas');
+  sample.width=sw;
+  sample.height=sh;
+  const sampleCtx=sample.getContext('2d');
+
+  if(sampleCtx){
+    sampleCtx.drawImage(
+      canvas,
+      sx,sy,sw,sh,
+      0,0,sw,sh
+    );
+  }
+
+  // Ombre très douce : le bloc paraît posé dans l'image sans devenir une
+  // carte blanche indépendante.
+  ctx.save();
+  ctx.shadowColor='rgba(18,27,36,.18)';
+  ctx.shadowBlur=28;
+  ctx.shadowOffsetY=10;
+  ctx.fillStyle='rgba(255,255,255,.10)';
+  rr(x,y,w,h,r);
+  ctx.fill();
+  ctx.restore();
+
+  // Le contenu déjà dessiné derrière la carte est réinjecté puis adouci.
+  // Si Canvas filter n'est pas disponible, le reste du verre reste valide.
+  if(sampleCtx){
+    ctx.save();
+    rr(x,y,w,h,r);
+    ctx.clip();
+    ctx.globalAlpha=.72;
+    if('filter' in ctx){
+      ctx.filter='blur(18px) saturate(116%)';
+    }
+    ctx.drawImage(sample,sx,sy);
+    ctx.restore();
+  }
+
+  // Voile translucide : plus clair sur les scènes sombres pour conserver
+  // une excellente lisibilité sans revenir à l'ancien panneau opaque.
+  ctx.save();
+  rr(x,y,w,h,r);
+  ctx.clip();
+
+  const veil=ctx.createLinearGradient(
+    x,y,
+    x,y+h
+  );
+  if(dark){
+    veil.addColorStop(0,'rgba(255,255,255,.58)');
+    veil.addColorStop(.52,'rgba(250,252,255,.46)');
+    veil.addColorStop(1,'rgba(238,244,250,.40)');
+  }else{
+    veil.addColorStop(0,'rgba(255,255,255,.50)');
+    veil.addColorStop(.52,'rgba(250,252,255,.36)');
+    veil.addColorStop(1,'rgba(238,244,250,.30)');
+  }
+  ctx.fillStyle=veil;
+  ctx.fillRect(x,y,w,h);
+
+  // Reflet très léger dans la partie supérieure du verre.
+  const shine=ctx.createLinearGradient(
+    x,y,
+    x,y+h*.42
+  );
+  shine.addColorStop(0,'rgba(255,255,255,.34)');
+  shine.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=shine;
+  ctx.fillRect(x,y,w,h*.46);
+  ctx.restore();
+
+  // Double liseré fin, lumineux mais discret.
+  ctx.save();
+  ctx.strokeStyle='rgba(255,255,255,.82)';
+  ctx.lineWidth=2.2;
+  rr(x+.8,y+.8,w-1.6,h-1.6,r-1);
+  ctx.stroke();
+
+  ctx.strokeStyle='rgba(255,255,255,.34)';
+  ctx.lineWidth=1;
+  rr(x+5,y+5,w-10,h-10,Math.max(1,r-5));
+  ctx.stroke();
+  ctx.restore();
+}
+
 function summaryLines(){
   const src=Array.isArray(f.summaryLines)
     ? f.summaryLines.filter(x=>typeof x==='string'&&x.trim())
@@ -255,11 +390,17 @@ async function draw(){
     text(String(h.temperatureC)+'°',xs[i],610,52,650,ink,'center');
   });
 
-  ctx.save();
-  ctx.fillStyle='rgba(255,255,255,.89)';
-  rr(62,925,956,355,30);
-  ctx.fill();
-  ctx.restore();
+  solarBar(ink,dark);
+
+  // Bloc éditorial 12.16.3 — Liquid Glass intégré au master.
+  glassPanel(
+    92,
+    928,
+    896,
+    316,
+    35,
+    dark
+  );
 
   const lines=summaryLines();
   if(!lines.length){
@@ -269,13 +410,32 @@ async function draw(){
   }
 
   lines.slice(0,3).forEach((line,i)=>{
-    wrap(line,120,1015+i*98,840,36,28,430,'#17212b','left',2);
+    ctx.save();
+    ctx.shadowColor='rgba(255,255,255,.55)';
+    ctx.shadowBlur=2;
+    wrap(
+      line,
+      150,
+      1008+i*88,
+      780,
+      34,
+      27,
+      470,
+      '#17212b',
+      'left',
+      2
+    );
+    ctx.restore();
   });
 
   text('Ici, aujourd’hui.',540,1330,23,380,ink,'center');
 
+  const sunText=
+    solar.sunrise&&solar.sunset
+      ? ' · ☀ '+solar.sunrise+' → '+solar.sunset
+      : '';
   document.getElementById('summary').textContent=
-    String(f.city||'Tarnos')+' · '+visual.title+' · '+String(f.tempMinC)+'° / '+String(f.tempMaxC)+'°';
+    String(f.city||'Tarnos')+' · '+visual.title+' · '+String(f.tempMinC)+'° / '+String(f.tempMaxC)+'°'+sunText;
 }
 
 function pngFile(){
