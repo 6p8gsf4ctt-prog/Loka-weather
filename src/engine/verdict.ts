@@ -151,8 +151,11 @@ export function buildLokaForecast(city: CityConfig, date: string, consensus: Map
   const confidenceRain = Math.round(clamp(100 * Math.max(weightedProbGt1Mm, 1 - weightedProbGt1Mm), 50, 98));
   const confidenceMain = Math.round(clamp(96 - tempSpread * 10 - Math.max(0, 5 - forecasts.length) * 5, 50, 98));
 
+  // Bloc 12.16.4 — presentation only. The classifier above still uses
+  // analysis.daytime (07h–21h); the UI may now display 06h and 22h using
+  // the full consensus day without changing any scene score.
   const hourly: DisplayHour[] = city.displayHours.map((hour) => {
-    const p = nearestHour(daytime, hour);
+    const p = nearestHour(day, hour);
     return {
       hour,
       temperatureC: Math.round(p.temperatureC),

@@ -1,24 +1,48 @@
 {
-  "version": "12.16.3",
-  "cumulativeFrom": "12.16.2",
+  "version": "12.16.4",
+  "cumulativeFrom": "12.16.3",
   "migrationRequired": false,
-  "sunriseSunsetRetained": true,
-  "liquidGlassEditorialPanel": true,
+  "displayHours": [
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22
+  ],
+  "weatherHourCount": 9,
+  "solarMarkers": [
+    "dawn",
+    "sunrise",
+    "solarNoon",
+    "sunset",
+    "dusk"
+  ],
+  "civilTwilight": true,
+  "liquidGlassRetained": true,
   "legacyInstagramUpdated": true,
   "officialV24InstagramUpdated": true,
-  "databaseModified": false,
-  "pipelineModified": false,
+  "publicDashboardUpdatedFor9Hours": true,
+  "classifierDaytimeRangeChanged": false,
   "scoringModified": false,
   "readinessModified": false,
   "goLiveModified": false,
   "rollbackModified": false,
-  "typescriptValidation": "PASS",
+  "databaseModified": false,
+  "typescriptSyntaxValidation": "PASS",
+  "focusedUiTypeValidation": "PASS",
   "browserJavaScriptDaily": "PASS",
   "browserJavaScriptV24": "PASS",
   "solarSanityTarnos20260815": {
+    "dawn": "06:39",
     "sunrise": "07:10",
+    "solarNoon": "14:10",
     "sunset": "21:09",
-    "method": "NOAA"
-  },
-  "glassFallbackWithoutCanvasFilter": true
+    "dusk": "21:40",
+    "method": "NOAA",
+    "twilight": "CIVIL"
+  }
 }

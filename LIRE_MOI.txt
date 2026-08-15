@@ -1,77 +1,89 @@
-LOKA — VERSION 12.16.3
+LOKA — VERSION 12.16.4
 ==========================
 
 OBJET
 -----
-Version cumulative prête à installer directement après la 12.16.1.
+Version cumulative qui reprend intégralement la 12.16.3 et ajoute :
 
-Elle reprend :
-- les horaires de lever et coucher du soleil de la 12.16.2 ;
-- le nouveau bloc éditorial translucide validé pour le bas du visuel.
+1. 9 horaires météo au lieu de 6 ;
+2. AUBE ;
+3. LEVER ;
+4. MIDI SOLAIRE (Soleil au plus haut) ;
+5. COUCHER ;
+6. CRÉPUSCULE ;
+7. une trajectoire solaire graphique dans le visuel Instagram.
 
 AUCUNE MIGRATION D1.
 
-FICHIERS À AJOUTER
-------------------
-src/ui/solarTimes.ts
-
 FICHIERS À REMPLACER
 --------------------
+src/config/cities.ts
+src/engine/verdict.ts
+src/ui/solarTimes.ts
 src/ui/instagramDaily.ts
 src/ui/instagramOfficial24.ts
+src/ui/dashboard.ts
 src/index.ts
 
-LEVER / COUCHER DU SOLEIL
--------------------------
-Conservé intégralement depuis la 12.16.2 :
-- calcul astronomique local ;
-- date du forecast ;
-- latitude / longitude de Tarnos ;
+9 HORAIRES MÉTÉO
+-----------------
+Les repères deviennent :
+
+06h · 08h · 10h · 12h · 14h · 16h · 18h · 20h · 22h
+
+IMPORTANT : cette extension est uniquement une surface d'affichage.
+Le classifieur météo Legacy conserve exactement sa plage d'analyse historique
+07h–21h. Les scènes, scores et seuils ne sont pas modifiés.
+
+Le 06h et le 22h sont lus dans le consensus complet de la journée, et non
+artificiellement recopiés depuis la plage 07h–21h.
+
+CYCLE SOLAIRE
+-------------
+Le visuel affiche désormais cinq repères :
+
+AUBE · LEVER · MIDI SOL. · COUCHER · CRÉPUSCULE
+
+AUBE / CRÉPUSCULE = crépuscule civil, Soleil à -6° sous l'horizon.
+LEVER / COUCHER = horizon apparent standard.
+MIDI SOLAIRE = transit local / point le plus haut de la trajectoire affichée.
+
+Le calcul reste local et astronomique :
+- aucun appel API supplémentaire ;
+- coordonnées de Tarnos ;
+- date de la prévision ;
 - fuseau Europe/Paris ;
-- aucun appel API supplémentaire.
+- heure d'été / hiver gérée par Intl.
 
-NOUVEAU BLOC ÉDITORIAL — 12.16.3
---------------------------------
-L'ancien panneau blanc opaque est remplacé par un rendu de type verre
-translucide intégré à l'image :
+VISUEL
+------
+La zone centrale est recomposée en deux niveaux :
 
-- fond du master visible à travers le bloc ;
-- léger flou du contenu situé derrière le panneau quand le navigateur
-  supporte Canvas filter ;
-- voile blanc translucide ;
-- reflet supérieur très léger ;
-- double liseré lumineux ;
-- ombre douce ;
-- texte sombre renforcé pour conserver une excellente lisibilité.
+- une ligne de 9 horaires météo avec heure / pictogramme / température ;
+- une ligne solaire de 5 repères avec heure / libellé / pictogramme et courbe.
 
-Le panneau est également légèrement plus compact et davantage détaché des
-bords afin de mieux correspondre au visuel validé.
+Le panneau éditorial Liquid Glass de la 12.16.3 est conservé.
 
 LEGACY + V24
 ------------
-Le même traitement est appliqué :
-- au Studio quotidien Legacy utilisable aujourd'hui ;
-- au futur Studio officiel V24 après GO LIVE.
+Le même rendu est appliqué au Studio officiel actuel Legacy et au futur
+Studio officiel V24.
 
 SÉCURITÉ
 --------
 Aucun changement :
-- moteur météo ;
 - scoring ;
+- classifier ;
 - readiness ;
 - Shadow ;
-- pipeline ;
+- activation V24 ;
 - GO LIVE ;
 - rollback ;
 - D1.
 
 INSTALLATION
 ------------
-1. Ajouter src/ui/solarTimes.ts
-2. Remplacer src/ui/instagramDaily.ts
-3. Remplacer src/ui/instagramOfficial24.ts
-4. Remplacer src/index.ts
-5. Déployer
-6. Recharger /instagram
-
+Remplacer les 7 fichiers listés ci-dessus, puis déployer.
 Aucune commande SQL à exécuter.
+Après déploiement, lancer une nouvelle génération météo pour que le forecast
+stocké contienne les 9 nouveaux horaires.

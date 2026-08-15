@@ -7,7 +7,10 @@ export const CITIES: Record<string, CityConfig> = {
     latitude: 43.5417,
     longitude: -1.4628,
     timezone: "Europe/Paris",
-    displayHours: [7, 9, 12, 15, 18, 21],
+
+    // Bloc 12.16.4 — 9 repères horaires destinés aux surfaces d'affichage.
+    // Le moteur de décision conserve sa plage d'analyse historique 07h–21h.
+    displayHours: [6, 8, 10, 12, 14, 16, 18, 20, 22],
 
     wind: {
       // Coastal editorial thresholds: ordinary sea-breeze conditions stay invisible.

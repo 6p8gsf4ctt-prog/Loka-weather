@@ -80,7 +80,7 @@ canvas{display:block;width:100%;height:auto}
 <script>
 const p=${payload};
 const cfg=${cfg};
-const solar=cfg.solar||{sunrise:null,sunset:null};
+const solar=cfg.solar||{dawn:null,sunrise:null,solarNoon:null,sunset:null,dusk:null};
 const canvas=document.getElementById('post');
 const ctx=canvas.getContext('2d');
 
@@ -170,33 +170,116 @@ function icon(condition){
   if(c.includes('brouillard')||c.includes('brume'))return '≋';
   return '☁';
 }
-function solarBar(ink,dark){
-  if(!solar.sunrise&&!solar.sunset)return;
-
+function solarEventIcon(x,y,kind,color){
   ctx.save();
-  ctx.fillStyle=dark
-    ? 'rgba(17,24,31,.45)'
-    : 'rgba(255,255,255,.62)';
-  rr(245,690,590,116,30);
+  ctx.strokeStyle=color;
+  ctx.fillStyle=color;
+  ctx.lineWidth=3;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+
+  const horizonY=y+16;
+  const radius=14;
+  const low=kind==='dawn'||kind==='dusk';
+  const noon=kind==='noon';
+  const sunY=noon?y-10:(low?horizonY+6:horizonY);
+
+  // Horizon for dawn / sunrise / sunset / dusk.
+  if(!noon){
+    ctx.beginPath();
+    ctx.moveTo(x-38,horizonY+15);
+    ctx.lineTo(x+38,horizonY+15);
+    ctx.stroke();
+  }
+
+  ctx.beginPath();
+  ctx.arc(x,sunY,radius,0,Math.PI*2);
   ctx.fill();
+
+  // Rays.
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI/4;
+    const inner=radius+7;
+    const outer=radius+14;
+    ctx.beginPath();
+    ctx.moveTo(
+      x+Math.cos(a)*inner,
+      sunY+Math.sin(a)*inner
+    );
+    ctx.lineTo(
+      x+Math.cos(a)*outer,
+      sunY+Math.sin(a)*outer
+    );
+    ctx.stroke();
+  }
+
+  // Direction arrow, matching the user's reference language.
+  if(kind==='dawn'||kind==='sunrise'){
+    ctx.beginPath();
+    ctx.moveTo(x,sunY-42);
+    ctx.lineTo(x,sunY-64);
+    ctx.moveTo(x,sunY-64);
+    ctx.lineTo(x-7,sunY-56);
+    ctx.moveTo(x,sunY-64);
+    ctx.lineTo(x+7,sunY-56);
+    ctx.stroke();
+  }else if(kind==='sunset'||kind==='dusk'){
+    ctx.beginPath();
+    ctx.moveTo(x,sunY-64);
+    ctx.lineTo(x,sunY-42);
+    ctx.moveTo(x,sunY-42);
+    ctx.lineTo(x-7,sunY-50);
+    ctx.moveTo(x,sunY-42);
+    ctx.lineTo(x+7,sunY-50);
+    ctx.stroke();
+  }
+
   ctx.restore();
+}
 
-  text('Lever',330,735,22,500,ink,'center');
-  text(solar.sunrise||'—',330,780,34,700,ink,'center');
+function solarTimeline(ink,dark){
+  const events=[
+    {key:'dawn',label:'AUBE',kind:'dawn'},
+    {key:'sunrise',label:'LEVER',kind:'sunrise'},
+    {key:'solarNoon',label:'MIDI SOL.',kind:'noon'},
+    {key:'sunset',label:'COUCHER',kind:'sunset'},
+    {key:'dusk',label:'CRÉPUSCULE',kind:'dusk'}
+  ];
 
+  if(!events.some(event=>solar[event.key]))return;
+
+  const xs=[120,320,540,760,960];
+  const timeY=655;
+  const labelY=694;
+  const iconY=758;
+
+  // Discreet trajectory: horizon -> solar apex -> horizon.
   ctx.save();
   ctx.strokeStyle=dark
-    ? 'rgba(255,255,255,.28)'
-    : 'rgba(23,33,43,.18)';
-  ctx.lineWidth=2;
+    ? 'rgba(255,255,255,.78)'
+    : 'rgba(23,33,43,.58)';
+  ctx.lineWidth=3;
   ctx.beginPath();
-  ctx.moveTo(540,715);
-  ctx.lineTo(540,785);
+  ctx.moveTo(xs[1]+28,iconY+12);
+  ctx.bezierCurveTo(
+    430,iconY-88,
+    650,iconY-88,
+    xs[3]-28,iconY+12
+  );
   ctx.stroke();
   ctx.restore();
 
-  text('Coucher',750,735,22,500,ink,'center');
-  text(solar.sunset||'—',750,780,34,700,ink,'center');
+  events.forEach((event,i)=>{
+    const value=solar[event.key]||'—';
+    text(value,xs[i],timeY,23,650,ink,'center');
+    text(event.label,xs[i],labelY,16,650,ink,'center');
+    solarEventIcon(
+      xs[i],
+      iconY,
+      event.kind,
+      ink
+    );
+  });
 }
 
 function glassPanel(x,y,w,h,r,dark){
@@ -326,14 +409,19 @@ async function draw(){
     540,276,850,38,30,470,ink,'center',2
   );
 
-  const xs=[145,310,470,630,790,950];
-  p.hourly.slice(0,6).forEach((h,i)=>{
-    text(String(h.hour).padStart(2,'0')+'h',xs[i],390,28,470,ink,'center');
-    text(icon(h.condition),xs[i],485,65,400,ink,'center');
-    text(String(h.temperatureC)+'°',xs[i],610,52,650,ink,'center');
+  const hourly=p.hourly.slice(0,9);
+  const xs=hourly.map((_,i)=>
+    hourly.length<=1
+      ? 540
+      : 92+i*(896/(hourly.length-1))
+  );
+  hourly.forEach((h,i)=>{
+    text(String(h.hour).padStart(2,'0')+'h',xs[i],355,21,520,ink,'center');
+    text(icon(h.condition),xs[i],430,46,400,ink,'center');
+    text(String(h.temperatureC)+'°',xs[i],525,37,680,ink,'center');
   });
 
-  solarBar(ink,dark);
+  solarTimeline(ink,dark);
 
   // Bloc éditorial 12.16.3 — Liquid Glass intégré au master.
   glassPanel(
@@ -372,7 +460,7 @@ async function draw(){
 
   const sunText=
     solar.sunrise&&solar.sunset
-      ? ' · ☀ '+solar.sunrise+' → '+solar.sunset
+      ? ' · ☀ '+solar.sunrise+' / '+(solar.solarNoon||'—')+' / '+solar.sunset
       : '';
 
   document.getElementById('summary').textContent=
