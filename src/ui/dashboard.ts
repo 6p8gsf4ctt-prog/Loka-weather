@@ -338,7 +338,6 @@ function renderEngine(d){
           prepared=false;
           completed=true;
           out.innerHTML='<div class="card"><div class="scene good">LEGACY RÉTABLI</div><div class="muted">Répétition annulée sans publication V24.</div></div>';
-          await loadEngine();
         }catch(err){
           out.innerHTML='<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>';
         }
@@ -416,7 +415,7 @@ function renderEngine(d){
           '<div class="muted" style="margin-top:12px">La répétition a utilisé V24_PREVIEW réel puis le rollback global officiel. Aucun forecast ni aucune approbation V24 n’ont été créés.</div>'+
           '</div>';
 
-        await loadEngine();
+        // Le rapport contient déjà l'état final vérifié ; on le conserve à l'écran.
       };
 
     }catch(err){
@@ -518,7 +517,7 @@ function renderEngine(d){
         '<div class="muted" style="margin-top:12px">L’audit 12.11 ne change ni forecast, ni engine_control, ni autorisation V24. Une preuve append-only est enregistrée.</div>'+
         '</div>';
 
-      await loadEngine();
+      // Ne pas re-rendre engineView ici : cela effacerait payloadView.
     }catch(err){
       out.innerHTML=
         '<div class="card"><div class="label">BLOC 12.11 · AUDIT FINAL RC</div>'+
