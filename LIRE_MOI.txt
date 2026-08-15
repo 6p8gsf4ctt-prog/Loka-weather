@@ -1,111 +1,46 @@
-LOKA — VERSION 12.16.4
+LOKA — VERSION 12.16.5
 ==========================
 
 OBJET
 -----
-Version cumulative qui reprend intégralement la 12.16.3 et ajoute :
+Reconstruction stricte de la COMPOSITION du visuel Instagram selon le modèle
+graphique validé.
 
-1. 9 horaires météo au lieu de 6 ;
-2. AUBE ;
-3. LEVER ;
-4. MIDI SOLAIRE (Soleil au plus haut) ;
-5. COUCHER ;
-6. CRÉPUSCULE ;
-7. une trajectoire solaire graphique dans le visuel Instagram.
-
-AUCUNE MIGRATION D1.
+Cette version ne change ABSOLUMENT PAS les masters ni les scènes.
 
 FICHIERS À REMPLACER
 --------------------
-src/config/cities.ts
-src/engine/verdict.ts
-src/ui/solarTimes.ts
 src/ui/instagramDaily.ts
 src/ui/instagramOfficial24.ts
-src/ui/dashboard.ts
-src/index.ts
 
-9 HORAIRES MÉTÉO
------------------
-Les repères deviennent :
+AUCUNE MIGRATION D1.
+AUCUN MASTER À REMPLACER.
 
-06h · 08h · 10h · 12h · 14h · 16h · 18h · 20h · 22h
-
-IMPORTANT : cette extension est uniquement une surface d'affichage.
-Le classifieur météo Legacy conserve exactement sa plage d'analyse historique
-07h–21h. Les scènes, scores et seuils ne sont pas modifiés.
-
-Le 06h et le 22h sont lus dans le consensus complet de la journée, et non
-artificiellement recopiés depuis la plage 07h–21h.
-
-CYCLE SOLAIRE
--------------
-Le visuel affiche désormais cinq repères :
-
-AUBE · LEVER · AU PLUS HAUT · COUCHER · CRÉPUSCULE
-
-AUBE / CRÉPUSCULE = crépuscule civil, Soleil à -6° sous l'horizon.
-LEVER / COUCHER = horizon apparent standard.
-MIDI SOLAIRE = transit local / point le plus haut de la trajectoire affichée.
-
-Le calcul reste local et astronomique :
-- aucun appel API supplémentaire ;
-- coordonnées de Tarnos ;
-- date de la prévision ;
-- fuseau Europe/Paris ;
-- heure d'été / hiver gérée par Intl.
-
-VISUEL
-------
-La zone centrale est recomposée en deux niveaux :
-
-- une ligne de 9 horaires météo avec heure / pictogramme / température ;
-- une ligne solaire de 5 repères avec heure / libellé / pictogramme et courbe.
-
-Le panneau éditorial Liquid Glass de la 12.16.3 est conservé.
-
-LEGACY + V24
-------------
-Le même rendu est appliqué au Studio officiel actuel Legacy et au futur
-Studio officiel V24.
-
-SÉCURITÉ
+INCHANGÉ
 --------
-Aucun changement :
-- scoring ;
-- classifier ;
-- readiness ;
-- Shadow ;
-- activation V24 ;
-- GO LIVE ;
-- rollback ;
-- D1.
+- 24 masters officiels
+- registre des scènes
+- scène Legacy officielle
+- scène V24
+- classifier / scoring
+- 9 horaires météo
+- calcul solaire
+- JOUR ±N min
+- D1 / pipeline
+- Shadow / readiness
+- GO LIVE / rollback
 
-INSTALLATION
-------------
-Remplacer les 7 fichiers listés ci-dessus, puis déployer.
-Aucune commande SQL à exécuter.
-Après déploiement, lancer une nouvelle génération météo pour que le forecast
-stocké contienne les 9 nouveaux horaires.
+NOUVELLE COMPOSITION
+--------------------
+- Header LOKA / ville / date
+- grand pictogramme de scène en contour + nom de scène
+- sous-titre centré + petit trait
+- 9 horaires sur deux rangées 5 + 4
+- pictogrammes météo vectoriels homogènes
+- courbes bleues réellement liées aux températures de chaque rangée
+- cycle solaire à 5 repères
+- Liquid Glass compact avec pastille thermomètre et pastille nuage
+- footer « Ici, aujourd’hui. »
 
-
-AJUSTEMENT FINAL DE LA 12.16.4
-------------------------------
-Le libellé « MIDI SOL. » est remplacé par :
-
-AU PLUS HAUT
-
-afin de rendre immédiatement compréhensible le moment où le Soleil atteint
-son point le plus haut dans le ciel.
-
-Une variation discrète de la durée du jour est également ajoutée sous la
-trajectoire solaire :
-
-JOUR +N min
-ou
-JOUR −N min
-
-Cette valeur compare la durée lever → coucher du jour avec celle de la veille.
-Elle est arrondie à la minute la plus proche.
-
-Cette donnée est purement informative et n'entre dans aucun calcul météo.
+Le master reste l'arrière-plan intégral du canvas : aucune image de master n'est
+redessinée ou remplacée.

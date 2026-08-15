@@ -1,55 +1,30 @@
 {
-  "version": "12.16.4",
-  "cumulativeFrom": "12.16.3",
-  "migrationRequired": false,
-  "displayHours": [
-    6,
-    8,
-    10,
-    12,
-    14,
-    16,
-    18,
-    20,
-    22
-  ],
-  "weatherHourCount": 9,
-  "solarMarkers": [
-    "dawn",
-    "sunrise",
-    "solarNoon",
-    "sunset",
-    "dusk"
-  ],
-  "civilTwilight": true,
-  "liquidGlassRetained": true,
-  "legacyInstagramUpdated": true,
-  "officialV24InstagramUpdated": true,
-  "publicDashboardUpdatedFor9Hours": true,
-  "classifierDaytimeRangeChanged": false,
+  "version": "12.16.5",
+  "scope": "layout_only",
+  "mastersModified": false,
+  "scenesModified": false,
+  "classifierModified": false,
   "scoringModified": false,
+  "solarCalculationModified": false,
+  "databaseModified": false,
+  "pipelineModified": false,
   "readinessModified": false,
   "goLiveModified": false,
   "rollbackModified": false,
-  "databaseModified": false,
-  "typescriptSyntaxValidation": "PASS",
-  "focusedUiTypeValidation": "PASS",
-  "browserJavaScriptDaily": "PASS",
-  "browserJavaScriptV24": "PASS",
-  "solarSanityTarnos20260815": {
-    "dawn": "06:39",
-    "sunrise": "07:10",
-    "solarNoon": "14:10",
-    "sunset": "21:09",
-    "dusk": "21:40",
-    "daylightMinutes": 840,
-    "daylightDeltaMinutes": -3,
-    "method": "NOAA",
-    "twilight": "CIVIL"
+  "filesToReplace": [
+    "src/ui/instagramDaily.ts",
+    "src/ui/instagramOfficial24.ts"
+  ],
+  "layout": {
+    "headerStrict": true,
+    "heroSceneIcon": true,
+    "hourlyRows": "5+4",
+    "hourlyVectorIcons": true,
+    "temperatureCurves": true,
+    "solarFiveMarkers": true,
+    "liquidGlassChips": true
   },
-  "solarNoonLabel": "AU PLUS HAUT",
-  "daylightDeltaDisplayed": true,
-  "daylightDeltaReference": "previous_day",
-  "daylightDeltaUnit": "minutes",
-  "typescriptValidation": "PASS"
+  "typescriptValidation": "PASS",
+  "browserJavaScriptDaily": "PASS",
+  "browserJavaScriptV24": "PASS"
 }
