@@ -580,14 +580,13 @@ function renderEngine(d){
         '<div class="muted" style="margin-top:12px">Ce test a réellement écrit engine_control, puis utilisé le rollback global officiel. Aucun forecast et aucune approbation V24 n’ont été créés.</div>'+
         '</div>';
 
-      await loadEngine();
+      // Le rapport contient déjà l'état final LEGACY vérifié.
     }catch(err){
       out.innerHTML=
         '<div class="card"><div class="label">BLOC 12.10 · ROLLBACK RÉEL</div>'+
         '<div class="scene bad">TEST NON VALIDÉ</div>'+
         '<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>'+
-        '<div class="muted">Vérifie immédiatement en haut de l’Admin : Production LEGACY, requested LEGACY, V24 approuvé NON.</div></div>';
-      await loadEngine().catch(()=>{});
+        '<div class="muted">Vérifie immédiatement l’état moteur avec le bouton « Contrôler le moteur » : Production LEGACY, requested LEGACY, V24 approuvé NON.</div></div>';
     }finally{
       btn.disabled=false;
     }
@@ -636,7 +635,7 @@ function renderEngine(d){
         '<div class="muted" style="margin-top:12px">Aucune scène de production n’a été forcée. Le test construit les 24 payloads sur des clones et vérifie les vrais fichiers via ASSETS.</div>'+
         '</div>';
 
-      await loadEngine();
+      // Conserver le rapport 12.9 visible.
     }catch(err){
       out.innerHTML=
         '<div class="card"><div class="label">BLOC 12.9 · AUDIT 24 SCÈNES</div>'+
@@ -681,7 +680,7 @@ function renderEngine(d){
         '<div class="muted" style="margin-top:12px">Seule une ligne append-only de fault_injection_audit a été écrite. La météo officielle n’a pas été modifiée.</div>'+
         '</div>';
 
-      await loadEngine();
+      // Conserver le rapport 12.8 visible.
     }catch(err){
       out.innerHTML=
         '<div class="card"><div class="label">BLOC 12.8 · TESTS DE PANNE</div>'+
@@ -785,7 +784,7 @@ function renderEngine(d){
         '<div class="muted" style="margin-top:10px">La validation 12.7 n’a modifié ni moteur, ni forecast, ni autorisation. Seul l’audit Release Candidate a été ajouté.</div>'+
         '</div>';
 
-      await loadEngine();
+      // Conserver le rapport 12.7 visible : payloadView est dans engineView.
     }catch(err){
       out.innerHTML=
         '<div class="card"><div class="label">BLOC 12.7 · RELEASE CANDIDATE</div>'+
