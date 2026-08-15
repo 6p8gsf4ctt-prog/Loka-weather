@@ -64,6 +64,17 @@ import {
   latestFinalReleaseAudit,
   recordFinalReleaseAudit
 } from "./storage/finalReleaseAudit";
+import {
+  cleanupMobileRehearsal,
+  completeMobileRehearsal,
+  mobileRehearsalPhrase,
+  prepareMobileRehearsal,
+  type MobileRehearsalObservation
+} from "./engine/mobileRehearsal";
+import {
+  latestMobileRehearsalAudit,
+  recordMobileRehearsalAudit
+} from "./storage/mobileRehearsalAudit";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, {
@@ -473,7 +484,7 @@ export default {
       return json({
         error: "use_double_confirmation_flow",
         message:
-          "Bloc 12.11 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
+          "Bloc 12.12 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
       }, 409);
     }
 
@@ -735,6 +746,236 @@ export default {
       } catch (error) {
         return json({
           error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/mobile-rehearsal" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const latest = await latestMobileRehearsalAudit(
+          env.DB,
+          slug
+        );
+
+        return json({
+          ok: true,
+          confirmationPhrase:
+            mobileRehearsalPhrase(slug),
+          latest,
+          safety: {
+            requiresFinalRcPass: true,
+            startsOnlyFromLegacy: true,
+            temporarilyEnablesPreview: true,
+            writesForecast: false,
+            grantsV24Approval: false,
+            finalRollbackRequired: true,
+            goLiveInstagram: false
+          }
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/mobile-rehearsal/prepare" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      let body: {
+        confirmationPhrase?: unknown;
+      } = {};
+
+      try {
+        body = await request.json() as typeof body;
+      } catch {
+        return json({ error: "invalid_json" }, 400);
+      }
+
+      if (
+        typeof body.confirmationPhrase !== "string"
+      ) {
+        return json({
+          error: "confirmation_phrase_required"
+        }, 400);
+      }
+
+      try {
+        const prepared =
+          await prepareMobileRehearsal(
+            env,
+            slug,
+            body.confirmationPhrase
+          );
+
+        return json({
+          ok: true,
+          prepared
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error),
+          safety: {
+            productionForecastMutated: false,
+            v24ApprovalGranted: false
+          }
+        }, 409);
+      }
+    }
+
+    if (url.pathname === "/api/admin/mobile-rehearsal/complete" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      let body: {
+        observations?: unknown;
+      } = {};
+
+      try {
+        body = await request.json() as typeof body;
+      } catch {
+        return json({ error: "invalid_json" }, 400);
+      }
+
+      if (!Array.isArray(body.observations)) {
+        return json({
+          error: "observations_required"
+        }, 400);
+      }
+
+      const observations =
+        body.observations
+          .filter(
+            (item): item is Record<string, unknown> =>
+              !!item &&
+              typeof item === "object" &&
+              !Array.isArray(item)
+          )
+          .map((item) => ({
+            surface:
+              String(item.surface) as MobileRehearsalObservation["surface"],
+            status:
+              typeof item.status === "number"
+                ? item.status
+                : 0,
+            publicationVersion:
+              typeof item.publicationVersion === "string"
+                ? item.publicationVersion
+                : null,
+            generatedAt:
+              typeof item.generatedAt === "string"
+                ? item.generatedAt
+                : null,
+            engine:
+              typeof item.engine === "string"
+                ? item.engine
+                : null,
+            scene:
+              typeof item.scene === "string"
+                ? item.scene
+                : null,
+            fingerprint:
+              typeof item.fingerprint === "string"
+                ? item.fingerprint
+                : null,
+            previewVersion:
+              typeof item.previewVersion === "string"
+                ? item.previewVersion
+                : null,
+            previewGeneratedAt:
+              typeof item.previewGeneratedAt === "string"
+                ? item.previewGeneratedAt
+                : null,
+            previewScene:
+              typeof item.previewScene === "string"
+                ? item.previewScene
+                : null,
+            previewMode:
+              typeof item.previewMode === "string"
+                ? item.previewMode
+                : null
+          })) as MobileRehearsalObservation[];
+
+      try {
+        const report =
+          await completeMobileRehearsal(
+            env,
+            slug,
+            observations
+          );
+
+        await recordMobileRehearsalAudit(
+          env.DB,
+          report
+        );
+
+        return json({
+          ok:
+            report.status === "REHEARSAL_PASS",
+          report
+        }, report.status === "REHEARSAL_PASS"
+          ? 200
+          : 422
+        );
+      } catch (error) {
+        // Best-effort rollback even if report construction itself failed.
+        try {
+          await cleanupMobileRehearsal(
+            env,
+            slug
+          );
+        } catch {
+          // Manual Admin rollback remains available.
+        }
+
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error),
+          safety: {
+            cleanupAttempted: true,
+            goLiveInstagram: false
+          }
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/mobile-rehearsal/cleanup" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const cleanup =
+          await cleanupMobileRehearsal(
+            env,
+            slug
+          );
+
+        return json({
+          ok: cleanup.authoritativeRollbackVerified,
+          cleanup
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error)
         }, 500);
       }
     }
@@ -1423,7 +1664,7 @@ export default {
       try{
         const x=await v24Prepublication(env,"tarnos");
         const city=getCity("tarnos")!;
-        return new Response(renderV24PrepublicationDashboard(x.payload,city.timezone),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow, noarchive"}});
+        return new Response(renderV24PrepublicationDashboard(x.payload,city.timezone),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow, noarchive","x-loka-preview-version":"12.12.0","x-loka-preview-generated-at":x.payload.generatedAt,"x-loka-preview-scene":x.payload.scene.key,"x-loka-preview-mode":"V24_PREVIEW","access-control-expose-headers":"x-loka-preview-version, x-loka-preview-generated-at, x-loka-preview-scene, x-loka-preview-mode"}});
       }catch{
         return new Response("V24 preview unavailable",{status:404,headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow, noarchive"}});
       }
@@ -1433,7 +1674,7 @@ export default {
       try{
         const x=await v24Prepublication(env,"tarnos");
         const city=getCity("tarnos")!;
-        return new Response(renderInstagramPrepublication24(x.payload,city.timezone),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow, noarchive"}});
+        return new Response(renderInstagramPrepublication24(x.payload,city.timezone),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow, noarchive","x-loka-preview-version":"12.12.0","x-loka-preview-generated-at":x.payload.generatedAt,"x-loka-preview-scene":x.payload.scene.key,"x-loka-preview-mode":"V24_PREVIEW","access-control-expose-headers":"x-loka-preview-version, x-loka-preview-generated-at, x-loka-preview-scene, x-loka-preview-mode"}});
       }catch{
         return new Response("V24 preview unavailable",{status:404,headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow, noarchive"}});
       }

@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.11. Audit final de Release Candidate : les preuves 12.5 à 12.10 sont recroisées sur la génération courante avant la répétition générale.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.12. Répétition générale mobile : Preview V24 réel, contrôle visuel Dashboard/Instagram, vérification des surfaces officielles puis rollback global.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -190,7 +190,7 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button><button class="danger" id="rollbackDrill" style="margin-top:10px">Tester rollback réel 12.10</button><button class="locked" id="finalAudit" style="margin-top:10px">Audit final RC 12.11</button>'+
+    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button><button class="danger" id="rollbackDrill" style="margin-top:10px">Tester rollback réel 12.10</button><button class="locked" id="finalAudit" style="margin-top:10px">Audit final RC 12.11</button><button class="locked" id="mobileRehearsal" style="margin-top:10px">Répétition générale 12.12</button>'+
     '<div class="metric-section"><h3>Autorisation V24 — double confirmation</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
     (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
     '<div id="payloadView" style="margin-top:12px"></div>';
@@ -224,6 +224,224 @@ function renderEngine(d){
       fingerprint:response.headers.get('x-loka-publication-fingerprint')
     };
   }
+
+  function rehearsalObservation(surface,response){
+    return {
+      surface,
+      status:response.status,
+      publicationVersion:response.headers.get('x-loka-publication-version'),
+      generatedAt:response.headers.get('x-loka-generated-at'),
+      engine:response.headers.get('x-loka-engine'),
+      scene:response.headers.get('x-loka-scene'),
+      fingerprint:response.headers.get('x-loka-publication-fingerprint'),
+      previewVersion:response.headers.get('x-loka-preview-version'),
+      previewGeneratedAt:response.headers.get('x-loka-preview-generated-at'),
+      previewScene:response.headers.get('x-loka-preview-scene'),
+      previewMode:response.headers.get('x-loka-preview-mode')
+    };
+  }
+
+  async function fetchRehearsalObservation(surface,url){
+    try{
+      const response=await fetch(url,{
+        method:'GET',
+        cache:'no-store',
+        headers:{'Cache-Control':'no-cache'}
+      });
+      return rehearsalObservation(surface,response);
+    }catch(error){
+      return {
+        surface,
+        status:0,
+        publicationVersion:null,
+        generatedAt:null,
+        engine:null,
+        scene:null,
+        fingerprint:null,
+        previewVersion:null,
+        previewGeneratedAt:null,
+        previewScene:null,
+        previewMode:null
+      };
+    }
+  }
+
+  document.getElementById('mobileRehearsal').onclick=async()=>{
+    const btn=document.getElementById('mobileRehearsal');
+    const out=document.getElementById('payloadView');
+    btn.disabled=true;
+
+    let prepared=false;
+    let completed=false;
+
+    try{
+      const info=await fetchJson('/api/admin/mobile-rehearsal?city=tarnos',{
+        headers:{Authorization:'Bearer '+token()}
+      });
+
+      const phrase=String(info.confirmationPhrase||'');
+      const entered=window.prompt(
+        'Répétition générale 12.12. Preview V24 sera activé temporairement, sans approbation et sans publication officielle. Tape exactement : '+phrase
+      );
+
+      if(entered===null){
+        out.innerHTML='<div class="muted">Répétition annulée. Aucune modification.</div>';
+        return;
+      }
+
+      const prepResponse=await fetch('/api/admin/mobile-rehearsal/prepare?city=tarnos',{
+        method:'POST',
+        headers:{
+          Authorization:'Bearer '+token(),
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({confirmationPhrase:entered}),
+        cache:'no-store'
+      });
+
+      const prepText=await prepResponse.text();
+      let prep=null;
+      try{
+        prep=prepText?JSON.parse(prepText):null;
+      }catch{
+        throw new Error('Réponse préparation invalide : '+prepText.slice(0,220));
+      }
+
+      if(!prepResponse.ok||!prep?.prepared){
+        throw new Error(prep?.error||('HTTP '+prepResponse.status));
+      }
+
+      prepared=true;
+
+      const p=prep.prepared;
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.12 · RÉPÉTITION GÉNÉRALE</div>'+
+        '<div class="scene caution">PREVIEW V24 ACTIF · NON PUBLIÉ</div>'+
+        '<div class="bar-row"><span>Production officielle</span><strong class="good">LEGACY</strong></div>'+
+        '<div class="bar-row"><span>V24 approuvé</span><strong class="good">NON</strong></div>'+
+        '<div class="bar-row"><span>Scène V24 répétition</span><strong>'+e(p.preview?.sceneKey||'—')+'</strong></div>'+
+        '<div class="muted" style="margin:12px 0">Ouvre les deux surfaces ci-dessous et vérifie-les visuellement sur ton téléphone. Reviens ensuite sur cet onglet pour terminer.</div>'+
+        '<a class="secondary" style="display:block;text-align:center;text-decoration:none;padding:18px;border-radius:20px;margin-top:10px" href="/preview24?_rehearsal='+Date.now()+'" target="_blank" rel="noopener">Ouvrir Dashboard V24</a>'+
+        '<a class="secondary" style="display:block;text-align:center;text-decoration:none;padding:18px;border-radius:20px;margin-top:10px" href="/instagram24-preview?_rehearsal='+Date.now()+'" target="_blank" rel="noopener">Ouvrir Studio Instagram V24</a>'+
+        '<button class="locked" id="finishRehearsal" style="margin-top:14px">J’ai vérifié · Terminer et rollback</button>'+
+        '<button class="secondary" id="cancelRehearsal" style="margin-top:10px">Annuler · Revenir Legacy</button>'+
+        '<div class="muted" style="margin-top:10px">Ne ferme pas cet onglet avant le rollback. Si cela arrive, le Preview reste non publié et le bouton Admin « Revenir à Legacy » reste disponible.</div>'+
+        '</div>';
+
+      document.getElementById('cancelRehearsal').onclick=async()=>{
+        try{
+          await fetch('/api/admin/mobile-rehearsal/cleanup?city=tarnos',{
+            method:'POST',
+            headers:{Authorization:'Bearer '+token()},
+            cache:'no-store'
+          });
+          prepared=false;
+          completed=true;
+          out.innerHTML='<div class="card"><div class="scene good">LEGACY RÉTABLI</div><div class="muted">Répétition annulée sans publication V24.</div></div>';
+          await loadEngine();
+        }catch(err){
+          out.innerHTML='<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>';
+        }
+      };
+
+      document.getElementById('finishRehearsal').onclick=async()=>{
+        const finish=document.getElementById('finishRehearsal');
+        finish.disabled=true;
+
+        out.innerHTML=
+          '<div class="card"><div class="label">BLOC 12.12 · CONTRÔLE AUTOMATIQUE</div>'+
+          '<div class="muted">Lecture des 4 surfaces officielles + 2 surfaces Preview, puis rollback global…</div></div>';
+
+        const stamp=Date.now();
+        const reqs=[
+          ['api_latest','/api/latest?city=tarnos&_r='+stamp],
+          ['api_decision','/api/decision?city=tarnos&_r='+stamp],
+          ['dashboard','/?_r='+stamp],
+          ['instagram','/instagram?_r='+stamp],
+          ['preview_dashboard','/preview24?_r='+stamp],
+          ['preview_instagram','/instagram24-preview?_r='+stamp]
+        ];
+
+        const observations=[];
+        for(const [surface,url] of reqs){
+          observations.push(
+            await fetchRehearsalObservation(surface,url)
+          );
+        }
+
+        const response=await fetch('/api/admin/mobile-rehearsal/complete?city=tarnos',{
+          method:'POST',
+          headers:{
+            Authorization:'Bearer '+token(),
+            'Content-Type':'application/json'
+          },
+          body:JSON.stringify({observations}),
+          cache:'no-store'
+        });
+
+        const text=await response.text();
+        let x=null;
+        try{
+          x=text?JSON.parse(text):null;
+        }catch{
+          throw new Error('Réponse répétition invalide ('+response.status+') : '+text.slice(0,220));
+        }
+
+        if(!x?.report){
+          throw new Error(x?.error||('HTTP '+response.status));
+        }
+
+        prepared=false;
+        completed=true;
+
+        const r=x.report||{};
+        const checks=Array.isArray(r.checks)?r.checks:[];
+        const cls=r.status==='REHEARSAL_PASS'?'good':'bad';
+
+        out.innerHTML=
+          '<div class="card"><div class="label">BLOC 12.12 · RÉPÉTITION GÉNÉRALE</div>'+
+          '<div class="scene '+cls+'">'+e(r.status||'—')+'</div>'+
+          '<div class="bar-row"><span>Production finale</span><strong class="'+(r.after?.publicEngine==='LEGACY'?'good':'bad')+'">'+e(r.after?.publicEngine||'—')+'</strong></div>'+
+          '<div class="bar-row"><span>requested final</span><strong class="'+(r.after?.requestedMode==='LEGACY'?'good':'bad')+'">'+e(r.after?.requestedMode||'—')+'</strong></div>'+
+          '<div class="bar-row"><span>V24 approuvé final</span><strong class="'+(!r.after?.v24Approved?'good':'bad')+'">'+(r.after?.v24Approved?'OUI':'NON')+'</strong></div>'+
+          '<div class="bar-row"><span>Dashboard Preview</span><strong class="'+(r.summary?.previewDashboardVerified?'good':'bad')+'">'+(r.summary?.previewDashboardVerified?'PASS':'FAIL')+'</strong></div>'+
+          '<div class="bar-row"><span>Studio Instagram Preview</span><strong class="'+(r.summary?.previewInstagramVerified?'good':'bad')+'">'+(r.summary?.previewInstagramVerified?'PASS':'FAIL')+'</strong></div>'+
+          '<div class="bar-row"><span>4 surfaces officielles</span><strong class="'+(r.summary?.publicSurfacesVerified?'good':'bad')+'">'+(r.summary?.publicSurfacesVerified?'PASS':'FAIL')+'</strong></div>'+
+          '<div class="bar-row"><span>Identité publique</span><strong class="'+(r.summary?.publicIdentityUnchanged?'good':'bad')+'">'+(r.summary?.publicIdentityUnchanged?'INCHANGÉE':'MODIFIÉE')+'</strong></div>'+
+          '<div class="bar-row"><span>Rollback global</span><strong class="'+(r.summary?.rollbackVerified?'good':'bad')+'">'+(r.summary?.rollbackVerified?'PASS':'FAIL')+'</strong></div>'+
+          '<div class="bar-row"><span>GO LIVE Instagram</span><strong class="caution">NON · BLOC 12.13</strong></div>'+
+          checks.map(c=>
+            '<div class="bar-row"><span>'+e(c.id)+'<div class="muted">'+e(c.detail||'')+'</div></span><strong class="'+(c.status==='PASS'?'good':(c.status==='INFO'?'caution':'bad'))+'">'+e(c.status)+'</strong></div>'
+          ).join('')+
+          '<div class="muted" style="margin-top:12px">La répétition a utilisé V24_PREVIEW réel puis le rollback global officiel. Aucun forecast ni aucune approbation V24 n’ont été créés.</div>'+
+          '</div>';
+
+        await loadEngine();
+      };
+
+    }catch(err){
+      out.innerHTML=
+        '<div class="card"><div class="label">BLOC 12.12 · RÉPÉTITION GÉNÉRALE</div>'+
+        '<div class="scene bad">RÉPÉTITION NON VALIDÉE</div>'+
+        '<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>'+
+        '<div class="muted">Un rollback de sécurité va être tenté si Preview avait été activé.</div></div>';
+    }finally{
+      if(prepared&&!completed){
+        try{
+          await fetch('/api/admin/mobile-rehearsal/cleanup?city=tarnos',{
+            method:'POST',
+            headers:{Authorization:'Bearer '+token()},
+            cache:'no-store'
+          });
+          prepared=false;
+          await loadEngine().catch(()=>{});
+        }catch{
+          // Manual rollback remains available in Admin.
+        }
+      }
+      btn.disabled=false;
+    }
+  };
 
   document.getElementById('finalAudit').onclick=async()=>{
     const btn=document.getElementById('finalAudit');
