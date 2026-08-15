@@ -1,150 +1,105 @@
-LOKA V24 — BLOC 12.16
-=======================
+LOKA V24 — VERSION 12.16.1
+==========================
 
 OBJET
 -----
-Certification finale du système / handover opérationnel.
+Finition produit / nettoyage de l'interface quotidienne.
 
-12.16 est volontairement le DERNIER bloc d'architecture de la série 12.x.
-Il ne rajoute aucun mécanisme d'activation et ne modifie pas le pipeline météo.
-
-RÔLES DÉFINITIFS
-----------------
-12.13 = GO LIVE V24 final
-12.14 = supervision production / stabilisation
-12.15 = fenêtre de certification / gel de génération
-12.16 = certification technique finale + runbook d'exploitation
-
-MIGRATION D1
-------------
-Appliquer :
-migrations/0016_final_operational_handover.sql
-
-Elle crée :
-operational_handover_audit
-
-La table est append-only et interdit explicitement :
-production_mutated = 1
-v24_activated = 1
-rollback_triggered = 1
+Aucune migration D1.
+Aucun changement du pipeline.
+Aucun changement du scoring météo.
+Aucun changement du readiness.
+Aucun changement du GO LIVE 12.13.
+Aucun changement du rollback.
 
 FICHIERS À AJOUTER
 ------------------
-- migrations/0016_final_operational_handover.sql
-- src/engine/operationalHandover16.ts
-- src/storage/operationalHandover.ts
+src/ui/instagramDaily.ts
 
 FICHIERS À REMPLACER
 --------------------
-- src/index.ts
-- src/ui/dashboard.ts
+src/ui/dashboard.ts
+src/index.ts
 
-IMPORTANT
----------
-Le pipeline n'est PAS modifié dans le Bloc 12.16.
-Le mécanisme GO LIVE n'est PAS modifié.
-Le rollback n'est PAS modifié.
-La fenêtre 12.15 n'est PAS modifiée.
+NOUVELLE INTERFACE QUOTIDIENNE
+------------------------------
+/admin devient une page simple :
 
-Le 12.16 certifie seulement que tout est présent et cohérent.
+LOKA!
+Météo & visuel Instagram
 
-CONTRÔLES FINAUX
-----------------
-Le 12.16 vérifie notamment :
-- 22 tables D1 critiques présentes
-- identité publique disponible
-- backup Legacy persistant
-- engine_control cohérent avec le moteur public
-- superviseur 12.14 disponible
-- fenêtre 12.15 disponible
-- workflow GO LIVE 12.13 disponible
-- chaîne technique globale complète
+- ADMIN_TOKEN
+- Générer la météo
+- Créer le visuel Instagram
+- Voir la météo publique
+- lien discret « Outils techniques »
 
-STATUT ATTENDU AUJOURD'HUI
---------------------------
-Avec :
-production = LEGACY
-readiness = NOT_READY
-12.14 = WAITING_READINESS
-12.15 = INACTIVE
-12.13 = BLOCKED
+Les rapports Shadow, readiness, audits 12.x, GO LIVE, supervision, etc.
+ne sont plus affichés dans l'interface quotidienne.
 
-le statut FINAL attendu est :
+Ils restent intégralement disponibles ici :
 
-SYSTEM_READY_WAITING_READINESS
+/admin-tech
 
-et :
+Le même ADMIN_TOKEN continue d'être utilisé.
 
-Architecture finalisée       OUI
-Chaîne technique complète    PASS
-Schéma D1 complet             PASS
-Backup Legacy                 PASS
+NOUVEAU STUDIO INSTAGRAM LEGACY
+--------------------------------
+/instagram n'utilise plus l'ancien Studio V0.6.6.1 lorsque le moteur officiel
+est Legacy.
 
-Ce statut signifie exactement :
+Il utilise maintenant un Studio beaucoup plus propre :
+- aperçu unique du visuel du jour
+- Partager / enregistrer
+- Retour
+- aucune liste de masters
+- aucun bouton QA
+- aucun détail de migration ou d'audit
 
-VERSION TECHNIQUE TERMINÉE.
+IMPORTANT :
+la décision météo reste 100 % celle du produit public officiel Legacy.
 
-Il ne signifie PAS que la météo V24 peut être activée aujourd'hui.
-Il signifie qu'aucun nouveau bloc d'architecture n'est requis pour attendre
-READY_CANDIDATE puis effectuer le process déjà construit.
+Le nouveau Studio n'utilise AUCUNE décision Shadow V24.
 
-QUAND READY_CANDIDATE ARRIVE
-----------------------------
-Le 12.16 évoluera automatiquement vers :
+Seule la couche graphique utilise des masters modernes déjà présents dans
+/masters24/ :
 
-SYSTEM_READY_FOR_CERTIFICATION
+SOLEIL     -> 01_GRAND_SOLEIL.png
+NUAGES     -> 09_COUVERT.png
+PLUIE      -> 12_PLUIE_SOUTENUE.png
+ORAGES     -> 22_ORAGEUX.png
+VENT FORT  -> 10_VENT_FORT.png
+INSTABLE   -> 19_INSTABLE.png
 
-Process :
-1. ouvrir fenêtre 12.15
-2. 12.8
-3. 12.9
-4. 12.10
-5. 12.11
-6. 12.12
-7. 12.13
+Ce mapping est VISUEL uniquement.
 
-Lorsque toutes les preuves sont alignées :
+Les textes, températures, horaires et conditions viennent du forecast officiel
+actuellement servi par LOKA.
 
-SYSTEM_READY_FOR_GO_LIVE
+APRÈS GO LIVE V24
+-----------------
+Le comportement existant est conservé :
 
-APRÈS GO LIVE
--------------
-Si V24 est officielle et saine :
+si la surface publique effective est V24,
+/instagram continue d'utiliser renderInstagramOfficial24.
 
-SYSTEM_READY_V24_LIVE
+Donc :
+- avant GO LIVE : nouveau Studio propre + météo Legacy officielle
+- après GO LIVE : Studio V24 officiel
 
-Le Studio Instagram officiel devient alors la surface à utiliser pour la
-publication manuelle.
+ROUTES
+------
+/admin       = interface quotidienne
+/admin-tech  = console technique complète
+/instagram   = Studio officiel du moteur effectif
+/            = météo publique
 
-Si la supervision 12.14 est en WATCH :
-
-SYSTEM_LIVE_WATCH
-
-Si une incohérence technique apparaît :
-
-SYSTEM_BLOCKED
-
-ACTIONS ADMIN
--------------
-Nouveau bouton :
-Certification finale système 12.16
-
-Le panneau affiche l'état courant.
-
-Le bouton :
-Enregistrer certification 12.16
-
-écrit seulement une preuve append-only.
-Il ne génère aucune météo.
-Il ne change engine_control.
-Il n'active pas V24.
-Il ne rollback pas.
-
-VALIDATION PACKAGE
-------------------
-- TypeScript : PASS
-- JavaScript Admin rendu : PASS
-- pipeline modifié : NON
-- activation V24 : NON
-- rollback : NON
-- génération météo : NON
+VALIDATION
+----------
+TypeScript : PASS
+JavaScript interface quotidienne : PASS
+JavaScript Studio Instagram : PASS
+Pipeline modifié : NON
+D1 modifié : NON
+V24 activée : NON
+Readiness contourné : NON

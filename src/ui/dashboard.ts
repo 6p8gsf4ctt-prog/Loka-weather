@@ -5,7 +5,7 @@ function formatForecastDate(date:string):string{try{return new Intl.DateTimeForm
 function formatGeneratedAt(value:string):string{try{return new Intl.DateTimeFormat("fr-FR",{timeZone:"Europe/Paris",hour:"2-digit",minute:"2-digit"}).format(new Date(value));}catch{return""}}
 export function renderDashboard(forecast:LokaForecast|null):string{const content=forecast?`<main class="shell"><header class="topbar"><div class="brand">LOKA!</div><div class="update">mis à jour à ${esc(formatGeneratedAt(forecast.generatedAt))}</div></header><section class="intro"><div class="city">${esc(forecast.city.toUpperCase())}</div><div class="date">${esc(formatForecastDate(forecast.date))}</div></section><section class="hero"><div class="temperature">${forecast.tempMaxC}<sup>°</sup></div><div class="minimum">minimum ${forecast.tempMinC}°</div><h1>${esc(forecast.mainVerdict)}</h1></section><section class="hours">${forecast.hourly.map(h=>`<div class="hour"><span class="hour-time">${h.hour}h</span><span class="icon">${weatherGlyph(h.condition)}</span><strong>${h.temperatureC}°</strong></div>`).join("")}</section><section class="decision"><div class="decision-label">Aujourd’hui</div><div class="decision-text">${esc(forecast.rainVerdict)}</div></section><a class="ig-link" href="/instagram">Créer le visuel Instagram</a>${forecast.notableEvent?`<section class="notable"><span class="notable-dot"></span><span>${esc(forecast.notableEvent)}</span></section>`:""}<footer>Ici, aujourd’hui.</footer></main>`:`<main class="shell empty"><div class="brand">LOKA!</div><h1>Aucune prévision enregistrée.</h1></main>`;return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>LOKA! — Tarnos</title><style>:root{--ink:#22272d;--secondary:#7b8085;--paper:#f3f1ed;--surface:rgba(255,255,255,.78);--line:rgba(56,62,68,.08);--accent:#d6a84a}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 76% 8%,rgba(255,229,174,.32),transparent 26rem),radial-gradient(circle at 4% 92%,rgba(197,214,229,.34),transparent 30rem),var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;padding:20px 14px 28px}.shell{width:min(100%,580px);min-height:calc(100vh - 48px);margin:0 auto;padding:24px 18px 28px;display:flex;flex-direction:column}.topbar{display:flex;justify-content:space-between}.brand{font-size:12px;font-weight:620;letter-spacing:.16em;color:#77736e}.update{color:#a3a09b;font-size:11px}.intro{text-align:center;padding-top:46px}.city{font-size:17px;font-weight:560;letter-spacing:.24em}.date{margin-top:8px;color:var(--secondary);font-size:13px}.hero{text-align:center;padding:28px 0 38px}.temperature{font-size:clamp(96px,31vw,156px);line-height:.82;font-weight:300;letter-spacing:-.075em}.temperature sup{font-size:.33em}.minimum{margin-top:20px;color:#999691;font-size:12px}h1{font-size:clamp(23px,6.2vw,32px);line-height:1.16;font-weight:470;margin:22px auto 0;max-width:430px}.hours{background:var(--surface);border-radius:34px;padding:22px 11px 21px;display:grid;grid-template-columns:repeat(6,1fr)}.hour{text-align:center;display:grid;gap:10px}.hour-time{color:#8e9296;font-size:11px}.icon{font-size:24px;color:var(--accent)}.hour strong{font-size:17px;font-weight:430}.decision{margin-top:18px;background:rgba(255,255,255,.46);border-radius:27px;padding:22px 24px;text-align:center}.decision-label{color:#a19e99;text-transform:uppercase;letter-spacing:.16em;font-size:9px}.decision-text{margin-top:7px;font-size:20px}.ig-link{display:block;margin-top:14px;padding:15px 18px;text-align:center;background:#171715;color:#fff;text-decoration:none;border-radius:18px;font-size:14px;font-weight:650}.notable{margin-top:12px;border-radius:23px;padding:17px 20px;background:rgba(234,225,207,.72);text-align:center}footer{margin-top:auto;padding-top:34px;text-align:center;color:#aaa6a0;font-family:Georgia,serif;font-size:17px;font-style:italic}</style></head><body>${content}</body></html>`;}
 
-export function renderAdmin():string{return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>LOKA Admin</title><style>
+export function renderAdminTech():string{return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>LOKA Admin</title><style>
 *{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f5f5f2;color:#171715;margin:0;padding:24px}.box{max-width:720px;margin:auto;background:#fff;border-radius:28px;padding:28px}input,button,a{width:100%;padding:16px;border-radius:14px;font-size:16px}input{border:1px solid #ddd;margin:18px 0 12px}button{border:0;background:#171715;color:#fff;font-weight:650;cursor:pointer}.secondary{margin-top:10px;background:#ecece8;color:#171715}.ig{display:block;box-sizing:border-box;margin-top:12px;text-align:center;text-decoration:none;background:#ecece8;color:#171715;font-weight:650}pre{white-space:pre-wrap;background:#f5f5f2;padding:14px;border-radius:14px;min-height:80px;overflow:auto}.shadow,.metrics,.readiness10,.engine11{margin-top:28px;padding-top:24px;border-top:1px solid #ecece8}.shadow h2,.metrics h2,.readiness10 h2,.engine11 h2{font-size:22px;margin:0 0 6px}.muted{font-size:13px;color:#777;line-height:1.45}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.card{background:#f5f5f2;border-radius:18px;padding:16px}.card .label{font-size:10px;letter-spacing:.12em;color:#8a8a84;text-transform:uppercase}.card .scene{font-size:18px;font-weight:700;margin-top:7px}.card .meta{font-size:13px;color:#666;margin-top:5px}.candidate{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #e5e5e1;padding:9px 0;font-size:13px}.candidate:first-child{border-top:0}.ok{color:#26764a}.warn{color:#a16516}.error{color:#a12828}
 .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.metric-card{background:#f5f5f2;border-radius:18px;padding:15px}.metric-title{font-size:10px;letter-spacing:.1em;color:#898984;text-transform:uppercase}.metric-value{font-size:25px;font-weight:720;margin-top:7px}.metric-sub{font-size:12px;color:#6f6f6a;margin-top:4px;line-height:1.35}.metric-section{margin-top:16px}.metric-section h3{font-size:14px;margin:0 0 8px}.bar-row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:8px 0;border-top:1px solid #e4e4df;font-size:13px}.bar-row:first-child{border-top:0}.readiness{margin-top:14px;border-radius:18px;padding:15px;background:#f5f5f2}.readiness strong{display:block;margin-bottom:5px}.good{color:#26764a}.caution{color:#a16516}.bad{color:#a12828}.ready-status{border-radius:20px;padding:18px;margin-top:14px;background:#f5f5f2}.ready-status .big{font-size:25px;font-weight:760}.criterion{display:grid;grid-template-columns:1fr auto;gap:12px;padding:10px 0;border-top:1px solid #e3e3de;font-size:13px}.criterion:first-child{border-top:0}.family-pill{display:inline-block;padding:5px 8px;border-radius:999px;background:#ecece8;margin:3px 4px 3px 0;font-size:11px}.engine-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.danger{background:#6f2020;color:#fff}.locked{background:#f3e7e7;color:#8e2d2d}.engine-mode{font-size:27px;font-weight:760;margin-top:7px}
 @media(max-width:560px){body{padding:14px}.box{padding:20px;border-radius:22px}.comparison,.metric-grid{grid-template-columns:1fr}}
@@ -1544,3 +1544,145 @@ document.getElementById('run').onclick=async()=>{
   }catch(e2){out.textContent=String(e2)}
 };
 </script></body></html>`;}
+
+export function renderAdmin(): string {
+  return `<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LOKA! — Publication</title>
+<style>
+:root{--ink:#171715;--muted:#777772;--paper:#f3f1ed;--card:#fff;--soft:#ecece8;--ok:#24633b;--bad:#9b2f2f}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 80% 8%,rgba(255,225,166,.33),transparent 26rem),radial-gradient(circle at 0 100%,rgba(198,214,229,.30),transparent 30rem),var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;padding:max(18px,env(safe-area-inset-top)) 14px max(28px,env(safe-area-inset-bottom))}
+.app{width:min(100%,560px);margin:auto}
+.top{display:flex;align-items:center;justify-content:space-between;padding:8px 4px 24px}
+.brand{font-size:13px;font-weight:750;letter-spacing:.18em}
+.tech{font-size:12px;color:#8b8882;text-decoration:none}
+.card{background:rgba(255,255,255,.88);backdrop-filter:blur(16px);border-radius:30px;padding:24px;box-shadow:0 18px 70px rgba(45,42,35,.08)}
+.eyebrow{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#96918a}
+h1{font-size:31px;line-height:1.08;margin:9px 0 8px;font-weight:700;letter-spacing:-.035em}
+.status{font-size:14px;color:var(--muted);line-height:1.5;min-height:42px}
+.meta{margin:18px 0 4px;padding:16px 18px;background:#f6f5f1;border-radius:20px}
+.meta-row{display:flex;justify-content:space-between;gap:14px;padding:6px 0;font-size:13px}
+.meta-row span{color:#8c8983}.meta-row strong{text-align:right}
+label{display:block;margin-top:22px;font-size:11px;color:#85827d;font-weight:650}
+input{width:100%;margin-top:7px;padding:15px 16px;border:1px solid #dedbd5;border-radius:16px;background:#fff;font-size:16px;outline:none}
+.actions{display:grid;gap:10px;margin-top:14px}
+button,a.action{width:100%;display:block;border:0;border-radius:17px;padding:16px 17px;text-align:center;text-decoration:none;font-size:15px;font-weight:700;cursor:pointer}
+.primary{background:#171715;color:#fff}
+.secondary{background:var(--soft);color:var(--ink)}
+.ghost{background:transparent;color:#68655f;border:1px solid #dedbd5!important}
+button:disabled{opacity:.55}
+.result{margin-top:14px;font-size:13px;line-height:1.45;color:var(--muted)}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+.footer{text-align:center;padding:22px 12px 4px;color:#aaa59e;font-family:Georgia,serif;font-style:italic;font-size:16px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand">LOKA!</div>
+    <a class="tech" href="/admin-tech">Outils techniques</a>
+  </div>
+
+  <section class="card">
+    <div class="eyebrow">Tarnos · publication quotidienne</div>
+    <h1>Météo & visuel Instagram</h1>
+    <div class="status" id="status">Chargement de la dernière météo…</div>
+
+    <div class="meta" id="meta" style="display:none">
+      <div class="meta-row"><span>Dernière mise à jour</span><strong id="updated">—</strong></div>
+      <div class="meta-row"><span>Prévision</span><strong id="forecastLabel">—</strong></div>
+    </div>
+
+    <label for="token">ADMIN_TOKEN</label>
+    <input id="token" type="password" autocomplete="current-password" placeholder="Token administrateur">
+
+    <div class="actions">
+      <button class="primary" id="run">Générer la météo</button>
+      <a class="action secondary" href="/instagram">Créer le visuel Instagram</a>
+      <a class="action ghost" href="/">Voir la météo publique</a>
+    </div>
+
+    <div class="result" id="result"></div>
+  </section>
+
+  <div class="footer">Ici, aujourd’hui.</div>
+</div>
+
+<script>
+const statusEl=document.getElementById('status');
+const resultEl=document.getElementById('result');
+const meta=document.getElementById('meta');
+const updated=document.getElementById('updated');
+const forecastLabel=document.getElementById('forecastLabel');
+const token=()=>document.getElementById('token').value.trim();
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function time(v){try{return new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'}).format(new Date(v))}catch{return '—'}}
+function label(f){return f?.mainVerdict||f?.subtitle||f?.scene||'Météo disponible'}
+
+async function loadLatest(){
+  try{
+    const r=await fetch('/api/latest?city=tarnos&_='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const f=await r.json();
+    if(!f){
+      statusEl.textContent='Aucune météo enregistrée pour le moment.';
+      meta.style.display='none';
+      return;
+    }
+    statusEl.textContent='La météo officielle est prête pour publication.';
+    updated.textContent=time(f.generatedAt);
+    forecastLabel.textContent=label(f);
+    meta.style.display='block';
+  }catch{
+    statusEl.textContent='Impossible de lire la dernière météo.';
+    meta.style.display='none';
+  }
+}
+
+document.getElementById('run').onclick=async()=>{
+  const btn=document.getElementById('run');
+  const t=token();
+  if(!t){
+    resultEl.innerHTML='<span class="bad">Entre ton ADMIN_TOKEN.</span>';
+    return;
+  }
+  btn.disabled=true;
+  resultEl.textContent='Génération en cours…';
+  try{
+    const r=await fetch('/api/run?city=tarnos',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+t},
+      cache:'no-store'
+    });
+    const text=await r.text();
+    let data=null;
+    try{data=text?JSON.parse(text):null}catch{}
+    if(!r.ok){
+      throw new Error(data?.error||('HTTP '+r.status));
+    }
+    resultEl.innerHTML='<span class="ok">Météo mise à jour. Le visuel Instagram est prêt.</span>';
+    await loadLatest();
+  }catch(err){
+    const m=err&&err.message?err.message:String(err);
+    if(m.startsWith('certification_window_generation_blocked:')){
+      resultEl.innerHTML='<span class="bad">Génération momentanément gelée par la certification finale.</span>';
+    }else if(m==='unauthorized'){
+      resultEl.innerHTML='<span class="bad">ADMIN_TOKEN incorrect.</span>';
+    }else{
+      resultEl.innerHTML='<span class="bad">'+esc(m)+'</span>';
+    }
+  }finally{
+    btn.disabled=false;
+  }
+};
+
+loadLatest();
+</script>
+</body>
+</html>`;
+}

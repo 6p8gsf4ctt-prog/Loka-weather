@@ -28,7 +28,8 @@ import {
 import { renderDashboard24 } from "./ui/dashboard24";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import type { Env, LokaForecast, Scene24Candidate, SceneDecisionV24, DayProfile } from "./types";
-import { renderAdmin, renderDashboard } from "./ui/dashboard";
+import { renderAdmin, renderAdminTech, renderDashboard } from "./ui/dashboard";
+import { renderInstagramDaily } from "./ui/instagramDaily";
 import { renderInstagramGenerator } from "./ui/instagram";
 import { renderInstagram24 } from "./ui/instagram24";
 import { renderV24PrepublicationDashboard } from "./ui/prepublication24";
@@ -1950,6 +1951,15 @@ export default {
       });
     }
 
+    if (url.pathname === "/admin-tech") {
+      return new Response(renderAdminTech(), {
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store"
+        }
+      });
+    }
+
     if (url.pathname === "/instagram") {
       const city = getCity("tarnos")!;
       const forecast = await latestForecast(env.DB, "tarnos");
@@ -1985,10 +1995,8 @@ export default {
         }
 
         return new Response(
-          renderInstagramGenerator(
+          renderInstagramDaily(
             surface.forecast,
-            city.latitude,
-            city.longitude,
             city.timezone
           ),
           {

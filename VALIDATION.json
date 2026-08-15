@@ -1,16 +1,25 @@
 {
-  "version": "12.16.0",
-  "migrationRequired": "0016_final_operational_handover.sql",
-  "typescriptIntegrationCheck": "PASS",
-  "renderedAdminJavaScriptSyntax": "PASS",
+  "version": "12.16.1",
+  "migrationRequired": false,
+  "filesAdded": [
+    "src/ui/instagramDaily.ts"
+  ],
+  "filesReplaced": [
+    "src/ui/dashboard.ts",
+    "src/index.ts"
+  ],
+  "dailyAdminRoute": "/admin",
+  "technicalAdminRoute": "/admin-tech",
+  "legacyInstagramUsesCleanStudio": true,
+  "legacyDecisionSource": "official_public_forecast_only",
+  "shadowV24DecisionUsedForLegacyInstagram": false,
   "pipelineModified": false,
-  "goLiveMechanismModified": false,
+  "d1Modified": false,
+  "readinessModified": false,
+  "goLiveModified": false,
   "rollbackModified": false,
-  "certificationWindowModified": false,
-  "productionMutation": false,
   "automaticV24Activation": false,
-  "automaticRollback": false,
-  "expectedCurrentStatus": "SYSTEM_READY_WAITING_READINESS",
-  "architectureFinalBlock": true,
-  "criticalTablesChecked": 22
+  "typescriptUiCheck": "PASS",
+  "renderedDailyAdminJavaScript": "PASS",
+  "renderedInstagramJavaScript": "PASS"
 }
