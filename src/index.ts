@@ -80,6 +80,11 @@ import {
   getGoLiveOverview,
   prepareGoLive
 } from "./engine/goLive13";
+import { evaluateProductionSupervisor } from "./engine/productionSupervisor";
+import {
+  recentProductionSupervisorAudits,
+  recordProductionSupervisorAudit
+} from "./storage/productionSupervisor";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, {
@@ -489,7 +494,7 @@ export default {
       return json({
         error: "use_double_confirmation_flow",
         message:
-          "Bloc 12.13 exige le workflow final /api/admin/go-live. Aucun état moteur n'a été modifié."
+          "Bloc 12.14 exige le workflow final /api/admin/go-live. Aucun état moteur n'a été modifié."
       }, 409);
     }
 
@@ -751,6 +756,78 @@ export default {
       } catch (error) {
         return json({
           error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/production-supervisor" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const report = await evaluateProductionSupervisor(
+          env,
+          slug
+        );
+
+        const recent = await recentProductionSupervisorAudits(
+          env.DB,
+          slug,
+          12
+        );
+
+        return json({
+          ok: true,
+          report,
+          recent,
+          policy: {
+            automaticActivation: false,
+            automaticGlobalRollback: false,
+            perGenerationFallbackRemainsIndependent: true,
+            stableAfterHealthyGenerations: 6
+          }
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error),
+          safety: {
+            productionMutated: false,
+            autoRollbackTriggered: false
+          }
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/production-supervisor/snapshot" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const report = await evaluateProductionSupervisor(
+          env,
+          slug
+        );
+
+        await recordProductionSupervisorAudit(
+          env.DB,
+          report
+        );
+
+        return json({
+          ok: true,
+          report
+        });
+      } catch (error) {
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error)
         }, 500);
       }
     }

@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.13. GO LIVE final : READY_CANDIDATE + FINAL_RC_PASS + REHEARSAL_PASS + garde-fous génération + double confirmation humaine.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.14. Supervision production : attente readiness, recertification finale, GO LIVE et stabilisation V24 sans rollback automatique.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -190,8 +190,9 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button><button class="danger" id="rollbackDrill" style="margin-top:10px">Tester rollback réel 12.10</button><button class="locked" id="finalAudit" style="margin-top:10px">Audit final RC 12.11</button><button class="locked" id="mobileRehearsal" style="margin-top:10px">Répétition générale 12.12</button><button class="danger" id="goLive13" style="margin-top:10px">GO LIVE V24 · 12.13</button>'+
+    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button><button class="danger" id="rollbackDrill" style="margin-top:10px">Tester rollback réel 12.10</button><button class="locked" id="finalAudit" style="margin-top:10px">Audit final RC 12.11</button><button class="locked" id="mobileRehearsal" style="margin-top:10px">Répétition générale 12.12</button><button class="danger" id="goLive13" style="margin-top:10px">GO LIVE V24 · 12.13</button><button class="secondary" id="supervisor14" style="margin-top:10px">Supervision production 12.14</button>'+
     '<div class="metric-section"><h3>GO LIVE V24 — contrôle final</h3><div id="goLiveView" class="card"><div class="muted">Chargement…</div></div></div>'+
+    '<div class="metric-section"><h3>Supervision production — Bloc 12.14</h3><div id="supervisorView" class="card"><div class="muted">Chargement…</div></div></div>'+
     '<div class="metric-section"><h3>Autorisation V24 historique</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
     (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
     '<div id="payloadView" style="margin-top:12px"></div>';
@@ -1186,6 +1187,71 @@ async function loadGoLive13(){
 }
 
 
+function renderSupervisor14(data){
+  const target=document.getElementById('supervisorView');
+  if(!target)return;
+
+  const r=data.report||{};
+  const checks=Array.isArray(r.checks)?r.checks:[];
+  const recent=Array.isArray(data.recent)?data.recent:[];
+
+  const cls=(r.status==='GO_LIVE_ELIGIBLE'||r.status==='V24_LIVE_HEALTHY'||r.status==='V24_LIVE_STABLE')
+    ?'good'
+    :(r.status==='WAITING_READINESS'||r.status==='RECERTIFICATION_REQUIRED'||r.status==='V24_LIVE_WATCH')
+      ?'caution'
+      :'bad';
+
+  let html=
+    '<div class="scene '+cls+'">'+e(r.status||'—')+'</div>'+ 
+    '<div class="bar-row"><span>Phase</span><strong>'+e(r.phase||'—')+'</strong></div>'+ 
+    '<div class="bar-row"><span>Génération</span><strong>'+e(r.generatedAt||'—')+'</strong></div>'+ 
+    '<div class="bar-row"><span>Moteur public</span><strong>'+e(r.publicEngine||'—')+'</strong></div>'+ 
+    '<div class="bar-row"><span>Readiness</span><strong class="'+(r.readinessStatus==='READY_CANDIDATE'?'good':'caution')+'">'+e(r.readinessStatus||'—')+'</strong></div>'+ 
+    '<div class="bar-row"><span>FINAL_RC courant</span><strong class="'+(r.finalRcCurrent?'good':'caution')+'">'+(r.finalRcCurrent?'OUI':'NON')+'</strong></div>'+ 
+    '<div class="bar-row"><span>REHEARSAL courant</span><strong class="'+(r.rehearsalCurrent?'good':'caution')+'">'+(r.rehearsalCurrent?'OUI':'NON')+'</strong></div>'+ 
+    '<div class="bar-row"><span>GO LIVE éligible</span><strong class="'+(r.goLiveEligible?'good':'caution')+'">'+(r.goLiveEligible?'OUI':'NON')+'</strong></div>'+ 
+    '<div class="bar-row"><span>Garde-fou</span><strong>'+e(r.guardStatus||'—')+'</strong></div>'+ 
+    '<div class="bar-row"><span>Fallback courant</span><strong class="'+(!r.fallbackDetected?'good':'caution')+'">'+(r.fallbackDetected?'OUI':'NON')+'</strong></div>'+ 
+    '<div class="bar-row"><span>Stabilité V24</span><strong>'+e(r.consecutiveV24Generations||0)+' / 6</strong></div>'+ 
+    '<div class="readiness" style="margin-top:14px"><strong>RECOMMANDATION</strong><div class="muted" style="margin-top:6px">'+e(r.recommendation||'—')+'</div></div>'+ 
+    '<div style="margin-top:14px"><div class="metric-title">CONTRÔLES</div>'+ 
+    checks.map(c=>'<div class="bar-row"><span>'+e(c.id)+'<div class="muted">'+e(c.detail||'')+'</div></span><strong class="'+(c.status==='PASS'?'good':(c.status==='INFO'?'caution':'bad'))+'">'+e(c.status)+'</strong></div>').join('')+ 
+    '</div>';
+
+  if(recent.length){
+    html+='<div style="margin-top:16px"><div class="metric-title">12 DERNIERS SNAPSHOTS</div>'+ 
+      recent.slice(0,12).map(x=>'<div class="bar-row"><span>'+e(x.generatedAt)+'<div class="muted">'+e(x.phase)+' · '+e(x.publicEngine||'—')+'</div></span><strong class="'+((x.status==='V24_LIVE_STABLE'||x.status==='V24_LIVE_HEALTHY'||x.status==='GO_LIVE_ELIGIBLE')?'good':((x.status==='WAITING_READINESS'||x.status==='RECERTIFICATION_REQUIRED'||x.status==='V24_LIVE_WATCH')?'caution':'bad'))+'">'+e(x.status)+'</strong></div>').join('')+ 
+      '</div>';
+  }
+
+  html+='<div class="muted" style="margin-top:12px">Le Bloc 12.14 n’active jamais V24 et ne déclenche jamais de rollback global automatique. Il conserve volontairement la séparation entre fallback d’une génération et rollback opérateur.</div>';
+
+  target.innerHTML=html;
+}
+
+async function loadSupervisor14(record=false){
+  const target=document.getElementById('supervisorView');
+  if(!target)return;
+  target.innerHTML='<div class="muted">Supervision 12.14…</div>';
+
+  try{
+    if(record){
+      await fetchJson('/api/admin/production-supervisor/snapshot?city=tarnos',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token()}
+      });
+    }
+
+    const data=await fetchJson('/api/admin/production-supervisor?city=tarnos',{
+      headers:{Authorization:'Bearer '+token()}
+    });
+    renderSupervisor14(data);
+  }catch(err){
+    target.innerHTML='<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>';
+  }
+}
+
+
 async function loadApproval(){
   const target=document.getElementById('approvalView');
   if(!target)return;
@@ -1210,6 +1276,7 @@ async function loadEngine(){
     renderEngine(d);
     await loadApproval();
     await loadGoLive13();
+    await loadSupervisor14();
   }catch(err){
     engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>';
   }
@@ -1220,6 +1287,7 @@ document.getElementById('metrics').onclick=loadMetrics;
 document.getElementById('readinessBtn').onclick=loadReadiness;
 document.getElementById('engineBtn').onclick=loadEngine;
 document.addEventListener('click',event=>{const t=event.target;if(t&&t.id==='goLive13'){loadGoLive13();document.getElementById('goLiveView')?.scrollIntoView({behavior:'smooth',block:'start'});}});
+document.addEventListener('click',event=>{const t=event.target;if(t&&t.id==='supervisor14'){loadSupervisor14(true);document.getElementById('supervisorView')?.scrollIntoView({behavior:'smooth',block:'start'});}});
 document.getElementById('run').onclick=async()=>{
   out.textContent='Génération…';
   try{

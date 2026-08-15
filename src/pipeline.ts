@@ -12,6 +12,8 @@ import { getLatestV24ApprovalProof } from "./storage/engineApproval";
 import { commitSafePublication, prepareSafePublication } from "./storage/publicationSafety";
 import { loadShadowMetricRows } from "./storage/shadowMetrics";
 import { evaluateV24Readiness } from "./analytics/readiness";
+import { evaluateProductionSupervisor } from "./engine/productionSupervisor";
+import { recordProductionSupervisorAudit } from "./storage/productionSupervisor";
 import type { CityConfig, Env, LokaForecast, ModelForecast } from "./types";
 import { fetchModelForecast } from "./weather/openMeteo";
 
@@ -255,6 +257,22 @@ async function runCity(env: Env, city: CityConfig, source: string): Promise<Loka
         ? "publication_generation_audit_missing"
         : undefined
   });
+
+  // Bloc 12.14 — pure observation. Never fail a weather generation because
+  // the supervisor/audit layer itself is unavailable.
+  try {
+    const supervisor = await evaluateProductionSupervisor(
+      env,
+      city.slug
+    );
+
+    await recordProductionSupervisorAudit(
+      env.DB,
+      supervisor
+    );
+  } catch {
+    // Production and rollback behavior remain independent of supervision.
+  }
 
   return publishedForecast;
 }
