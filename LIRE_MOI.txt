@@ -1,270 +1,277 @@
-LOKA V24 — BLOC 12.12
+LOKA V24 — BLOC 12.13
 =======================
 
-STATUT
-------
-BLOC 12.12 = RÉPÉTITION GÉNÉRALE COMPLÈTE SUR TÉLÉPHONE.
+OBJET
+-----
+Mécanisme FINAL de GO LIVE V24 / Instagram.
 
-Ce n'est PAS le GO LIVE.
-Le Bloc 12.13 reste le seul bloc autorisé à préparer une activation officielle
-V24 quand READY_CANDIDATE sera réellement atteint.
+Installer le Bloc 12.13 N'ACTIVE PAS V24.
 
-OBJECTIF
---------
-Rejouer le parcours opérationnel final, sur les vraies surfaces du Worker,
-sans publier V24.
-
-La répétition vérifie :
-
-FINAL_RC_PASS 12.11
-→ état initial LEGACY propre
-→ V24_PREVIEW réellement activé
-→ Dashboard V24 de prépublication visible
-→ Studio Instagram V24 de prépublication visible
-→ 4 surfaces officielles toujours Legacy
-→ master V24 physique accessible
-→ même génération publique
-→ même scène publique
-→ même fingerprint public
-→ rollback global réel
-→ état final LEGACY / approuvé NON
+Dans l'état actuel NOT_READY, le panneau GO LIVE affichera BLOCKED et aucune
+écriture moteur ne sera effectuée.
 
 MIGRATION D1 OBLIGATOIRE
 ------------------------
 Appliquer :
-migrations/0012_mobile_rehearsal_audit.sql
+migrations/0013_go_live_activation.sql
 
 Elle crée :
-mobile_rehearsal_audit
+- go_live_challenge
+- go_live_audit
 
-La table est append-only.
-
-Elle impose :
-production_forecast_mutated = 0
-v24_approval_granted = 0
+go_live_audit est append-only.
 
 FICHIERS À AJOUTER
 ------------------
-- migrations/0012_mobile_rehearsal_audit.sql
-- src/engine/mobileRehearsal.ts
-- src/storage/mobileRehearsalAudit.ts
+- migrations/0013_go_live_activation.sql
+- src/engine/goLive13.ts
+- src/storage/goLive13.ts
 
 FICHIERS À REMPLACER
 --------------------
+- src/storage/globalRollback.ts
 - src/index.ts
 - src/ui/dashboard.ts
 
-Le dashboard contient également les correctifs précédents :
-- JavaScript du rollback 12.10
-- affichage détaillé HTTP 422 du 12.11
+Le ZIP inclut aussi les dépendances de référence nécessaires.
 
-AUCUN CHANGEMENT DU PIPELINE
-----------------------------
-Le Bloc 12.12 ne remplace pas :
-- pipeline.ts
-- engineMode.ts
-- engineRuntime.ts
-- publicationSafety.ts
+POURQUOI GLOBAL ROLLBACK CHANGE EN 12.13
+-----------------------------------------
+Avant 12.13, la production réelle restait Legacy pendant les drills.
 
-Le moteur météo n'est donc pas modifié à cette étape.
+Après un vrai GO LIVE, un simple :
+requested_mode = LEGACY
+ne suffit plus.
 
-PRÉCONDITIONS
--------------
-Le serveur refuse la répétition si :
+Le forecast public courant peut déjà être V24.
 
-- le dernier final_release_audit n'est pas FINAL_RC_PASS
-- ce FINAL_RC_PASS ne correspond pas exactement à la génération publique
-- requested_mode n'est pas LEGACY
-- V24 est approuvé
-- la production publique n'est pas LEGACY
-- un challenge V24 est en attente
-- le candidat V24 ne peut pas être construit
-- le master du candidat V24 n'est pas accessible
+Le rollback 12.13 fait donc désormais deux choses :
 
-PHRASE DE CONFIRMATION
-----------------------
-Le bouton demande exactement :
+1. désarme immédiatement V24 dans engine_control ;
+2. si le produit public stocké est V24, restaure immédiatement le backup
+   Legacy persistant comme produit public courant.
 
-REPETER LOKA TARNOS
+Le rollback reste prioritaire :
+une panne d'audit ne peut jamais empêcher le retour de engine_control à Legacy.
 
-SÉQUENCE MOBILE
----------------
-1. Appuyer :
-   "Répétition générale 12.12"
+ANCIEN WORKFLOW D'AUTORISATION
+------------------------------
+Les routes historiques :
 
-2. Taper :
-   REPETER LOKA TARNOS
+POST /api/admin/engine/approval/prepare
+POST /api/admin/engine/approval/confirm
 
-3. Le serveur vérifie FINAL_RC_PASS et l'état Legacy.
+sont désormais verrouillées en écriture.
 
-4. Le serveur active réellement :
-   requested_mode = V24_PREVIEW
-   v24_approved = 0
+Elles ne peuvent plus être utilisées pour contourner le Bloc 12.13.
 
-5. L'Admin affiche deux liens :
+Toute activation officielle passe exclusivement par :
 
-   "Ouvrir Dashboard V24"
-   "Ouvrir Studio Instagram V24"
+GET  /api/admin/go-live
+POST /api/admin/go-live/prepare
+POST /api/admin/go-live/confirm
 
-6. Ouvrir les deux sur le téléphone et les regarder réellement.
+PRÉREQUIS GO LIVE — TOUS BLOQUANTS
+-----------------------------------
+Le serveur exige simultanément :
 
-   Ils portent toujours :
-   NON PUBLIÉ / PREVIEW.
+1. Production publique actuelle = LEGACY
+2. requested_mode = LEGACY
+3. v24_approved = NON
+4. aucun ancien challenge V24 PENDING
+5. readiness = READY_CANDIDATE
+6. FINAL_RC_PASS correspondant EXACTEMENT à la génération courante
+7. REHEARSAL_PASS correspondant EXACTEMENT :
+   - à la même génération
+   - au même fingerprint
+   - au FINAL_RC_PASS courant
+8. backup Legacy persistant vérifiable
+9. candidat V24 constructible
+10. master physique du candidat accessible
+11. garde-fou de génération complet = PASS :
+    - >= 4 modèles
+    - score >= 55
+    - confiance MEDIUM/HIGH
+    - écart gagnant/runner-up suffisant
+    - preuves brouillard/orage si nécessaires
+    - master disponible
+    - payload V24 valide
 
-7. Revenir sur l'onglet Admin.
+Un seul FAIL = aucune activation.
 
-8. Appuyer :
-   "J'ai vérifié · Terminer et rollback"
+CURRENT NOT_READY
+-----------------
+Avec le readiness actuel NOT_READY, le résultat attendu après installation est :
 
-9. Le navigateur lit réellement :
-   /api/latest
-   /api/decision
-   /
-   /instagram
-   /preview24
-   /instagram24-preview
+GO LIVE V24 — contrôle final
+BLOCKED
 
-10. Le serveur vérifie que :
+Readiness requis   READY_CANDIDATE
+Readiness actuel   NOT_READY
 
-    surfaces officielles :
-    - HTTP 2xx
-    - version publication 12.6.0
-    - même generatedAt
-    - engine LEGACY
-    - même scène
-    - même fingerprint
+Aucune mutation de production.
 
-    surfaces Preview :
-    - HTTP 2xx
-    - x-loka-preview-version = 12.12.0
-    - même generatedAt que le payload V24
-    - même scène V24
-    - mode = V24_PREVIEW
+DOUBLE CONFIRMATION FINALE
+--------------------------
+Quand tous les contrôles deviennent PASS :
 
-11. Le serveur exécute le rollback global officiel.
-
-12. Contrôle final :
-    requested_mode = LEGACY
-    v24_approved = NON
-    production publique = LEGACY
-    generatedAt inchangé
-    scène publique inchangée
-    fingerprint inchangé
-
-RÉSULTAT CIBLE
---------------
-BLOC 12.12 · RÉPÉTITION GÉNÉRALE
-
-REHEARSAL_PASS
-
-Production finale          LEGACY
-requested final            LEGACY
-V24 approuvé final         NON
-Dashboard Preview          PASS
-Studio Instagram Preview   PASS
-4 surfaces officielles     PASS
-Identité publique          INCHANGÉE
-Rollback global            PASS
-GO LIVE Instagram          NON · BLOC 12.13
-
-ANNULATION
-----------
-Pendant la répétition, un bouton existe :
-
-"Annuler · Revenir Legacy"
-
-Il exécute immédiatement le rollback global.
-
-Si une erreur JavaScript/réseau survient après activation du Preview, le
-dashboard tente aussi automatiquement :
-
-/api/admin/mobile-rehearsal/cleanup
-
-Si l'onglet est fermé brutalement avant le cleanup :
-V24_PREVIEW peut rester affiché dans engine_control, mais la production
-officielle reste Legacy et V24 n'est pas approuvé.
-
-Dans ce cas :
-Admin → Revenir à Legacy.
-
-VISUAL CHECK
-------------
-Le Bloc 12.12 est volontairement différent des contrôles automatisés
-précédents.
-
-Le téléphone doit réellement afficher :
-- le Dashboard V24 futur
-- le Studio Instagram V24 futur
-
-Le contrôle automatisé confirme ensuite que les routes servies sont bien
-celles de la même génération et de la même scène.
-
-READINESS
----------
-Le readiness météo peut toujours être NOT_READY.
-
-Cela n'empêche pas V24_PREVIEW.
-
-Cela empêche toujours l'activation officielle.
-
-Donc un résultat parfaitement acceptable avant le GO LIVE futur est :
-
-REHEARSAL_PASS
-Readiness NOT_READY
-Production LEGACY
-V24 approuvé NON
-
-SÉCURITÉ
---------
-La répétition ne fait jamais :
-- saveForecast()
-- confirmV24Approval()
-- création d'une approbation V24
-- activation officielle V24
-- publication Instagram automatique
-
-Elle modifie uniquement engine_control vers V24_PREVIEW, puis le remet en
-LEGACY via le vrai rollback global.
-
-SEULE ÉCRITURE D'AUDIT
-----------------------
-Après le test complet :
-mobile_rehearsal_audit
-
-GO LIVE
+Étape 1
 -------
-Même REHEARSAL_PASS ne signifie pas que V24 peut être activé aujourd'hui.
+"Préparer GO LIVE · confirmation 1 / 2"
 
-Le Bloc 12.13 devra encore exiger :
-- readiness READY_CANDIDATE réel
-- double confirmation humaine
-- garde-fous PASS
-- preuves RC/rehearsal valides
-- activation volontaire
+Le serveur crée un snapshot immuable valable 10 minutes.
+
+Le snapshot contient notamment :
+- génération publique
+- fingerprint public
+- readiness + fingerprint
+- FINAL_RC audit
+- REHEARSAL audit
+- candidat V24
+- master
+- garde-fou complet
+
+Étape 2
+-------
+Il faut taper exactement :
+
+ACTIVER V24 OFFICIEL TARNOS
+
+Puis une confirmation navigateur finale est demandée.
+
+Si la génération, le readiness ou une preuve change entre les deux étapes :
+confirmation REFUSÉE.
+
+ACTIVATION
+----------
+Après confirmation valide :
+
+1. engine_control est armé :
+   requested_mode = V24
+   v24_approved = 1
+
+2. un événement APPROVED compatible avec activationGuard est écrit dans
+   engine_activation_audit.
+
+3. LOKA lance IMMÉDIATEMENT une nouvelle génération météo :
+   source = go_live_12_13
+
+4. Cette nouvelle génération passe à nouveau tous les garde-fous réels.
+
+CAS A — GARDE-FOU PASS
+----------------------
+Le forecast est publié V24.
+
+Puis le resolver public est vérifié.
+
+Résultat :
+GO_LIVE_ACTIVE
+
+À partir de ce moment :
+- / = Dashboard V24 officiel
+- /instagram = Studio Instagram V24 officiel
+- /api/latest = V24
+- /api/decision = V24
+
+Aucune publication automatique n'est envoyée sur Instagram :
+le Studio officiel devient simplement le produit V24 à utiliser pour la
+publication manuelle.
+
+CAS B — GARDE-FOU DE LA NOUVELLE GÉNÉRATION FAIL
+-------------------------------------------------
+La génération reste Legacy grâce au fallback par génération.
+
+Le GO LIVE est immédiatement ABORTED.
+
+engine_control revient Legacy.
+
+Résultat :
+GO_LIVE_ABORTED
+
+CAS C — V24 ÉCRIT MAIS SURFACE PUBLIQUE NON VÉRIFIÉE
+-----------------------------------------------------
+Le rollback global 12.13 :
+- désarme V24 ;
+- restaure le backup public Legacy.
+
+Une activation non vérifiée n'est jamais marquée ACTIVATED.
+
+AUDIT
+-----
+go_live_audit enregistre :
+- PREPARE_REFUSED
+- PREPARED
+- CONFIRM_REFUSED
+- ACTIVATION_STARTED
+- ACTIVATED
+- ACTIVATION_ABORTED
+
+L'audit conserve :
+- challenge
+- génération avant/après
+- moteur avant/après
+- fingerprints
+- readiness
+- FINAL_RC
+- REHEARSAL
+- snapshot complet
+- état du restore Legacy en cas d'abort
 
 INSTALLATION MOBILE
 -------------------
-1. Appliquer migrations/0012_mobile_rehearsal_audit.sql.
+1. Appliquer migrations/0013_go_live_activation.sql dans D1.
 2. Ajouter :
-   src/engine/mobileRehearsal.ts
-   src/storage/mobileRehearsalAudit.ts
+   src/engine/goLive13.ts
+   src/storage/goLive13.ts
 3. Remplacer :
+   src/storage/globalRollback.ts
    src/index.ts
    src/ui/dashboard.ts
 4. Déployer.
-5. Vérifier que « Générer la météo » fonctionne.
-6. Vérifier que le Bloc 12.11 est FINAL_RC_PASS.
-7. Lancer « Répétition générale 12.12 ».
-8. Inspecter Dashboard V24 + Studio Instagram V24.
-9. Terminer et rollback.
-10. Vérifier REHEARSAL_PASS.
-11. Vérifier en haut de l'Admin :
-    Production LEGACY
-    requested LEGACY
-    V24 approuvé NON
+5. Recharger /admin.
+6. ADMIN_TOKEN.
+7. Contrôler le moteur.
+8. Appuyer :
+   GO LIVE V24 · 12.13
 
-SUITE
------
-12.13 = mécanisme GO LIVE final.
+AUJOURD'HUI
+-----------
+Le résultat DOIT être BLOCKED puisque readiness = NOT_READY.
 
-Il restera verrouillé tant que READY_CANDIDATE n'est pas réellement atteint.
+C'est la validation correcte du verrou 12.13.
+
+NE PAS CONTOURNER LE READINESS.
+
+QUAND READY_CANDIDATE ARRIVERA
+------------------------------
+Sur une seule génération courante, refaire :
+12.8 -> 12.9 -> 12.10 -> 12.11 -> 12.12
+
+Puis immédiatement :
+12.13
+
+Si le serveur affiche ELIGIBLE :
+- préparer
+- taper ACTIVER V24 OFFICIEL TARNOS
+- confirmer
+
+Le serveur lance alors lui-même la génération de cutover.
+
+ROLLBACK APRÈS GO LIVE
+----------------------
+Le bouton Admin :
+"Revenir à Legacy"
+
+reste disponible.
+
+Après 12.13, il restaure aussi immédiatement le dernier backup public Legacy
+si le forecast courant est déjà V24.
+
+VALIDATION DU PACKAGE
+---------------------
+Le package est testé sur :
+- intégration TypeScript
+- syntaxe JavaScript réellement rendue dans l'Admin
+- verrouillage des anciennes routes d'activation
+- présence du restore Legacy dans le rollback
+- aucune activation lors de l'installation

@@ -75,6 +75,11 @@ import {
   latestMobileRehearsalAudit,
   recordMobileRehearsalAudit
 } from "./storage/mobileRehearsalAudit";
+import {
+  confirmGoLiveAndActivate,
+  getGoLiveOverview,
+  prepareGoLive
+} from "./engine/goLive13";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, {
@@ -484,7 +489,7 @@ export default {
       return json({
         error: "use_double_confirmation_flow",
         message:
-          "Bloc 12.12 exige /api/admin/engine/approval/prepare puis /confirm. Aucun état moteur n'a été modifié."
+          "Bloc 12.13 exige le workflow final /api/admin/go-live. Aucun état moteur n'a été modifié."
       }, 409);
     }
 
@@ -746,6 +751,126 @@ export default {
       } catch (error) {
         return json({
           error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/go-live" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        return json(await getGoLiveOverview(env, slug));
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error),
+          safety: {
+            productionMutated: false
+          }
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/go-live/prepare" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        const result = await prepareGoLive(env, slug);
+
+        return json(
+          result,
+          result.ok
+            ? 200
+            : result.error === "v24_already_active"
+              ? 409
+              : 423
+        );
+      } catch (error) {
+        return json({
+          error: error instanceof Error ? error.message : String(error),
+          safety: {
+            productionMutated: false
+          }
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/go-live/confirm" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      const city = getCity(slug);
+      if (!city) return json({ error: "unknown_city" }, 404);
+
+      let body: {
+        challengeId?: unknown;
+        confirmationPhrase?: unknown;
+      } = {};
+
+      try {
+        body = await request.json() as typeof body;
+      } catch {
+        return json({ error: "invalid_json" }, 400);
+      }
+
+      if (
+        typeof body.challengeId !== "string" ||
+        typeof body.confirmationPhrase !== "string"
+      ) {
+        return json({
+          error: "challenge_and_phrase_required"
+        }, 400);
+      }
+
+      try {
+        const result = await confirmGoLiveAndActivate(
+          env,
+          slug,
+          {
+            challengeId: body.challengeId,
+            confirmationPhrase: body.confirmationPhrase,
+            runFreshGeneration: () =>
+              runOneCity(
+                env,
+                city,
+                "go_live_12_13"
+              )
+          }
+        );
+
+        return json(
+          result,
+          result.ok
+            ? 200
+            : result.status === "GO_LIVE_REFUSED"
+              ? 409
+              : 422
+        );
+      } catch (error) {
+        // Last-resort rollback. With the 12.13 global rollback this also
+        // restores the current Legacy public backup if V24 was committed.
+        let rollback = null;
+        try {
+          rollback = await executeGlobalRollback(
+            env.DB,
+            slug,
+            "bloc12_13_confirm_exception"
+          );
+        } catch {
+          rollback = null;
+        }
+
+        return json({
+          error: error instanceof Error ? error.message : String(error),
+          rollback,
+          safety: {
+            goLiveSucceeded: false
+          }
         }, 500);
       }
     }
@@ -1400,91 +1525,21 @@ export default {
     if (url.pathname === "/api/admin/engine/approval/prepare" && request.method === "POST") {
       if (!isAuthorized(request, env)) return unauthorized();
 
-      const slug = url.searchParams.get("city") || "tarnos";
-      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
-
-      try {
-        const { readiness, forecast } = await approvalContext(env, slug);
-        const result = await prepareV24Approval(
-          env.DB,
-          slug,
-          readiness,
-          forecast
-        );
-
-        if (!result.ok) {
-          return json({
-            ...result,
-            currentGenerationUnchanged: true,
-            publicCutoverConditional: true
-          }, result.error === "readiness_not_ready" ? 423 : 409);
-        }
-
-        return json({
-          ...result,
-          productionEngine: "LEGACY",
-          productionActivationLocked: true
-        });
-      } catch (error) {
-        return json({
-          error: error instanceof Error ? error.message : String(error)
-        }, 500);
-      }
+      return json({
+        error: "go_live_12_13_required",
+        message:
+          "Le workflow historique d'autorisation est verrouillé. Utilise /api/admin/go-live."
+      }, 409);
     }
 
     if (url.pathname === "/api/admin/engine/approval/confirm" && request.method === "POST") {
       if (!isAuthorized(request, env)) return unauthorized();
 
-      const slug = url.searchParams.get("city") || "tarnos";
-      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
-
-      let body: {
-        challengeId?: unknown;
-        confirmationPhrase?: unknown;
-      } = {};
-
-      try {
-        body = await request.json() as typeof body;
-      } catch {
-        return json({ error: "invalid_json" }, 400);
-      }
-
-      if (
-        typeof body.challengeId !== "string" ||
-        typeof body.confirmationPhrase !== "string"
-      ) {
-        return json({ error: "challenge_and_phrase_required" }, 400);
-      }
-
-      try {
-        const { readiness, forecast } = await approvalContext(env, slug);
-        const result = await confirmV24Approval(env.DB, slug, {
-          challengeId: body.challengeId,
-          confirmationPhrase: body.confirmationPhrase,
-          readiness,
-          forecast
-        });
-
-        if (!result.ok) {
-          return json({
-            ...result,
-            currentGenerationUnchanged: true,
-            publicCutoverConditional: true
-          }, result.error === "confirmation_phrase_mismatch" ? 400 : 409);
-        }
-
-        return json({
-          ...result,
-          currentGenerationUnchanged: true,
-          publicCutoverConditional: true,
-          nextStep:
-            "Autorisation enregistrée. La prochaine génération pourra utiliser V24 uniquement si le garde-fou 12.4 passe ; sinon elle restera Legacy."
-        });
-      } catch (error) {
-        return json({
-          error: error instanceof Error ? error.message : String(error)
-        }, 500);
-      }
+      return json({
+        error: "go_live_12_13_required",
+        message:
+          "Le workflow historique d'autorisation ne peut plus activer V24. Utilise /api/admin/go-live."
+      }, 409);
     }
 
     if (url.pathname === "/api/admin/engine/rollback" && request.method === "POST") {
@@ -1503,13 +1558,16 @@ export default {
         // Body is optional; rollback must remain easy.
       }
 
-      await executeGlobalRollback(
+      const rollback = await executeGlobalRollback(
         env.DB,
         slug,
         reason
       );
 
-      return json(await engineStatus(env, slug));
+      return json({
+        ...(await engineStatus(env, slug)),
+        rollback
+      });
     }
 
     if (url.pathname === "/api/admin/engine/preview-payload" && request.method === "GET") {

@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.12. Répétition générale mobile : Preview V24 réel, contrôle visuel Dashboard/Instagram, vérification des surfaces officielles puis rollback global.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.13. GO LIVE final : READY_CANDIDATE + FINAL_RC_PASS + REHEARSAL_PASS + garde-fous génération + double confirmation humaine.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -190,8 +190,9 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button><button class="danger" id="rollbackDrill" style="margin-top:10px">Tester rollback réel 12.10</button><button class="locked" id="finalAudit" style="margin-top:10px">Audit final RC 12.11</button><button class="locked" id="mobileRehearsal" style="margin-top:10px">Répétition générale 12.12</button>'+
-    '<div class="metric-section"><h3>Autorisation V24 — double confirmation</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
+    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button><button class="danger" id="rollbackDrill" style="margin-top:10px">Tester rollback réel 12.10</button><button class="locked" id="finalAudit" style="margin-top:10px">Audit final RC 12.11</button><button class="locked" id="mobileRehearsal" style="margin-top:10px">Répétition générale 12.12</button><button class="danger" id="goLive13" style="margin-top:10px">GO LIVE V24 · 12.13</button>'+
+    '<div class="metric-section"><h3>GO LIVE V24 — contrôle final</h3><div id="goLiveView" class="card"><div class="muted">Chargement…</div></div></div>'+
+    '<div class="metric-section"><h3>Autorisation V24 historique</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
     (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
     '<div id="payloadView" style="margin-top:12px"></div>';
 
@@ -992,43 +993,16 @@ function renderApproval(data){
 
   const readiness=data.readiness||{};
   const control=data.control||{};
-  const pending=data.pendingChallenge||null;
   const audit=Array.isArray(data.recentAudit)?data.recentAudit:[];
-  const ready=readiness.status==='READY_CANDIDATE';
 
   let html=
-    '<div class="bar-row"><span>Readiness requis</span><strong>READY_CANDIDATE</strong></div>'+
-    '<div class="bar-row"><span>Readiness actuel</span><strong class="'+(ready?'good':'bad')+'">'+e(readiness.status||'—')+'</strong></div>'+
+    '<div class="bar-row"><span>Readiness</span><strong>'+e(readiness.status||'—')+'</strong></div>'+
     '<div class="bar-row"><span>V24 approuvé</span><strong>'+(control.v24Approved?'OUI':'NON')+'</strong></div>'+
-    '<div class="bar-row"><span>Production effective</span><strong class="good">LEGACY</strong></div>';
-
-  if(Array.isArray(readiness.blockers)&&readiness.blockers.length){
-    html+='<div style="margin-top:10px"><div class="metric-title">BLOQUANTS</div>'+
-      readiness.blockers.slice(0,6).map(x=>'<div class="muted" style="margin-top:6px">• '+e(x)+'</div>').join('')+
-      '</div>';
-  }
-
-  if(pending){
-    html+='<div class="readiness" style="margin-top:14px">'+
-      '<strong>Confirmation 2 / 2</strong>'+
-      '<div class="muted">Challenge valable jusqu’à '+e(pending.expiresAt)+'.</div>'+
-      '<div class="muted" style="margin-top:8px">Recopie exactement :</div>'+
-      '<div style="font-weight:750;margin:7px 0">'+e(pending.confirmationPhrase)+'</div>'+
-      '<input id="approvalPhrase" autocomplete="off" autocapitalize="characters" placeholder="'+e(pending.confirmationPhrase)+'">'+
-      '<button id="confirmApproval" class="locked">Confirmer l’autorisation V24</button>'+
-      '<div class="muted" style="margin-top:8px">Après confirmation, seule une nouvelle génération dont tous les garde-fous passent pourra devenir V24.</div>'+
-      '</div>';
-  }else{
-    html+='<button id="prepareApproval" class="'+(ready?'locked':'secondary')+'" style="margin-top:12px">Préparer l’autorisation V24</button>'+
-      '<div class="muted" style="margin-top:8px">'+
-      (ready
-        ?'Étape 1 / 2 : crée un snapshot immuable du readiness et un challenge de 10 minutes.'
-        :'Le serveur refusera l’autorisation tant que READY_CANDIDATE n’est pas atteint. Le refus sera audité.')+
-      '</div>';
-  }
+    '<div class="bar-row"><span>Workflow historique</span><strong class="caution">VERROUILLÉ</strong></div>'+
+    '<div class="muted" style="margin-top:10px">Depuis le Bloc 12.13, cette ancienne double confirmation ne peut plus activer V24. Toute activation officielle passe exclusivement par « GO LIVE V24 · 12.13 ».</div>';
 
   if(audit.length){
-    html+='<div style="margin-top:16px"><div class="metric-title">AUDIT RÉCENT</div>'+
+    html+='<div style="margin-top:16px"><div class="metric-title">AUDIT HISTORIQUE</div>'+
       audit.slice(0,6).map(x=>
         '<div class="bar-row"><span>'+e(x.eventType)+'<div class="muted">'+e(x.reason||'—')+'</div></span><strong>'+e((x.readinessStatus||'—'))+'</strong></div>'
       ).join('')+
@@ -1036,44 +1010,181 @@ function renderApproval(data){
   }
 
   target.innerHTML=html;
+}
 
-  const prepare=document.getElementById('prepareApproval');
+
+function renderGoLive13(data){
+  const target=document.getElementById('goLiveView');
+  if(!target)return;
+
+  const g=data.eligibility||{};
+  const current=g.current||{};
+  const finalRc=g.finalRelease||{};
+  const rehearsal=g.rehearsal||{};
+  const candidate=g.candidate||{};
+  const guard=g.guard||{};
+  const checks=Array.isArray(g.checks)?g.checks:[];
+  const blockers=Array.isArray(g.blockers)?g.blockers:[];
+  const pending=data.pendingChallenge||null;
+
+  const cls=g.status==='ELIGIBLE'
+    ?'good'
+    :(g.status==='ALREADY_ACTIVE'?'good':'bad');
+
+  let html=
+    '<div class="scene '+cls+'">'+e(g.status||'—')+'</div>'+
+    '<div class="bar-row"><span>Readiness requis</span><strong>READY_CANDIDATE</strong></div>'+
+    '<div class="bar-row"><span>Readiness actuel</span><strong class="'+(g.readinessStatus==='READY_CANDIDATE'?'good':'bad')+'">'+e(g.readinessStatus||'—')+'</strong></div>'+
+    '<div class="bar-row"><span>Production actuelle</span><strong>'+e(current.publicEngine||'—')+'</strong></div>'+
+    '<div class="bar-row"><span>FINAL_RC courant</span><strong class="'+(finalRc.currentGeneration?'good':'bad')+'">'+(finalRc.currentGeneration?'PASS #'+e(finalRc.id):'NON')+'</strong></div>'+
+    '<div class="bar-row"><span>REHEARSAL courant</span><strong class="'+(rehearsal.currentGeneration?'good':'bad')+'">'+(rehearsal.currentGeneration?'PASS #'+e(rehearsal.id):'NON')+'</strong></div>'+
+    '<div class="bar-row"><span>Backup Legacy</span><strong class="'+(g.legacyBackupAvailable?'good':'bad')+'">'+(g.legacyBackupAvailable?'PASS':'FAIL')+'</strong></div>'+
+    '<div class="bar-row"><span>Garde-fou génération</span><strong class="'+(guard.status==='PASS'?'good':'bad')+'">'+e(guard.status||'—')+'</strong></div>'+
+    '<div class="bar-row"><span>Candidat V24</span><strong>'+e(candidate.sceneKey||'—')+' · '+e(candidate.confidence||'—')+'</strong></div>';
+
+  if(blockers.length){
+    html+='<div style="margin-top:12px"><div class="metric-title">BLOQUANTS GO LIVE</div>'+
+      blockers.map(x=>'<div class="muted" style="margin-top:6px">• '+e(x)+'</div>').join('')+
+      '</div>';
+  }
+
+  if(pending){
+    html+='<div class="readiness" style="margin-top:14px">'+
+      '<strong>CONFIRMATION FINALE 2 / 2</strong>'+
+      '<div class="muted">Challenge valable jusqu’à '+e(pending.expiresAt)+'. Toute nouvelle génération ou modification des preuves annule cette confirmation.</div>'+
+      '<div style="font-weight:760;margin:10px 0">'+e(pending.confirmationPhrase)+'</div>'+
+      '<input id="goLivePhrase" autocomplete="off" autocapitalize="characters" placeholder="'+e(pending.confirmationPhrase)+'">'+
+      '<button id="confirmGoLive13" class="danger">ACTIVER V24 OFFICIEL MAINTENANT</button>'+
+      '<div class="muted" style="margin-top:9px">Cette action arme V24 puis lance immédiatement une nouvelle génération météo. Si son garde-fou ne passe pas, LOKA revient automatiquement en Legacy.</div>'+
+      '</div>';
+  }else if(g.status==='ELIGIBLE'){
+    html+='<button id="prepareGoLive13" class="danger" style="margin-top:14px">Préparer GO LIVE · confirmation 1 / 2</button>'+
+      '<div class="muted" style="margin-top:8px">Aucune activation à cette étape. Un snapshot final immuable de 10 minutes sera créé.</div>';
+  }else if(g.status==='ALREADY_ACTIVE'){
+    html+='<div class="readiness" style="margin-top:14px"><strong class="good">V24 EST OFFICIEL</strong><div class="muted">Le bouton global « Revenir à Legacy » reste disponible et restaure désormais aussi le produit public Legacy courant.</div></div>';
+  }else{
+    html+='<div class="muted" style="margin-top:12px">Activation impossible. Aucun état moteur ne sera modifié tant que tous les contrôles ne sont pas PASS.</div>';
+  }
+
+  html+='<div style="margin-top:14px"><div class="metric-title">CONTRÔLES 12.13</div>'+
+    checks.map(c=>
+      '<div class="bar-row"><span>'+e(c.id)+'<div class="muted">'+e(c.detail||'')+'</div></span><strong class="'+(c.status==='PASS'?'good':(c.status==='INFO'?'caution':'bad'))+'">'+e(c.status)+'</strong></div>'
+    ).join('')+
+    '</div>';
+
+  target.innerHTML=html;
+
+  const prepare=document.getElementById('prepareGoLive13');
   if(prepare)prepare.onclick=async()=>{
     prepare.disabled=true;
     try{
-      await fetchJson('/api/admin/engine/approval/prepare?city=tarnos',{
+      const response=await fetch('/api/admin/go-live/prepare?city=tarnos',{
         method:'POST',
-        headers:{Authorization:'Bearer '+token()}
+        headers:{Authorization:'Bearer '+token()},
+        cache:'no-store'
       });
-      engineStatusEl.innerHTML='<span class="good">Challenge d’autorisation créé.</span>';
+      const text=await response.text();
+      let x=null;
+      try{x=text?JSON.parse(text):null}catch{}
+      if(!response.ok||!x?.ok){
+        throw new Error(x?.error||('HTTP '+response.status));
+      }
+      await loadGoLive13();
     }catch(err){
-      engineStatusEl.innerHTML='<span class="caution">Autorisation refusée : '+e(err&&err.message?err.message:String(err))+'</span>';
+      engineStatusEl.innerHTML='<span class="error">GO LIVE refusé : '+e(err&&err.message?err.message:String(err))+'</span>';
+      await loadGoLive13();
     }
-    await loadApproval();
   };
 
-  const confirm=document.getElementById('confirmApproval');
+  const confirm=document.getElementById('confirmGoLive13');
   if(confirm)confirm.onclick=async()=>{
-    const phrase=document.getElementById('approvalPhrase')?.value||'';
+    const phrase=document.getElementById('goLivePhrase')?.value||'';
+
+    if(phrase.trim()!==String(pending.confirmationPhrase||'')){
+      engineStatusEl.innerHTML='<span class="error">Phrase finale incorrecte.</span>';
+      return;
+    }
+
+    const browserConfirm=window.confirm(
+      'CONFIRMATION FINALE : cette action peut rendre V24 officielle immédiatement et basculer le Dashboard + le Studio Instagram officiel. Continuer ?'
+    );
+    if(!browserConfirm)return;
+
     confirm.disabled=true;
+    engineStatusEl.innerHTML='<span class="caution">GO LIVE 12.13 en cours · nouvelle génération + contrôles de sécurité…</span>';
+
     try{
-      await fetchJson('/api/admin/engine/approval/confirm?city=tarnos',{
+      const response=await fetch('/api/admin/go-live/confirm?city=tarnos',{
         method:'POST',
-        headers:{Authorization:'Bearer '+token(),'Content-Type':'application/json'},
+        headers:{
+          Authorization:'Bearer '+token(),
+          'Content-Type':'application/json'
+        },
         body:JSON.stringify({
           challengeId:pending.challengeId,
           confirmationPhrase:phrase
-        })
+        }),
+        cache:'no-store'
       });
-      engineStatusEl.innerHTML='<span class="good">Autorisation V24 enregistrée — la prochaine génération restera soumise aux garde-fous.</span>';
-      await loadEngine();
-      return;
+
+      const text=await response.text();
+      let x=null;
+      try{x=text?JSON.parse(text):null}catch{
+        throw new Error('Réponse GO LIVE invalide ('+response.status+') : '+text.slice(0,220));
+      }
+
+      const payload=document.getElementById('payloadView');
+
+      if(x?.status==='GO_LIVE_ACTIVE'&&x?.ok){
+        const id=x.publicIdentity||{};
+        payload.innerHTML=
+          '<div class="card"><div class="label">BLOC 12.13 · GO LIVE</div>'+
+          '<div class="scene good">GO_LIVE_ACTIVE</div>'+
+          '<div class="bar-row"><span>Moteur public</span><strong class="good">'+e(id.engine||'V24')+'</strong></div>'+
+          '<div class="bar-row"><span>Scène officielle</span><strong>'+e(id.scene||'—')+'</strong></div>'+
+          '<div class="bar-row"><span>Génération</span><strong>'+e(id.generatedAt||'—')+'</strong></div>'+
+          '<div class="bar-row"><span>Dashboard officiel</span><strong class="good">V24</strong></div>'+
+          '<div class="bar-row"><span>Studio Instagram officiel</span><strong class="good">V24</strong></div>'+
+          '<div class="muted" style="margin-top:12px">V24 est maintenant le produit officiel. Le rollback global reste disponible à tout instant.</div></div>';
+        engineStatusEl.innerHTML='<span class="good">V24 OFFICIELLE · GO LIVE 12.13 VALIDÉ</span>';
+      }else{
+        const rb=x?.rollback||{};
+        payload.innerHTML=
+          '<div class="card"><div class="label">BLOC 12.13 · GO LIVE</div>'+
+          '<div class="scene bad">'+e(x?.status||'GO_LIVE_ABORTED')+'</div>'+
+          '<div class="error">'+e(x?.error||('HTTP '+response.status))+'</div>'+
+          '<div class="bar-row"><span>Rollback control</span><strong class="'+(rb.authoritativeRollbackVerified?'good':'bad')+'">'+(rb.authoritativeRollbackVerified?'PASS':'À VÉRIFIER')+'</strong></div>'+
+          '<div class="bar-row"><span>Restore public Legacy</span><strong class="'+(rb.publicRestoreVerified?'good':'bad')+'">'+(rb.publicRestoreVerified?'PASS':'À VÉRIFIER')+'</strong></div>'+
+          '<div class="muted" style="margin-top:10px">Une activation non vérifiée n’est jamais considérée GO LIVE.</div></div>';
+        engineStatusEl.innerHTML='<span class="caution">GO LIVE non validé · vérifie l’état Legacy.</span>';
+      }
+
+      await loadGoLive13();
     }catch(err){
       engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>';
+      await loadGoLive13();
+    }finally{
+      confirm.disabled=false;
     }
-    await loadApproval();
   };
 }
+
+async function loadGoLive13(){
+  const target=document.getElementById('goLiveView');
+  if(!target)return;
+
+  target.innerHTML='<div class="muted">Contrôle GO LIVE 12.13…</div>';
+
+  try{
+    const data=await fetchJson('/api/admin/go-live?city=tarnos',{
+      headers:{Authorization:'Bearer '+token()}
+    });
+    renderGoLive13(data);
+  }catch(err){
+    target.innerHTML='<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>';
+  }
+}
+
 
 async function loadApproval(){
   const target=document.getElementById('approvalView');
@@ -1098,6 +1209,7 @@ async function loadEngine(){
     const d=await fetchJson('/api/admin/engine?city=tarnos',{headers:{Authorization:'Bearer '+token()}});
     renderEngine(d);
     await loadApproval();
+    await loadGoLive13();
   }catch(err){
     engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>';
   }
@@ -1107,6 +1219,7 @@ document.getElementById('shadow').onclick=loadShadow;
 document.getElementById('metrics').onclick=loadMetrics;
 document.getElementById('readinessBtn').onclick=loadReadiness;
 document.getElementById('engineBtn').onclick=loadEngine;
+document.addEventListener('click',event=>{const t=event.target;if(t&&t.id==='goLive13'){loadGoLive13();document.getElementById('goLiveView')?.scrollIntoView({behavior:'smooth',block:'start'});}});
 document.getElementById('run').onclick=async()=>{
   out.textContent='Génération…';
   try{
