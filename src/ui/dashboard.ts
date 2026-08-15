@@ -273,6 +273,7 @@ function renderEngine(d){
 
     let prepared=false;
     let completed=false;
+    let handedToUser=false;
 
     try{
       const info=await fetchJson('/api/admin/mobile-rehearsal?city=tarnos',{
@@ -329,17 +330,28 @@ function renderEngine(d){
         '</div>';
 
       document.getElementById('cancelRehearsal').onclick=async()=>{
+        const cancel=document.getElementById('cancelRehearsal');
+        cancel.disabled=true;
         try{
-          await fetch('/api/admin/mobile-rehearsal/cleanup?city=tarnos',{
+          const response=await fetch('/api/admin/mobile-rehearsal/cleanup?city=tarnos',{
             method:'POST',
             headers:{Authorization:'Bearer '+token()},
             cache:'no-store'
           });
+          const text=await response.text();
+          let data=null;
+          try{data=text?JSON.parse(text):null}catch{}
+          if(!response.ok||!data?.ok){
+            throw new Error(data?.error||('HTTP '+response.status));
+          }
           prepared=false;
           completed=true;
+          handedToUser=false;
           out.innerHTML='<div class="card"><div class="scene good">LEGACY RÉTABLI</div><div class="muted">Répétition annulée sans publication V24.</div></div>';
         }catch(err){
-          out.innerHTML='<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>';
+          out.innerHTML='<div class="card"><div class="scene bad">ROLLBACK À VÉRIFIER</div><div class="error">'+e(err&&err.message?err.message:String(err))+'</div><div class="muted">Utilise immédiatement « Revenir à Legacy » dans le panneau moteur.</div></div>';
+        }finally{
+          btn.disabled=false;
         }
       };
 
@@ -347,76 +359,103 @@ function renderEngine(d){
         const finish=document.getElementById('finishRehearsal');
         finish.disabled=true;
 
-        out.innerHTML=
-          '<div class="card"><div class="label">BLOC 12.12 · CONTRÔLE AUTOMATIQUE</div>'+
-          '<div class="muted">Lecture des 4 surfaces officielles + 2 surfaces Preview, puis rollback global…</div></div>';
-
-        const stamp=Date.now();
-        const reqs=[
-          ['api_latest','/api/latest?city=tarnos&_r='+stamp],
-          ['api_decision','/api/decision?city=tarnos&_r='+stamp],
-          ['dashboard','/?_r='+stamp],
-          ['instagram','/instagram?_r='+stamp],
-          ['preview_dashboard','/preview24?_r='+stamp],
-          ['preview_instagram','/instagram24-preview?_r='+stamp]
-        ];
-
-        const observations=[];
-        for(const [surface,url] of reqs){
-          observations.push(
-            await fetchRehearsalObservation(surface,url)
-          );
-        }
-
-        const response=await fetch('/api/admin/mobile-rehearsal/complete?city=tarnos',{
-          method:'POST',
-          headers:{
-            Authorization:'Bearer '+token(),
-            'Content-Type':'application/json'
-          },
-          body:JSON.stringify({observations}),
-          cache:'no-store'
-        });
-
-        const text=await response.text();
-        let x=null;
         try{
-          x=text?JSON.parse(text):null;
-        }catch{
-          throw new Error('Réponse répétition invalide ('+response.status+') : '+text.slice(0,220));
+          out.innerHTML=
+            '<div class="card"><div class="label">BLOC 12.12 · CONTRÔLE AUTOMATIQUE</div>'+
+            '<div class="muted">Lecture des 4 surfaces officielles + 2 surfaces Preview, puis rollback global…</div></div>';
+
+          const stamp=Date.now();
+          const reqs=[
+            ['api_latest','/api/latest?city=tarnos&_r='+stamp],
+            ['api_decision','/api/decision?city=tarnos&_r='+stamp],
+            ['dashboard','/?_r='+stamp],
+            ['instagram','/instagram?_r='+stamp],
+            ['preview_dashboard','/preview24?_r='+stamp],
+            ['preview_instagram','/instagram24-preview?_r='+stamp]
+          ];
+
+          const observations=[];
+          for(const [surface,url] of reqs){
+            observations.push(
+              await fetchRehearsalObservation(surface,url)
+            );
+          }
+
+          const response=await fetch('/api/admin/mobile-rehearsal/complete?city=tarnos',{
+            method:'POST',
+            headers:{
+              Authorization:'Bearer '+token(),
+              'Content-Type':'application/json'
+            },
+            body:JSON.stringify({observations}),
+            cache:'no-store'
+          });
+
+          const text=await response.text();
+          let x=null;
+          try{
+            x=text?JSON.parse(text):null;
+          }catch{
+            throw new Error('Réponse répétition invalide ('+response.status+') : '+text.slice(0,220));
+          }
+
+          if(!x?.report){
+            throw new Error(x?.error||('HTTP '+response.status));
+          }
+
+          prepared=false;
+          completed=true;
+          handedToUser=false;
+
+          const r=x.report||{};
+          const checks=Array.isArray(r.checks)?r.checks:[];
+          const cls=r.status==='REHEARSAL_PASS'?'good':'bad';
+
+          out.innerHTML=
+            '<div class="card"><div class="label">BLOC 12.12 · RÉPÉTITION GÉNÉRALE</div>'+
+            '<div class="scene '+cls+'">'+e(r.status||'—')+'</div>'+
+            '<div class="bar-row"><span>Production finale</span><strong class="'+(r.after?.publicEngine==='LEGACY'?'good':'bad')+'">'+e(r.after?.publicEngine||'—')+'</strong></div>'+
+            '<div class="bar-row"><span>requested final</span><strong class="'+(r.after?.requestedMode==='LEGACY'?'good':'bad')+'">'+e(r.after?.requestedMode||'—')+'</strong></div>'+
+            '<div class="bar-row"><span>V24 approuvé final</span><strong class="'+(!r.after?.v24Approved?'good':'bad')+'">'+(r.after?.v24Approved?'OUI':'NON')+'</strong></div>'+
+            '<div class="bar-row"><span>Dashboard Preview</span><strong class="'+(r.summary?.previewDashboardVerified?'good':'bad')+'">'+(r.summary?.previewDashboardVerified?'PASS':'FAIL')+'</strong></div>'+
+            '<div class="bar-row"><span>Studio Instagram Preview</span><strong class="'+(r.summary?.previewInstagramVerified?'good':'bad')+'">'+(r.summary?.previewInstagramVerified?'PASS':'FAIL')+'</strong></div>'+
+            '<div class="bar-row"><span>4 surfaces officielles</span><strong class="'+(r.summary?.publicSurfacesVerified?'good':'bad')+'">'+(r.summary?.publicSurfacesVerified?'PASS':'FAIL')+'</strong></div>'+
+            '<div class="bar-row"><span>Identité publique</span><strong class="'+(r.summary?.publicIdentityUnchanged?'good':'bad')+'">'+(r.summary?.publicIdentityUnchanged?'INCHANGÉE':'MODIFIÉE')+'</strong></div>'+
+            '<div class="bar-row"><span>Rollback global</span><strong class="'+(r.summary?.rollbackVerified?'good':'bad')+'">'+(r.summary?.rollbackVerified?'PASS':'FAIL')+'</strong></div>'+
+            '<div class="bar-row"><span>GO LIVE Instagram</span><strong class="caution">NON · BLOC 12.13</strong></div>'+
+            checks.map(c=>
+              '<div class="bar-row"><span>'+e(c.id)+'<div class="muted">'+e(c.detail||'')+'</div></span><strong class="'+(c.status==='PASS'?'good':(c.status==='INFO'?'caution':'bad'))+'">'+e(c.status)+'</strong></div>'
+            ).join('')+
+            '<div class="muted" style="margin-top:12px">La répétition a utilisé V24_PREVIEW réel puis le rollback global officiel. Aucun forecast ni aucune approbation V24 n’ont été créés.</div>'+
+            '</div>';
+        }catch(err){
+          // Si la finalisation échoue alors que Preview est encore actif,
+          // tenter immédiatement le rollback global.
+          try{
+            await fetch('/api/admin/mobile-rehearsal/cleanup?city=tarnos',{
+              method:'POST',
+              headers:{Authorization:'Bearer '+token()},
+              cache:'no-store'
+            });
+          }catch{}
+
+          prepared=false;
+          handedToUser=false;
+
+          out.innerHTML=
+            '<div class="card"><div class="label">BLOC 12.12 · RÉPÉTITION GÉNÉRALE</div>'+
+            '<div class="scene bad">RÉPÉTITION NON VALIDÉE</div>'+
+            '<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>'+
+            '<div class="muted">Un rollback de sécurité a été tenté. Vérifie ensuite le moteur : requested LEGACY, V24 approuvé NON.</div></div>';
+        }finally{
+          btn.disabled=false;
         }
-
-        if(!x?.report){
-          throw new Error(x?.error||('HTTP '+response.status));
-        }
-
-        prepared=false;
-        completed=true;
-
-        const r=x.report||{};
-        const checks=Array.isArray(r.checks)?r.checks:[];
-        const cls=r.status==='REHEARSAL_PASS'?'good':'bad';
-
-        out.innerHTML=
-          '<div class="card"><div class="label">BLOC 12.12 · RÉPÉTITION GÉNÉRALE</div>'+
-          '<div class="scene '+cls+'">'+e(r.status||'—')+'</div>'+
-          '<div class="bar-row"><span>Production finale</span><strong class="'+(r.after?.publicEngine==='LEGACY'?'good':'bad')+'">'+e(r.after?.publicEngine||'—')+'</strong></div>'+
-          '<div class="bar-row"><span>requested final</span><strong class="'+(r.after?.requestedMode==='LEGACY'?'good':'bad')+'">'+e(r.after?.requestedMode||'—')+'</strong></div>'+
-          '<div class="bar-row"><span>V24 approuvé final</span><strong class="'+(!r.after?.v24Approved?'good':'bad')+'">'+(r.after?.v24Approved?'OUI':'NON')+'</strong></div>'+
-          '<div class="bar-row"><span>Dashboard Preview</span><strong class="'+(r.summary?.previewDashboardVerified?'good':'bad')+'">'+(r.summary?.previewDashboardVerified?'PASS':'FAIL')+'</strong></div>'+
-          '<div class="bar-row"><span>Studio Instagram Preview</span><strong class="'+(r.summary?.previewInstagramVerified?'good':'bad')+'">'+(r.summary?.previewInstagramVerified?'PASS':'FAIL')+'</strong></div>'+
-          '<div class="bar-row"><span>4 surfaces officielles</span><strong class="'+(r.summary?.publicSurfacesVerified?'good':'bad')+'">'+(r.summary?.publicSurfacesVerified?'PASS':'FAIL')+'</strong></div>'+
-          '<div class="bar-row"><span>Identité publique</span><strong class="'+(r.summary?.publicIdentityUnchanged?'good':'bad')+'">'+(r.summary?.publicIdentityUnchanged?'INCHANGÉE':'MODIFIÉE')+'</strong></div>'+
-          '<div class="bar-row"><span>Rollback global</span><strong class="'+(r.summary?.rollbackVerified?'good':'bad')+'">'+(r.summary?.rollbackVerified?'PASS':'FAIL')+'</strong></div>'+
-          '<div class="bar-row"><span>GO LIVE Instagram</span><strong class="caution">NON · BLOC 12.13</strong></div>'+
-          checks.map(c=>
-            '<div class="bar-row"><span>'+e(c.id)+'<div class="muted">'+e(c.detail||'')+'</div></span><strong class="'+(c.status==='PASS'?'good':(c.status==='INFO'?'caution':'bad'))+'">'+e(c.status)+'</strong></div>'
-          ).join('')+
-          '<div class="muted" style="margin-top:12px">La répétition a utilisé V24_PREVIEW réel puis le rollback global officiel. Aucun forecast ni aucune approbation V24 n’ont été créés.</div>'+
-          '</div>';
-
-        // Le rapport contient déjà l'état final vérifié ; on le conserve à l'écran.
       };
+
+      // À partir d'ici l'utilisateur doit ouvrir les deux surfaces Preview,
+      // revenir sur cet onglet, puis choisir Terminer ou Annuler.
+      // L'outer handler ne doit donc surtout pas déclencher le cleanup maintenant.
+      handedToUser=true;
 
     }catch(err){
       out.innerHTML=
@@ -425,7 +464,7 @@ function renderEngine(d){
         '<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>'+
         '<div class="muted">Un rollback de sécurité va être tenté si Preview avait été activé.</div></div>';
     }finally{
-      if(prepared&&!completed){
+      if(prepared&&!completed&&!handedToUser){
         try{
           await fetch('/api/admin/mobile-rehearsal/cleanup?city=tarnos',{
             method:'POST',
@@ -433,12 +472,15 @@ function renderEngine(d){
             cache:'no-store'
           });
           prepared=false;
-          await loadEngine().catch(()=>{});
         }catch{
           // Manual rollback remains available in Admin.
         }
       }
-      btn.disabled=false;
+      // Si handedToUser=true, le bouton principal reste désactivé jusqu'à
+      // Terminer/Annuler pour éviter deux répétitions simultanées.
+      if(!handedToUser){
+        btn.disabled=false;
+      }
     }
   };
 
