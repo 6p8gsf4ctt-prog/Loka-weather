@@ -85,6 +85,14 @@ import {
   recentProductionSupervisorAudits,
   recordProductionSupervisorAudit
 } from "./storage/productionSupervisor";
+import {
+  cancelCertificationWindow,
+  certificationWindowOverview,
+  openCertificationWindow
+} from "./engine/certificationWindow15";
+import {
+  closeCertificationWindow
+} from "./storage/certificationWindow";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, {
@@ -494,7 +502,7 @@ export default {
       return json({
         error: "use_double_confirmation_flow",
         message:
-          "Bloc 12.14 exige le workflow final /api/admin/go-live. Aucun état moteur n'a été modifié."
+          "Bloc 12.15 exige le workflow final /api/admin/go-live. Aucun état moteur n'a été modifié."
       }, 409);
     }
 
@@ -756,6 +764,103 @@ export default {
       } catch (error) {
         return json({
           error: error instanceof Error ? error.message : String(error)
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/certification-window" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        return json(
+          await certificationWindowOverview(
+            env,
+            slug
+          )
+        );
+      } catch (error) {
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error),
+          safety: {
+            generationLockActivated: false,
+            v24Activated: false
+          }
+        }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/certification-window/open" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      let body: {
+        confirmationPhrase?: unknown;
+      } = {};
+
+      try {
+        body = await request.json() as typeof body;
+      } catch {
+        return json({ error: "invalid_json" }, 400);
+      }
+
+      if (
+        typeof body.confirmationPhrase !== "string"
+      ) {
+        return json({
+          error: "confirmation_phrase_required"
+        }, 400);
+      }
+
+      try {
+        const result =
+          await openCertificationWindow(
+            env,
+            slug,
+            body.confirmationPhrase
+          );
+
+        return json(
+          result,
+          result.ok ? 200 : 423
+        );
+      } catch (error) {
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error),
+          safety: {
+            generationLockActivated: false,
+            v24Activated: false
+          }
+        }, 409);
+      }
+    }
+
+    if (url.pathname === "/api/admin/certification-window/cancel" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+
+      try {
+        return json(
+          await cancelCertificationWindow(
+            env,
+            slug
+          )
+        );
+      } catch (error) {
+        return json({
+          error: error instanceof Error
+            ? error.message
+            : String(error)
         }, 500);
       }
     }
@@ -1641,6 +1746,22 @@ export default {
         reason
       );
 
+      try {
+        await closeCertificationWindow(
+          env.DB,
+          slug,
+          {
+            status: "CANCELLED",
+            reason:
+              "manual_global_rollback_cancelled_certification_window",
+            source:
+              "manual_admin_rollback"
+          }
+        );
+      } catch {
+        // Rollback itself remains authoritative.
+      }
+
       return json({
         ...(await engineStatus(env, slug)),
         rollback
@@ -1712,9 +1833,24 @@ export default {
       try {
         return json(await runOneCity(env, city, "manual"));
       } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : String(error);
+
         return json(
-          { error: error instanceof Error ? error.message : String(error) },
-          500
+          {
+            error: message,
+            certificationWindowActive:
+              message.startsWith(
+                "certification_window_generation_blocked:"
+              )
+          },
+          message.startsWith(
+            "certification_window_generation_blocked:"
+          )
+            ? 423
+            : 500
         );
       }
     }

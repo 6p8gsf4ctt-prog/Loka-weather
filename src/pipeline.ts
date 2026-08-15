@@ -14,6 +14,7 @@ import { loadShadowMetricRows } from "./storage/shadowMetrics";
 import { evaluateV24Readiness } from "./analytics/readiness";
 import { evaluateProductionSupervisor } from "./engine/productionSupervisor";
 import { recordProductionSupervisorAudit } from "./storage/productionSupervisor";
+import { certificationGenerationGate } from "./storage/certificationWindow";
 import type { CityConfig, Env, LokaForecast, ModelForecast } from "./types";
 import { fetchModelForecast } from "./weather/openMeteo";
 
@@ -279,10 +280,50 @@ async function runCity(env: Env, city: CityConfig, source: string): Promise<Loka
 
 export async function runAllCities(env: Env, source: string): Promise<LokaForecast[]> {
   const results: LokaForecast[] = [];
-  for (const city of Object.values(CITIES)) results.push(await runCity(env, city, source));
+
+  for (const city of Object.values(CITIES)) {
+    const gate = await certificationGenerationGate(
+      env.DB,
+      city.slug,
+      source
+    );
+
+    // Scheduled generations are skipped cleanly during the short
+    // certification window. Audit is written by the gate itself.
+    if (!gate.allowed) continue;
+
+    results.push(
+      await runCity(
+        env,
+        city,
+        source
+      )
+    );
+  }
+
   return results;
 }
 
-export async function runOneCity(env: Env, city: CityConfig, source: string): Promise<LokaForecast> {
-  return runCity(env, city, source);
+export async function runOneCity(
+  env: Env,
+  city: CityConfig,
+  source: string
+): Promise<LokaForecast> {
+  const gate = await certificationGenerationGate(
+    env.DB,
+    city.slug,
+    source
+  );
+
+  if (!gate.allowed) {
+    throw new Error(
+      `certification_window_generation_blocked:${gate.windowId ?? "active"}`
+    );
+  }
+
+  return runCity(
+    env,
+    city,
+    source
+  );
 }

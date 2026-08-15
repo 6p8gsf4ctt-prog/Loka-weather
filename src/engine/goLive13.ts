@@ -55,6 +55,10 @@ import {
   markGoLiveChallengeConfirmed,
   markGoLiveChallengeFailed
 } from "../storage/goLive13";
+import {
+  activeCertificationWindow,
+  closeCertificationWindow
+} from "../storage/certificationWindow";
 
 type Obj = Record<string, unknown>;
 
@@ -164,6 +168,14 @@ export interface GoLiveEligibility {
   };
 
   legacyBackupAvailable: boolean;
+
+  certificationWindow: {
+    active: boolean;
+    currentGeneration: boolean;
+    windowId: string | null;
+    expiresAt: string | null;
+  };
+
   readinessFingerprint: string | null;
   snapshotJson: string;
   snapshotFingerprint: string;
@@ -453,6 +465,35 @@ export async function evaluateGoLiveEligibility(
       : "Aucun backup Legacy vérifiable."
   );
 
+  let certificationWindow = null;
+  try {
+    certificationWindow =
+      await activeCertificationWindow(
+        env.DB,
+        citySlug
+      );
+  } catch {
+    certificationWindow = null;
+  }
+
+  const certificationWindowCurrent =
+    !!certificationWindow &&
+    !!generatedAt &&
+    !!publicFingerprint &&
+    certificationWindow.generated_at === generatedAt &&
+    certificationWindow.publication_fingerprint === publicFingerprint &&
+    certificationWindow.readiness_status === "READY_CANDIDATE";
+
+  addCheck(
+    checks,
+    blockers,
+    "certification_window_current",
+    certificationWindowCurrent,
+    certificationWindowCurrent
+      ? `ACTIVE · ${certificationWindow?.window_id} · expires=${certificationWindow?.expires_at}.`
+      : "Aucune fenêtre 12.15 ACTIVE correspondant à la génération courante."
+  );
+
   let candidateSceneId:
     number | null = null;
   let candidateSceneKey:
@@ -679,7 +720,22 @@ export async function evaluateGoLiveEligibility(
         checks:
           guardChecks
       },
-      legacyBackupAvailable
+      legacyBackupAvailable,
+      certificationWindow:
+        certificationWindow
+          ? {
+              windowId:
+                certificationWindow.window_id,
+              generatedAt:
+                certificationWindow.generated_at,
+              fingerprint:
+                certificationWindow.publication_fingerprint,
+              openedAt:
+                certificationWindow.opened_at,
+              expiresAt:
+                certificationWindow.expires_at
+            }
+          : null
     }
   };
 
@@ -755,6 +811,16 @@ export async function evaluateGoLiveEligibility(
         activationReady
     },
     legacyBackupAvailable,
+    certificationWindow: {
+      active:
+        !!certificationWindow,
+      currentGeneration:
+        certificationWindowCurrent,
+      windowId:
+        certificationWindow?.window_id ?? null,
+      expiresAt:
+        certificationWindow?.expires_at ?? null
+    },
     readinessFingerprint,
     snapshotJson,
     snapshotFingerprint
@@ -825,6 +891,10 @@ export async function getGoLiveOverview(
       doubleConfirmationRequired:
         true,
       immediateFreshGeneration:
+        true,
+      certificationWindowRequired:
+        true,
+      certificationWindowBlocksOtherGenerations:
         true,
       legacyRollbackAlwaysAvailable:
         true
@@ -1372,6 +1442,24 @@ export async function confirmGoLiveAndActivate(
         }
       );
 
+      try {
+        await closeCertificationWindow(
+          env.DB,
+          citySlug,
+          {
+            status:
+              "CONSUMED",
+            reason:
+              "go_live_12_13_activated",
+            source:
+              "go_live_12_13"
+          }
+        );
+      } catch {
+        // A window cleanup failure cannot invalidate an already verified
+        // V24 cutover. The expired window will fail closed on future reuse.
+      }
+
       return {
         ok: true,
         status:
@@ -1462,6 +1550,23 @@ export async function confirmGoLiveAndActivate(
         "go_live_activation_generation_failed"
     }
   );
+
+  try {
+    await closeCertificationWindow(
+      env.DB,
+      citySlug,
+      {
+        status:
+          "CONSUMED",
+        reason:
+          "go_live_12_13_aborted",
+        source:
+          "go_live_12_13"
+      }
+    );
+  } catch {
+    // Rollback result remains authoritative.
+  }
 
   return {
     ok: false,

@@ -1,182 +1,238 @@
-LOKA V24 — BLOC 12.14
+LOKA V24 — BLOC 12.15
 =======================
 
 OBJET
 -----
-Supervision production et stabilisation post-GO-LIVE.
+Fenêtre de certification / gel temporaire des générations.
 
-Le Bloc 12.13 reste le SEUL mécanisme d'activation officielle.
-Le Bloc 12.14 n'active jamais V24 et ne déclenche jamais de rollback global
-automatique.
+Le problème opérationnel traité est réel :
+les preuves 12.8, 12.9, 12.10, FINAL_RC et REHEARSAL sont attachées à une
+génération précise. Une nouvelle génération entre deux étapes les rend
+immédiatement périmées.
 
-POURQUOI 12.14
---------------
-Le 12.13 est volontairement strict : une nouvelle génération rend les preuves
-FINAL_RC / REHEARSAL précédentes périmées.
-
-Le 12.14 rend le process opérationnel et lisible sur la durée :
-
-AVANT GO LIVE
-- WAITING_READINESS
-- RECERTIFICATION_REQUIRED
-- GO_LIVE_ELIGIBLE
-- PRE_GO_LIVE_BLOCKED
-
-APRÈS GO LIVE
-- V24_LIVE_HEALTHY
-- V24_LIVE_STABLE
-- V24_LIVE_WATCH
-- ROLLBACK_RECOMMENDED
+Le 12.15 protège la génération choisie pendant la recertification finale.
 
 MIGRATION D1 OBLIGATOIRE
 ------------------------
 Appliquer :
-migrations/0014_production_supervisor.sql
+migrations/0015_certification_window.sql
 
 Elle crée :
-production_supervisor_audit
+- certification_window
+- certification_window_audit
 
-La table est append-only et impose :
-production_mutated = 0
-auto_rollback_triggered = 0
+certification_window_audit est append-only.
 
 FICHIERS À AJOUTER
 ------------------
-- migrations/0014_production_supervisor.sql
-- src/engine/productionSupervisor.ts
-- src/storage/productionSupervisor.ts
+- migrations/0015_certification_window.sql
+- src/engine/certificationWindow15.ts
+- src/storage/certificationWindow.ts
 
 FICHIERS À REMPLACER
 --------------------
 - src/pipeline.ts
+- src/engine/goLive13.ts
+- src/engine/productionSupervisor.ts
 - src/index.ts
 - src/ui/dashboard.ts
 
-Le ZIP inclut aussi les dépendances cohérentes du Bloc 12.13.
-
-COMPORTEMENT AVANT GO LIVE
---------------------------
-Avec l'état actuel :
+INSTALLER 12.15 N'OUVRE AUCUNE FENÊTRE
+--------------------------------------
+Aujourd'hui :
 readiness = NOT_READY
-production = LEGACY
 
-le statut attendu est :
+Résultat attendu :
+Fenêtre certification 12.15 = INACTIVE
+Readiness actuel = NOT_READY
 
-WAITING_READINESS
+Aucune génération n'est bloquée.
 
-La recommandation est volontairement :
-continuer Shadow et NE PAS refaire 12.8→12.12 après chaque génération.
+OUVERTURE
+---------
+La fenêtre ne peut être ouverte que si :
 
-Lorsque READY_CANDIDATE sera atteint :
+- readiness = READY_CANDIDATE
+- production publique = LEGACY
+- requested_mode = LEGACY
+- V24 approuvé = NON
+- identité/fingerprint publics disponibles
 
-- si FINAL_RC / REHEARSAL sont périmés :
-  RECERTIFICATION_REQUIRED
+Phrase exacte :
 
-  Le panneau dira de refaire, sur UNE seule génération courante :
-  12.8 -> 12.9 -> 12.10 -> 12.11 -> 12.12
+GELER CERTIFICATION TARNOS
 
-- si toutes les preuves 12.13 sont alignées :
-  GO_LIVE_ELIGIBLE
+DURÉE
+-----
+45 minutes maximum.
 
-Le GO LIVE reste alors une action humaine dans 12.13.
+La fenêtre mémorise :
+- generatedAt
+- moteur public
+- scène
+- fingerprint
+- readiness
+- fingerprint readiness
 
-COMPORTEMENT APRÈS GO LIVE
---------------------------
-Chaque génération météo enregistre automatiquement un snapshot de supervision.
+PENDANT LA FENÊTRE
+------------------
+Bloqué :
+- bouton « Générer la météo »
+- génération cron
 
-V24_LIVE_HEALTHY
-La génération courante est V24, le garde-fou est PASS, le manifest est valide
-et le backup Legacy est disponible.
+Autorisé :
+- tous les audits 12.8 -> 12.12
+- Preview V24 nécessaire au 12.12
+- rollback drills
+- UNE génération spéciale de cutover source=go_live_12_13
 
-V24_LIVE_STABLE
-6 générations V24 consécutives saines sont observées.
+Le forecast officiel courant reste inchangé pendant la recertification.
 
-V24_LIVE_WATCH
-Une génération est tombée en fallback Legacy.
-Cela NE déclenche PAS un rollback global : la séparation historique entre
-fallback local et rollback global est conservée.
+RÉPONSE DU BOUTON GÉNÉRER
+-------------------------
+Si l'utilisateur tente une génération manuelle pendant la fenêtre :
 
-ROLLBACK_RECOMMENDED
-Exemples :
-- deux fallbacks V24 consécutifs ;
-- surface publique indisponible ;
-- manifest invalide ;
-- backup Legacy indisponible ;
-- garde-fou incohérent alors que V24 est armé.
+HTTP 423
 
-Même dans ce statut, 12.14 ne rollback pas automatiquement.
-L'opérateur utilise le bouton global « Revenir à Legacy » après analyse.
+certification_window_generation_blocked:<window_id>
 
-POURQUOI PAS DE ROLLBACK AUTOMATIQUE
-------------------------------------
-Le design LOKA distingue volontairement :
+Cela est volontaire.
 
-1. fallback d'une génération
-2. rollback global d'administration
+CRON
+----
+Si le cron de 05:00 tombe pendant la fenêtre :
+la génération de cette ville est simplement ignorée.
 
-Une météo ponctuellement ambiguë ne doit pas désarmer toute la V24.
-Le 12.14 recommande un rollback si l'incident persiste ou devient structurel,
-mais laisse l'action globale explicite et auditée.
+Un événement append-only :
+GENERATION_BLOCKED
+est enregistré.
 
-ROUTES ADMIN
-------------
-GET  /api/admin/production-supervisor?city=tarnos
-POST /api/admin/production-supervisor/snapshot?city=tarnos
+Aucune erreur météo globale n'est déclenchée.
 
-Le pipeline crée aussi automatiquement un snapshot après chaque génération
-commise. Une panne du superviseur ne peut jamais faire échouer une génération
-météo.
+SÉCURITÉ ASYMÉTRIQUE
+--------------------
+Si D1 12.15 lui-même est indisponible :
+
+- génération météo normale :
+  FAIL-OPEN
+  La météo Legacy continue. Le verrou opérationnel ne doit jamais casser la
+  production météo.
+
+- activation V24 :
+  FAIL-CLOSED
+  Le 12.13 exige une fenêtre ACTIVE et courante. Aucun GO LIVE sans preuve
+  12.15.
+
+NOUVEAU PROCESS FINAL
+---------------------
+Quand le 12.14 passe :
+
+RECERTIFICATION_REQUIRED
+
+Faire :
+
+1. Ouvrir « Fenêtre certification 12.15 »
+2. Taper :
+   GELER CERTIFICATION TARNOS
+
+3. Vérifier :
+   ACTIVE
+   même generatedAt
+   même fingerprint
+   expiration < 45 min
+
+4. Sans générer de nouvelle météo :
+   12.8  PASS 16/16
+   12.9  PASS 24/24
+   12.10 PASS
+   12.11 FINAL_RC_PASS
+   12.12 REHEARSAL_PASS
+
+5. Revenir immédiatement à 12.13.
+
+6. Le GO LIVE 12.13 doit afficher :
+   Fenêtre certification 12.15 = ACTIVE
+
+7. Préparer puis confirmer le GO LIVE.
+
+8. La génération de cutover 12.13 est la seule génération autorisée pendant
+   le gel.
+
+FIN DE FENÊTRE
+--------------
+Après un vrai essai GO LIVE :
+
+- succès GO_LIVE_ACTIVE :
+  fenêtre = CONSUMED
+
+- GO_LIVE_ABORTED :
+  fenêtre = CONSUMED
+
+Si l'opérateur annule :
+fenêtre = CANCELLED
+
+Si 45 minutes passent :
+fenêtre = EXPIRED
+
+Une fenêtre expirée ne peut jamais être réutilisée.
+
+ROLLBACK MANUEL
+---------------
+Le bouton Admin global « Revenir à Legacy » annule aussi toute fenêtre
+certification ACTIVE.
+
+Les rollback drills internes 12.10 et 12.12 ne l'annulent PAS.
+
+12.13 RENFORCÉ
+--------------
+Après installation du 12.15, le 12.13 ajoute un contrôle bloquant :
+
+certification_window_current
+
+Il exige :
+- fenêtre ACTIVE
+- même generatedAt
+- même fingerprint
+- readiness READY_CANDIDATE
+
+Donc une course entre recertification et nouvelle génération n'est plus
+possible par le workflow normal.
 
 PANNEAU ADMIN
 -------------
 Nouveau bouton :
-Supervision production 12.14
+
+Fenêtre certification 12.15
 
 Le panneau affiche :
-- phase PRE_GO_LIVE / V24_LIVE
-- génération
-- moteur public
+- ACTIVE / INACTIVE / STALE
 - readiness
-- FINAL_RC courant
-- REHEARSAL courant
-- éligibilité GO LIVE
-- garde-fou
-- fallback
-- stabilité V24 / 6
-- recommandation
-- 12 derniers snapshots
-
-INSTALLATION MOBILE
--------------------
-1. Appliquer 0014_production_supervisor.sql dans D1.
-2. Ajouter :
-   src/engine/productionSupervisor.ts
-   src/storage/productionSupervisor.ts
-3. Remplacer :
-   src/pipeline.ts
-   src/index.ts
-   src/ui/dashboard.ts
-4. Déployer.
-5. Recharger /admin.
-6. ADMIN_TOKEN.
-7. Contrôler le moteur.
-8. Ouvrir « Supervision production 12.14 ».
+- génération courante
+- moteur public
+- génération manuelle autorisée/bloquée
+- cron autorisé/bloqué
+- cutover 12.13 autorisé
+- window ID
+- expiration
+- audit récent
 
 RÉSULTAT ATTENDU AUJOURD'HUI
 ----------------------------
-WAITING_READINESS
-PRE_GO_LIVE
-Production LEGACY
+INACTIVE
 Readiness NOT_READY
-GO LIVE éligible NON
+Génération manuelle AUTORISÉE
+Cron AUTORISÉ
+GO LIVE toujours BLOCKED
 
-C'est un résultat sain.
+C'est le bon résultat.
 
-SUITE
------
-Il n'est pas nécessaire d'ajouter un autre mécanisme d'activation.
-12.13 = activation.
-12.14 = exploitation / stabilisation.
-
-Quand READY_CANDIDATE arrivera, le 12.14 indiquera précisément quand refaire
-la chaîne finale et quand le 12.13 devient réellement ELIGIBLE.
+VALIDATION PACKAGE
+------------------
+- TypeScript : PASS
+- JavaScript Admin réellement rendu : PASS
+- aucune activation à l'installation
+- génération normale non bloquée sans fenêtre
+- GO LIVE fail-closed sans fenêtre
+- source go_live_12_13 autorisée pendant fenêtre
+- expiration automatique
+- audit append-only

@@ -354,11 +354,13 @@ export async function evaluateProductionSupervisor(
     ) {
       status = "RECERTIFICATION_REQUIRED";
       recommendation =
-        "READY_CANDIDATE est atteint. Sur une seule génération courante, exécuter 12.8 → 12.9 → 12.10 → 12.11 → 12.12, puis revenir immédiatement au 12.13.";
+        "READY_CANDIDATE est atteint. Ouvrir d’abord la fenêtre de certification 12.15 pour geler la génération courante, puis exécuter 12.8 → 12.9 → 12.10 → 12.11 → 12.12 et revenir immédiatement au 12.13.";
     } else if (goLive.eligible) {
       status = "GO_LIVE_ELIGIBLE";
       recommendation =
-        "Tous les contrôles sont alignés. Le GO LIVE 12.13 peut être préparé, avec double confirmation humaine.";
+        goLive.certificationWindow.currentGeneration
+          ? "Tous les contrôles sont alignés et la fenêtre 12.15 protège la génération courante. Le GO LIVE 12.13 peut être préparé."
+          : "Les preuves sont alignées mais le GO LIVE reste verrouillé tant qu’une fenêtre de certification 12.15 ACTIVE ne protège pas cette génération.";
     } else {
       status = "PRE_GO_LIVE_BLOCKED";
       recommendation =

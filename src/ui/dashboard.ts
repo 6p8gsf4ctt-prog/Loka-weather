@@ -17,7 +17,7 @@ export function renderAdmin():string{return `<!doctype html><html lang="fr"><hea
 
 <section class="readiness10"><h2>Readiness V24</h2><div class="muted">Sas de validation technique sur 30 jours. Il ne bascule jamais automatiquement la production.</div><div id="readinessStatus" class="muted" style="margin-top:12px">Non évalué.</div><div id="readinessView"></div></section>
 
-<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.14. Supervision production : attente readiness, recertification finale, GO LIVE et stabilisation V24 sans rollback automatique.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
+<section class="engine11"><h2>Moteur météo</h2><div class="muted">Bloc 12.15. Fenêtre de certification : gèle temporairement la génération courante pour sécuriser 12.8 → 12.13 sans interrompre le fallback ni le rollback.</div><div id="engineStatus" class="muted" style="margin-top:12px">Non chargé.</div><div id="engineView"></div></section>
 
 </div><script>
 const token=()=>document.getElementById('token').value;
@@ -190,9 +190,10 @@ function renderEngine(d){
       '<button class="secondary" id="enablePreview">Activer Preview V24</button>'+
       '<button class="danger" id="rollbackLegacy">Revenir à Legacy</button>'+
     '</div>'+
-    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button><button class="danger" id="rollbackDrill" style="margin-top:10px">Tester rollback réel 12.10</button><button class="locked" id="finalAudit" style="margin-top:10px">Audit final RC 12.11</button><button class="locked" id="mobileRehearsal" style="margin-top:10px">Répétition générale 12.12</button><button class="danger" id="goLive13" style="margin-top:10px">GO LIVE V24 · 12.13</button><button class="secondary" id="supervisor14" style="margin-top:10px">Supervision production 12.14</button>'+
+    '<button class="secondary" id="showPayload" style="margin-top:10px">Voir le futur payload V24</button><button class="secondary" id="checkActivation" style="margin-top:10px">Tester les garde-fous V24</button><button class="secondary" id="testFallbacks" style="margin-top:10px">Tester les fallbacks 12.5</button><button class="secondary" id="checkCoherence" style="margin-top:10px">Contrôler cohérence 12.6</button><button class="locked" id="validateRC" style="margin-top:10px">Valider Release Candidate 12.7</button><button class="danger" id="runFaultLab" style="margin-top:10px">Tester pannes 12.8</button><button class="secondary" id="auditScenes24" style="margin-top:10px">Auditer 24 scènes 12.9</button><button class="danger" id="rollbackDrill" style="margin-top:10px">Tester rollback réel 12.10</button><button class="locked" id="finalAudit" style="margin-top:10px">Audit final RC 12.11</button><button class="locked" id="mobileRehearsal" style="margin-top:10px">Répétition générale 12.12</button><button class="danger" id="goLive13" style="margin-top:10px">GO LIVE V24 · 12.13</button><button class="secondary" id="supervisor14" style="margin-top:10px">Supervision production 12.14</button><button class="locked" id="certWindow15" style="margin-top:10px">Fenêtre certification 12.15</button>'+
     '<div class="metric-section"><h3>GO LIVE V24 — contrôle final</h3><div id="goLiveView" class="card"><div class="muted">Chargement…</div></div></div>'+
     '<div class="metric-section"><h3>Supervision production — Bloc 12.14</h3><div id="supervisorView" class="card"><div class="muted">Chargement…</div></div></div>'+
+    '<div class="metric-section"><h3>Fenêtre de certification — Bloc 12.15</h3><div id="certWindowView" class="card"><div class="muted">Chargement…</div></div></div>'+
     '<div class="metric-section"><h3>Autorisation V24 historique</h3><div id="approvalView" class="card"><div class="muted">Chargement…</div></div></div>'+
     (preview?'<div class="engine-actions"><a class="ig" href="/preview24">Dashboard V24 prépublication</a><a class="ig" href="/instagram24-preview">Studio Instagram prépublication</a></div>':'<div class="muted" style="margin-top:10px">Active Preview V24 pour ouvrir les surfaces de prépublication.</div>')+
     '<div id="payloadView" style="margin-top:12px"></div>';
@@ -1040,6 +1041,7 @@ function renderGoLive13(data){
     '<div class="bar-row"><span>FINAL_RC courant</span><strong class="'+(finalRc.currentGeneration?'good':'bad')+'">'+(finalRc.currentGeneration?'PASS #'+e(finalRc.id):'NON')+'</strong></div>'+
     '<div class="bar-row"><span>REHEARSAL courant</span><strong class="'+(rehearsal.currentGeneration?'good':'bad')+'">'+(rehearsal.currentGeneration?'PASS #'+e(rehearsal.id):'NON')+'</strong></div>'+
     '<div class="bar-row"><span>Backup Legacy</span><strong class="'+(g.legacyBackupAvailable?'good':'bad')+'">'+(g.legacyBackupAvailable?'PASS':'FAIL')+'</strong></div>'+
+    '<div class="bar-row"><span>Fenêtre certification 12.15</span><strong class="'+(g.certificationWindow?.currentGeneration?'good':'bad')+'">'+(g.certificationWindow?.currentGeneration?'ACTIVE':'REQUIS')+'</strong></div>'+
     '<div class="bar-row"><span>Garde-fou génération</span><strong class="'+(guard.status==='PASS'?'good':'bad')+'">'+e(guard.status||'—')+'</strong></div>'+
     '<div class="bar-row"><span>Candidat V24</span><strong>'+e(candidate.sceneKey||'—')+' · '+e(candidate.confidence||'—')+'</strong></div>';
 
@@ -1252,6 +1254,155 @@ async function loadSupervisor14(record=false){
 }
 
 
+function renderCertWindow15(data){
+  const target=document.getElementById('certWindowView');
+  if(!target)return;
+
+  const current=data.current||{};
+  const active=data.active||null;
+  const recent=Array.isArray(data.recentAudit)?data.recentAudit:[];
+
+  const currentReady=
+    current&&
+    !current.error&&
+    current.readiness==='READY_CANDIDATE';
+
+  const cls=data.status==='ACTIVE'
+    ?'good'
+    :(data.status==='STALE'?'bad':'caution');
+
+  let html=
+    '<div class="scene '+cls+'">'+e(data.status||'—')+'</div>'+
+    '<div class="bar-row"><span>Readiness requis</span><strong>READY_CANDIDATE</strong></div>'+
+    '<div class="bar-row"><span>Readiness actuel</span><strong class="'+(currentReady?'good':'caution')+'">'+e(current.readiness||'—')+'</strong></div>'+
+    '<div class="bar-row"><span>Génération courante</span><strong>'+e(current.generatedAt||'—')+'</strong></div>'+
+    '<div class="bar-row"><span>Moteur public</span><strong>'+e(current.publicEngine||'—')+'</strong></div>'+
+    '<div class="bar-row"><span>Génération manuelle</span><strong class="'+(active?'caution':'good')+'">'+(active?'BLOQUÉE':'AUTORISÉE')+'</strong></div>'+
+    '<div class="bar-row"><span>Génération cron</span><strong class="'+(active?'caution':'good')+'">'+(active?'BLOQUÉE':'AUTORISÉE')+'</strong></div>'+
+    '<div class="bar-row"><span>Cutover GO LIVE 12.13</span><strong class="good">'+(active?'AUTORISÉ':'—')+'</strong></div>';
+
+  if(active){
+    html+=
+      '<div class="readiness" style="margin-top:14px">'+
+      '<strong>GÉNÉRATION CERTIFIÉE</strong>'+
+      '<div class="bar-row"><span>Window ID</span><strong>'+e(active.windowId||'—')+'</strong></div>'+
+      '<div class="bar-row"><span>generatedAt</span><strong>'+e(active.generatedAt||'—')+'</strong></div>'+
+      '<div class="bar-row"><span>Scène</span><strong>'+e(active.scene||'—')+'</strong></div>'+
+      '<div class="bar-row"><span>Expire</span><strong>'+e(active.expiresAt||'—')+'</strong></div>'+
+      '<div class="bar-row"><span>Correspond encore au public</span><strong class="'+(active.current?'good':'bad')+'">'+(active.current?'OUI':'NON')+'</strong></div>'+
+      '<div class="muted" style="margin-top:8px">Pendant cette fenêtre, ne génère pas de nouvelle météo. Exécute 12.8 → 12.9 → 12.10 → 12.11 → 12.12 → 12.13 avant expiration.</div>'+
+      '<button id="cancelCertWindow15" class="secondary" style="margin-top:12px">Annuler le gel</button>'+
+      '</div>';
+  }else if(currentReady&&current.publicEngine==='LEGACY'){
+    html+=
+      '<div class="readiness" style="margin-top:14px">'+
+      '<strong>PRÊT À OUVRIR LA FENÊTRE</strong>'+
+      '<div class="muted">Durée maximale : '+e(data.ttlMinutes||45)+' minutes. Le forecast public reste inchangé pendant la recertification.</div>'+
+      '<button id="openCertWindow15" class="locked" style="margin-top:12px">Ouvrir fenêtre certification</button>'+
+      '</div>';
+  }else{
+    html+=
+      '<div class="muted" style="margin-top:12px">Ne pas ouvrir maintenant. La fenêtre devient disponible uniquement lorsque READY_CANDIDATE est atteint et que la production reste Legacy.</div>';
+  }
+
+  if(recent.length){
+    html+='<div style="margin-top:16px"><div class="metric-title">AUDIT 12.15 RÉCENT</div>'+
+      recent.slice(0,8).map(x=>
+        '<div class="bar-row"><span>'+e(x.eventType)+'<div class="muted">'+e(x.reason||'—')+(x.source?' · '+e(x.source):'')+'</div></span><strong>'+e(x.generatedAt||'—')+'</strong></div>'
+      ).join('')+
+      '</div>';
+  }
+
+  html+='<div class="muted" style="margin-top:12px">Sécurité asymétrique : si le mécanisme 12.15 est lui-même indisponible, la météo Legacy continue à se générer. En revanche le GO LIVE échoue fermé sans fenêtre ACTIVE.</div>';
+
+  target.innerHTML=html;
+
+  const open=document.getElementById('openCertWindow15');
+  if(open)open.onclick=async()=>{
+    const phrase=String(data.confirmationPhrase||'');
+    const entered=window.prompt(
+      'Cette action bloque temporairement les générations manuelles et cron afin de protéger la recertification finale. Tape exactement : '+phrase
+    );
+
+    if(entered===null)return;
+
+    open.disabled=true;
+    try{
+      const response=await fetch('/api/admin/certification-window/open?city=tarnos',{
+        method:'POST',
+        headers:{
+          Authorization:'Bearer '+token(),
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({
+          confirmationPhrase:entered
+        }),
+        cache:'no-store'
+      });
+
+      const text=await response.text();
+      let x=null;
+      try{x=text?JSON.parse(text):null}catch{}
+      if(!response.ok||!x?.ok){
+        throw new Error(x?.error||('HTTP '+response.status));
+      }
+
+      engineStatusEl.innerHTML='<span class="good">Fenêtre 12.15 ACTIVE · génération protégée.</span>';
+      await loadCertWindow15();
+      await loadGoLive13();
+      await loadSupervisor14();
+    }catch(err){
+      engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>';
+      await loadCertWindow15();
+    }finally{
+      open.disabled=false;
+    }
+  };
+
+  const cancel=document.getElementById('cancelCertWindow15');
+  if(cancel)cancel.onclick=async()=>{
+    cancel.disabled=true;
+    try{
+      const response=await fetch('/api/admin/certification-window/cancel?city=tarnos',{
+        method:'POST',
+        headers:{Authorization:'Bearer '+token()},
+        cache:'no-store'
+      });
+      const text=await response.text();
+      let x=null;
+      try{x=text?JSON.parse(text):null}catch{}
+      if(!response.ok||!x?.ok){
+        throw new Error(x?.error||('HTTP '+response.status));
+      }
+      engineStatusEl.innerHTML='<span class="good">Fenêtre 12.15 annulée · générations normales réautorisées.</span>';
+      await loadCertWindow15();
+      await loadGoLive13();
+      await loadSupervisor14();
+    }catch(err){
+      engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>';
+    }finally{
+      cancel.disabled=false;
+    }
+  };
+}
+
+async function loadCertWindow15(){
+  const target=document.getElementById('certWindowView');
+  if(!target)return;
+
+  target.innerHTML='<div class="muted">Contrôle fenêtre 12.15…</div>';
+
+  try{
+    const data=await fetchJson('/api/admin/certification-window?city=tarnos',{
+      headers:{Authorization:'Bearer '+token()}
+    });
+    renderCertWindow15(data);
+  }catch(err){
+    target.innerHTML='<div class="error">'+e(err&&err.message?err.message:String(err))+'</div>';
+  }
+}
+
+
 async function loadApproval(){
   const target=document.getElementById('approvalView');
   if(!target)return;
@@ -1277,6 +1428,7 @@ async function loadEngine(){
     await loadApproval();
     await loadGoLive13();
     await loadSupervisor14();
+    await loadCertWindow15();
   }catch(err){
     engineStatusEl.innerHTML='<span class="error">'+e(err&&err.message?err.message:String(err))+'</span>';
   }
@@ -1288,6 +1440,7 @@ document.getElementById('readinessBtn').onclick=loadReadiness;
 document.getElementById('engineBtn').onclick=loadEngine;
 document.addEventListener('click',event=>{const t=event.target;if(t&&t.id==='goLive13'){loadGoLive13();document.getElementById('goLiveView')?.scrollIntoView({behavior:'smooth',block:'start'});}});
 document.addEventListener('click',event=>{const t=event.target;if(t&&t.id==='supervisor14'){loadSupervisor14(true);document.getElementById('supervisorView')?.scrollIntoView({behavior:'smooth',block:'start'});}});
+document.addEventListener('click',event=>{const t=event.target;if(t&&t.id==='certWindow15'){loadCertWindow15();document.getElementById('certWindowView')?.scrollIntoView({behavior:'smooth',block:'start'});}});
 document.getElementById('run').onclick=async()=>{
   out.textContent='Génération…';
   try{
