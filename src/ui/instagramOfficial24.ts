@@ -27,20 +27,24 @@ function load(src){
     i.src=src;
   });
 }
+function normalizeText(value){
+  return String(value??'').normalize('NFC').replace(/\s+/g,' ').trim();
+}
 function font(size,weight){
-  ctx.font=String(weight)+' '+String(size)+'px -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif';
+  ctx.font=String(weight)+' '+String(size)+'px "SF Pro Display","SF Pro Text","Helvetica Neue",Arial,sans-serif';
 }
 function text(value,x,y,size,weight,color,align='left'){
+  const label=normalizeText(value);
   ctx.save();
   font(size,weight);
   ctx.fillStyle=color;
   ctx.textAlign=align;
   ctx.textBaseline='alphabetic';
-  ctx.fillText(String(value??''),x,y);
+  ctx.fillText(label,x,y);
   ctx.restore();
 }
 function fittedFontSize(value,maxWidth,maxSize,minSize,weight){
-  const label=String(value??'');
+  const label=normalizeText(value);
   ctx.save();
   let size=maxSize;
   while(size>minSize){
@@ -63,7 +67,7 @@ function fittedText(value,x,y,maxWidth,maxSize,minSize,weight,color,align='left'
   return size;
 }
 function trackedText(value,x,y,size,weight,color,tracking,align='center'){
-  const chars=String(value??'').split('');
+  const chars=normalizeText(value).split('');
   ctx.save();
   font(size,weight);
   const widths=chars.map(ch=>ctx.measureText(ch).width);
@@ -84,7 +88,7 @@ function wrap(value,x,y,maxWidth,lineHeight,size,weight,color,align='left',maxLi
   ctx.fillStyle=color;
   ctx.textAlign=align;
   ctx.textBaseline='alphabetic';
-  const words=String(value||'').split(/\s+/);
+  const words=normalizeText(value).split(/\s+/).filter(Boolean);
   let line='',yy=y,count=0;
   for(const word of words){
     const next=line?line+' '+word:word;
@@ -134,12 +138,26 @@ function drawMaster(img){
 
 function box(x,y,w,h){
   ctx.save();
-  ctx.fillStyle='rgba(255,255,255,0.045)';
   rr(x,y,w,h,36);
+  const g=ctx.createLinearGradient(x,y,x,y+h);
+  g.addColorStop(0,'rgba(255,255,255,0.11)');
+  g.addColorStop(0.45,'rgba(255,255,255,0.085)');
+  g.addColorStop(1,'rgba(255,255,255,0.07)');
+  ctx.fillStyle=g;
   ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,0.58)';
-  ctx.lineWidth=1.25;
+  ctx.strokeStyle='rgba(255,255,255,0.74)';
+  ctx.lineWidth=1.35;
   ctx.stroke();
+  ctx.save();
+  ctx.beginPath();
+  rr(x+2,y+2,w-4,(h-4)*0.46,34);
+  ctx.clip();
+  const sheen=ctx.createLinearGradient(x,y,x,y+h*0.52);
+  sheen.addColorStop(0,'rgba(255,255,255,0.12)');
+  sheen.addColorStop(1,'rgba(255,255,255,0.01)');
+  ctx.fillStyle=sheen;
+  ctx.fillRect(x+2,y+2,w-4,h*0.52);
+  ctx.restore();
   ctx.restore();
 }
 function separator(x1,y1,x2,y2){
@@ -199,18 +217,14 @@ function drawMoon(x,y,scale,color){
   ctx.translate(x,y);
   ctx.scale(scale,scale);
   ctx.strokeStyle=color;
-  ctx.lineWidth=2.5/scale;
+  ctx.lineWidth=2.45/scale;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
   ctx.beginPath();
-  ctx.arc(0,0,18,-Math.PI/2,Math.PI/2);
+  ctx.arc(-2,0,17,-1.05,1.05,false);
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(9,-1,18,Math.PI/2,-Math.PI/2,true);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(18,-10);ctx.lineTo(23,-10);
-  ctx.moveTo(20,-13);ctx.lineTo(20,-7);
-  ctx.moveTo(-16,-18);ctx.lineTo(-11,-18);
-  ctx.moveTo(-13,-21);ctx.lineTo(-13,-15);
+  ctx.arc(8,-1,17,1.22,-1.22,true);
   ctx.stroke();
   ctx.restore();
 }
@@ -219,8 +233,8 @@ function drawPartly(x,y,scale,color){
   drawCloud(x+6*scale,y+3*scale,scale*0.88,color);
 }
 function drawNightCloud(x,y,scale,color){
-  drawMoon(x-13*scale,y-12*scale,scale*0.78,color);
-  drawCloud(x+6*scale,y+4*scale,scale*0.86,color);
+  drawMoon(x-11*scale,y-11*scale,scale*0.76,color);
+  drawCloud(x+6*scale,y+5*scale,scale*0.84,color);
 }
 function drawRain(x,y,scale,color){
   drawCloud(x,y-6*scale,scale,color);
@@ -471,7 +485,7 @@ function drawGeneralBox(opts){
     455,
     66,
     30,
-    770,
+    800,
     INK
   );
 
@@ -479,11 +493,11 @@ function drawGeneralBox(opts){
     opts.subtitle,
     302,
     423,
-    500,
+    520,
     30,
     23,
-    450,
-    INK,
+    500,
+    rgba(INK,0.97),
     'left',
     2
   );
@@ -493,7 +507,7 @@ function drawGeneralBox(opts){
     976,
     407,
     49,
-    540,
+    600,
     INK,
     'right'
   );
@@ -516,20 +530,20 @@ function drawHourlyBox(items){
       if(!item) continue;
       const cx=x+colW*(c+0.5);
       const base=rowTop[row];
-      text(String(item.hour).padStart(2,'0')+'h',cx,base+52,24,560,INK,'center');
+      text(String(item.hour).padStart(2,'0')+'h',cx,base+52,24,600,INK,'center');
       if(!item.missing){
         drawWeatherIcon(conditionToIcon(item.condition,item.hour),cx,base+133,0.60,INK);
       }
-      text(String(item.temperatureC)+(item.missing?'':'°'),cx,base+238,42,680,INK,'center');
+      text(String(item.temperatureC)+(item.missing?'':'°'),cx,base+238,42,700,INK,'center');
     }
   }
 }
 function drawCommentBox(mainLine,secondaryLine){
   const x=44,y=1283,w=992,h=172;
   box(x,y,w,h);
-  wrap(mainLine,540,1368,860,36,30,520,INK,'center',2);
+  wrap(mainLine,540,1366,880,36,30,600,INK,'center',2);
   if(secondaryLine){
-    wrap(secondaryLine,540,1420,840,29,20,420,rgba(INK,0.94),'center',2);
+    wrap(secondaryLine,540,1418,860,29,20,500,rgba(INK,0.96),'center',2);
   }
 }
 function drawSolarBox(solar){
@@ -546,13 +560,13 @@ function drawSolarBox(solar){
   ];
   defs.forEach((def,i)=>{
     const cx=x+colW*(i+0.5);
-    text(def[0],cx,1566,15,650,INK,'center');
+    text(def[0],cx,1566,15,700,INK,'center');
     drawSolarIcon(def[1],cx,1656,0.86,INK);
-    text(def[2]||'—',cx,1736,29,520,INK,'center');
+    text(def[2]||'—',cx,1736,29,600,INK,'center');
   });
 }
 function drawSignature(){
-  text('Ici, aujourd’hui.',540,1854,19,420,INK,'center');
+  text('Ici, aujourd’hui.',540,1854,19,500,INK,'center');
   ctx.save();
   ctx.strokeStyle=rgba(INK,0.72);
   ctx.lineWidth=1.2;

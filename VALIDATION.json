@@ -1,21 +1,17 @@
 {
-  "version": "12.16.7-final-verified",
+  "version": "12.16.8-refined",
   "migrationRequired": false,
   "filesToReplace": [
-    "src/config/cities.ts",
     "src/ui/instagramDaily.ts",
-    "src/ui/instagramOfficial24.ts",
-    "src/ui/dashboard.ts"
+    "src/ui/instagramOfficial24.ts"
   ],
   "format": "1080x1920",
   "fixes": {
-    "publicDashboardTenHours": "PASS_5x2",
-    "commentSecondLineGuaranteed": true,
-    "longV24SceneLabelsAutoFit": true,
-    "peuNuageuxExplicit": true,
-    "clear04hUsesMoon": true,
-    "cloudy04hKeepsPlainCloud": true,
-    "cloudy22hUsesNightCloud": true
+    "textRenderingStabilized": true,
+    "nightMoonIconRefined": true,
+    "liquidGlassStrengthened": true,
+    "mastersUnchanged": true,
+    "sceneLogicUnchanged": true
   },
   "unchanged": {
     "masters": true,
@@ -28,9 +24,7 @@
     "goLive": true,
     "rollback": true
   },
-  "typescriptValidation": "PASS",
-  "browserJavaScriptDaily": "PASS",
-  "browserJavaScriptV24": "PASS",
-  "dashboardRenderedTenHours": "PASS",
-  "staticRegressionAssertions": "PASS"
+  "typescriptValidation": "PATCH_LEVEL",
+  "browserJavaScriptDaily": "PATCH_LEVEL",
+  "browserJavaScriptV24": "PATCH_LEVEL"
 }

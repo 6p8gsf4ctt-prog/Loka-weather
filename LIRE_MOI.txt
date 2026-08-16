@@ -1,77 +1,53 @@
-LOKA — VERSION 12.16.7 FINAL VERIFIED
-======================================
+LOKA — VERSION 12.16.8 REFINED
+================================
 
 OBJET
 -----
-Version finale vérifiée de la 12.16.7.
+Affinage final du master éditorial Instagram V24 après validation visuelle
+de la 12.16.7.
 
-Cette archive reprend la composition 1080 × 1920 strictement alignée sur
-le nouveau master éditorial et corrige les quatre points détectés lors de
-l'audit pré-installation.
+Cette archive conserve exactement les mêmes masters, scènes, données métier,
+logique de publication et structure 1080 × 1920.
+Elle corrige uniquement la qualité de rendu de la composition finale.
 
 FICHIERS À REMPLACER
 --------------------
-src/config/cities.ts
 src/ui/instagramDaily.ts
 src/ui/instagramOfficial24.ts
-src/ui/dashboard.ts
 
 AUCUNE MIGRATION D1.
 
-CORRECTIONS FINALES
+CORRECTIONS 12.16.8
 -------------------
 
-1. PAGE MÉTÉO PUBLIQUE / 10 HORAIRES
-   Le dashboard public n'utilise plus une grille prévue pour 9 éléments.
-   Les 10 horaires sont affichés proprement en grille 5 × 2.
+1. TEXTES RENDUS DE MANIÈRE PLUS FIABLE
+   - normalisation NFC des libellés ;
+   - pile de polices simplifiée et plus stable ;
+   - poids typographiques plus standards ;
+   - zones de texte légèrement assouplies sur les sous-titres et commentaires.
 
-2. DEUXIÈME LIGNE COMMENTAIRE GARANTIE
-   La box commentaire ne peut plus rester avec une seconde ligne vide.
-   Priorité :
-   - événement météo réellement utile si disponible ;
-   - risque de pluie si les créneaux montrent de la pluie ;
-   - sinon : « Aucun risque de pluie annoncé. »
+2. PICTOGRAMME NOCTURNE 22H PLUS PROPRE
+   - croissant de lune redessiné ;
+   - suppression des petits artefacts décoratifs ;
+   - meilleure cohérence visuelle avec la famille d'icônes LOKA.
 
-   Les phrases contenant les mini/maxi sont toujours exclues.
-
-3. LABELS V24 LONGS
-   Le titre de scène est maintenant auto-ajusté à la largeur disponible.
-   Les noms courts conservent la grande taille du master.
-   Les noms longs sont réduits progressivement, sans déplacer la box,
-   sans modifier le master et sans toucher au label métier.
-
-4. PICTOGRAMMES EDGE CASES
-   - « peu nuageux » => soleil + nuage en journée ;
-   - « peu nuageux » nocturne => lune + nuage ;
-   - ciel clair à 04h => lune ;
-   - ciel couvert à 04h => nuage simple, comme le modèle officiel ;
-   - ciel couvert à 22h => famille nocturne lune + nuage.
+3. LIQUID GLASS LÉGÈREMENT RENFORCÉ
+   - fond translucide un peu plus présent ;
+   - contour plus lisible ;
+   - léger voile interne en partie haute ;
+   - toujours subtil, sans transformer les boxes en cartes opaques.
 
 INCHANGÉ
 --------
-- 24 masters ;
-- scènes Legacy et V24 ;
-- registre des scènes ;
-- classifier ;
-- scoring ;
-- plage métier d'analyse 07h–21h ;
-- Shadow / Readiness ;
-- calculs solaires ;
-- GO LIVE ;
-- rollback ;
-- D1 ;
+- masters météo ;
+- scènes et labels métier ;
+- données météo et solaires ;
+- 10 horaires en grille 5 × 2 ;
+- commentaire éditorial ;
+- architecture générale ;
 - format final 1080 × 1920 ;
-- architecture visuelle de la 12.16.7.
-
-10 HORAIRES
------------
-04h · 06h · 08h · 10h · 12h
-14h · 16h · 18h · 20h · 22h
-
-Le 04h est un vrai point d'affichage issu du consensus complet.
-Il ne participe pas au classifier météo.
+- GO LIVE / rollback / D1 / readiness.
 
 APRÈS INSTALLATION
 ------------------
-Une nouvelle génération météo est nécessaire si la génération stockée
-actuelle ne contient pas encore les 10 horaires.
+Relancer une génération du visuel Instagram pour constater le nouveau rendu.
