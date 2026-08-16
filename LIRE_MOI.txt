@@ -1,14 +1,10 @@
-LOKA — VERSION 12.16.8 REFINED
-================================
+LOKA — VERSION 12.16.9
+==========================
 
 OBJET
 -----
-Affinage final du master éditorial Instagram V24 après validation visuelle
-de la 12.16.7.
-
-Cette archive conserve exactement les mêmes masters, scènes, données métier,
-logique de publication et structure 1080 × 1920.
-Elle corrige uniquement la qualité de rendu de la composition finale.
+Correction visuelle finale du Studio Instagram, sans modification du moteur
+météo, des masters ou des scènes.
 
 FICHIERS À REMPLACER
 --------------------
@@ -17,37 +13,60 @@ src/ui/instagramOfficial24.ts
 
 AUCUNE MIGRATION D1.
 
-CORRECTIONS 12.16.8
--------------------
+CORRECTIONS
+-----------
 
-1. TEXTES RENDUS DE MANIÈRE PLUS FIABLE
-   - normalisation NFC des libellés ;
-   - pile de polices simplifiée et plus stable ;
-   - poids typographiques plus standards ;
-   - zones de texte légèrement assouplies sur les sous-titres et commentaires.
+1. TEXTES / LETTRES MANQUANTES
+   - normalisation NFC ;
+   - pile Canvas stable Helvetica Neue / Arial ;
+   - rendu de chaque ligne complète, jamais caractère par caractère
+     sauf TARNOS qui conserve volontairement son tracking ;
+   - micro-stroke de 0,42 px derrière le fillText pour sécuriser les glyphes
+     fins lors de l'export Canvas iOS ;
+   - contrôle automatique de quatre phrases de régression avant le rendu ;
+   - sous-titre et commentaire auto-ajustés avant éventuel passage sur 2 lignes ;
+   - aucun mot n'est découpé.
 
-2. PICTOGRAMME NOCTURNE 22H PLUS PROPRE
-   - croissant de lune redessiné ;
-   - suppression des petits artefacts décoratifs ;
-   - meilleure cohérence visuelle avec la famille d'icônes LOKA.
+2. PICTOGRAMME 22H
+   - lune redessinée comme un unique croissant vectoriel continu ;
+   - suppression du double-croissant / artefacts ;
+   - lune + nuage recalibrés pour les nuits nuageuses.
 
-3. LIQUID GLASS LÉGÈREMENT RENFORCÉ
-   - fond translucide un peu plus présent ;
-   - contour plus lisible ;
-   - léger voile interne en partie haute ;
-   - toujours subtil, sans transformer les boxes en cartes opaques.
+3. FAMILLE MÉTÉO
+   - pictogrammes toujours exclusivement vectoriels Canvas ;
+   - aucun emoji système / Unicode météo ;
+   - soleil et mix soleil-nuage recalibrés à la même taille optique que les nuages.
 
-INCHANGÉ
---------
-- masters météo ;
-- scènes et labels métier ;
-- données météo et solaires ;
-- 10 horaires en grille 5 × 2 ;
-- commentaire éditorial ;
-- architecture générale ;
-- format final 1080 × 1920 ;
-- GO LIVE / rollback / D1 / readiness.
+4. FAMILLE SOLAIRE
+   - cinq pictogrammes redessinés sur une grille commune :
+     AUBE / LEVER / MIDI SOLAIRE / COUCHER / CRÉPUSCULE ;
+   - même épaisseur de trait ;
+   - aucun remplissage, aucune flèche.
 
-APRÈS INSTALLATION
-------------------
-Relancer une génération du visuel Instagram pour constater le nouveau rendu.
+5. LIQUID GLASS
+   - transparence légèrement renforcée :
+     environ 15 % en haut, 12 % au centre, 9,5 % en bas ;
+   - contour blanc légèrement plus présent ;
+   - reflet interne très discret ;
+   - toujours aucun blur du master et aucune grosse ombre.
+
+STRICTEMENT INCHANGÉ
+--------------------
+- format 1080 × 1920 ;
+- 24 masters ;
+- scènes Legacy et V24 ;
+- scoring / classifier ;
+- 10 horaires ;
+- calculs solaires ;
+- commentaire métier ;
+- grille et positions des boxes ;
+- readiness / Shadow ;
+- GO LIVE / rollback ;
+- D1.
+
+TESTS DE RÉGRESSION TEXTE
+-------------------------
+Journée douce et nuageuse.
+Nuages dominants · Éclaircies en soirée
+Risque de pluie présent sur certains créneaux.
+Aucun risque de pluie annoncé.

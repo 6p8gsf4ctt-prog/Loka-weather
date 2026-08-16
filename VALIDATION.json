@@ -1,30 +1,42 @@
 {
-  "version": "12.16.8-refined",
+  "version": "12.16.9",
   "migrationRequired": false,
   "filesToReplace": [
     "src/ui/instagramDaily.ts",
     "src/ui/instagramOfficial24.ts"
   ],
   "format": "1080x1920",
+  "visualOnly": true,
   "fixes": {
-    "textRenderingStabilized": true,
-    "nightMoonIconRefined": true,
-    "liquidGlassStrengthened": true,
-    "mastersUnchanged": true,
-    "sceneLogicUnchanged": true
+    "canvasTextNfc": true,
+    "fullLineTextRendering": true,
+    "glyphMicroStroke": 0.42,
+    "textRegressionGuard": true,
+    "commentAutoFit": true,
+    "subtitleAutoFit": true,
+    "moonSingleContinuousCrescent": true,
+    "nightCloudRebalanced": true,
+    "solarIconFamilyRebuilt": true,
+    "liquidGlassTopAlpha": 0.15,
+    "liquidGlassMiddleAlpha": 0.12,
+    "liquidGlassBottomAlpha": 0.095,
+    "backgroundBlurAdded": false,
+    "emojiSystemUsed": false
   },
   "unchanged": {
     "masters": true,
-    "sceneRegistry": true,
+    "scenes": true,
     "classifier": true,
     "scoring": true,
-    "decisionDaytimeRange": "07h-21h",
+    "hourGrid": "5x2",
     "solarCalculation": true,
     "database": true,
+    "readiness": true,
     "goLive": true,
     "rollback": true
   },
-  "typescriptValidation": "PATCH_LEVEL",
-  "browserJavaScriptDaily": "PATCH_LEVEL",
-  "browserJavaScriptV24": "PATCH_LEVEL"
+  "typescriptValidation": "PASS",
+  "browserJavaScriptDaily": "PASS",
+  "browserJavaScriptV24": "PASS",
+  "staticRegressionAssertions": "PASS"
 }

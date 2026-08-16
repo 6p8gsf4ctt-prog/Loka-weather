@@ -54,20 +54,42 @@ function load(src){
     i.src=src;
   });
 }
+const CANVAS_FONT='"Helvetica Neue",Arial,sans-serif';
+
 function normalizeText(value){
-  return String(value??'').normalize('NFC').replace(/\s+/g,' ').trim();
+  return String(value??'')
+    .normalize('NFC')
+    .replace(/\s+/g,' ')
+    .trim();
 }
+
 function font(size,weight){
-  ctx.font=String(weight)+' '+String(size)+'px "SF Pro Display","SF Pro Text","Helvetica Neue",Arial,sans-serif';
+  ctx.font=String(weight)+' '+String(size)+'px '+CANVAS_FONT;
+  if('fontKerning' in ctx){
+    ctx.fontKerning='normal';
+  }
 }
+
+function drawFullTextLine(label,x,y,color,align){
+  ctx.fillStyle=color;
+  ctx.strokeStyle=color;
+  ctx.textAlign=align;
+  ctx.textBaseline='alphabetic';
+  ctx.lineJoin='round';
+  ctx.miterLimit=2;
+
+  // A very small same-colour stroke protects thin glyphs on iOS Canvas
+  // exports without visually changing the typography.
+  ctx.lineWidth=0.42;
+  ctx.strokeText(label,x,y);
+  ctx.fillText(label,x,y);
+}
+
 function text(value,x,y,size,weight,color,align='left'){
   const label=normalizeText(value);
   ctx.save();
   font(size,weight);
-  ctx.fillStyle=color;
-  ctx.textAlign=align;
-  ctx.textBaseline='alphabetic';
-  ctx.fillText(label,x,y);
+  drawFullTextLine(label,x,y,color,align);
   ctx.restore();
 }
 function fittedFontSize(value,maxWidth,maxSize,minSize,weight){
@@ -109,6 +131,44 @@ function trackedText(value,x,y,size,weight,color,tracking,align='center'){
   ctx.restore();
 }
 
+function assertTextIntegrity(){
+  const regression=[
+    'Journée douce et nuageuse.',
+    'Nuages dominants · Éclaircies en soirée',
+    'Risque de pluie présent sur certains créneaux.',
+    'Aucun risque de pluie annoncé.'
+  ];
+
+  ctx.save();
+  font(24,500);
+
+  for(const source of regression){
+    const normalized=normalizeText(source);
+    if(normalized!==source.normalize('NFC')){
+      ctx.restore();
+      throw new Error('instagram_text_normalization_mismatch');
+    }
+
+    const width=ctx.measureText(normalized).width;
+    if(!Number.isFinite(width)||width<=0){
+      ctx.restore();
+      throw new Error('instagram_text_measurement_unavailable');
+    }
+
+    // Every visible character must have a measurable glyph.
+    for(const ch of normalized){
+      if(ch===' ') continue;
+      const glyphWidth=ctx.measureText(ch).width;
+      if(!Number.isFinite(glyphWidth)||glyphWidth<=0){
+        ctx.restore();
+        throw new Error('instagram_text_glyph_unavailable');
+      }
+    }
+  }
+
+  ctx.restore();
+}
+
 function wrap(value,x,y,maxWidth,lineHeight,size,weight,color,align='left',maxLines=2){
   ctx.save();
   font(size,weight);
@@ -120,14 +180,14 @@ function wrap(value,x,y,maxWidth,lineHeight,size,weight,color,align='left',maxLi
   for(const word of words){
     const next=line?line+' '+word:word;
     if(ctx.measureText(next).width>maxWidth&&line){
-      ctx.fillText(line,x,yy);
+      drawFullTextLine(line,x,yy,color,align);
       count++;
       if(count>=maxLines){ctx.restore();return;}
       line=word;
       yy+=lineHeight;
     }else line=next;
   }
-  if(line&&count<maxLines)ctx.fillText(line,x,yy);
+  if(line&&count<maxLines)drawFullTextLine(line,x,yy,color,align);
   ctx.restore();
 }
 function rr(x,y,w,h,r){
@@ -165,25 +225,73 @@ function drawMaster(img){
 
 function box(x,y,w,h){
   ctx.save();
+
   rr(x,y,w,h,36);
-  const g=ctx.createLinearGradient(x,y,x,y+h);
-  g.addColorStop(0,'rgba(255,255,255,0.11)');
-  g.addColorStop(0.45,'rgba(255,255,255,0.085)');
-  g.addColorStop(1,'rgba(255,255,255,0.07)');
+
+  // Slightly stronger than 12.16.8, while the master remains clearly visible.
+  const g=ctx.createLinearGradient(
+    x,
+    y,
+    x,
+    y+h
+  );
+  g.addColorStop(
+    0,
+    'rgba(255,255,255,0.15)'
+  );
+  g.addColorStop(
+    0.48,
+    'rgba(255,255,255,0.12)'
+  );
+  g.addColorStop(
+    1,
+    'rgba(255,255,255,0.095)'
+  );
+
   ctx.fillStyle=g;
   ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,0.74)';
-  ctx.lineWidth=1.35;
+
+  ctx.strokeStyle=
+    'rgba(255,255,255,0.82)';
+  ctx.lineWidth=1.45;
   ctx.stroke();
+
+  // Very subtle internal highlight; no blur and no shadow.
   ctx.save();
-  ctx.beginPath();
-  rr(x+2,y+2,w-4,(h-4)*0.46,34);
+  rr(
+    x+2,
+    y+2,
+    w-4,
+    (h-4)*0.43,
+    34
+  );
   ctx.clip();
-  const sheen=ctx.createLinearGradient(x,y,x,y+h*0.52);
-  sheen.addColorStop(0,'rgba(255,255,255,0.12)');
-  sheen.addColorStop(1,'rgba(255,255,255,0.01)');
+
+  const sheen=
+    ctx.createLinearGradient(
+      x,
+      y,
+      x,
+      y+h*0.48
+    );
+
+  sheen.addColorStop(
+    0,
+    'rgba(255,255,255,0.16)'
+  );
+  sheen.addColorStop(
+    1,
+    'rgba(255,255,255,0.018)'
+  );
+
   ctx.fillStyle=sheen;
-  ctx.fillRect(x+2,y+2,w-4,h*0.52);
+  ctx.fillRect(
+    x+2,
+    y+2,
+    w-4,
+    h*0.48
+  );
+
   ctx.restore();
   ctx.restore();
 }
@@ -244,24 +352,65 @@ function drawMoon(x,y,scale,color){
   ctx.translate(x,y);
   ctx.scale(scale,scale);
   ctx.strokeStyle=color;
-  ctx.lineWidth=2.45/scale;
+  ctx.lineWidth=2.55/scale;
   ctx.lineCap='round';
   ctx.lineJoin='round';
+
+  // One closed crescent contour. This avoids the previous doubled-arc look.
   ctx.beginPath();
-  ctx.arc(-2,0,17,-1.05,1.05,false);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(8,-1,17,1.22,-1.22,true);
+  ctx.moveTo(8,-20);
+  ctx.bezierCurveTo(
+    -7,-15,
+    -13,3,
+    -5,16
+  );
+  ctx.bezierCurveTo(
+    4,30,
+    23,21,
+    25,5
+  );
+  ctx.bezierCurveTo(
+    17,12,
+    8,11,
+    2,5
+  );
+  ctx.bezierCurveTo(
+    -4,-2,
+    -1,-14,
+    8,-20
+  );
+  ctx.closePath();
   ctx.stroke();
   ctx.restore();
 }
 function drawPartly(x,y,scale,color){
-  drawSun(x-14*scale,y-12*scale,scale*0.72,color);
-  drawCloud(x+6*scale,y+3*scale,scale*0.88,color);
+  drawSun(
+    x-13*scale,
+    y-12*scale,
+    scale*0.66,
+    color
+  );
+  drawCloud(
+    x+7*scale,
+    y+4*scale,
+    scale*0.84,
+    color
+  );
 }
 function drawNightCloud(x,y,scale,color){
-  drawMoon(x-11*scale,y-11*scale,scale*0.76,color);
-  drawCloud(x+6*scale,y+5*scale,scale*0.84,color);
+  // The moon remains legible but secondary to the cloud.
+  drawMoon(
+    x-18*scale,
+    y-16*scale,
+    scale*0.64,
+    color
+  );
+  drawCloud(
+    x+6*scale,
+    y+6*scale,
+    scale*0.82,
+    color
+  );
 }
 function drawRain(x,y,scale,color){
   drawCloud(x,y-6*scale,scale,color);
@@ -369,45 +518,98 @@ function drawSolarIcon(kind,x,y,scale,color){
   ctx.translate(x,y);
   ctx.scale(scale,scale);
   ctx.strokeStyle=color;
-  ctx.lineWidth=2.35/scale;
+  ctx.lineWidth=2.45/scale;
   ctx.lineCap='round';
   ctx.lineJoin='round';
 
-  const horizon=18;
+  const horizon=17;
+  const horizonHalf=31;
+
   ctx.beginPath();
-  ctx.moveTo(-31,horizon);
-  ctx.lineTo(31,horizon);
+  ctx.moveTo(-horizonHalf,horizon);
+  ctx.lineTo(horizonHalf,horizon);
   ctx.stroke();
 
-  if(kind==='noon'){
-    const cy=-3,r=14;
-    ctx.beginPath();ctx.arc(0,cy,r,0,Math.PI*2);ctx.stroke();
-    for(let i=0;i<8;i++){
-      const a=i*Math.PI/4;
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(a)*22,cy+Math.sin(a)*22);
-      ctx.lineTo(Math.cos(a)*31,cy+Math.sin(a)*31);
-      ctx.stroke();
-    }
-    return ctx.restore();
+  function ray(x1,y1,x2,y2){
+    ctx.beginPath();
+    ctx.moveTo(x1,y1);
+    ctx.lineTo(x2,y2);
+    ctx.stroke();
   }
 
-  const isEdge=kind==='dawn'||kind==='dusk';
-  const cy=isEdge?20:11;
-  const r=isEdge?12:15;
+  if(kind==='noon'){
+    const cy=-4;
+    const r=14;
+
+    ctx.beginPath();
+    ctx.arc(0,cy,r,0,Math.PI*2);
+    ctx.stroke();
+
+    for(let i=0;i<8;i++){
+      const a=i*Math.PI/4;
+      ray(
+        Math.cos(a)*22,
+        cy+Math.sin(a)*22,
+        Math.cos(a)*31,
+        cy+Math.sin(a)*31
+      );
+    }
+
+    ctx.restore();
+    return;
+  }
+
+  let cy=10;
+  let radius=15;
+  let rayHeight=10;
+  let rayXs=[-20,-7,7,20];
+
+  if(kind==='dawn'){
+    // Almost completely below the horizon.
+    cy=20;
+    radius=12;
+    rayHeight=7;
+    rayXs=[-13,0,13];
+  }else if(kind==='sunrise'){
+    // Half-emerged above the horizon.
+    cy=10;
+    radius=15;
+    rayHeight=11;
+    rayXs=[-21,-8,8,21];
+  }else if(kind==='sunset'){
+    // Same optical size as sunrise, but calmer rays.
+    cy=11;
+    radius=15;
+    rayHeight=8;
+    rayXs=[-19,-6,6,19];
+  }else if(kind==='dusk'){
+    // Almost disappeared below the horizon.
+    cy=21;
+    radius=11;
+    rayHeight=5;
+    rayXs=[-12,0,12];
+  }
+
   ctx.beginPath();
-  ctx.arc(0,cy,r,Math.PI,0);
+  ctx.arc(
+    0,
+    cy,
+    radius,
+    Math.PI,
+    0
+  );
   ctx.stroke();
 
-  const rays=isEdge?[-14,0,14]:[-22,-8,8,22];
-  rays.forEach(dx=>{
-    const outer=isEdge?cy-19:cy-25;
-    const inner=isEdge?cy-11:cy-16;
-    ctx.beginPath();
-    ctx.moveTo(dx,inner);
-    ctx.lineTo(dx,outer);
-    ctx.stroke();
-  });
+  for(const dx of rayXs){
+    const innerY=cy-radius-5;
+    ray(
+      dx,
+      innerY,
+      dx,
+      innerY-rayHeight
+    );
+  }
+
   ctx.restore();
 }
 function pickHourlySlots(source){
@@ -490,12 +692,13 @@ function drawGeneralBox(opts){
     455,
     66,
     30,
-    770
+    800
   );
 
-  // Long V24 labels keep the exact box geometry and shrink only
-  // typographically. The master and scene identity are untouched.
-  const iconScale=titleSize<42?0.94:1.18;
+  const iconScale=
+    titleSize<42
+      ? 0.94
+      : 1.18;
 
   drawWeatherIcon(
     sceneIconKind(opts.title),
@@ -516,21 +719,58 @@ function drawGeneralBox(opts){
     INK
   );
 
-  wrap(
-    opts.subtitle,
-    302,
-    423,
-    520,
-    30,
-    23,
-    500,
-    rgba(INK,0.97),
-    'left',
-    2
+  const subtitle=
+    normalizeText(opts.subtitle);
+
+  const subtitleSize=
+    fittedFontSize(
+      subtitle,
+      535,
+      23,
+      18,
+      500
+    );
+
+  ctx.save();
+  font(
+    subtitleSize,
+    500
   );
 
+  if(
+    ctx.measureText(subtitle).width<=535
+  ){
+    ctx.restore();
+    text(
+      subtitle,
+      302,
+      423,
+      subtitleSize,
+      500,
+      rgba(INK,0.97),
+      'left'
+    );
+  }else{
+    ctx.restore();
+    wrap(
+      subtitle,
+      302,
+      411,
+      535,
+      28,
+      18,
+      500,
+      rgba(INK,0.97),
+      'left',
+      2
+    );
+  }
+
   text(
-    String(opts.min)+'° — '+String(opts.max)+'°',
+    String(opts.min)+
+    '° — '+
+    String(opts.max)+
+    '°',
     976,
     407,
     49,
@@ -568,9 +808,81 @@ function drawHourlyBox(items){
 function drawCommentBox(mainLine,secondaryLine){
   const x=44,y=1283,w=992,h=172;
   box(x,y,w,h);
-  wrap(mainLine,540,1366,880,36,30,600,INK,'center',2);
-  if(secondaryLine){
-    wrap(secondaryLine,540,1418,860,29,20,500,rgba(INK,0.96),'center',2);
+
+  const main=normalizeText(mainLine);
+  const secondary=normalizeText(secondaryLine);
+
+  const mainSize=fittedFontSize(
+    main,
+    900,
+    30,
+    24,
+    600
+  );
+
+  if(
+    ctx.measureText(main).width<=900
+  ){
+    text(
+      main,
+      540,
+      1366,
+      mainSize,
+      600,
+      INK,
+      'center'
+    );
+  }else{
+    wrap(
+      main,
+      540,
+      1352,
+      900,
+      33,
+      24,
+      600,
+      INK,
+      'center',
+      2
+    );
+  }
+
+  if(secondary){
+    const secondarySize=
+      fittedFontSize(
+        secondary,
+        890,
+        20,
+        17,
+        500
+      );
+
+    if(
+      ctx.measureText(secondary).width<=890
+    ){
+      text(
+        secondary,
+        540,
+        1418,
+        secondarySize,
+        500,
+        rgba(INK,0.96),
+        'center'
+      );
+    }else{
+      wrap(
+        secondary,
+        540,
+        1408,
+        890,
+        27,
+        17,
+        500,
+        rgba(INK,0.96),
+        'center',
+        2
+      );
+    }
   }
 }
 function drawSolarBox(solar){
@@ -607,6 +919,7 @@ function drawSignature(){
 
 async function draw(){
   ctx.clearRect(0,0,1080,1920);
+  assertTextIntegrity();
   const bg=await load(visual.masterUrl);
   drawMaster(bg);
   drawHeader(f.city,f.date,INK);
