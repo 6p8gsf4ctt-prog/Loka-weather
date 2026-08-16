@@ -1,14 +1,16 @@
-LOKA — VERSION 12.16.10
+LOKA — VERSION 12.16.11
 =========================
 
 OBJET
 -----
-Ajustement ciblé de la BOX MÉTÉO GÉNÉRALE uniquement.
+Cette version cumule les deux évolutions validées :
+
+1. nouvelle famille d'icônes météo LOKA Premium ;
+2. centrage réellement visible de la petite phrase dans la box météo générale.
 
 BASE
 ----
-Cette version repart de :
-V12.16.9 FINAL VERIFIED — WEATHER ICONS
+V12.16.10 GENERAL BOX.
 
 FICHIERS À REMPLACER
 --------------------
@@ -17,66 +19,55 @@ src/ui/instagramOfficial24.ts
 
 AUCUNE MIGRATION D1.
 
-MODIFICATION 12.16.10
+NOUVELLE ICONOGRAPHIE
 ---------------------
-La première box suit désormais cette hiérarchie :
+La palette fournie devient la référence graphique.
+Tous les pictogrammes restent vectoriels Canvas, monochromes #12264A,
+sans emoji système et sans remplissage.
 
-LIGNE 1
-- pictogramme météo à gauche ;
-- titre principal au centre-gauche ;
-- mini / maxi dans une zone indépendante à droite.
+Familles intégrées :
+- nuage / couvert ;
+- soleil ;
+- éclaircies / variable ;
+- pluie ;
+- bruine ;
+- orage ;
+- brouillard / brume ;
+- vent ;
+- neige / gel ;
+- nuage + vent ;
+- pluie + vent ;
+- soleil + vent.
 
-LIGNE 2
-- phrase éditoriale centrée sous L'ENSEMBLE pictogramme + titre ;
-- elle n'est plus alignée sous le titre seul ;
-- elle ne s'étend pas sous la zone mini/maxi ;
-- elle reste obligatoirement sur une seule ligne grâce à un auto-fit
-  typographique avant rendu.
+IMPORTANT
+---------
+L'heure n'a AUCUN effet sur le pictogramme météo.
+À 22h, le visuel représente la condition réelle : soleil, nuage, pluie,
+orage, vent, brouillard, etc. Aucune lune n'est injectée automatiquement.
 
-EXEMPLE
--------
-[ nuage ]   COUVERT                 22° — 26°
+BOX MÉTÉO GÉNÉRALE
+-------------------
+La petite phrase est maintenant clairement centrée sous l'ensemble
+pictogramme + titre. Le décalage est volontairement plus marqué que dans
+la 12.16.10 afin que la modification soit perceptible.
 
-       Journée douce et nuageuse.
-
-COORDONNÉES DE RÉFÉRENCE
-------------------------
-Box : x=44, y=244, w=992, h=250
-
-Pictogramme principal :
-x=178, y=344
-
-Titre :
-x=302, baseline y=356
-
-Zone éditoriale utilisée pour le sous-titre :
-x=92 → 760
-centre = 426
-
-Sous-titre :
-centre x=426
-baseline y=433
-taille max 23 px
-taille min 17 px
-une seule ligne
-
-Mini / maxi :
-alignement droit x=976
-baseline y=374
+Référence :
+- icône : x=172 / y=332 ;
+- titre : x=302 / baseline y=350 ;
+- sous-titre : center x=505 / baseline y=438 ;
+- sous-titre : largeur max 610 px ;
+- mini/maxi : x=976 / baseline y=374.
 
 INCHANGÉ
 --------
 - masters ;
-- scènes Legacy et V24 ;
-- conditions météo ;
-- système d'icônes ;
-- 10 horaires ;
-- commentaire ;
+- scènes ;
+- données météo ;
+- grille 10 horaires ;
+- commentaires ;
 - bloc solaire ;
 - Liquid Glass ;
 - format 1080 × 1920 ;
-- scoring / classifier ;
+- classifier / scoring ;
 - readiness / GO LIVE / rollback ;
 - D1.
-
-Aucun autre bloc de la story n'est modifié.

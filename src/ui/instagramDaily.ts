@@ -315,163 +315,261 @@ function separator(x1,y1,x2,y2){
   ctx.stroke();
   ctx.restore();
 }
+function premiumStroke(scale){
+  return 2.35/Math.max(0.01,scale);
+}
+
 function drawCloud(x,y,scale,color){
   ctx.save();
   ctx.translate(x,y);
   ctx.scale(scale,scale);
-  ctx.lineWidth=2.6/scale;
   ctx.strokeStyle=color;
-  ctx.lineJoin='round';
+  ctx.lineWidth=premiumStroke(scale);
   ctx.lineCap='round';
+  ctx.lineJoin='round';
+
+  // Palette LOKA Premium — nuage compact, base horizontale et courbes propres.
   ctx.beginPath();
-  ctx.moveTo(-34,12);
-  ctx.bezierCurveTo(-46,12,-52,3,-49,-8);
-  ctx.bezierCurveTo(-46,-20,-35,-25,-24,-21);
-  ctx.bezierCurveTo(-19,-37,-3,-45,14,-39);
-  ctx.bezierCurveTo(25,-35,31,-26,33,-15);
-  ctx.bezierCurveTo(46,-15,55,-6,55,6);
-  ctx.bezierCurveTo(55,18,46,26,33,26);
-  ctx.lineTo(-28,26);
-  ctx.bezierCurveTo(-39,26,-47,20,-49,12);
-  ctx.closePath();
+  ctx.moveTo(-35,18);
+  ctx.bezierCurveTo(-45,18,-51,10,-49,1);
+  ctx.bezierCurveTo(-47,-10,-38,-16,-28,-14);
+  ctx.bezierCurveTo(-23,-31,-8,-39,8,-35);
+  ctx.bezierCurveTo(21,-32,29,-22,30,-10);
+  ctx.bezierCurveTo(42,-11,50,-3,50,8);
+  ctx.bezierCurveTo(50,18,42,24,31,24);
+  ctx.lineTo(-29,24);
+  ctx.bezierCurveTo(-36,24,-41,22,-45,18);
   ctx.stroke();
   ctx.restore();
 }
+
 function drawSun(x,y,scale,color){
   ctx.save();
   ctx.translate(x,y);
   ctx.scale(scale,scale);
   ctx.strokeStyle=color;
-  ctx.lineWidth=2.5/scale;
+  ctx.lineWidth=premiumStroke(scale);
   ctx.lineCap='round';
+
+  const r=17;
   ctx.beginPath();
-  ctx.arc(0,0,18,0,Math.PI*2);
+  ctx.arc(0,0,r,0,Math.PI*2);
   ctx.stroke();
+
   for(let i=0;i<8;i++){
     const a=i*Math.PI/4;
     ctx.beginPath();
-    ctx.moveTo(Math.cos(a)*28,Math.sin(a)*28);
+    ctx.moveTo(Math.cos(a)*27,Math.sin(a)*27);
     ctx.lineTo(Math.cos(a)*38,Math.sin(a)*38);
     ctx.stroke();
   }
   ctx.restore();
 }
-function drawMoon(x,y,scale,color){
-  ctx.save();
-  ctx.translate(x,y);
-  ctx.scale(scale,scale);
-  ctx.strokeStyle=color;
-  ctx.lineWidth=2.55/scale;
-  ctx.lineCap='round';
-  ctx.lineJoin='round';
 
-  // Single crescent silhouette: one continuous vector path, no stars.
-  ctx.beginPath();
-  ctx.moveTo(7,-22);
-  ctx.bezierCurveTo(
-    -7,-16,
-    -13,-2,
-    -8,12
+function drawPartly(x,y,scale,color){
+  // Palette « Éclaircies » : soleil fin placé en haut à droite du nuage.
+  drawSun(
+    x+20*scale,
+    y-18*scale,
+    scale*0.60,
+    color
   );
-  ctx.bezierCurveTo(
-    -3,27,
-    14,30,
-    25,18
+  drawCloud(
+    x-6*scale,
+    y+7*scale,
+    scale*0.79,
+    color
   );
-  ctx.bezierCurveTo(
-    13,20,
-    3,13,
-    1,3
-  );
-  ctx.bezierCurveTo(
-    -1,-7,
-    1,-16,
-    7,-22
-  );
-  ctx.stroke();
+}
+
+function drawRain(x,y,scale,color){
+  drawCloud(x,y-8*scale,scale*0.92,color);
+  ctx.save();
+  ctx.strokeStyle=color;
+  ctx.lineWidth=2.25;
+  ctx.lineCap='round';
+  [-24,-8,8,24].forEach(dx=>{
+    ctx.beginPath();
+    ctx.moveTo(x+dx*scale,y+19*scale);
+    ctx.lineTo(x+(dx-6)*scale,y+35*scale);
+    ctx.stroke();
+  });
   ctx.restore();
 }
-function drawPartly(x,y,scale,color){
-  drawSun(
-    x-13*scale,
-    y-12*scale,
-    scale*0.66,
-    color
-  );
-  drawCloud(
-    x+7*scale,
-    y+4*scale,
-    scale*0.84,
-    color
-  );
-}
-function drawNightCloud(x,y,scale,color){
-  // Moon sits clearly above-right behind the cloud, matching the LOKA family.
-  drawMoon(
-    x+22*scale,
-    y-21*scale,
-    scale*0.58,
-    color
-  );
-  drawCloud(
-    x-5*scale,
-    y+7*scale,
-    scale*0.80,
-    color
-  );
-}
-function drawRain(x,y,scale,color){
-  drawCloud(x,y-6*scale,scale,color);
+
+function drawDrizzle(x,y,scale,color){
+  drawCloud(x,y-7*scale,scale*0.92,color);
   ctx.save();
-  ctx.strokeStyle=color;ctx.lineWidth=2.2;ctx.lineCap='round';
+  ctx.strokeStyle=color;
+  ctx.lineWidth=2.15;
+  ctx.lineCap='round';
   [-18,0,18].forEach(dx=>{
     ctx.beginPath();
     ctx.moveTo(x+dx*scale,y+20*scale);
-    ctx.lineTo(x+(dx-5)*scale,y+34*scale);
+    ctx.lineTo(x+(dx-3)*scale,y+29*scale);
     ctx.stroke();
   });
   ctx.restore();
 }
+
 function drawThunder(x,y,scale,color){
-  drawCloud(x,y-6*scale,scale,color);
+  drawCloud(x,y-8*scale,scale*0.92,color);
   ctx.save();
-  ctx.strokeStyle=color;ctx.lineWidth=2.4;ctx.lineJoin='round';ctx.lineCap='round';
+  ctx.strokeStyle=color;
+  ctx.lineWidth=2.5;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
   ctx.beginPath();
-  ctx.moveTo(x+3*scale,y+8*scale);
-  ctx.lineTo(x-7*scale,y+27*scale);
-  ctx.lineTo(x+2*scale,y+27*scale);
-  ctx.lineTo(x-4*scale,y+42*scale);
-  ctx.lineTo(x+14*scale,y+18*scale);
-  ctx.lineTo(x+6*scale,y+18*scale);
+  ctx.moveTo(x+3*scale,y+13*scale);
+  ctx.lineTo(x-8*scale,y+31*scale);
+  ctx.lineTo(x+2*scale,y+31*scale);
+  ctx.lineTo(x-3*scale,y+47*scale);
+  ctx.lineTo(x+18*scale,y+23*scale);
+  ctx.lineTo(x+7*scale,y+23*scale);
   ctx.stroke();
   ctx.restore();
 }
-function drawWind(x,y,scale,color){
+
+function drawFog(x,y,scale,color){
+  // Palette « Brouillard / Brume » : lignes seules, sans nuage décoratif.
   ctx.save();
-  ctx.strokeStyle=color;ctx.lineWidth=2.6;ctx.lineCap='round';
-  [[-34,-10,24,-10,31,-15],[-42,4,35,4,42,10],[-25,18,18,18,25,14]].forEach(v=>{
+  ctx.strokeStyle=color;
+  ctx.lineWidth=2.25;
+  ctx.lineCap='round';
+  const rows=[
+    [-31,-15,18],
+    [-18,-4,33],
+    [-37,7,20],
+    [-12,18,31]
+  ];
+  for(const row of rows){
     ctx.beginPath();
-    ctx.moveTo(x+v[0]*scale,y+v[1]*scale);
-    ctx.lineTo(x+v[2]*scale,y+v[3]*scale);
-    ctx.quadraticCurveTo(x+v[4]*scale,y+v[5]*scale,x+(v[2]+5)*scale,y+(v[3]+1)*scale);
+    ctx.moveTo(x+row[0]*scale,y+row[1]*scale);
+    ctx.lineTo(x+row[2]*scale,y+row[1]*scale);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawWind(x,y,scale,color){
+  // Palette « Vent » : trois filets fluides, sans remplissage.
+  ctx.save();
+  ctx.strokeStyle=color;
+  ctx.lineWidth=2.3;
+  ctx.lineCap='round';
+
+  const yy=[-16,0,17];
+  const start=[-38,-45,-29];
+  const end=[18,31,14];
+  const curl=[30,43,26];
+
+  for(let i=0;i<3;i++){
+    const y0=y+yy[i]*scale;
+    ctx.beginPath();
+    ctx.moveTo(x+start[i]*scale,y0);
+    ctx.lineTo(x+end[i]*scale,y0);
+    ctx.bezierCurveTo(
+      x+curl[i]*scale,y0,
+      x+curl[i]*scale,y0-15*scale,
+      x+(end[i]-3)*scale,y0-15*scale
+    );
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawSnow(x,y,scale,color){
+  drawCloud(x,y-9*scale,scale*0.90,color);
+  ctx.save();
+  ctx.strokeStyle=color;
+  ctx.lineWidth=1.9;
+  ctx.lineCap='round';
+  [-18,0,18].forEach(dx=>{
+    const cx=x+dx*scale;
+    const cy=y+29*scale;
+    for(let i=0;i<3;i++){
+      const a=i*Math.PI/3;
+      ctx.beginPath();
+      ctx.moveTo(cx-Math.cos(a)*7*scale,cy-Math.sin(a)*7*scale);
+      ctx.lineTo(cx+Math.cos(a)*7*scale,cy+Math.sin(a)*7*scale);
+      ctx.stroke();
+    }
+  });
+  ctx.restore();
+}
+
+function drawCloudWind(x,y,scale,color){
+  drawCloud(x-10*scale,y-7*scale,scale*0.76,color);
+  ctx.save();
+  ctx.strokeStyle=color;
+  ctx.lineWidth=2.1;
+  ctx.lineCap='round';
+  [-2,12].forEach((dy,i)=>{
+    ctx.beginPath();
+    ctx.moveTo(x+4*scale,y+dy*scale);
+    ctx.lineTo(x+(40-i*8)*scale,y+dy*scale);
     ctx.stroke();
   });
   ctx.restore();
 }
-function drawFog(x,y,scale,color){
-  drawCloud(x,y-12*scale,scale*0.82,color);
-  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=2.2;ctx.lineCap='round';
-  [18,30].forEach(v=>{ctx.beginPath();ctx.moveTo(x-34*scale,y+v*scale);ctx.lineTo(x+34*scale,y+v*scale);ctx.stroke();});
+
+function drawRainWind(x,y,scale,color){
+  drawCloudWind(x,y-7*scale,scale*0.94,color);
+  ctx.save();
+  ctx.strokeStyle=color;
+  ctx.lineWidth=2.05;
+  ctx.lineCap='round';
+  [-14,3,20].forEach(dx=>{
+    ctx.beginPath();
+    ctx.moveTo(x+dx*scale,y+21*scale);
+    ctx.lineTo(x+(dx-6)*scale,y+36*scale);
+    ctx.stroke();
+  });
   ctx.restore();
 }
+
+function drawSunWind(x,y,scale,color){
+  drawSun(x-18*scale,y-6*scale,scale*0.64,color);
+  ctx.save();
+  ctx.strokeStyle=color;
+  ctx.lineWidth=2.15;
+  ctx.lineCap='round';
+  [-7,9].forEach((dy,i)=>{
+    ctx.beginPath();
+    ctx.moveTo(x+9*scale,y+dy*scale);
+    ctx.lineTo(x+(43-i*7)*scale,y+dy*scale);
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
 function conditionToIcon(condition,hour){
   const c=String(condition||'').toLowerCase();
 
-  // 12.16.9 FINAL VERIFIED — weather-only iconography.
-  // The hour never changes the icon family. 22h displays the actual
-  // meteorological condition exactly like every other forecast slot.
+  // 12.16.11 — WEATHER ONLY.
+  // L'heure ne choisit jamais un pictogramme jour/nuit.
+  // Le pictogramme représente exclusivement la condition météo réelle.
+  if(c.includes('neige')||c.includes('gel')) return 'snow';
   if(c.includes('orage')) return 'thunder';
+
+  if(
+    (c.includes('pluie')||c.includes('averse'))&&
+    c.includes('vent')
+  ) return 'rain-wind';
+
+  if(c.includes('bruine')) return 'drizzle';
   if(c.includes('pluie')||c.includes('averse')) return 'rain';
+
+  if(
+    (c.includes('nuage')||c.includes('couvert'))&&
+    c.includes('vent')
+  ) return 'cloud-wind';
+
+  if(
+    (c.includes('soleil')||c.includes('ensoleillé')||c.includes('ensoleille'))&&
+    c.includes('vent')
+  ) return 'sun-wind';
+
   if(c.includes('vent')) return 'wind';
   if(c.includes('brouillard')||c.includes('brume')) return 'fog';
 
@@ -479,17 +577,16 @@ function conditionToIcon(condition,hour){
     c.includes('peu nuageux')||
     c.includes('éclair')||
     c.includes('eclair')||
-    c.includes('variable')
-  ){
-    return 'partly';
-  }
+    c.includes('variable')||
+    c.includes('amélioration')||
+    c.includes('amelioration')||
+    c.includes('passage')||
+    c.includes('voilé')||
+    c.includes('voile')||
+    c.includes('instable')
+  ) return 'partly';
 
-  if(
-    c.includes('nuage')||
-    c.includes('couvert')
-  ){
-    return 'cloud';
-  }
+  if(c.includes('nuage')||c.includes('couvert')||c.includes('dégradation')||c.includes('degradation')) return 'cloud';
 
   if(
     c.includes('soleil')||
@@ -497,28 +594,32 @@ function conditionToIcon(condition,hour){
     c.includes('ensoleille')||
     c.includes('clair')||
     c.includes('dégagé')||
-    c.includes('degage')
-  ){
-    return 'sun';
-  }
+    c.includes('degage')||
+    c.includes('lumineux')||
+    c.includes('lumineuse')
+  ) return 'sun';
 
-  // Unknown wording: neutral cloud rather than a day/night symbol.
   return 'cloud';
 }
+
 function drawWeatherIcon(kind,x,y,scale,color){
   if(kind==='sun') return drawSun(x,y,scale,color);
-  if(kind==='moon') return drawMoon(x,y,scale,color);
   if(kind==='partly') return drawPartly(x,y,scale,color);
-  if(kind==='night-cloud') return drawNightCloud(x,y,scale,color);
   if(kind==='rain') return drawRain(x,y,scale,color);
+  if(kind==='drizzle') return drawDrizzle(x,y,scale,color);
   if(kind==='thunder') return drawThunder(x,y,scale,color);
   if(kind==='wind') return drawWind(x,y,scale,color);
   if(kind==='fog') return drawFog(x,y,scale,color);
+  if(kind==='snow') return drawSnow(x,y,scale,color);
+  if(kind==='cloud-wind') return drawCloudWind(x,y,scale,color);
+  if(kind==='rain-wind') return drawRainWind(x,y,scale,color);
+  if(kind==='sun-wind') return drawSunWind(x,y,scale,color);
   return drawCloud(x,y,scale,color);
 }
 function sceneIconKind(label){
   return conditionToIcon(label,12);
 }
+
 function drawSolarIcon(kind,x,y,scale,color){
   ctx.save();
   ctx.translate(x,y);
@@ -693,17 +794,7 @@ function drawGeneralBox(opts){
   const x=44,y=244,w=992,h=250;
   box(x,y,w,h);
 
-  // Bloc éditorial gauche + centre.
-  // La zone température reste volontairement indépendante à droite.
-  const editorialLeft=92;
-  const editorialRight=760;
-  const editorialCenter=
-    (editorialLeft+editorialRight)/2;
-  const editorialWidth=
-    editorialRight-editorialLeft;
-
   const titleMaxWidth=455;
-
   const titleSize=fittedFontSize(
     opts.title,
     titleMaxWidth,
@@ -712,16 +803,13 @@ function drawGeneralBox(opts){
     800
   );
 
-  const iconScale=
-    titleSize<42
-      ? 1.02
-      : 1.22;
+  const iconScale=titleSize<42?1.00:1.20;
 
-  // Ligne principale : pictogramme + titre.
+  // Ligne haute : pictogramme + titre.
   drawWeatherIcon(
     sceneIconKind(opts.title),
-    178,
-    344,
+    172,
+    332,
     iconScale,
     INK
   );
@@ -729,7 +817,7 @@ function drawGeneralBox(opts){
   fittedText(
     opts.title,
     302,
-    356,
+    350,
     titleMaxWidth,
     66,
     30,
@@ -737,36 +825,33 @@ function drawGeneralBox(opts){
     INK
   );
 
-  // Ligne secondaire :
-  // centrée sous l'ensemble pictogramme + titre, jamais sous le titre seul.
-  const subtitle=
-    normalizeText(opts.subtitle);
-
-  const subtitleSize=
-    fittedFontSize(
-      subtitle,
-      editorialWidth,
-      23,
-      17,
-      500
-    );
+  // Ligne basse : centrage volontairement plus marqué que la 12.16.10.
+  // Le centre visuel est placé sous l'ensemble pictogramme + titre,
+  // et non sous le titre seul.
+  const subtitle=normalizeText(opts.subtitle);
+  const subtitleCenter=505;
+  const subtitleMaxWidth=610;
+  const subtitleSize=fittedFontSize(
+    subtitle,
+    subtitleMaxWidth,
+    23,
+    17,
+    500
+  );
 
   text(
     subtitle,
-    editorialCenter,
-    433,
+    subtitleCenter,
+    438,
     subtitleSize,
     500,
     rgba(INK,0.97),
     'center'
   );
 
-  // Mini / maxi : zone indépendante à droite.
+  // Mini / maxi restent totalement indépendants à droite.
   text(
-    String(opts.min)+
-    '° — '+
-    String(opts.max)+
-    '°',
+    String(opts.min)+'° — '+String(opts.max)+'°',
     976,
     374,
     49,
@@ -775,6 +860,7 @@ function drawGeneralBox(opts){
     'right'
   );
 }
+
 function drawHourlyBox(items){
   const x=44,y=540,w=992,h=704;
   box(x,y,w,h);

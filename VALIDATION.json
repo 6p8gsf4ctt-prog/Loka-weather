@@ -1,49 +1,27 @@
 {
-  "version": "12.16.10",
-  "scope": "general_weather_box_only",
+  "version": "12.16.11",
   "migrationRequired": false,
   "filesToReplace": [
     "src/ui/instagramDaily.ts",
     "src/ui/instagramOfficial24.ts"
   ],
   "format": "1080x1920",
-  "generalBox": {
-    "box": {
-      "x": 44,
-      "y": 244,
-      "w": 992,
-      "h": 250
-    },
-    "icon": {
-      "x": 178,
-      "y": 344
-    },
-    "title": {
-      "x": 302,
-      "baselineY": 356
-    },
-    "editorialRegion": {
-      "left": 92,
-      "right": 760,
-      "center": 426
-    },
-    "subtitle": {
-      "centerX": 426,
-      "baselineY": 433,
-      "align": "center",
-      "maxFontPx": 23,
-      "minFontPx": 17,
-      "singleLine": true
-    },
-    "minMax": {
-      "rightX": 976,
-      "baselineY": 374
-    }
+  "premiumIconPalette": true,
+  "weatherOnlyHourlyIcons": true,
+  "automaticNightIconAt22h": false,
+  "subtitleCenterX": 505,
+  "subtitleBaselineY": 438,
+  "checks": {
+    "typescriptCompilation": "PASS",
+    "embeddedJavaScriptDaily": "PASS",
+    "embeddedJavaScriptV24": "PASS",
+    "premiumWeatherMappingsPresent": "PASS",
+    "subtitleCenteringPresent": "PASS"
   },
   "unchanged": {
     "masters": true,
     "scenes": true,
-    "weatherIcons": true,
+    "weatherData": true,
     "hourlyGrid": true,
     "commentBox": true,
     "solarBox": true,
@@ -53,9 +31,5 @@
     "database": true,
     "goLive": true,
     "rollback": true
-  },
-  "typescriptValidation": "PASS",
-  "browserJavaScriptDaily": "PASS",
-  "browserJavaScriptV24": "PASS",
-  "staticRegressionAssertions": "PASS"
+  }
 }
