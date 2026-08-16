@@ -1,46 +1,50 @@
-LOKA — VERSION 12.16.5
-==========================
+LOKA — VERSION 12.16.6 EDITORIAL MASTER
+=====================================
 
 OBJET
 -----
-Reconstruction stricte de la COMPOSITION du visuel Instagram selon le modèle
-graphique validé.
+Cette version applique le nouveau master éditorial vertical 1080 × 1920
+sur le moteur de génération Instagram, à partir du modèle fourni et du
+brief détaillé validé.
 
-Cette version ne change ABSOLUMENT PAS les masters ni les scènes.
+IMPORTANT
+---------
+Cette livraison NE change PAS :
+- les masters météo du jour ;
+- les scènes ;
+- le registre métier ;
+- les données météo ;
+- les calculs solaires ;
+- les workflows GO LIVE / rollback ;
+- la base D1.
+
+Elle change UNIQUEMENT la composition visuelle des stories et leur grille.
 
 FICHIERS À REMPLACER
 --------------------
 src/ui/instagramDaily.ts
 src/ui/instagramOfficial24.ts
 
-AUCUNE MIGRATION D1.
+AUCUNE MIGRATION.
 AUCUN MASTER À REMPLACER.
 
-INCHANGÉ
---------
-- 24 masters officiels
-- registre des scènes
-- scène Legacy officielle
-- scène V24
-- classifier / scoring
-- 9 horaires météo
-- calcul solaire
-- JOUR ±N min
-- D1 / pipeline
-- Shadow / readiness
-- GO LIVE / rollback
+NOUVEAU MASTER 12.16.6
+----------------------
+1. format final obligatoire : 1080 × 1920
+2. fond météo inchangé, sans flou, sans filtre, sans assombrissement
+3. en-tête : LOKA! / VILLE / DATE
+4. box météo générale
+5. grande box horaires 10 créneaux : 04h, 06h, 08h, 10h, 12h, 14h, 16h, 18h, 20h, 22h
+6. box commentaire sans titre
+7. box solaire compacte 5 colonnes : AUBE / LEVER / MIDI SOLAIRE / COUCHER / CRÉPUSCULE
+8. signature : Ici, aujourd’hui.
 
-NOUVELLE COMPOSITION
---------------------
-- Header LOKA / ville / date
-- grand pictogramme de scène en contour + nom de scène
-- sous-titre centré + petit trait
-- 9 horaires sur deux rangées 5 + 4
-- pictogrammes météo vectoriels homogènes
-- courbes bleues réellement liées aux températures de chaque rangée
-- cycle solaire à 5 repères
-- Liquid Glass compact avec pastille thermomètre et pastille nuage
-- footer « Ici, aujourd’hui. »
-
-Le master reste l'arrière-plan intégral du canvas : aucune image de master n'est
-redessinée ou remplacée.
+POINTS CLÉS
+-----------
+- suppression de la courbe de température et de toute tendance décorative ;
+- suppression de l’ancien graphique solaire ;
+- suppression de JOUR ±N min ;
+- mini/maxi affichées uniquement dans la box météo générale ;
+- style homogène : contour fin blanc, fond blanc très translucide, texte et icônes bleu marine ;
+- iconographie météo et solaire vectorielle monochrome, cohérente et premium ;
+- respect du fond du jour, laissé très visible.
