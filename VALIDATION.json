@@ -1,35 +1,53 @@
 {
-  "version": "12.16.11",
-  "migrationRequired": false,
+  "version": "12.16.12",
+  "label": "FINAL PREMIUM + TRUE CENTER",
   "filesToReplace": [
     "src/ui/instagramDaily.ts",
     "src/ui/instagramOfficial24.ts"
   ],
+  "migrationD1": false,
   "format": "1080x1920",
-  "premiumIconPalette": true,
-  "weatherOnlyHourlyIcons": true,
-  "automaticNightIconAt22h": false,
-  "subtitleCenterX": 505,
-  "subtitleBaselineY": 438,
-  "checks": {
-    "typescriptCompilation": "PASS",
-    "embeddedJavaScriptDaily": "PASS",
-    "embeddedJavaScriptV24": "PASS",
-    "premiumWeatherMappingsPresent": "PASS",
-    "subtitleCenteringPresent": "PASS"
+  "premiumPalette": {
+    "weatherRendererUsesUserPaletteAssets": true,
+    "legacyWeatherVectorRendererUsed": false,
+    "automaticNightIconAt22h": false,
+    "weatherConditionHasPriorityOverHour": true
   },
-  "unchanged": {
-    "masters": true,
-    "scenes": true,
-    "weatherData": true,
-    "hourlyGrid": true,
-    "commentBox": true,
-    "solarBox": true,
-    "liquidGlass": true,
-    "classifier": true,
-    "scoring": true,
-    "database": true,
-    "goLive": true,
-    "rollback": true
-  }
+  "generalBox": {
+    "subtitleUsesFixedCenter": false,
+    "subtitleUsesMeasuredIconAndTitleGroup": true,
+    "validatedExample": {
+      "title": "COUVERT",
+      "subtitle": "Journée douce et nuageuse.",
+      "iconLeftPx": 107.23333333333332,
+      "titleRightPx": 624.6845703125,
+      "computedCenterPx": 365.9589518229167
+    }
+  },
+  "validation": {
+    "typescript": "PASS",
+    "legacyEmbeddedJavaScript": "PASS",
+    "v24EmbeddedJavaScript": "PASS",
+    "chromiumLegacy": "PASS",
+    "chromiumV24": "PASS",
+    "legacyCanvasRendered": "PASS",
+    "v24CanvasRendered": "PASS",
+    "browserErrors": 0,
+    "textIntegrity": "PASS"
+  },
+  "unchanged": [
+    "masters",
+    "scenes",
+    "weather data",
+    "hourly grid structure",
+    "min/max logic",
+    "comment box",
+    "Liquid Glass",
+    "scoring",
+    "classifier",
+    "readiness",
+    "GO LIVE",
+    "rollback",
+    "D1"
+  ]
 }

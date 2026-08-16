@@ -1,73 +1,69 @@
-LOKA — VERSION 12.16.11
-=========================
+LOKA — V12.16.12 FINAL PREMIUM + TRUE CENTER
+================================================
 
-OBJET
------
-Cette version cumule les deux évolutions validées :
-
-1. nouvelle famille d'icônes météo LOKA Premium ;
-2. centrage réellement visible de la petite phrase dans la box météo générale.
-
-BASE
-----
-V12.16.10 GENERAL BOX.
-
-FICHIERS À REMPLACER
---------------------
+FICHIERS À REMPLACER DANS GITHUB
+--------------------------------
 src/ui/instagramDaily.ts
 src/ui/instagramOfficial24.ts
 
 AUCUNE MIGRATION D1.
 
-NOUVELLE ICONOGRAPHIE
----------------------
-La palette fournie devient la référence graphique.
-Tous les pictogrammes restent vectoriels Canvas, monochromes #12264A,
-sans emoji système et sans remplissage.
+CORRECTIONS APPLIQUÉES
+----------------------
+1. PALETTE PREMIUM
+- Les icônes météo visibles utilisent désormais directement des silhouettes
+  extraites de la palette premium fournie comme référence visuelle.
+- Familles couvertes : soleil, éclaircies, nuage, pluie, orage, neige/gel,
+  brouillard/brume, vent et combinaisons.
+- L'ancienne famille vectorielle météo n'est plus utilisée par le renderer.
+- À 22h, l'icône représente uniquement la condition météo réelle :
+  aucune lune / nuit n'est imposée automatiquement.
 
-Familles intégrées :
-- nuage / couvert ;
-- soleil ;
-- éclaircies / variable ;
-- pluie ;
-- bruine ;
-- orage ;
-- brouillard / brume ;
-- vent ;
-- neige / gel ;
-- nuage + vent ;
-- pluie + vent ;
-- soleil + vent.
+2. CENTRAGE RÉEL DE LA PHRASE
+- La phrase secondaire de la box générale n'utilise plus un x fixe.
+- Son centre est calculé à partir des limites réelles du groupe :
+  [icône principale + titre météo].
+- Exemple validé :
+  COUVERT + nuage -> "Journée douce et nuageuse." centrée sous le groupe complet.
 
-IMPORTANT
----------
-L'heure n'a AUCUN effet sur le pictogramme météo.
-À 22h, le visuel représente la condition réelle : soleil, nuage, pluie,
-orage, vent, brouillard, etc. Aucune lune n'est injectée automatiquement.
-
-BOX MÉTÉO GÉNÉRALE
--------------------
-La petite phrase est maintenant clairement centrée sous l'ensemble
-pictogramme + titre. Le décalage est volontairement plus marqué que dans
-la 12.16.10 afin que la modification soit perceptible.
-
-Référence :
-- icône : x=172 / y=332 ;
-- titre : x=302 / baseline y=350 ;
-- sous-titre : center x=505 / baseline y=438 ;
-- sous-titre : largeur max 610 px ;
-- mini/maxi : x=976 / baseline y=374.
+3. ICÔNES SOLAIRES
+- AUBE / LEVER / MIDI SOLAIRE / COUCHER / CRÉPUSCULE utilisent une
+  construction propre calée sur la famille premium fournie.
+- Aucun pictogramme nocturne n'est utilisé dans la grille horaire par défaut.
 
 INCHANGÉ
 --------
-- masters ;
-- scènes ;
-- données météo ;
-- grille 10 horaires ;
-- commentaires ;
-- bloc solaire ;
-- Liquid Glass ;
-- format 1080 × 1920 ;
-- classifier / scoring ;
-- readiness / GO LIVE / rollback ;
-- D1.
+- master météo
+- scènes Legacy / V24
+- données météo
+- 10 horaires
+- mini / maxi
+- commentaire
+- structure des boxes
+- Liquid Glass
+- scoring / classifier
+- readiness / GO LIVE / rollback
+- D1
+- format 1080 × 1920
+
+VALIDATION EFFECTUÉE AVANT LIVRAISON
+------------------------------------
+TypeScript : PASS
+JavaScript embarqué Legacy : PASS
+JavaScript embarqué V24 : PASS
+Exécution Chromium Legacy : PASS
+Exécution Chromium V24 : PASS
+Canvas rendu Legacy : PASS
+Canvas rendu V24 : PASS
+Erreurs navigateur : 0
+Text integrity : PASS
+
+TEST DE CENTRAGE — COUVERT
+--------------------------
+Limite gauche visuelle icône : 107.23 px
+Limite droite réelle du titre : 624.68 px
+Centre calculé du groupe : 365.96 px
+Centre appliqué au sous-titre : 365.96 px
+
+La phrase est donc mathématiquement centrée sous l'ensemble
+[icône + titre], et non sous le titre seul.
