@@ -693,9 +693,20 @@ function drawGeneralBox(opts){
   const x=44,y=244,w=992,h=250;
   box(x,y,w,h);
 
+  // Bloc éditorial gauche + centre.
+  // La zone température reste volontairement indépendante à droite.
+  const editorialLeft=92;
+  const editorialRight=760;
+  const editorialCenter=
+    (editorialLeft+editorialRight)/2;
+  const editorialWidth=
+    editorialRight-editorialLeft;
+
+  const titleMaxWidth=455;
+
   const titleSize=fittedFontSize(
     opts.title,
-    455,
+    titleMaxWidth,
     66,
     30,
     800
@@ -703,13 +714,14 @@ function drawGeneralBox(opts){
 
   const iconScale=
     titleSize<42
-      ? 0.94
-      : 1.18;
+      ? 1.02
+      : 1.22;
 
+  // Ligne principale : pictogramme + titre.
   drawWeatherIcon(
     sceneIconKind(opts.title),
     178,
-    368,
+    344,
     iconScale,
     INK
   );
@@ -717,70 +729,46 @@ function drawGeneralBox(opts){
   fittedText(
     opts.title,
     302,
-    374,
-    455,
+    356,
+    titleMaxWidth,
     66,
     30,
     800,
     INK
   );
 
+  // Ligne secondaire :
+  // centrée sous l'ensemble pictogramme + titre, jamais sous le titre seul.
   const subtitle=
     normalizeText(opts.subtitle);
 
   const subtitleSize=
     fittedFontSize(
       subtitle,
-      535,
+      editorialWidth,
       23,
-      18,
+      17,
       500
     );
 
-  ctx.save();
-  font(
+  text(
+    subtitle,
+    editorialCenter,
+    433,
     subtitleSize,
-    500
+    500,
+    rgba(INK,0.97),
+    'center'
   );
-  const subtitleWidth=
-    ctx.measureText(subtitle).width;
-  ctx.restore();
 
-  if(
-    subtitleWidth<=535
-  ){
-    text(
-      subtitle,
-      302,
-      423,
-      subtitleSize,
-      500,
-      rgba(INK,0.97),
-      'left'
-    );
-  }else{
-    ctx.restore();
-    wrap(
-      subtitle,
-      302,
-      411,
-      535,
-      28,
-      18,
-      500,
-      rgba(INK,0.97),
-      'left',
-      2
-    );
-  }
-
+  // Mini / maxi : zone indépendante à droite.
   text(
     String(opts.min)+
     '° — '+
     String(opts.max)+
     '°',
     976,
-    407,
+    374,
     49,
     600,
     INK,

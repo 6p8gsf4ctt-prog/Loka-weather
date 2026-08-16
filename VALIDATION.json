@@ -1,44 +1,61 @@
 {
-  "version": "12.16.9-final-verified",
+  "version": "12.16.10",
+  "scope": "general_weather_box_only",
   "migrationRequired": false,
   "filesToReplace": [
     "src/ui/instagramDaily.ts",
     "src/ui/instagramOfficial24.ts"
   ],
   "format": "1080x1920",
-  "blockingBlankCanvasBugFixed": true,
-  "innerRegexEscapesFixed": true,
-  "textGuardNonBlocking": true,
-  "runtimeRenderStatus": true,
-  "moonSingleCrescent": true,
-  "nightCloudRefined": true,
-  "dawnDuskDifferentiated": true,
-  "textMeasurementDeterministic": true,
-  "mastersModified": false,
-  "scenesModified": false,
-  "engineModified": false,
-  "databaseModified": false,
+  "generalBox": {
+    "box": {
+      "x": 44,
+      "y": 244,
+      "w": 992,
+      "h": 250
+    },
+    "icon": {
+      "x": 178,
+      "y": 344
+    },
+    "title": {
+      "x": 302,
+      "baselineY": 356
+    },
+    "editorialRegion": {
+      "left": 92,
+      "right": 760,
+      "center": 426
+    },
+    "subtitle": {
+      "centerX": 426,
+      "baselineY": 433,
+      "align": "center",
+      "maxFontPx": 23,
+      "minFontPx": 17,
+      "singleLine": true
+    },
+    "minMax": {
+      "rightX": 976,
+      "baselineY": 374
+    }
+  },
+  "unchanged": {
+    "masters": true,
+    "scenes": true,
+    "weatherIcons": true,
+    "hourlyGrid": true,
+    "commentBox": true,
+    "solarBox": true,
+    "liquidGlass": true,
+    "classifier": true,
+    "scoring": true,
+    "database": true,
+    "goLive": true,
+    "rollback": true
+  },
   "typescriptValidation": "PASS",
-  "embeddedJavaScriptSyntaxDaily": "PASS",
-  "embeddedJavaScriptSyntaxV24": "PASS",
-  "chromiumExecutionDaily": "PASS",
-  "chromiumExecutionV24": "PASS",
-  "canvasRenderedDaily": true,
-  "canvasRenderedV24": true,
-  "textIntegrityDaily": true,
-  "textIntegrityV24": true,
-  "consoleErrorsDaily": 0,
-  "consoleErrorsV24": 0,
-  "regressionTextsRenderedExactly": [
-    "Journée douce et nuageuse.",
-    "Nuages dominants · Éclaircies en soirée",
-    "Risque de pluie présent sur certains créneaux."
-  ],
-  "browserEngine": "Chromium headless",
-  "browserCanvasDataUrlLengthDaily": 446206,
-  "browserCanvasDataUrlLengthV24": 446206,
-  "weatherIconPolicy": "condition_only_no_hour_based_night_icons",
-  "hour22UsesWeatherCondition": true,
-  "hour22UsesMoonByTime": false,
-  "solarBoxUnchanged": true
+  "browserJavaScriptDaily": "PASS",
+  "browserJavaScriptV24": "PASS",
+  "staticRegressionAssertions": "PASS"
 }

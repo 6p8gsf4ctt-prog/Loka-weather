@@ -1,12 +1,14 @@
-LOKA — VERSION 12.16.9 FINAL VERIFIED
-===================================
+LOKA — VERSION 12.16.10
+=========================
 
 OBJET
 -----
-Correctif final et vérifié de la V12.16.9.
+Ajustement ciblé de la BOX MÉTÉO GÉNÉRALE uniquement.
 
-Cette version corrige le défaut qui pouvait laisser le Canvas entièrement vide
-après installation de « FINAL ICONS + TEXT ».
+BASE
+----
+Cette version repart de :
+V12.16.9 FINAL VERIFIED — WEATHER ICONS
 
 FICHIERS À REMPLACER
 --------------------
@@ -15,85 +17,66 @@ src/ui/instagramOfficial24.ts
 
 AUCUNE MIGRATION D1.
 
-CORRECTION BLOQUANTE
---------------------
-Le JavaScript du Canvas est contenu dans une template string TypeScript.
-Les expressions régulières internes doivent donc doubler les antislashs.
+MODIFICATION 12.16.10
+---------------------
+La première box suit désormais cette hiérarchie :
 
-Exemple source TypeScript :
-  /\\s+/g
+LIGNE 1
+- pictogramme météo à gauche ;
+- titre principal au centre-gauche ;
+- mini / maxi dans une zone indépendante à droite.
 
-JavaScript réellement envoyé au navigateur :
-  /\s+/g
+LIGNE 2
+- phrase éditoriale centrée sous L'ENSEMBLE pictogramme + titre ;
+- elle n'est plus alignée sous le titre seul ;
+- elle ne s'étend pas sous la zone mini/maxi ;
+- elle reste obligatoirement sur une seule ligne grâce à un auto-fit
+  typographique avant rendu.
 
-La version précédente pouvait envoyer /s+/g et remplacer toutes les lettres
-« s » par des espaces, puis déclencher le diagnostic de texte et interrompre
-le rendu avant le chargement du master.
+EXEMPLE
+-------
+[ nuage ]   COUVERT                 22° — 26°
 
-La FINAL VERIFIED :
-- corrige tous les échappements \s / \d concernés ;
-- rend le diagnostic texte non bloquant ;
-- expose window.__LOKA_RENDER_STATUS pour le contrôle navigateur ;
-- capture toute erreur de draw() sans rejet Promise non géré.
+       Journée douce et nuageuse.
 
-AFFINAGES CONSERVÉS / FINALISÉS
--------------------------------
-- texte NFC et rendu ligne entière ;
-- phrases de régression ;
-- Liquid Glass renforcé ;
-- lune 22h : croissant vectoriel unique sans étoiles ;
-- lune + nuage : composition plus claire ;
-- Aube et Crépuscule différenciés plus nettement ;
-- mesure typographique déterministe avant choix 1 / 2 lignes.
+COORDONNÉES DE RÉFÉRENCE
+------------------------
+Box : x=44, y=244, w=992, h=250
 
-STRICTEMENT INCHANGÉ
---------------------
-- 24 masters ;
-- scènes Legacy / V24 ;
-- classifier / scoring ;
-- données météo ;
-- calculs solaires ;
+Pictogramme principal :
+x=178, y=344
+
+Titre :
+x=302, baseline y=356
+
+Zone éditoriale utilisée pour le sous-titre :
+x=92 → 760
+centre = 426
+
+Sous-titre :
+centre x=426
+baseline y=433
+taille max 23 px
+taille min 17 px
+une seule ligne
+
+Mini / maxi :
+alignement droit x=976
+baseline y=374
+
+INCHANGÉ
+--------
+- masters ;
+- scènes Legacy et V24 ;
+- conditions météo ;
+- système d'icônes ;
 - 10 horaires ;
-- grille / positions des boxes ;
+- commentaire ;
+- bloc solaire ;
+- Liquid Glass ;
 - format 1080 × 1920 ;
+- scoring / classifier ;
 - readiness / GO LIVE / rollback ;
 - D1.
 
-VALIDATION
-----------
-Cette archive est validée en trois niveaux :
-1. TypeScript ;
-2. syntaxe JavaScript intégrée ;
-3. exécution réelle sous Chromium avec Canvas 1080 × 1920, chargement d'un
-   master, absence d'erreur console, statut rendered=true et vérification des
-   phrases complètes envoyées à Canvas.
-
-RÉSULTAT DU TEST CHROMIUM
-------------------------
-Studio Legacy : rendered=true · textIntegrity=true · 0 erreur console.
-Studio V24    : rendered=true · textIntegrity=true · 0 erreur console.
-
-Phrases vérifiées exactement dans les appels Canvas :
-- Journée douce et nuageuse.
-- Nuages dominants · Éclaircies en soirée
-- Risque de pluie présent sur certains créneaux.
-
-Le Canvas produit bien une image non vide dans les deux Studios.
-
-
-CORRECTIF MÉTÉO 22H — WEATHER ICONS ONLY
-----------------------------------------
-Les pictogrammes horaires ne dépendent plus de l'heure du jour.
-22h utilise exactement la même logique météo que 04h, 06h, 12h, etc.
-
-Exemples :
-- soleil / ciel clair -> soleil ;
-- peu nuageux / éclaircies -> soleil + nuage ;
-- nuageux / couvert -> nuage ;
-- pluie / averses -> pluie ;
-- orage -> orage ;
-- brouillard -> brouillard ;
-- vent -> vent.
-
-Aucune lune et aucun pictogramme nocturne ne sont sélectionnés par l'heure.
-La box solaire reste évidemment inchangée.
+Aucun autre bloc de la story n'est modifié.
