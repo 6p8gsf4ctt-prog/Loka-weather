@@ -8,9 +8,10 @@ export const CITIES: Record<string, CityConfig> = {
     longitude: -1.4628,
     timezone: "Europe/Paris",
 
-    // Bloc 12.16.4 — 9 repères horaires destinés aux surfaces d'affichage.
+    // Bloc 12.16.7 — 10 repères horaires réels destinés aux stories 9:16.
     // Le moteur de décision conserve sa plage d'analyse historique 07h–21h.
-    displayHours: [6, 8, 10, 12, 14, 16, 18, 20, 22],
+    // Le 04h est uniquement une donnée de présentation, issue du consensus complet.
+    displayHours: [4, 6, 8, 10, 12, 14, 16, 18, 20, 22],
 
     wind: {
       // Coastal editorial thresholds: ordinary sea-breeze conditions stay invisible.

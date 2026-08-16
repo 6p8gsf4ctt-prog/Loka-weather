@@ -66,6 +66,45 @@ function text(value,x,y,size,weight,color,align='left'){
   ctx.fillText(String(value??''),x,y);
   ctx.restore();
 }
+function fittedFontSize(value,maxWidth,maxSize,minSize,weight){
+  const label=String(value??'');
+  ctx.save();
+  let size=maxSize;
+  while(size>minSize){
+    font(size,weight);
+    if(ctx.measureText(label).width<=maxWidth) break;
+    size-=1;
+  }
+  ctx.restore();
+  return Math.max(minSize,size);
+}
+function fittedText(value,x,y,maxWidth,maxSize,minSize,weight,color,align='left'){
+  const size=fittedFontSize(
+    value,
+    maxWidth,
+    maxSize,
+    minSize,
+    weight
+  );
+  text(value,x,y,size,weight,color,align);
+  return size;
+}
+function trackedText(value,x,y,size,weight,color,tracking,align='center'){
+  const chars=String(value??'').split('');
+  ctx.save();
+  font(size,weight);
+  const widths=chars.map(ch=>ctx.measureText(ch).width);
+  const total=widths.reduce((a,b)=>a+b,0)+Math.max(0,chars.length-1)*tracking;
+  let cursor=align==='center'?x-total/2:align==='right'?x-total:x;
+  ctx.fillStyle=color;
+  ctx.textBaseline='alphabetic';
+  for(let i=0;i<chars.length;i++){
+    ctx.fillText(chars[i],cursor,y);
+    cursor+=widths[i]+tracking;
+  }
+  ctx.restore();
+}
+
 function wrap(value,x,y,maxWidth,lineHeight,size,weight,color,align='left',maxLines=2){
   ctx.save();
   font(size,weight);
@@ -108,20 +147,32 @@ function dateLabel(date){
     }).format(new Date(date+'T12:00:00')).toUpperCase();
   }catch{return String(date||'');}
 }
+function drawMaster(img){
+  const cw=1080,ch=1920;
+  const iw=Math.max(1,img.naturalWidth||img.width||cw);
+  const ih=Math.max(1,img.naturalHeight||img.height||ch);
+  const scale=Math.max(cw/iw,ch/ih);
+  const dw=iw*scale;
+  const dh=ih*scale;
+  const dx=(cw-dw)/2;
+  const dy=(ch-dh)/2;
+  ctx.drawImage(img,dx,dy,dw,dh);
+}
+
 function box(x,y,w,h){
   ctx.save();
-  ctx.fillStyle='rgba(255,255,255,0.07)';
-  rr(x,y,w,h,34);
+  ctx.fillStyle='rgba(255,255,255,0.045)';
+  rr(x,y,w,h,36);
   ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,0.62)';
-  ctx.lineWidth=1.4;
+  ctx.strokeStyle='rgba(255,255,255,0.58)';
+  ctx.lineWidth=1.25;
   ctx.stroke();
   ctx.restore();
 }
 function separator(x1,y1,x2,y2){
   ctx.save();
-  ctx.strokeStyle='rgba(18,38,74,0.14)';
-  ctx.lineWidth=1.2;
+  ctx.strokeStyle='rgba(18,38,74,0.13)';
+  ctx.lineWidth=1.05;
   ctx.lineCap='round';
   ctx.beginPath();
   ctx.moveTo(x1,y1);
@@ -244,16 +295,46 @@ function drawFog(x,y,scale,color){
 }
 function conditionToIcon(condition,hour){
   const c=String(condition||'').toLowerCase();
-  const night=Number(hour)>=21||Number(hour)<6;
+  const h=Number(hour);
+  const earlyNight=h<6;
+  const lateNight=h>=21;
+
   if(c.includes('orage')) return 'thunder';
-  if(c.includes('pluie')||c.includes('averse')) return night?'rain':'rain';
+  if(c.includes('pluie')||c.includes('averse')) return 'rain';
   if(c.includes('vent')) return 'wind';
   if(c.includes('brouillard')||c.includes('brume')) return 'fog';
-  if(c.includes('éclair')||c.includes('eclair')||c.includes('variable')) return night?'night-cloud':'partly';
-  if(c.includes('nuit')||c.includes('lune')) return c.includes('nuage')?'night-cloud':'moon';
-  if(c.includes('soleil')||c.includes('ensoleillé')||c.includes('ensoleille')) return night?'moon':'sun';
-  if(c.includes('clair')) return night?'moon':'sun';
-  return night?'night-cloud':'cloud';
+
+  // Explicit night wording always wins.
+  if(c.includes('nuit')||c.includes('lune')){
+    return c.includes('nuage')?'night-cloud':'moon';
+  }
+
+  // "Peu nuageux" is a mixed sky, not a plain cloud.
+  if(c.includes('peu nuageux')){
+    return (earlyNight||lateNight)?'night-cloud':'partly';
+  }
+
+  if(
+    c.includes('éclair')||
+    c.includes('eclair')||
+    c.includes('variable')
+  ){
+    return (earlyNight||lateNight)?'night-cloud':'partly';
+  }
+
+  // A genuinely clear 04h is nocturnal.
+  if(
+    c.includes('soleil')||
+    c.includes('ensoleillé')||
+    c.includes('ensoleille')||
+    c.includes('clair')
+  ){
+    return (earlyNight||lateNight)?'moon':'sun';
+  }
+
+  // Approved reference: a fully cloudy 04h remains a simple cloud.
+  // At 22h, cloudy conditions use the nocturnal cloud/moon family.
+  return lateNight?'night-cloud':'cloud';
 }
 function drawWeatherIcon(kind,x,y,scale,color){
   if(kind==='sun') return drawSun(x,y,scale,color);
@@ -274,119 +355,215 @@ function drawSolarIcon(kind,x,y,scale,color){
   ctx.translate(x,y);
   ctx.scale(scale,scale);
   ctx.strokeStyle=color;
-  ctx.lineWidth=2.5/scale;
+  ctx.lineWidth=2.35/scale;
   ctx.lineCap='round';
-  const horizonY=16;
+  ctx.lineJoin='round';
+
+  const horizon=18;
   ctx.beginPath();
-  ctx.moveTo(-28,horizonY);
-  ctx.lineTo(28,horizonY);
+  ctx.moveTo(-31,horizon);
+  ctx.lineTo(31,horizon);
   ctx.stroke();
-  let centerY=horizonY;
-  let radius=14;
-  if(kind==='noon') centerY=-2;
-  if(kind==='sunrise') centerY=10;
-  if(kind==='sunset') centerY=10;
-  if(kind==='dawn') centerY=17;
-  if(kind==='dusk') centerY=17;
+
   if(kind==='noon'){
-    ctx.beginPath();ctx.arc(0,centerY,radius,0,Math.PI*2);ctx.stroke();
+    const cy=-3,r=14;
+    ctx.beginPath();ctx.arc(0,cy,r,0,Math.PI*2);ctx.stroke();
     for(let i=0;i<8;i++){
       const a=i*Math.PI/4;
-      ctx.beginPath();ctx.moveTo(Math.cos(a)*22,centerY+Math.sin(a)*22);ctx.lineTo(Math.cos(a)*30,centerY+Math.sin(a)*30);ctx.stroke();
-    }
-  }else{
-    ctx.beginPath();
-    ctx.arc(0,centerY,radius,Math.PI,0);
-    ctx.stroke();
-    const raySet=(kind==='dawn'||kind==='dusk')?[-14,0,14]:[-18,-6,6,18];
-    raySet.forEach(dx=>{
       ctx.beginPath();
-      ctx.moveTo(dx,centerY-18);
-      ctx.lineTo(dx,centerY-28);
+      ctx.moveTo(Math.cos(a)*22,cy+Math.sin(a)*22);
+      ctx.lineTo(Math.cos(a)*31,cy+Math.sin(a)*31);
       ctx.stroke();
-    });
-    if(kind==='sunrise'){
-      ctx.beginPath();ctx.moveTo(0,centerY-40);ctx.lineTo(0,centerY-24);ctx.moveTo(0,centerY-40);ctx.lineTo(-5,centerY-34);ctx.moveTo(0,centerY-40);ctx.lineTo(5,centerY-34);ctx.stroke();
     }
-    if(kind==='sunset'){
-      ctx.beginPath();ctx.moveTo(0,centerY-24);ctx.lineTo(0,centerY-40);ctx.moveTo(0,centerY-24);ctx.lineTo(-5,centerY-30);ctx.moveTo(0,centerY-24);ctx.lineTo(5,centerY-30);ctx.stroke();
-    }
+    return ctx.restore();
   }
+
+  const isEdge=kind==='dawn'||kind==='dusk';
+  const cy=isEdge?20:11;
+  const r=isEdge?12:15;
+  ctx.beginPath();
+  ctx.arc(0,cy,r,Math.PI,0);
+  ctx.stroke();
+
+  const rays=isEdge?[-14,0,14]:[-22,-8,8,22];
+  rays.forEach(dx=>{
+    const outer=isEdge?cy-19:cy-25;
+    const inner=isEdge?cy-11:cy-16;
+    ctx.beginPath();
+    ctx.moveTo(dx,inner);
+    ctx.lineTo(dx,outer);
+    ctx.stroke();
+  });
   ctx.restore();
 }
 function pickHourlySlots(source){
   const wanted=[4,6,8,10,12,14,16,18,20,22];
-  const pool=Array.isArray(source)?source.slice():[];
-  const used=new Set();
+  const pool=Array.isArray(source)?source:[];
   return wanted.map(hour=>{
-    let idx=pool.findIndex((item,i)=>!used.has(i)&&Number(item.hour)===hour);
-    if(idx<0){
-      let best=Infinity,bestIdx=-1;
-      pool.forEach((item,i)=>{
-        if(used.has(i)) return;
-        const dist=Math.abs(Number(item.hour)-hour);
-        if(dist<best){best=dist;bestIdx=i;}
-      });
-      idx=bestIdx;
-    }
-    if(idx>=0){
-      used.add(idx);
-      return {...pool[idx],hour};
-    }
-    const fallback=pool.length?pool[pool.length-1]:{temperatureC:'—',condition:'nuageux',precipitationMm:0};
-    return {...fallback,hour};
+    const exact=pool.find(item=>Number(item.hour)===hour);
+    return exact
+      ? {...exact,hour}
+      : {hour,temperatureC:'—',condition:'',precipitationMm:0,missing:true};
   });
 }
-function commentLines(data){
-  const lines=Array.isArray(data)?data.filter(v=>typeof v==='string'&&v.trim()):[];
-  return [lines[0]||'',lines[1]||''];
+function commentLines(hourly,summary,mainVerdict,rainVerdict,notableEvent){
+  const clean=(value)=>String(value||'').replace(/\s+/g,' ').trim();
+  const isTemp=(value)=>/temp[ée]rature|compris|entre\s+\d+|\d+\s*°/i.test(clean(value));
+  const isSkyNarrative=(value)=>/ciel|soleil|nuage|couvert|éclair|eclair|variable/i.test(clean(value));
+  const sentenceParts=(value)=>clean(value)
+    .split(/(?<=[.!?])\s+/)
+    .map(clean)
+    .filter(Boolean);
+
+  const useful=(Array.isArray(summary)?summary:[])
+    .map(clean)
+    .filter(Boolean)
+    .filter(line=>!isTemp(line));
+
+  const items=(Array.isArray(hourly)?hourly:[]).filter(x=>!x.missing);
+  const cloudy=items.filter(x=>/nuage|couvert/i.test(String(x.condition||''))).length;
+  const rain=items.filter(x=>/pluie|averse|orage/i.test(String(x.condition||''))).length;
+  const brightEvening=items.filter(x=>Number(x.hour)>=16&&/soleil|éclair|eclair|clair/i.test(String(x.condition||''))).length;
+  const bright=items.filter(x=>/soleil|éclair|eclair|clair/i.test(String(x.condition||''))).length;
+  const wetAmount=items.reduce((sum,x)=>sum+Math.max(0,Number(x.precipitationMm)||0),0);
+
+  let primary='';
+  if(cloudy>=5&&brightEvening>=1) primary='Nuages dominants · Éclaircies en soirée';
+  else if(rain>=4) primary='Passages pluvieux dominants sur la journée';
+  else if(cloudy>=6) primary='Nuages dominants sur la journée';
+  else if(bright>=6) primary='Éclaircies dominantes au fil de la journée';
+  else primary=useful[0]||clean(mainVerdict)||'Conditions météo stables sur la journée';
+
+  // Prefer a genuinely useful operational message (wind/rain/fog/heat/etc.)
+  // over another sentence that merely repeats the sky state.
+  const expandedRain=sentenceParts(rainVerdict);
+  const candidates=[
+    clean(notableEvent),
+    ...useful,
+    ...expandedRain
+  ]
+    .filter(Boolean)
+    .filter(line=>!isTemp(line))
+    .filter(line=>line!==primary);
+
+  const operational=candidates.find(line=>!isSkyNarrative(line));
+
+  let secondary=operational||'';
+
+  // Guaranteed second line for calm days, derived only from displayed
+  // precipitation evidence. This avoids a blank official comment box.
+  if(!secondary){
+    if(rain>0||wetAmount>=0.2){
+      secondary='Risque de pluie présent sur certains créneaux.';
+    }else{
+      secondary='Aucun risque de pluie annoncé.';
+    }
+  }
+
+  return [primary,secondary];
 }
 function drawHeader(city,date,ink){
-  text('LOKA!',54,92,54,420,ink);
-  text(String(city||'Tarnos').toUpperCase(),540,88,22,650,ink,'center');
-  text(dateLabel(date),1026,88,19,530,ink,'right');
+  text('LOKA!',50,124,62,400,ink);
+  trackedText(String(city||'Tarnos').toUpperCase(),540,114,22,680,ink,8,'center');
+  text(dateLabel(date),1030,114,19,540,ink,'right');
 }
 function drawGeneralBox(opts){
-  const x=54,y=188,w=972,h=194;
+  const x=44,y=244,w=992,h=250;
   box(x,y,w,h);
-  drawWeatherIcon(sceneIconKind(opts.title),142,286,0.78,INK);
-  text(opts.title,256,287,62,760,INK);
-  wrap(opts.subtitle,256,338,430,30,22,450,INK,'left',2);
-  text(String(opts.min)+'° — '+String(opts.max)+'°',884,305,49,560,INK,'right');
+
+  const titleSize=fittedFontSize(
+    opts.title,
+    455,
+    66,
+    30,
+    770
+  );
+
+  // Long V24 labels keep the exact box geometry and shrink only
+  // typographically. The master and scene identity are untouched.
+  const iconScale=titleSize<42?0.94:1.18;
+
+  drawWeatherIcon(
+    sceneIconKind(opts.title),
+    178,
+    368,
+    iconScale,
+    INK
+  );
+
+  fittedText(
+    opts.title,
+    302,
+    374,
+    455,
+    66,
+    30,
+    770,
+    INK
+  );
+
+  wrap(
+    opts.subtitle,
+    302,
+    423,
+    500,
+    30,
+    23,
+    450,
+    INK,
+    'left',
+    2
+  );
+
+  text(
+    String(opts.min)+'° — '+String(opts.max)+'°',
+    976,
+    407,
+    49,
+    540,
+    INK,
+    'right'
+  );
 }
 function drawHourlyBox(items){
-  const x=54,y=435,w=972,h=683,pad=36;
+  const x=44,y=540,w=992,h=704;
   box(x,y,w,h);
-  const innerX=x+pad,innerY=y+36,innerW=w-pad*2,innerH=h-72;
-  const rowH=innerH/2;
-  separator(x+20,y+h/2,x+w-20,y+h/2);
-  const cols=5;
-  const colW=innerW/cols;
+  const colW=w/5;
+  const rowTop=[568,914];
+  const rowBottom=[892,1218];
+
+  separator(x+20,906,x+w-20,906);
   for(let row=0;row<2;row++){
-    const rowY=innerY+row*rowH;
-    for(let i=1;i<cols;i++) separator(innerX+colW*i,rowY+8,innerX+colW*i,rowY+rowH-8);
-    for(let c=0;c<cols;c++){
+    for(let i=1;i<5;i++){
+      const sx=x+colW*i;
+      separator(sx,rowTop[row]+18,sx,rowBottom[row]-18);
+    }
+    for(let c=0;c<5;c++){
       const item=items[row*5+c];
       if(!item) continue;
-      const cx=innerX+colW*(c+0.5);
-      const baseY=rowY;
-      text(String(item.hour).padStart(2,'0')+'h',cx,baseY+38,24,560,INK,'center');
-      drawWeatherIcon(conditionToIcon(item.condition,item.hour),cx,baseY+114,0.58,INK);
-      text(String(item.temperatureC)+'°',cx,baseY+202,41,700,INK,'center');
+      const cx=x+colW*(c+0.5);
+      const base=rowTop[row];
+      text(String(item.hour).padStart(2,'0')+'h',cx,base+52,24,560,INK,'center');
+      if(!item.missing){
+        drawWeatherIcon(conditionToIcon(item.condition,item.hour),cx,base+133,0.60,INK);
+      }
+      text(String(item.temperatureC)+(item.missing?'':'°'),cx,base+238,42,680,INK,'center');
     }
   }
 }
 function drawCommentBox(mainLine,secondaryLine){
-  const x=54,y=1170,w=972,h=150;
+  const x=44,y=1283,w=992,h=172;
   box(x,y,w,h);
-  wrap(mainLine,540,1241,840,36,30,540,INK,'center',2);
-  wrap(secondaryLine,540,1295,820,28,20,430,rgba(INK,0.95),'center',2);
+  wrap(mainLine,540,1368,860,36,30,520,INK,'center',2);
+  if(secondaryLine){
+    wrap(secondaryLine,540,1420,840,29,20,420,rgba(INK,0.94),'center',2);
+  }
 }
 function drawSolarBox(solar){
-  const x=54,y=1368,w=972,h=228,pad=28;
+  const x=44,y=1499,w=992,h=279;
   box(x,y,w,h);
-  const cols=5; const colW=(w-pad*2)/cols;
-  for(let i=1;i<cols;i++) separator(x+pad+colW*i,y+28,x+pad+colW*i,y+h-28);
+  const colW=w/5;
+  for(let i=1;i<5;i++) separator(x+colW*i,y+28,x+colW*i,y+h-28);
   const defs=[
     ['AUBE','dawn',solar.dawn],
     ['LEVER','sunrise',solar.sunrise],
@@ -395,28 +572,36 @@ function drawSolarBox(solar){
     ['CRÉPUSCULE','dusk',solar.dusk]
   ];
   defs.forEach((def,i)=>{
-    const cx=x+pad+colW*(i+0.5);
-    text(def[0],cx,y+54,15,640,INK,'center');
-    drawSolarIcon(def[1],cx,y+112,0.86,INK);
-    text(def[2]||'—',cx,y+194,28,540,INK,'center');
+    const cx=x+colW*(i+0.5);
+    text(def[0],cx,1566,15,650,INK,'center');
+    drawSolarIcon(def[1],cx,1656,0.86,INK);
+    text(def[2]||'—',cx,1736,29,520,INK,'center');
   });
 }
 function drawSignature(){
-  text('Ici, aujourd’hui.',540,1824,19,430,INK,'center');
-  ctx.save();ctx.strokeStyle=rgba(INK,0.75);ctx.lineWidth=1.4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(513,1841);ctx.lineTo(567,1841);ctx.stroke();ctx.restore();
+  text('Ici, aujourd’hui.',540,1854,19,420,INK,'center');
+  ctx.save();
+  ctx.strokeStyle=rgba(INK,0.72);
+  ctx.lineWidth=1.2;
+  ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(514,1878);
+  ctx.lineTo(566,1878);
+  ctx.stroke();
+  ctx.restore();
 }
 
 async function draw(){
   ctx.clearRect(0,0,1080,1920);
   const bg=await load(visual.masterUrl);
-  ctx.drawImage(bg,0,0,1080,1920);
+  drawMaster(bg);
   drawHeader(f.city,f.date,INK);
   drawGeneralBox({title:visual.title,subtitle:f.mainVerdict||f.subtitle||'',min:f.tempMinC,max:f.tempMaxC});
   const slots=pickHourlySlots(f.hourly);
   drawHourlyBox(slots);
-  const lines=commentLines(f.summaryLines);
+  const lines=commentLines(slots,f.summaryLines,f.mainVerdict,f.rainVerdict,f.notableEvent);
   const mainLine=lines[0]||f.mainVerdict||'';
-  const secondaryLine=lines[1]||f.rainVerdict||'';
+  const secondaryLine=lines[1]||'';
   drawCommentBox(mainLine,secondaryLine);
   drawSolarBox(solar);
   drawSignature();

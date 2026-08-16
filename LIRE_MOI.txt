@@ -1,50 +1,77 @@
-LOKA — VERSION 12.16.6 EDITORIAL MASTER
-=====================================
+LOKA — VERSION 12.16.7 FINAL VERIFIED
+======================================
 
 OBJET
 -----
-Cette version applique le nouveau master éditorial vertical 1080 × 1920
-sur le moteur de génération Instagram, à partir du modèle fourni et du
-brief détaillé validé.
+Version finale vérifiée de la 12.16.7.
 
-IMPORTANT
----------
-Cette livraison NE change PAS :
-- les masters météo du jour ;
-- les scènes ;
-- le registre métier ;
-- les données météo ;
-- les calculs solaires ;
-- les workflows GO LIVE / rollback ;
-- la base D1.
-
-Elle change UNIQUEMENT la composition visuelle des stories et leur grille.
+Cette archive reprend la composition 1080 × 1920 strictement alignée sur
+le nouveau master éditorial et corrige les quatre points détectés lors de
+l'audit pré-installation.
 
 FICHIERS À REMPLACER
 --------------------
+src/config/cities.ts
 src/ui/instagramDaily.ts
 src/ui/instagramOfficial24.ts
+src/ui/dashboard.ts
 
-AUCUNE MIGRATION.
-AUCUN MASTER À REMPLACER.
+AUCUNE MIGRATION D1.
 
-NOUVEAU MASTER 12.16.6
-----------------------
-1. format final obligatoire : 1080 × 1920
-2. fond météo inchangé, sans flou, sans filtre, sans assombrissement
-3. en-tête : LOKA! / VILLE / DATE
-4. box météo générale
-5. grande box horaires 10 créneaux : 04h, 06h, 08h, 10h, 12h, 14h, 16h, 18h, 20h, 22h
-6. box commentaire sans titre
-7. box solaire compacte 5 colonnes : AUBE / LEVER / MIDI SOLAIRE / COUCHER / CRÉPUSCULE
-8. signature : Ici, aujourd’hui.
+CORRECTIONS FINALES
+-------------------
 
-POINTS CLÉS
+1. PAGE MÉTÉO PUBLIQUE / 10 HORAIRES
+   Le dashboard public n'utilise plus une grille prévue pour 9 éléments.
+   Les 10 horaires sont affichés proprement en grille 5 × 2.
+
+2. DEUXIÈME LIGNE COMMENTAIRE GARANTIE
+   La box commentaire ne peut plus rester avec une seconde ligne vide.
+   Priorité :
+   - événement météo réellement utile si disponible ;
+   - risque de pluie si les créneaux montrent de la pluie ;
+   - sinon : « Aucun risque de pluie annoncé. »
+
+   Les phrases contenant les mini/maxi sont toujours exclues.
+
+3. LABELS V24 LONGS
+   Le titre de scène est maintenant auto-ajusté à la largeur disponible.
+   Les noms courts conservent la grande taille du master.
+   Les noms longs sont réduits progressivement, sans déplacer la box,
+   sans modifier le master et sans toucher au label métier.
+
+4. PICTOGRAMMES EDGE CASES
+   - « peu nuageux » => soleil + nuage en journée ;
+   - « peu nuageux » nocturne => lune + nuage ;
+   - ciel clair à 04h => lune ;
+   - ciel couvert à 04h => nuage simple, comme le modèle officiel ;
+   - ciel couvert à 22h => famille nocturne lune + nuage.
+
+INCHANGÉ
+--------
+- 24 masters ;
+- scènes Legacy et V24 ;
+- registre des scènes ;
+- classifier ;
+- scoring ;
+- plage métier d'analyse 07h–21h ;
+- Shadow / Readiness ;
+- calculs solaires ;
+- GO LIVE ;
+- rollback ;
+- D1 ;
+- format final 1080 × 1920 ;
+- architecture visuelle de la 12.16.7.
+
+10 HORAIRES
 -----------
-- suppression de la courbe de température et de toute tendance décorative ;
-- suppression de l’ancien graphique solaire ;
-- suppression de JOUR ±N min ;
-- mini/maxi affichées uniquement dans la box météo générale ;
-- style homogène : contour fin blanc, fond blanc très translucide, texte et icônes bleu marine ;
-- iconographie météo et solaire vectorielle monochrome, cohérente et premium ;
-- respect du fond du jour, laissé très visible.
+04h · 06h · 08h · 10h · 12h
+14h · 16h · 18h · 20h · 22h
+
+Le 04h est un vrai point d'affichage issu du consensus complet.
+Il ne participe pas au classifier météo.
+
+APRÈS INSTALLATION
+------------------
+Une nouvelle génération météo est nécessaire si la génération stockée
+actuelle ne contient pas encore les 10 horaires.
