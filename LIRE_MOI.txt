@@ -1,4 +1,4 @@
-LOKA — V12.16.12 FINAL PREMIUM + TRUE CENTER
+LOKA — V12.16.13 FINAL OPTICAL ICON SIZING
 ================================================
 
 FICHIERS À REMPLACER DANS GITHUB
@@ -8,62 +8,83 @@ src/ui/instagramOfficial24.ts
 
 AUCUNE MIGRATION D1.
 
-CORRECTIONS APPLIQUÉES
-----------------------
-1. PALETTE PREMIUM
-- Les icônes météo visibles utilisent désormais directement des silhouettes
-  extraites de la palette premium fournie comme référence visuelle.
-- Familles couvertes : soleil, éclaircies, nuage, pluie, orage, neige/gel,
-  brouillard/brume, vent et combinaisons.
-- L'ancienne famille vectorielle météo n'est plus utilisée par le renderer.
-- À 22h, l'icône représente uniquement la condition météo réelle :
-  aucune lune / nuit n'est imposée automatiquement.
+PÉRIMÈTRE STRICT
+----------------
+Cette version part de V12.16.12 FINAL PREMIUM + TRUE CENTER.
 
-2. CENTRAGE RÉEL DE LA PHRASE
-- La phrase secondaire de la box générale n'utilise plus un x fixe.
-- Son centre est calculé à partir des limites réelles du groupe :
-  [icône principale + titre météo].
-- Exemple validé :
-  COUVERT + nuage -> "Journée douce et nuageuse." centrée sous le groupe complet.
-
-3. ICÔNES SOLAIRES
-- AUBE / LEVER / MIDI SOLAIRE / COUCHER / CRÉPUSCULE utilisent une
-  construction propre calée sur la famille premium fournie.
-- Aucun pictogramme nocturne n'est utilisé dans la grille horaire par défaut.
+Elle modifie UNIQUEMENT la taille optique des icônes de la grille horaire.
 
 INCHANGÉ
 --------
-- master météo
-- scènes Legacy / V24
-- données météo
-- 10 horaires
-- mini / maxi
-- commentaire
-- structure des boxes
+- box météo générale
+- centrage de « Journée douce et nuageuse. »
+- palette premium
+- textes
+- températures
+- séparateurs
+- marges
+- fond / master
 - Liquid Glass
+- box commentaire
+- box solaire
+- signature
+- scènes
+- données météo
 - scoring / classifier
 - readiness / GO LIVE / rollback
 - D1
-- format 1080 × 1920
 
-VALIDATION EFFECTUÉE AVANT LIVRAISON
+NORMALISATION OPTIQUE
+---------------------
+Base horaire validée : 0.66
+
+Facteurs par famille :
+- nuage          : 1.10  -> scale final 0.726
+- éclaircies     : 1.20  -> scale final 0.792
+- soleil         : 1.12  -> scale final 0.7392
+- pluie          : 1.12  -> scale final 0.7392
+- bruine         : 1.12
+- orage          : 1.12  -> scale final 0.7392
+- brouillard     : 1.15  -> scale final 0.759
+- vent           : 1.15  -> scale final 0.759
+- neige / gel    : 1.12
+- combinaisons vent : 1.15
+
+22H
+---
+Aucune règle nocturne.
+22h utilise exactement la même taille et la même logique que la condition
+météo équivalente à une autre heure.
+
+CONTRÔLE VISUEL OBLIGATOIRE EFFECTUÉ
 ------------------------------------
-TypeScript : PASS
+Une grille dédiée a été rendue côte à côte avec :
+- NUAGE
+- ÉCLAIRCIES
+- SOLEIL
+- PLUIE
+- ORAGE
+- BROUILLARD
+- VENT
+
+Voir :
+VALIDATION_OPTICAL_GRID.png
+
+Un rendu story 1080 × 1920 a également été exécuté avec ces familles
+réparties dans la grille horaire.
+
+Voir :
+VALIDATION_STORY_1080x1920.png
+
+VALIDATIONS TECHNIQUES
+----------------------
+TypeScript Legacy : PASS
+TypeScript V24 : PASS
 JavaScript embarqué Legacy : PASS
 JavaScript embarqué V24 : PASS
-Exécution Chromium Legacy : PASS
-Exécution Chromium V24 : PASS
-Canvas rendu Legacy : PASS
-Canvas rendu V24 : PASS
+Chromium Legacy : PASS
+Chromium V24 : PASS
+Canvas 1080 × 1920 : PASS
 Erreurs navigateur : 0
 Text integrity : PASS
-
-TEST DE CENTRAGE — COUVERT
---------------------------
-Limite gauche visuelle icône : 107.23 px
-Limite droite réelle du titre : 624.68 px
-Centre calculé du groupe : 365.96 px
-Centre appliqué au sous-titre : 365.96 px
-
-La phrase est donc mathématiquement centrée sous l'ensemble
-[icône + titre], et non sous le titre seul.
+Centrage box générale inchangé : PASS

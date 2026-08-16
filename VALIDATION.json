@@ -1,48 +1,73 @@
 {
-  "version": "12.16.12",
-  "label": "FINAL PREMIUM + TRUE CENTER",
+  "version": "12.16.13",
+  "label": "FINAL OPTICAL ICON SIZING",
+  "baseVersion": "12.16.12 FINAL PREMIUM + TRUE CENTER",
   "filesToReplace": [
     "src/ui/instagramDaily.ts",
     "src/ui/instagramOfficial24.ts"
   ],
   "migrationD1": false,
-  "format": "1080x1920",
-  "premiumPalette": {
-    "weatherRendererUsesUserPaletteAssets": true,
-    "legacyWeatherVectorRendererUsed": false,
-    "automaticNightIconAt22h": false,
-    "weatherConditionHasPriorityOverHour": true
+  "scope": "hourly_icon_optical_sizing_only",
+  "hourlyOpticalSizing": {
+    "baseScale": 0.66,
+    "factors": {
+      "cloud": 1.1,
+      "partly": 1.2,
+      "sun": 1.12,
+      "rain": 1.12,
+      "drizzle": 1.12,
+      "thunder": 1.12,
+      "fog": 1.15,
+      "wind": 1.15,
+      "snow": 1.12,
+      "cloud-wind": 1.15,
+      "rain-wind": 1.15,
+      "sun-wind": 1.15
+    },
+    "validatedFamiliesSideBySide": [
+      "cloud",
+      "partly",
+      "sun",
+      "rain",
+      "thunder",
+      "fog",
+      "wind"
+    ],
+    "automaticNightIconAt22h": false
   },
   "generalBox": {
-    "subtitleUsesFixedCenter": false,
-    "subtitleUsesMeasuredIconAndTitleGroup": true,
-    "validatedExample": {
-      "title": "COUVERT",
-      "subtitle": "Journée douce et nuageuse.",
-      "iconLeftPx": 107.23333333333332,
-      "titleRightPx": 624.6845703125,
-      "computedCenterPx": 365.9589518229167
-    }
+    "unchanged": true,
+    "trueCenterPreserved": true,
+    "validatedSubtitle": "Journée douce et nuageuse."
   },
   "validation": {
-    "typescript": "PASS",
-    "legacyEmbeddedJavaScript": "PASS",
-    "v24EmbeddedJavaScript": "PASS",
-    "chromiumLegacy": "PASS",
+    "typescriptDaily": "PASS",
+    "typescriptV24": "PASS",
+    "embeddedJavaScriptDaily": "PASS",
+    "embeddedJavaScriptV24": "PASS",
+    "chromiumDaily": "PASS",
     "chromiumV24": "PASS",
-    "legacyCanvasRendered": "PASS",
-    "v24CanvasRendered": "PASS",
+    "canvas1080x1920": "PASS",
     "browserErrors": 0,
-    "textIntegrity": "PASS"
+    "textIntegrity": "PASS",
+    "opticalGridRendered": "PASS",
+    "storyMultiFamilyRendered": "PASS"
   },
   "unchanged": [
+    "general weather box",
+    "general subtitle centering",
+    "premium icon palette",
+    "texts",
+    "temperatures",
+    "separators",
+    "margins",
     "masters",
+    "Liquid Glass",
+    "comment box",
+    "solar box",
+    "signature",
     "scenes",
     "weather data",
-    "hourly grid structure",
-    "min/max logic",
-    "comment box",
-    "Liquid Glass",
     "scoring",
     "classifier",
     "readiness",

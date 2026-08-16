@@ -446,6 +446,28 @@ function drawWeatherIcon(kind,x,y,scale,color){
   if(kind==='sun-wind') return drawPremiumComposite('sun-wind',x,y,scale);
   return drawPremiumAsset('cloud',x,y,scale);
 }
+
+function hourlyOpticalScale(kind){
+  // 12.16.13 — optical compensation for the hourly grid only.
+  // Each premium family gets its own factor so visually smaller glyphs
+  // occupy the same perceived footprint as a simple cloud.
+  const factor={
+    cloud:1.10,
+    partly:1.20,
+    sun:1.12,
+    rain:1.12,
+    drizzle:1.12,
+    thunder:1.12,
+    fog:1.15,
+    wind:1.15,
+    snow:1.12,
+    'cloud-wind':1.15,
+    'rain-wind':1.15,
+    'sun-wind':1.15
+  }[kind]||1.10;
+  return 0.66*factor;
+}
+
 function sceneIconKind(label){
   return conditionToIcon(label,12);
 }
@@ -717,7 +739,8 @@ function drawHourlyBox(items){
       const base=rowTop[row];
       text(String(item.hour).padStart(2,'0')+'h',cx,base+52,24,600,INK,'center');
       if(!item.missing){
-        drawWeatherIcon(conditionToIcon(item.condition,item.hour),cx,base+133,0.60,INK);
+        const iconKind=conditionToIcon(item.condition,item.hour);
+        drawWeatherIcon(iconKind,cx,base+133,hourlyOpticalScale(iconKind),INK);
       }
       text(String(item.temperatureC)+(item.missing?'':'°'),cx,base+238,42,700,INK,'center');
     }
