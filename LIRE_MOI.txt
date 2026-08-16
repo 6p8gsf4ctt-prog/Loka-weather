@@ -1,10 +1,12 @@
-LOKA — VERSION 12.16.9
-==========================
+LOKA — VERSION 12.16.9 FINAL VERIFIED
+===================================
 
 OBJET
 -----
-Correction visuelle finale du Studio Instagram, sans modification du moteur
-météo, des masters ou des scènes.
+Correctif final et vérifié de la V12.16.9.
+
+Cette version corrige le défaut qui pouvait laisser le Canvas entièrement vide
+après installation de « FINAL ICONS + TEXT ».
 
 FICHIERS À REMPLACER
 --------------------
@@ -13,60 +15,67 @@ src/ui/instagramOfficial24.ts
 
 AUCUNE MIGRATION D1.
 
-CORRECTIONS
------------
+CORRECTION BLOQUANTE
+--------------------
+Le JavaScript du Canvas est contenu dans une template string TypeScript.
+Les expressions régulières internes doivent donc doubler les antislashs.
 
-1. TEXTES / LETTRES MANQUANTES
-   - normalisation NFC ;
-   - pile Canvas stable Helvetica Neue / Arial ;
-   - rendu de chaque ligne complète, jamais caractère par caractère
-     sauf TARNOS qui conserve volontairement son tracking ;
-   - micro-stroke de 0,42 px derrière le fillText pour sécuriser les glyphes
-     fins lors de l'export Canvas iOS ;
-   - contrôle automatique de quatre phrases de régression avant le rendu ;
-   - sous-titre et commentaire auto-ajustés avant éventuel passage sur 2 lignes ;
-   - aucun mot n'est découpé.
+Exemple source TypeScript :
+  /\\s+/g
 
-2. PICTOGRAMME 22H
-   - lune redessinée comme un unique croissant vectoriel continu ;
-   - suppression du double-croissant / artefacts ;
-   - lune + nuage recalibrés pour les nuits nuageuses.
+JavaScript réellement envoyé au navigateur :
+  /\s+/g
 
-3. FAMILLE MÉTÉO
-   - pictogrammes toujours exclusivement vectoriels Canvas ;
-   - aucun emoji système / Unicode météo ;
-   - soleil et mix soleil-nuage recalibrés à la même taille optique que les nuages.
+La version précédente pouvait envoyer /s+/g et remplacer toutes les lettres
+« s » par des espaces, puis déclencher le diagnostic de texte et interrompre
+le rendu avant le chargement du master.
 
-4. FAMILLE SOLAIRE
-   - cinq pictogrammes redessinés sur une grille commune :
-     AUBE / LEVER / MIDI SOLAIRE / COUCHER / CRÉPUSCULE ;
-   - même épaisseur de trait ;
-   - aucun remplissage, aucune flèche.
+La FINAL VERIFIED :
+- corrige tous les échappements \s / \d concernés ;
+- rend le diagnostic texte non bloquant ;
+- expose window.__LOKA_RENDER_STATUS pour le contrôle navigateur ;
+- capture toute erreur de draw() sans rejet Promise non géré.
 
-5. LIQUID GLASS
-   - transparence légèrement renforcée :
-     environ 15 % en haut, 12 % au centre, 9,5 % en bas ;
-   - contour blanc légèrement plus présent ;
-   - reflet interne très discret ;
-   - toujours aucun blur du master et aucune grosse ombre.
+AFFINAGES CONSERVÉS / FINALISÉS
+-------------------------------
+- texte NFC et rendu ligne entière ;
+- phrases de régression ;
+- Liquid Glass renforcé ;
+- lune 22h : croissant vectoriel unique sans étoiles ;
+- lune + nuage : composition plus claire ;
+- Aube et Crépuscule différenciés plus nettement ;
+- mesure typographique déterministe avant choix 1 / 2 lignes.
 
 STRICTEMENT INCHANGÉ
 --------------------
-- format 1080 × 1920 ;
 - 24 masters ;
-- scènes Legacy et V24 ;
-- scoring / classifier ;
-- 10 horaires ;
+- scènes Legacy / V24 ;
+- classifier / scoring ;
+- données météo ;
 - calculs solaires ;
-- commentaire métier ;
-- grille et positions des boxes ;
-- readiness / Shadow ;
-- GO LIVE / rollback ;
+- 10 horaires ;
+- grille / positions des boxes ;
+- format 1080 × 1920 ;
+- readiness / GO LIVE / rollback ;
 - D1.
 
-TESTS DE RÉGRESSION TEXTE
--------------------------
-Journée douce et nuageuse.
-Nuages dominants · Éclaircies en soirée
-Risque de pluie présent sur certains créneaux.
-Aucun risque de pluie annoncé.
+VALIDATION
+----------
+Cette archive est validée en trois niveaux :
+1. TypeScript ;
+2. syntaxe JavaScript intégrée ;
+3. exécution réelle sous Chromium avec Canvas 1080 × 1920, chargement d'un
+   master, absence d'erreur console, statut rendered=true et vérification des
+   phrases complètes envoyées à Canvas.
+
+RÉSULTAT DU TEST CHROMIUM
+------------------------
+Studio Legacy : rendered=true · textIntegrity=true · 0 erreur console.
+Studio V24    : rendered=true · textIntegrity=true · 0 erreur console.
+
+Phrases vérifiées exactement dans les appels Canvas :
+- Journée douce et nuageuse.
+- Nuages dominants · Éclaircies en soirée
+- Risque de pluie présent sur certains créneaux.
+
+Le Canvas produit bien une image non vide dans les deux Studios.

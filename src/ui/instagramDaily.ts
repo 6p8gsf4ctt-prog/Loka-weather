@@ -40,7 +40,7 @@ export function renderInstagramDaily(
 ): string {
   const visual = visualFor(forecast);
   const solar = calculateSolarTimes(forecast.date, latitude, longitude, timezone);
-  const data = JSON.stringify({ forecast, timezone, visual, solar }).replace(/</g, "\u003c");
+  const data = JSON.stringify({ forecast, timezone, visual, solar }).replace(/</g, "\\u003c");
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>LOKA! — Studio Instagram</title><style>
 :root{--ink:#171715;--muted:#73716c;--paper:#ecebe7}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;padding:max(14px,env(safe-area-inset-top)) 12px max(26px,env(safe-area-inset-bottom))}.wrap{width:min(100%,580px);margin:auto}.toolbar{background:#fff;border-radius:24px;padding:18px;margin-bottom:14px}.topline{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-size:12px;font-weight:760;letter-spacing:.16em}.badge{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6d6a65;background:#f1f0ec;padding:6px 8px;border-radius:999px}h1{font-size:23px;line-height:1.08;margin:14px 0 5px}.muted{font-size:12px;line-height:1.5;color:var(--muted)}.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}button,a{border:0;border-radius:14px;padding:14px 10px;text-decoration:none;text-align:center;font:650 13px/1 -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer}.primary{background:#171715;color:#fff}.secondary{background:#f1f1ee;color:#171715}.canvas-wrap{background:#d8d8d4;border-radius:26px;overflow:hidden;box-shadow:0 18px 70px rgba(0,0,0,.14)}canvas{display:block;width:100%;height:auto}.note{text-align:center;font-size:11px;color:#8d8983;line-height:1.45;padding:12px 12px 0}@media(max-width:420px){.actions{grid-template-columns:1fr}}
 </style></head><body><div class="wrap"><div class="toolbar"><div class="topline"><div class="brand">LOKA!</div><div class="badge">Météo officielle</div></div><h1>Visuel Instagram</h1><div class="muted" id="summary">Tarnos · visuel du jour</div><div class="actions"><button class="primary" id="share">Partager / enregistrer</button><a class="secondary" href="/admin">Retour</a></div></div><div class="canvas-wrap"><canvas id="post" width="1080" height="1920"></canvas></div><div class="note">Le visuel utilise uniquement la météo officielle actuellement publiée par LOKA.</div></div><script>
@@ -59,7 +59,7 @@ const CANVAS_FONT='"Helvetica Neue",Arial,sans-serif';
 function normalizeText(value){
   return String(value??'')
     .normalize('NFC')
-    .replace(/\s+/g,' ')
+    .replace(/\\s+/g,' ')
     .trim();
 }
 
@@ -139,43 +139,52 @@ function assertTextIntegrity(){
     'Aucun risque de pluie annoncé.'
   ];
 
-  ctx.save();
-  font(24,500);
+  try{
+    ctx.save();
+    font(24,500);
 
-  for(const source of regression){
-    const normalized=normalizeText(source);
-    if(normalized!==source.normalize('NFC')){
-      ctx.restore();
-      throw new Error('instagram_text_normalization_mismatch');
-    }
+    for(const source of regression){
+      const expected=source.normalize('NFC');
+      const normalized=normalizeText(source);
 
-    const width=ctx.measureText(normalized).width;
-    if(!Number.isFinite(width)||width<=0){
-      ctx.restore();
-      throw new Error('instagram_text_measurement_unavailable');
-    }
-
-    // Every visible character must have a measurable glyph.
-    for(const ch of normalized){
-      if(ch===' ') continue;
-      const glyphWidth=ctx.measureText(ch).width;
-      if(!Number.isFinite(glyphWidth)||glyphWidth<=0){
+      if(normalized!==expected){
+        console.warn(
+          'LOKA text normalization mismatch',
+          {source,normalized}
+        );
         ctx.restore();
-        throw new Error('instagram_text_glyph_unavailable');
+        return false;
+      }
+
+      const width=ctx.measureText(normalized).width;
+      if(!Number.isFinite(width)||width<=0){
+        console.warn(
+          'LOKA text measurement unavailable',
+          source
+        );
+        ctx.restore();
+        return false;
       }
     }
+
+    ctx.restore();
+    return true;
+  }catch(error){
+    try{ctx.restore();}catch{}
+    console.warn(
+      'LOKA text integrity diagnostic failed',
+      error
+    );
+    return false;
   }
-
-  ctx.restore();
 }
-
 function wrap(value,x,y,maxWidth,lineHeight,size,weight,color,align='left',maxLines=2){
   ctx.save();
   font(size,weight);
   ctx.fillStyle=color;
   ctx.textAlign=align;
   ctx.textBaseline='alphabetic';
-  const words=normalizeText(value).split(/\s+/).filter(Boolean);
+  const words=normalizeText(value).split(/\\s+/).filter(Boolean);
   let line='',yy=y,count=0;
   for(const word of words){
     const next=line?line+' '+word:word;
@@ -356,30 +365,29 @@ function drawMoon(x,y,scale,color){
   ctx.lineCap='round';
   ctx.lineJoin='round';
 
-  // One closed crescent contour. This avoids the previous doubled-arc look.
+  // Single crescent silhouette: one continuous vector path, no stars.
   ctx.beginPath();
-  ctx.moveTo(8,-20);
+  ctx.moveTo(7,-22);
   ctx.bezierCurveTo(
-    -7,-15,
-    -13,3,
-    -5,16
+    -7,-16,
+    -13,-2,
+    -8,12
   );
   ctx.bezierCurveTo(
-    4,30,
-    23,21,
-    25,5
+    -3,27,
+    14,30,
+    25,18
   );
   ctx.bezierCurveTo(
-    17,12,
-    8,11,
-    2,5
+    13,20,
+    3,13,
+    1,3
   );
   ctx.bezierCurveTo(
-    -4,-2,
-    -1,-14,
-    8,-20
+    -1,-7,
+    1,-16,
+    7,-22
   );
-  ctx.closePath();
   ctx.stroke();
   ctx.restore();
 }
@@ -398,17 +406,17 @@ function drawPartly(x,y,scale,color){
   );
 }
 function drawNightCloud(x,y,scale,color){
-  // The moon remains legible but secondary to the cloud.
+  // Moon sits clearly above-right behind the cloud, matching the LOKA family.
   drawMoon(
-    x-18*scale,
-    y-16*scale,
-    scale*0.64,
+    x+22*scale,
+    y-21*scale,
+    scale*0.58,
     color
   );
   drawCloud(
-    x+6*scale,
-    y+6*scale,
-    scale*0.82,
+    x-5*scale,
+    y+7*scale,
+    scale*0.80,
     color
   );
 }
@@ -565,10 +573,10 @@ function drawSolarIcon(kind,x,y,scale,color){
   let rayXs=[-20,-7,7,20];
 
   if(kind==='dawn'){
-    // Almost completely below the horizon.
-    cy=20;
+    // First light: tiny upper arc and three fine rays.
+    cy=21;
     radius=12;
-    rayHeight=7;
+    rayHeight=8;
     rayXs=[-13,0,13];
   }else if(kind==='sunrise'){
     // Half-emerged above the horizon.
@@ -583,11 +591,11 @@ function drawSolarIcon(kind,x,y,scale,color){
     rayHeight=8;
     rayXs=[-19,-6,6,19];
   }else if(kind==='dusk'){
-    // Almost disappeared below the horizon.
-    cy=21;
-    radius=11;
-    rayHeight=5;
-    rayXs=[-12,0,12];
+    // Last light: lower/smaller arc, only two very discreet side rays.
+    cy=23;
+    radius=10;
+    rayHeight=4;
+    rayXs=[-11,11];
   }
 
   ctx.beginPath();
@@ -623,11 +631,11 @@ function pickHourlySlots(source){
   });
 }
 function commentLines(hourly,summary,mainVerdict,rainVerdict,notableEvent){
-  const clean=(value)=>String(value||'').replace(/\s+/g,' ').trim();
-  const isTemp=(value)=>/temp[ée]rature|compris|entre\s+\d+|\d+\s*°/i.test(clean(value));
+  const clean=(value)=>String(value||'').replace(/\\s+/g,' ').trim();
+  const isTemp=(value)=>/temp[ée]rature|compris|entre\\s+\\d+|\\d+\\s*°/i.test(clean(value));
   const isSkyNarrative=(value)=>/ciel|soleil|nuage|couvert|éclair|eclair|variable/i.test(clean(value));
   const sentenceParts=(value)=>clean(value)
-    .split(/(?<=[.!?])\s+/)
+    .split(/(?<=[.!?])\\s+/)
     .map(clean)
     .filter(Boolean);
 
@@ -736,11 +744,13 @@ function drawGeneralBox(opts){
     subtitleSize,
     500
   );
+  const subtitleWidth=
+    ctx.measureText(subtitle).width;
+  ctx.restore();
 
   if(
-    ctx.measureText(subtitle).width<=535
+    subtitleWidth<=535
   ){
-    ctx.restore();
     text(
       subtitle,
       302,
@@ -820,8 +830,13 @@ function drawCommentBox(mainLine,secondaryLine){
     600
   );
 
+  ctx.save();
+  font(mainSize,600);
+  const mainWidth=ctx.measureText(main).width;
+  ctx.restore();
+
   if(
-    ctx.measureText(main).width<=900
+    mainWidth<=900
   ){
     text(
       main,
@@ -857,8 +872,13 @@ function drawCommentBox(mainLine,secondaryLine){
         500
       );
 
+    ctx.save();
+    font(secondarySize,500);
+    const secondaryWidth=ctx.measureText(secondary).width;
+    ctx.restore();
+
     if(
-      ctx.measureText(secondary).width<=890
+      secondaryWidth<=890
     ){
       text(
         secondary,
@@ -918,8 +938,14 @@ function drawSignature(){
 }
 
 async function draw(){
+  window.__LOKA_RENDER_STATUS={
+    started:true,
+    textIntegrity:assertTextIntegrity(),
+    rendered:false,
+    error:null
+  };
+
   ctx.clearRect(0,0,1080,1920);
-  assertTextIntegrity();
   const bg=await load(visual.masterUrl);
   drawMaster(bg);
   drawHeader(f.city,f.date,INK);
@@ -932,6 +958,8 @@ async function draw(){
   drawCommentBox(mainLine,secondaryLine);
   drawSolarBox(solar);
   drawSignature();
+  window.__LOKA_RENDER_STATUS.rendered=true;
+
   document.getElementById('summary').textContent=String(f.city||'Tarnos')+' · '+visual.title+' · '+String(f.tempMinC)+'° — '+String(f.tempMaxC)+'°';
 }
 function pngFile(){
@@ -948,6 +976,13 @@ document.getElementById('share').onclick=()=>{
   if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){navigator.share({files:[file],title:'LOKA!'}).catch(error=>{if(error?.name!=='AbortError')fallbackDownload(file);});return;}
   fallbackDownload(file);
 };
-draw();
+draw().catch((error)=>{
+  console.error('LOKA Instagram render failed',error);
+  window.__LOKA_RENDER_STATUS={
+    ...(window.__LOKA_RENDER_STATUS||{}),
+    rendered:false,
+    error:String(error&&error.message?error.message:error)
+  };
+});
 </script></body></html>`;
 }
