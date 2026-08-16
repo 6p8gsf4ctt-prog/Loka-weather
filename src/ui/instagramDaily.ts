@@ -466,46 +466,44 @@ function drawFog(x,y,scale,color){
 }
 function conditionToIcon(condition,hour){
   const c=String(condition||'').toLowerCase();
-  const h=Number(hour);
-  const earlyNight=h<6;
-  const lateNight=h>=21;
 
+  // 12.16.9 FINAL VERIFIED — weather-only iconography.
+  // The hour never changes the icon family. 22h displays the actual
+  // meteorological condition exactly like every other forecast slot.
   if(c.includes('orage')) return 'thunder';
   if(c.includes('pluie')||c.includes('averse')) return 'rain';
   if(c.includes('vent')) return 'wind';
   if(c.includes('brouillard')||c.includes('brume')) return 'fog';
 
-  // Explicit night wording always wins.
-  if(c.includes('nuit')||c.includes('lune')){
-    return c.includes('nuage')?'night-cloud':'moon';
-  }
-
-  // "Peu nuageux" is a mixed sky, not a plain cloud.
-  if(c.includes('peu nuageux')){
-    return (earlyNight||lateNight)?'night-cloud':'partly';
-  }
-
   if(
+    c.includes('peu nuageux')||
     c.includes('éclair')||
     c.includes('eclair')||
     c.includes('variable')
   ){
-    return (earlyNight||lateNight)?'night-cloud':'partly';
+    return 'partly';
   }
 
-  // A genuinely clear 04h is nocturnal.
+  if(
+    c.includes('nuage')||
+    c.includes('couvert')
+  ){
+    return 'cloud';
+  }
+
   if(
     c.includes('soleil')||
     c.includes('ensoleillé')||
     c.includes('ensoleille')||
-    c.includes('clair')
+    c.includes('clair')||
+    c.includes('dégagé')||
+    c.includes('degage')
   ){
-    return (earlyNight||lateNight)?'moon':'sun';
+    return 'sun';
   }
 
-  // Approved reference: a fully cloudy 04h remains a simple cloud.
-  // At 22h, cloudy conditions use the nocturnal cloud/moon family.
-  return lateNight?'night-cloud':'cloud';
+  // Unknown wording: neutral cloud rather than a day/night symbol.
+  return 'cloud';
 }
 function drawWeatherIcon(kind,x,y,scale,color){
   if(kind==='sun') return drawSun(x,y,scale,color);

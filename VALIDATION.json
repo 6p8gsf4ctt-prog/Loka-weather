@@ -36,5 +36,9 @@
   ],
   "browserEngine": "Chromium headless",
   "browserCanvasDataUrlLengthDaily": 446206,
-  "browserCanvasDataUrlLengthV24": 446206
+  "browserCanvasDataUrlLengthV24": 446206,
+  "weatherIconPolicy": "condition_only_no_hour_based_night_icons",
+  "hour22UsesWeatherCondition": true,
+  "hour22UsesMoonByTime": false,
+  "solarBoxUnchanged": true
 }

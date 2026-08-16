@@ -79,3 +79,21 @@ Phrases vérifiées exactement dans les appels Canvas :
 - Risque de pluie présent sur certains créneaux.
 
 Le Canvas produit bien une image non vide dans les deux Studios.
+
+
+CORRECTIF MÉTÉO 22H — WEATHER ICONS ONLY
+----------------------------------------
+Les pictogrammes horaires ne dépendent plus de l'heure du jour.
+22h utilise exactement la même logique météo que 04h, 06h, 12h, etc.
+
+Exemples :
+- soleil / ciel clair -> soleil ;
+- peu nuageux / éclaircies -> soleil + nuage ;
+- nuageux / couvert -> nuage ;
+- pluie / averses -> pluie ;
+- orage -> orage ;
+- brouillard -> brouillard ;
+- vent -> vent.
+
+Aucune lune et aucun pictogramme nocturne ne sont sélectionnés par l'heure.
+La box solaire reste évidemment inchangée.
