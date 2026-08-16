@@ -1,90 +1,44 @@
-LOKA — V12.16.13 FINAL OPTICAL ICON SIZING
-================================================
+LOKA — V12.16.14 FINAL VISIBLE ICON SIZE
+============================================
 
-FICHIERS À REMPLACER DANS GITHUB
---------------------------------
+À REMPLACER DANS GITHUB
+-----------------------
 src/ui/instagramDaily.ts
 src/ui/instagramOfficial24.ts
 
 AUCUNE MIGRATION D1.
 
-PÉRIMÈTRE STRICT
-----------------
-Cette version part de V12.16.12 FINAL PREMIUM + TRUE CENTER.
+POURQUOI 12.16.13 ÉTAIT INSUFFISANTE
+------------------------------------
+12.16.13 appliquait seulement des multiplicateurs de scale.
+Le changement existait dans le code mais restait trop faible visuellement.
 
-Elle modifie UNIQUEMENT la taille optique des icônes de la grille horaire.
+12.16.14 ne travaille plus avec un simple facteur relatif :
+- chaque PNG premium est recadré sur son dessin réellement visible ;
+- chaque famille reçoit ensuite une largeur visible cible en pixels Canvas.
+
+LARGEURS VISIBLES CIBLES
+------------------------
+Nuage       76 px
+Éclaircies  80 px
+Soleil      74 px
+Pluie       76 px
+Orage       76 px
+Brouillard  80 px
+Vent        80 px
+
+VALIDATION RÉELLE
+-----------------
+- rendu Chromium Legacy : PASS
+- rendu Chromium V24 : PASS
+- Canvas 1080 × 1920 : PASS
+- erreurs navigateur : 0
+- text integrity : PASS
+- grille côte à côte nuage / éclaircies / soleil / pluie /
+  orage / brouillard / vent : PASS
+
+Voir les trois PNG de validation inclus dans l'archive.
 
 INCHANGÉ
 --------
-- box météo générale
-- centrage de « Journée douce et nuageuse. »
-- palette premium
-- textes
-- températures
-- séparateurs
-- marges
-- fond / master
-- Liquid Glass
-- box commentaire
-- box solaire
-- signature
-- scènes
-- données météo
-- scoring / classifier
-- readiness / GO LIVE / rollback
-- D1
-
-NORMALISATION OPTIQUE
----------------------
-Base horaire validée : 0.66
-
-Facteurs par famille :
-- nuage          : 1.10  -> scale final 0.726
-- éclaircies     : 1.20  -> scale final 0.792
-- soleil         : 1.12  -> scale final 0.7392
-- pluie          : 1.12  -> scale final 0.7392
-- bruine         : 1.12
-- orage          : 1.12  -> scale final 0.7392
-- brouillard     : 1.15  -> scale final 0.759
-- vent           : 1.15  -> scale final 0.759
-- neige / gel    : 1.12
-- combinaisons vent : 1.15
-
-22H
----
-Aucune règle nocturne.
-22h utilise exactement la même taille et la même logique que la condition
-météo équivalente à une autre heure.
-
-CONTRÔLE VISUEL OBLIGATOIRE EFFECTUÉ
-------------------------------------
-Une grille dédiée a été rendue côte à côte avec :
-- NUAGE
-- ÉCLAIRCIES
-- SOLEIL
-- PLUIE
-- ORAGE
-- BROUILLARD
-- VENT
-
-Voir :
-VALIDATION_OPTICAL_GRID.png
-
-Un rendu story 1080 × 1920 a également été exécuté avec ces familles
-réparties dans la grille horaire.
-
-Voir :
-VALIDATION_STORY_1080x1920.png
-
-VALIDATIONS TECHNIQUES
-----------------------
-TypeScript Legacy : PASS
-TypeScript V24 : PASS
-JavaScript embarqué Legacy : PASS
-JavaScript embarqué V24 : PASS
-Chromium Legacy : PASS
-Chromium V24 : PASS
-Canvas 1080 × 1920 : PASS
-Erreurs navigateur : 0
-Text integrity : PASS
-Centrage box générale inchangé : PASS
+Tout le reste de la story.

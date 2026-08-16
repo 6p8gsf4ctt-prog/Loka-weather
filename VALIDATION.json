@@ -1,57 +1,70 @@
 {
-  "version": "12.16.13",
-  "label": "FINAL OPTICAL ICON SIZING",
-  "baseVersion": "12.16.12 FINAL PREMIUM + TRUE CENTER",
+  "version": "12.16.14",
+  "label": "FINAL VISIBLE ICON SIZE",
+  "baseVersion": "12.16.13 FINAL OPTICAL ICON SIZING",
+  "scope": "hourly weather icon visible size only",
+  "migrationD1": false,
   "filesToReplace": [
     "src/ui/instagramDaily.ts",
     "src/ui/instagramOfficial24.ts"
   ],
-  "migrationD1": false,
-  "scope": "hourly_icon_optical_sizing_only",
-  "hourlyOpticalSizing": {
-    "baseScale": 0.66,
-    "factors": {
-      "cloud": 1.1,
-      "partly": 1.2,
-      "sun": 1.12,
-      "rain": 1.12,
-      "drizzle": 1.12,
-      "thunder": 1.12,
-      "fog": 1.15,
-      "wind": 1.15,
-      "snow": 1.12,
-      "cloud-wind": 1.15,
-      "rain-wind": 1.15,
-      "sun-wind": 1.15
-    },
-    "validatedFamiliesSideBySide": [
-      "cloud",
-      "partly",
-      "sun",
-      "rain",
-      "thunder",
-      "fog",
-      "wind"
-    ],
-    "automaticNightIconAt22h": false
+  "correctionMethod": {
+    "oldMethod": "relative scale multipliers",
+    "newMethod": "crop to visible icon artwork + fixed visible target width in canvas pixels",
+    "visibleTargetWidthsPx": {
+      "cloud": 76,
+      "partly": 80,
+      "sun": 74,
+      "rain": 76,
+      "drizzle": 76,
+      "thunder": 76,
+      "fog": 80,
+      "wind": 80,
+      "snow": 76,
+      "cloud-wind": 82,
+      "rain-wind": 82,
+      "sun-wind": 82
+    }
   },
-  "generalBox": {
-    "unchanged": true,
-    "trueCenterPreserved": true,
-    "validatedSubtitle": "Journée douce et nuageuse."
+  "measuredValidationGridVisibleBoundingBoxesPx": {
+    "cloud": [
+      66,
+      44
+    ],
+    "partly": [
+      59,
+      43
+    ],
+    "sun": [
+      66,
+      67
+    ],
+    "rain": [
+      68,
+      67
+    ],
+    "thunder": [
+      67,
+      69
+    ],
+    "fog": [
+      71,
+      36
+    ],
+    "wind": [
+      73,
+      51
+    ]
   },
   "validation": {
-    "typescriptDaily": "PASS",
-    "typescriptV24": "PASS",
-    "embeddedJavaScriptDaily": "PASS",
-    "embeddedJavaScriptV24": "PASS",
-    "chromiumDaily": "PASS",
+    "typescript": "PASS",
+    "chromiumLegacy": "PASS",
     "chromiumV24": "PASS",
-    "canvas1080x1920": "PASS",
+    "canvasLegacy": "1080x1920 PASS",
+    "canvasV24": "1080x1920 PASS",
     "browserErrors": 0,
     "textIntegrity": "PASS",
-    "opticalGridRendered": "PASS",
-    "storyMultiFamilyRendered": "PASS"
+    "sideBySideGrid": "PASS"
   },
   "unchanged": [
     "general weather box",

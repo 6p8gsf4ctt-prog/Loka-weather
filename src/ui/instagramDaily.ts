@@ -447,25 +447,73 @@ function drawWeatherIcon(kind,x,y,scale,color){
   return drawPremiumAsset('cloud',x,y,scale);
 }
 
-function hourlyOpticalScale(kind){
-  // 12.16.13 — optical compensation for the hourly grid only.
-  // Each premium family gets its own factor so visually smaller glyphs
-  // occupy the same perceived footprint as a simple cloud.
-  const factor={
-    cloud:1.10,
-    partly:1.20,
-    sun:1.12,
-    rain:1.12,
-    drizzle:1.12,
-    thunder:1.12,
-    fog:1.15,
-    wind:1.15,
-    snow:1.12,
-    'cloud-wind':1.15,
-    'rain-wind':1.15,
-    'sun-wind':1.15
-  }[kind]||1.10;
-  return 0.66*factor;
+
+const PREMIUM_ICON_CROP={
+  sun:{x:15,y:15,w:182,h:186},
+  partly:{x:15,y:15,w:286,h:226},
+  cloud:{x:15,y:15,w:202,h:138},
+  rain:{x:15,y:15,w:194,h:190},
+  thunder:{x:15,y:15,w:198,h:202},
+  snow:{x:15,y:15,w:194,h:202},
+  fog:{x:15,y:15,w:214,h:114},
+  wind:{x:15,y:15,w:222,h:162},
+  rainWind:{x:15,y:15,w:230,h:206}
+};
+
+const HOURLY_VISIBLE_WIDTH={
+  cloud:76,
+  partly:80,
+  sun:74,
+  rain:76,
+  drizzle:76,
+  thunder:76,
+  fog:80,
+  wind:80,
+  snow:76,
+  'cloud-wind':82,
+  'rain-wind':82,
+  'sun-wind':82
+};
+
+function drawPremiumAssetVisibleWidth(kind,x,y,targetWidth){
+  const img=premiumIconImages[kind];
+  const crop=PREMIUM_ICON_CROP[kind];
+  if(!img||!crop) return false;
+  const dw=targetWidth;
+  const dh=dw*(crop.h/crop.w);
+  ctx.drawImage(
+    img,
+    crop.x,crop.y,crop.w,crop.h,
+    x-dw/2,y-dh/2,dw,dh
+  );
+  return true;
+}
+
+function drawHourlyWeatherIcon(kind,x,y,color){
+  const width=HOURLY_VISIBLE_WIDTH[kind]||76;
+
+  if(kind==='sun') return drawPremiumAssetVisibleWidth('sun',x,y,width);
+  if(kind==='partly') return drawPremiumAssetVisibleWidth('partly',x,y,width);
+  if(kind==='rain') return drawPremiumAssetVisibleWidth('rain',x,y,width);
+  if(kind==='drizzle') return drawPremiumAssetVisibleWidth('rain',x,y,width);
+  if(kind==='thunder') return drawPremiumAssetVisibleWidth('thunder',x,y,width);
+  if(kind==='wind') return drawPremiumAssetVisibleWidth('wind',x,y,width);
+  if(kind==='fog') return drawPremiumAssetVisibleWidth('fog',x,y,width);
+  if(kind==='snow') return drawPremiumAssetVisibleWidth('snow',x,y,width);
+  if(kind==='rain-wind') return drawPremiumAssetVisibleWidth('rainWind',x,y,width);
+
+  if(kind==='cloud-wind'){
+    drawPremiumAssetVisibleWidth('wind',x-20,y+6,56);
+    drawPremiumAssetVisibleWidth('cloud',x+23,y-5,54);
+    return true;
+  }
+  if(kind==='sun-wind'){
+    drawPremiumAssetVisibleWidth('sun',x-22,y-8,50);
+    drawPremiumAssetVisibleWidth('wind',x+20,y+7,56);
+    return true;
+  }
+
+  return drawPremiumAssetVisibleWidth('cloud',x,y,width);
 }
 
 function sceneIconKind(label){
@@ -740,7 +788,7 @@ function drawHourlyBox(items){
       text(String(item.hour).padStart(2,'0')+'h',cx,base+52,24,600,INK,'center');
       if(!item.missing){
         const iconKind=conditionToIcon(item.condition,item.hour);
-        drawWeatherIcon(iconKind,cx,base+133,hourlyOpticalScale(iconKind),INK);
+        drawHourlyWeatherIcon(iconKind,cx,base+133,INK);
       }
       text(String(item.temperatureC)+(item.missing?'':'°'),cx,base+238,42,700,INK,'center');
     }
