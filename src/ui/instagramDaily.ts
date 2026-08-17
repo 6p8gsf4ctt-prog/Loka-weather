@@ -1,23 +1,8 @@
-import type {
-  LokaForecast
-} from "../types";
-import {
-  calculateSolarTimes
-} from "./solarTimes";
+import type { LokaForecast } from "../types";
+import { calculateSolarTimes } from "./solarTimes";
 
-type LegacyScene =
-  | "SOLEIL"
-  | "NUAGES"
-  | "PLUIE"
-  | "ORAGES"
-  | "VENT FORT"
-  | "INSTABLE";
-
-interface DailyVisualScene {
-  title: string;
-  masterUrl: string;
-}
-
+type LegacyScene = "SOLEIL" | "NUAGES" | "PLUIE" | "ORAGES" | "VENT FORT" | "INSTABLE";
+interface DailyVisualScene { title: string; masterUrl: string; }
 const VISUALS: Record<LegacyScene, DailyVisualScene> = {
   SOLEIL: { title: "SOLEIL", masterUrl: "/masters24/01_GRAND_SOLEIL.png" },
   NUAGES: { title: "COUVERT", masterUrl: "/masters24/09_COUVERT.png" },
@@ -26,12 +11,8 @@ const VISUALS: Record<LegacyScene, DailyVisualScene> = {
   "VENT FORT": { title: "VENT FORT", masterUrl: "/masters24/10_VENT_FORT.png" },
   INSTABLE: { title: "INSTABLE", masterUrl: "/masters24/19_INSTABLE.png" }
 };
-
 function visualFor(forecast: LokaForecast): DailyVisualScene {
-  const key =
-    typeof forecast.scene === "string"
-      ? forecast.scene as LegacyScene
-      : "NUAGES";
+  const key = typeof forecast.scene === "string" ? forecast.scene as LegacyScene : "NUAGES";
   return VISUALS[key] ?? VISUALS.NUAGES;
 }
 
@@ -39,94 +20,33 @@ function visualFor(forecast: LokaForecast): DailyVisualScene {
 function previousLocalDate(date: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!match) return date;
-
-  const d = new Date(
-    Date.UTC(
-      Number(match[1]),
-      Number(match[2]) - 1,
-      Number(match[3]) - 1,
-      12,
-      0,
-      0
-    )
-  );
-
+  const d = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) - 1, 12, 0, 0));
   return d.toISOString().slice(0, 10);
 }
-
 function clockMinutes(value: string | null): number | null {
   if (!value) return null;
   const match = /^(\d{2}):(\d{2})$/.exec(value);
   if (!match) return null;
-
   const hours = Number(match[1]);
   const minutes = Number(match[2]);
-
-  if (
-    !Number.isFinite(hours) ||
-    !Number.isFinite(minutes)
-  ) {
-    return null;
-  }
-
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
   return hours * 60 + minutes;
 }
-
-function clockDeltaMinutes(
-  current: string | null,
-  previous: string | null
-): number | null {
+function clockDeltaMinutes(current: string | null, previous: string | null): number | null {
   const currentMinutes = clockMinutes(current);
   const previousMinutes = clockMinutes(previous);
-
-  if (
-    currentMinutes === null ||
-    previousMinutes === null
-  ) {
-    return null;
-  }
-
+  if (currentMinutes === null || previousMinutes === null) return null;
   let delta = currentMinutes - previousMinutes;
-
   if (delta > 720) delta -= 1440;
   if (delta < -720) delta += 1440;
-
   return delta;
 }
 
-export function renderInstagramDaily(
-  forecast: LokaForecast,
-  latitude: number,
-  longitude: number,
-  timezone: string
-): string {
+export function renderInstagramDaily(forecast: LokaForecast, latitude: number, longitude: number, timezone: string): string {
   const visual = visualFor(forecast);
-  const currentSolar = calculateSolarTimes(
-    forecast.date,
-    latitude,
-    longitude,
-    timezone
-  );
-
-  const previousSolar = calculateSolarTimes(
-    previousLocalDate(forecast.date),
-    latitude,
-    longitude,
-    timezone
-  );
-
-  const solar = {
-    ...currentSolar,
-    sunriseDeltaMinutes: clockDeltaMinutes(
-      currentSolar.sunrise,
-      previousSolar.sunrise
-    ),
-    sunsetDeltaMinutes: clockDeltaMinutes(
-      currentSolar.sunset,
-      previousSolar.sunset
-    )
-  };
-
+  const currentSolar = calculateSolarTimes(forecast.date, latitude, longitude, timezone);
+  const previousSolar = calculateSolarTimes(previousLocalDate(forecast.date), latitude, longitude, timezone);
+  const solar = { ...currentSolar, sunriseDeltaMinutes: clockDeltaMinutes(currentSolar.sunrise, previousSolar.sunrise), sunsetDeltaMinutes: clockDeltaMinutes(currentSolar.sunset, previousSolar.sunset) };
   const model = {
     city: forecast.city,
     date: forecast.date,
@@ -141,902 +61,75 @@ export function renderInstagramDaily(
     rainVerdict: forecast.rainVerdict,
     notableEvent: forecast.notableEvent
   };
-
-  const data = JSON.stringify({
-    model,
-    timezone,
-    solar
-  }).replace(/</g, "\\u003c");
-
+  const data = JSON.stringify({ model, timezone, solar }).replace(/</g, "\\u003c");
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>LOKA! — Studio Instagram</title><style>
-:root{--ink:#171715;--muted:#73716c;--paper:#ecebe7}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;padding:max(14px,env(safe-area-inset-top)) 12px max(26px,env(safe-area-inset-bottom))}.wrap{width:min(100%,580px);margin:auto}.toolbar{background:#fff;border-radius:24px;padding:18px;margin-bottom:14px}.topline{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-size:12px;font-weight:760;letter-spacing:.16em}.badge{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#24653a;background:#e8f3ea;padding:6px 8px;border-radius:999px}h1{font-size:23px;line-height:1.08;margin:14px 0 5px}.muted{font-size:12px;line-height:1.5;color:var(--muted)}.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}button,a{border:0;border-radius:14px;padding:14px 10px;text-decoration:none;text-align:center;font:650 13px/1 -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer}.primary{background:#171715;color:#fff}.secondary{background:#f1f1ee;color:#171715}.canvas-wrap{background:#d8d8d4;border-radius:26px;overflow:hidden;box-shadow:0 18px 70px rgba(0,0,0,.14)}canvas{display:block;width:100%;height:auto}.note{text-align:center;font-size:11px;color:#8d8983;line-height:1.45;padding:12px 12px 0}@media(max-width:420px){.actions{grid-template-columns:1fr}}
-</style></head><body><div class="wrap"><div class="toolbar"><div class="topline"><div class="brand">LOKA!</div><div class="badge">Météo officielle · V12.16.16</div></div><h1>Visuel Instagram</h1><div class="muted" id="summary">Tarnos · visuel du jour</div><div class="actions"><button class="primary" id="share">Partager / enregistrer</button><a class="secondary" href="/admin">Retour</a></div></div><div class="canvas-wrap"><canvas id="post" width="1080" height="1920"></canvas></div><div class="note">Le visuel utilise uniquement la météo officielle actuellement publiée par LOKA.</div></div><script>
-const state=${data};const m=state.model;const cfg={timezone:state.timezone};const solar=state.solar||{dawn:null,sunrise:null,solarNoon:null,sunset:null,dusk:null,daylightMinutes:null,daylightDeltaMinutes:null,sunriseDeltaMinutes:null,sunsetDeltaMinutes:null};const canvas=document.getElementById('post');const ctx=canvas.getContext('2d');const INK='#12264A';
-function load(src){
-  return new Promise((resolve,reject)=>{
-    const i=new Image();
-    i.onload=()=>resolve(i);
-    i.onerror=reject;
-    i.src=src;
-  });
-}
+:root{--ink:#171715;--muted:#73716c;--paper:#ecebe7}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;padding:max(14px,env(safe-area-inset-top)) 12px max(26px,env(safe-area-inset-bottom))}.wrap{width:min(100%,580px);margin:auto}.toolbar{background:#fff;border-radius:24px;padding:18px;margin-bottom:14px}.topline{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-size:12px;font-weight:760;letter-spacing:.16em}.badge{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#24653a;background:#e8f3ea;padding:6px 8px;border-radius:999px}h1{font-size:23px;line-height:1.08;margin:14px 0 5px}.muted{font-size:12px;line-height:1.5;color:var(--muted)}.back{display:inline-block;margin-top:12px}.visual-card{margin:0 0 18px}.visual-head{display:flex;align-items:end;justify-content:space-between;gap:12px;padding:0 4px 9px}.visual-title{font-size:14px;font-weight:760;letter-spacing:.08em}.visual-size{font-size:11px;color:var(--muted)}button,a{border:0;border-radius:14px;padding:14px 10px;text-decoration:none;text-align:center;font:650 13px/1 -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer}.primary{background:#171715;color:#fff;width:100%;margin-top:10px}.secondary{background:#f1f1ee;color:#171715}.canvas-wrap{background:#d8d8d4;border-radius:26px;overflow:hidden;box-shadow:0 18px 70px rgba(0,0,0,.14)}canvas{display:block;width:100%;height:auto}.note{text-align:center;font-size:11px;color:#8d8983;line-height:1.45;padding:2px 12px 14px}
+</style></head><body><div class="wrap"><div class="toolbar"><div class="topline"><div class="brand">LOKA!</div><div class="badge">Météo officielle · Legacy · V12.16.21</div></div><h1>Studio Instagram</h1><div class="muted" id="summary">Tarnos · visuels du jour</div><a class="secondary back" href="/admin">Retour</a></div>
+<div class="visual-card"><div class="visual-head"><div class="visual-title">STORY / REEL</div><div class="visual-size">1080 × 1920 · 9:16</div></div><div class="canvas-wrap"><canvas id="story" width="1080" height="1920"></canvas></div><button class="primary" id="shareStory">Partager / enregistrer la Story</button></div>
+<div class="visual-card"><div class="visual-head"><div class="visual-title">PUBLICATION</div><div class="visual-size">1080 × 1440 · 3:4</div></div><div class="canvas-wrap"><canvas id="feed" width="1080" height="1440"></canvas></div><button class="primary" id="shareFeed">Partager / enregistrer la Publication</button></div>
+<div class="note">Les deux formats utilisent exactement la même météo et le même fond maître.</div></div><script>
+const state=${data};const m=state.model;const cfg={timezone:state.timezone};const solar=state.solar||{dawn:null,sunrise:null,solarNoon:null,sunset:null,dusk:null,daylightMinutes:null,daylightDeltaMinutes:null,sunriseDeltaMinutes:null,sunsetDeltaMinutes:null};const storyCanvas=document.getElementById('story');const feedCanvas=document.getElementById('feed');const storyCtx=storyCanvas.getContext('2d');const feedCtx=feedCanvas.getContext('2d');const canvas=storyCanvas;let ctx=storyCtx;const INK='#12264A';
+function load(src){return new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=src;});}
 const CANVAS_FONT='"Helvetica Neue",Arial,sans-serif';
-
-function normalizeText(value){
-  return String(value??'')
-    .normalize('NFC')
-    .replace(/\\s+/g,' ')
-    .trim();
-}
-
-function font(size,weight){
-  ctx.font=String(weight)+' '+String(size)+'px '+CANVAS_FONT;
-  if('fontKerning' in ctx){
-    ctx.fontKerning='normal';
-  }
-}
-
-function drawFullTextLine(label,x,y,color,align){
-  ctx.fillStyle=color;
-  ctx.strokeStyle=color;
-  ctx.textAlign=align;
-  ctx.textBaseline='alphabetic';
-  ctx.lineJoin='round';
-  ctx.miterLimit=2;
-  ctx.lineWidth=0.44;
-  ctx.strokeText(label,x,y);
-  ctx.fillText(label,x,y);
-}
-
-function text(value,x,y,size,weight,color,align='left'){
-  const label=normalizeText(value);
-  ctx.save();
-  font(size,weight);
-  drawFullTextLine(label,x,y,color,align);
-  ctx.restore();
-}
-function fittedFontSize(value,maxWidth,maxSize,minSize,weight){
-  const label=normalizeText(value);
-  ctx.save();
-  let size=maxSize;
-  while(size>minSize){
-    font(size,weight);
-    if(ctx.measureText(label).width<=maxWidth) break;
-    size-=1;
-  }
-  ctx.restore();
-  return Math.max(minSize,size);
-}
-function fittedText(value,x,y,maxWidth,maxSize,minSize,weight,color,align='left'){
-  const size=fittedFontSize(value,maxWidth,maxSize,minSize,weight);
-  text(value,x,y,size,weight,color,align);
-  return size;
-}
-function trackedText(value,x,y,size,weight,color,tracking,align='center'){
-  const chars=normalizeText(value).split('');
-  ctx.save();
-  font(size,weight);
-  const widths=chars.map(ch=>ctx.measureText(ch).width);
-  const total=widths.reduce((a,b)=>a+b,0)+Math.max(0,chars.length-1)*tracking;
-  let cursor=align==='center'?x-total/2:align==='right'?x-total:x;
-  ctx.fillStyle=color;
-  ctx.textBaseline='alphabetic';
-  for(let i=0;i<chars.length;i++){
-    ctx.fillText(chars[i],cursor,y);
-    cursor+=widths[i]+tracking;
-  }
-  ctx.restore();
-}
-
-function assertTextIntegrity(){
-  const regression=[
-    'Journée douce et nuageuse.',
-    'Nuages dominants · Éclaircies en soirée',
-    'Risque de pluie présent sur certains créneaux.',
-    'Aucun risque de pluie annoncé.'
-  ];
-
-  try{
-    ctx.save();
-    font(24,500);
-
-    for(const source of regression){
-      const expected=source.normalize('NFC');
-      const normalized=normalizeText(source);
-      if(normalized!==expected){
-        console.warn('LOKA text normalization mismatch',{source,normalized});
-        ctx.restore();
-        return false;
-      }
-      const width=ctx.measureText(normalized).width;
-      if(!Number.isFinite(width)||width<=0){
-        console.warn('LOKA text measurement unavailable',source);
-        ctx.restore();
-        return false;
-      }
-    }
-
-    ctx.restore();
-    return true;
-  }catch(error){
-    try{ctx.restore();}catch{}
-    console.warn('LOKA text integrity diagnostic failed',error);
-    return false;
-  }
-}
-
-function wrap(value,x,y,maxWidth,lineHeight,size,weight,color,align='left',maxLines=2){
-  ctx.save();
-  font(size,weight);
-  ctx.fillStyle=color;
-  ctx.textAlign=align;
-  ctx.textBaseline='alphabetic';
-  const words=normalizeText(value).split(/\\s+/).filter(Boolean);
-  let line='',yy=y,count=0;
-  for(const word of words){
-    const next=line?line+' '+word:word;
-    if(ctx.measureText(next).width>maxWidth&&line){
-      drawFullTextLine(line,x,yy,color,align);
-      count++;
-      if(count>=maxLines){ctx.restore();return;}
-      line=word;
-      yy+=lineHeight;
-    }else{
-      line=next;
-    }
-  }
-  if(line&&count<maxLines)drawFullTextLine(line,x,yy,color,align);
-  ctx.restore();
-}
-
-function rr(x,y,w,h,r){
-  ctx.beginPath();
-  ctx.moveTo(x+r,y);
-  ctx.arcTo(x+w,y,x+w,y+h,r);
-  ctx.arcTo(x+w,y+h,x,y+h,r);
-  ctx.arcTo(x,y+h,x,y,r);
-  ctx.arcTo(x,y,x+w,y,r);
-  ctx.closePath();
-}
-function rgba(hex,a){
-  const h=hex.replace('#','');
-  const n=parseInt(h,16);
-  return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
-}
-function dateLabel(date){
-  try{
-    return new Intl.DateTimeFormat('fr-FR',{
-      weekday:'long',day:'numeric',month:'long',timeZone:cfg.timezone
-    }).format(new Date(date+'T12:00:00')).toUpperCase();
-  }catch{
-    return String(date||'');
-  }
-}
-function drawMaster(img){
-  const cw=1080,ch=1920;
-  const iw=Math.max(1,img.naturalWidth||img.width||cw);
-  const ih=Math.max(1,img.naturalHeight||img.height||ch);
-  const scale=Math.max(cw/iw,ch/ih);
-  const dw=iw*scale;
-  const dh=ih*scale;
-  const dx=(cw-dw)/2;
-  const dy=(ch-dh)/2;
-  ctx.drawImage(img,dx,dy,dw,dh);
-}
-
-function box(x,y,w,h){
-  ctx.save();
-  rr(x,y,w,h,36);
-
-  const g=ctx.createLinearGradient(x,y,x,y+h);
-  g.addColorStop(0,'rgba(255,255,255,0.15)');
-  g.addColorStop(0.48,'rgba(255,255,255,0.12)');
-  g.addColorStop(1,'rgba(255,255,255,0.095)');
-  ctx.fillStyle=g;
-  ctx.fill();
-
-  ctx.strokeStyle='rgba(255,255,255,0.82)';
-  ctx.lineWidth=1.45;
-  ctx.stroke();
-
-  ctx.save();
-  rr(x+2,y+2,w-4,(h-4)*0.43,34);
-  ctx.clip();
-
-  const sheen=ctx.createLinearGradient(x,y,x,y+h*0.48);
-  sheen.addColorStop(0,'rgba(255,255,255,0.16)');
-  sheen.addColorStop(1,'rgba(255,255,255,0.018)');
-  ctx.fillStyle=sheen;
-  ctx.fillRect(x+2,y+2,w-4,h*0.48);
-
-  ctx.restore();
-  ctx.restore();
-}
-function separator(x1,y1,x2,y2){
-  ctx.save();
-  ctx.strokeStyle='rgba(18,38,74,0.13)';
-  ctx.lineWidth=1.05;
-  ctx.lineCap='round';
-  ctx.beginPath();
-  ctx.moveTo(x1,y1);
-  ctx.lineTo(x2,y2);
-  ctx.stroke();
-  ctx.restore();
-}
-
-/* V12.16.16 — canonical vector weather family.
-   One cloud primitive is shared by all cloud-based icons.
-   The visible footprint is optically normalized for phone-sized exports. */
-function iconStrokePx(size){
-  return size>=128?4.15:3.65;
-}
-function iconContext(x,y,size,color){
-  const scale=size/100;
-  ctx.save();
-  ctx.translate(x,y);
-  ctx.scale(scale,scale);
-  ctx.strokeStyle=color;
-  ctx.fillStyle=color;
-  ctx.lineWidth=iconStrokePx(size)/scale;
-  ctx.lineCap='round';
-  ctx.lineJoin='round';
-  return scale;
-}
-function drawCloud(x,y,size,color){
-  iconContext(x,y,size,color);
-  ctx.beginPath();
-  ctx.moveTo(-48,22);
-  ctx.bezierCurveTo(-55,16,-55,5,-49,-3);
-  ctx.bezierCurveTo(-44,-10,-36,-13,-28,-11);
-  ctx.bezierCurveTo(-24,-31,-10,-45,8,-45);
-  ctx.bezierCurveTo(25,-45,38,-33,40,-17);
-  ctx.bezierCurveTo(47,-21,56,-19,62,-13);
-  ctx.bezierCurveTo(70,-5,69,8,63,16);
-  ctx.bezierCurveTo(58,23,51,27,41,27);
-  ctx.lineTo(-38,27);
-  ctx.bezierCurveTo(-43,27,-47,25,-48,22);
-  ctx.stroke();
-  ctx.restore();
-}
-function drawSun(x,y,size,color){
-  const scale=iconContext(x,y,size,color);
-  ctx.beginPath();
-  ctx.arc(0,0,19,0,Math.PI*2);
-  ctx.stroke();
-  for(let i=0;i<8;i++){
-    const a=i*Math.PI/4;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a)*31,Math.sin(a)*31);
-    ctx.lineTo(Math.cos(a)*44,Math.sin(a)*44);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-function drawPartly(x,y,size,color){
-  const s=size/100;
-  drawSun(x+22*s,y-19*s,size*0.72,color);
-  drawCloud(x-9*s,y+12*s,size*0.84,color);
-}
-function drawRain(x,y,size,color,drizzle=false){
-  const s=size/100;
-  drawCloud(x,y-14*s,size*0.86,color);
-  ctx.save();
-  ctx.strokeStyle=color;
-  ctx.lineWidth=iconStrokePx(size);
-  ctx.lineCap='round';
-  const drops=drizzle?[-19,0,19]:[-27,-9,9,27];
-  drops.forEach((dx,index)=>{
-    const y0=y+(drizzle?24:22)*s+(index%2)*2*s;
-    ctx.beginPath();
-    ctx.moveTo(x+dx*s,y0);
-    ctx.lineTo(x+(dx-5)*s,y0+(drizzle?12:20)*s);
-    ctx.stroke();
-  });
-  ctx.restore();
-}
-function drawThunder(x,y,size,color){
-  const s=size/100;
-  drawCloud(x,y-15*s,size*0.86,color);
-  ctx.save();
-  ctx.strokeStyle=color;
-  ctx.lineWidth=iconStrokePx(size)+0.2;
-  ctx.lineJoin='round';
-  ctx.lineCap='round';
-  ctx.beginPath();
-  ctx.moveTo(x+4*s,y+5*s);
-  ctx.lineTo(x-10*s,y+29*s);
-  ctx.lineTo(x+1*s,y+28*s);
-  ctx.lineTo(x-6*s,y+50*s);
-  ctx.lineTo(x+18*s,y+17*s);
-  ctx.lineTo(x+8*s,y+18*s);
-  ctx.stroke();
-  ctx.restore();
-}
-function drawWind(x,y,size,color){
-  iconContext(x,y,size,color);
-  ctx.beginPath();
-  ctx.moveTo(-48,-20);
-  ctx.lineTo(25,-20);
-  ctx.bezierCurveTo(42,-20,43,-39,29,-39);
-  ctx.bezierCurveTo(19,-39,15,-32,16,-27);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(-48,0);
-  ctx.lineTo(39,0);
-  ctx.bezierCurveTo(55,0,56,20,40,20);
-  ctx.bezierCurveTo(30,20,26,13,27,8);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(-32,20);
-  ctx.lineTo(10,20);
-  ctx.bezierCurveTo(25,20,25,39,11,39);
-  ctx.bezierCurveTo(2,39,-2,33,-2,28);
-  ctx.stroke();
-  ctx.restore();
-}
-function drawFog(x,y,size,color){
-  iconContext(x,y,size,color);
-  const rows=[
-    [-44,-22,-9,-22,7,-22,39,-22],
-    [-33,-7,8,-7,22,-7,47,-7],
-    [-47,8,-16,8,-2,8,34,8],
-    [-34,23,1,23,16,23,40,23]
-  ];
-  for(const r of rows){
-    ctx.beginPath();
-    ctx.moveTo(r[0],r[1]);
-    ctx.lineTo(r[2],r[3]);
-    ctx.moveTo(r[4],r[5]);
-    ctx.lineTo(r[6],r[7]);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-function drawSnowflake(x,y,r,color,lineWidth){
-  ctx.save();
-  ctx.strokeStyle=color;
-  ctx.lineWidth=lineWidth;
-  ctx.lineCap='round';
-  const d=r*0.72;
-  const line=(x1,y1,x2,y2)=>{
-    ctx.beginPath();
-    ctx.moveTo(x1,y1);
-    ctx.lineTo(x2,y2);
-    ctx.stroke();
-  };
-  line(x-r,y,x+r,y);
-  line(x,y-r,x,y+r);
-  line(x-d,y-d,x+d,y+d);
-  line(x-d,y+d,x+d,y-d);
-  ctx.restore();
-}
-function drawSnow(x,y,size,color){
-  const s=size/100;
-  drawCloud(x,y-15*s,size*0.86,color);
-  const lw=iconStrokePx(size)*0.78;
-  drawSnowflake(x-24*s,y+31*s,7*s,color,lw);
-  drawSnowflake(x,y+39*s,7*s,color,lw);
-  drawSnowflake(x+24*s,y+31*s,7*s,color,lw);
-}
-function drawCloudWind(x,y,size,color){
-  const s=size/100;
-  drawCloud(x-7*s,y-17*s,size*0.78,color);
-  drawWind(x+12*s,y+29*s,size*0.60,color);
-}
-function drawSunWind(x,y,size,color){
-  const s=size/100;
-  drawSun(x-18*s,y-20*s,size*0.66,color);
-  drawWind(x+15*s,y+25*s,size*0.62,color);
-}
-function drawRainWind(x,y,size,color){
-  const s=size/100;
-  drawCloud(x-10*s,y-20*s,size*0.72,color);
-
-  ctx.save();
-  ctx.strokeStyle=color;
-  ctx.lineWidth=iconStrokePx(size);
-  ctx.lineCap='round';
-  [-23,-7,9].forEach((dx,index)=>{
-    const y0=y+(10+index*2)*s;
-    ctx.beginPath();
-    ctx.moveTo(x+dx*s,y0);
-    ctx.lineTo(x+(dx-5)*s,y0+18*s);
-    ctx.stroke();
-  });
-  ctx.restore();
-
-  drawWind(x+20*s,y+31*s,size*0.48,color);
-}
-function weatherIconMetrics(kind,size){
-  const base={
-    sun:{w:96,h:96},
-    partly:{w:122,h:103},
-    cloud:{w:118,h:80},
-    rain:{w:118,h:112},
-    drizzle:{w:118,h:103},
-    thunder:{w:118,h:119},
-    fog:{w:112,h:64},
-    wind:{w:120,h:88},
-    snow:{w:118,h:116},
-    'cloud-wind':{w:124,h:109},
-    'rain-wind':{w:128,h:120},
-    'sun-wind':{w:123,h:110}
-  }[kind]||{w:118,h:80};
-  return {w:base.w*(size/100),h:base.h*(size/100)};
-}
-function conditionToIcon(condition,hour){
-  const c=String(condition||'').toLowerCase();
-
-  // WEATHER ONLY: time of day never substitutes a day/night icon.
-  if(c.includes('neige')||c.includes('gel')) return 'snow';
-  if(c.includes('orage')) return 'thunder';
-
-  if((c.includes('pluie')||c.includes('averse'))&&c.includes('vent')) return 'rain-wind';
-  if(c.includes('bruine')) return 'drizzle';
-  if(c.includes('pluie')||c.includes('averse')) return 'rain';
-
-  if((c.includes('nuage')||c.includes('couvert'))&&c.includes('vent')) return 'cloud-wind';
-  if((c.includes('soleil')||c.includes('ensoleillé')||c.includes('ensoleille'))&&c.includes('vent')) return 'sun-wind';
-
-  if(c.includes('vent')) return 'wind';
-  if(c.includes('brouillard')||c.includes('brume')) return 'fog';
-
-  if(
-    c.includes('peu nuageux')||
-    c.includes('éclair')||
-    c.includes('eclair')||
-    c.includes('variable')||
-    c.includes('amélioration')||
-    c.includes('amelioration')||
-    c.includes('passage')||
-    c.includes('voilé')||
-    c.includes('voile')||
-    c.includes('instable')
-  ) return 'partly';
-
-  if(
-    c.includes('nuage')||
-    c.includes('couvert')||
-    c.includes('dégradation')||
-    c.includes('degradation')
-  ) return 'cloud';
-
-  if(
-    c.includes('soleil')||
-    c.includes('ensoleillé')||
-    c.includes('ensoleille')||
-    c.includes('clair')||
-    c.includes('dégagé')||
-    c.includes('degage')||
-    c.includes('lumineux')||
-    c.includes('lumineuse')
-  ) return 'sun';
-
-  return 'cloud';
-}
-function drawWeatherIcon(kind,x,y,size,color){
-  if(kind==='sun') return drawSun(x,y,size,color);
-  if(kind==='partly') return drawPartly(x,y,size,color);
-  if(kind==='rain') return drawRain(x,y,size,color,false);
-  if(kind==='drizzle') return drawRain(x,y,size,color,true);
-  if(kind==='thunder') return drawThunder(x,y,size,color);
-  if(kind==='wind') return drawWind(x,y,size,color);
-  if(kind==='fog') return drawFog(x,y,size,color);
-  if(kind==='snow') return drawSnow(x,y,size,color);
-  if(kind==='cloud-wind') return drawCloudWind(x,y,size,color);
-  if(kind==='rain-wind') return drawRainWind(x,y,size,color);
-  if(kind==='sun-wind') return drawSunWind(x,y,size,color);
-  return drawCloud(x,y,size,color);
-}
-function drawHourlyWeatherIcon(kind,x,y,color){
-  const size=
-    kind==='fog'?114:
-    kind==='wind'?112:
-    kind==='sun'?112:
-    kind==='partly'?112:
-    kind==='cloud'?110:
-    108;
-  return drawWeatherIcon(kind,x,y,size,color);
-}
-function sceneIconKind(label){
-  return conditionToIcon(label,12);
-}
-
-/* Solar family restored from V12.16.14 geometry, normalized to one
-   line weight and a common optical footprint. */
-function drawSolarIcon(kind,x,y,scale,color){
-  if(kind==='noon'){
-    drawSun(x,y-1,76*scale,color);
-    return;
-  }
-
-  ctx.save();
-  ctx.translate(x,y);
-  ctx.scale(scale,scale);
-  ctx.strokeStyle=color;
-  ctx.lineWidth=2.65/scale;
-  ctx.lineCap='round';
-  ctx.lineJoin='round';
-
-  function line(x1,y1,x2,y2){
-    ctx.beginPath();
-    ctx.moveTo(x1,y1);
-    ctx.lineTo(x2,y2);
-    ctx.stroke();
-  }
-
-  const isDawn=kind==='dawn';
-  const isRise=kind==='sunrise';
-  const isSet=kind==='sunset';
-  const isDusk=kind==='dusk';
-
-  const cy=isDawn?13:isDusk?15:11;
-  const r=isDawn?14:isDusk?13:15;
-  const horizonY=19;
-
-  ctx.beginPath();
-  ctx.arc(0,cy,r,Math.PI,0);
-  ctx.stroke();
-
-  line(-31,horizonY,31,horizonY);
-
-  if(isRise){
-    line(-25,27,25,27);
-    line(-17,34,17,34);
-  }else if(isSet){
-    line(-24,27,24,27);
-    line(-13,34,13,34);
-  }else if(isDusk){
-    line(-22,27,22,27);
-  }
-
-  const rays=
-    isDawn
-      ? [[0,-18,0,-28],[-19,-10,-25,-17],[19,-10,25,-17]]
-      : isDusk
-        ? [[0,-16,0,-24],[-18,-8,-23,-13],[18,-8,23,-13]]
-        : [[0,-18,0,-29],[-20,-11,-27,-18],[20,-11,27,-18],[-31,1,-39,-2],[31,1,39,-2]];
-
-  for(const ray of rays){
-    line(ray[0],ray[1],ray[2],ray[3]);
-  }
-
-  ctx.restore();
-}
-
-function pickHourlySlots(source){
-  const wanted=[4,6,8,10,12,14,16,18,20,22];
-  const pool=Array.isArray(source)?source:[];
-  return wanted.map(hour=>{
-    const exact=pool.find(item=>Number(item.hour)===hour);
-    return exact
-      ? {...exact,hour}
-      : {hour,temperatureC:'—',condition:'',precipitationMm:0,missing:true};
-  });
-}
-function commentLines(hourly,summary,mainVerdict,rainVerdict,notableEvent){
-  const clean=(value)=>String(value||'').replace(/\\s+/g,' ').trim();
-  const isTemp=(value)=>/temp[ée]rature|compris|entre\\s+\\d+|\\d+\\s*°/i.test(clean(value));
-  const isSkyNarrative=(value)=>/ciel|soleil|nuage|couvert|éclair|eclair|variable/i.test(clean(value));
-  const sentenceParts=(value)=>clean(value)
-    .split(/(?<=[.!?])\\s+/)
-    .map(clean)
-    .filter(Boolean);
-
-  const useful=(Array.isArray(summary)?summary:[])
-    .map(clean)
-    .filter(Boolean)
-    .filter(line=>!isTemp(line));
-
-  const items=(Array.isArray(hourly)?hourly:[]).filter(x=>!x.missing);
-  const cloudy=items.filter(x=>/nuage|couvert/i.test(String(x.condition||''))).length;
-  const rain=items.filter(x=>/pluie|averse|orage/i.test(String(x.condition||''))).length;
-  const brightEvening=items.filter(x=>Number(x.hour)>=16&&/soleil|éclair|eclair|clair/i.test(String(x.condition||''))).length;
-  const bright=items.filter(x=>/soleil|éclair|eclair|clair/i.test(String(x.condition||''))).length;
-  const wetAmount=items.reduce((sum,x)=>sum+Math.max(0,Number(x.precipitationMm)||0),0);
-
-  let primary='';
-  if(cloudy>=5&&brightEvening>=1) primary='Nuages dominants · Éclaircies en soirée';
-  else if(rain>=4) primary='Passages pluvieux dominants sur la journée';
-  else if(cloudy>=6) primary='Nuages dominants sur la journée';
-  else if(bright>=6) primary='Éclaircies dominantes au fil de la journée';
-  else primary=useful[0]||clean(mainVerdict)||'Conditions météo stables sur la journée';
-
-  const expandedRain=sentenceParts(rainVerdict);
-  const candidates=[
-    clean(notableEvent),
-    ...useful,
-    ...expandedRain
-  ]
-    .filter(Boolean)
-    .filter(line=>!isTemp(line))
-    .filter(line=>line!==primary);
-
-  const operational=candidates.find(line=>!isSkyNarrative(line));
-  let secondary=operational||'';
-
-  if(!secondary){
-    if(rain>0||wetAmount>=0.2){
-      secondary='Risque de pluie présent sur certains créneaux.';
-    }else{
-      secondary='Aucun risque de pluie annoncé.';
-    }
-  }
-
-  return [primary,secondary];
-}
-
-function drawHeader(city,date,ink){
-  text('LOKA!',50,132,66,400,ink);
-  trackedText(String(city||'Tarnos').toUpperCase(),540,122,25,680,ink,8,'center');
-  text(dateLabel(date),1030,122,22,540,ink,'right');
-}
-function drawGeneralBox(opts){
-  const x=44,y=224,w=992,h=250;
-  box(x,y,w,h);
-
-  const title=normalizeText(opts.title);
-  const titleMaxWidth=455;
-  const titleSize=fittedFontSize(title,titleMaxWidth,66,30,800);
-
-  const iconX=172;
-  const iconY=324;
-  const iconSize=titleSize<42?130:142;
-  const titleX=302;
-  const titleY=330;
-
-  const iconKind=sceneIconKind(title);
-  drawWeatherIcon(iconKind,iconX,iconY,iconSize,INK);
-
-  fittedText(title,titleX,titleY,titleMaxWidth,66,30,800,INK);
-
-  ctx.save();
-  font(titleSize,800);
-  const measuredTitleWidth=ctx.measureText(title).width;
-  ctx.restore();
-
-  const iconDim=weatherIconMetrics(iconKind,iconSize);
-  const iconLeft=iconX-Math.max(52,iconDim.w/2);
-  const titleRight=titleX+Math.min(titleMaxWidth,measuredTitleWidth);
-  const subtitleCenter=(iconLeft+titleRight)/2;
-
-  const subtitle=normalizeText(opts.subtitle);
-  const subtitleMaxWidth=Math.max(440,titleRight-iconLeft);
-  const subtitleSize=fittedFontSize(subtitle,subtitleMaxWidth,27,23,550);
-
-  text(subtitle,subtitleCenter,418,subtitleSize,550,rgba(INK,0.99),'center');
-
-  text(
-    String(opts.min??'—')+'° — '+String(opts.max??'—')+'°',
-    976,
-    354,
-    49,
-    600,
-    INK,
-    'right'
-  );
-
-  window.__LOKA_GENERAL_BOX_AUDIT={
-    iconLeft,
-    iconRight:iconX+iconDim.w/2,
-    iconTop:iconY-iconDim.h/2,
-    iconBottom:iconY+iconDim.h/2,
-    titleRight,
-    subtitleCenter,
-    subtitleText:subtitle,
-    title
-  };
-}
-function drawHourlyBox(items){
-  const x=44,y=520,w=992,h=704;
-  box(x,y,w,h);
-  const colW=w/5;
-  const rowTop=[548,894];
-  const rowBottom=[872,1198];
-
-  separator(x+20,886,x+w-20,886);
-  for(let row=0;row<2;row++){
-    for(let i=1;i<5;i++){
-      const sx=x+colW*i;
-      separator(sx,rowTop[row]+18,sx,rowBottom[row]-18);
-    }
-    for(let c=0;c<5;c++){
-      const item=items[row*5+c];
-      if(!item) continue;
-      const cx=x+colW*(c+0.5);
-      const base=rowTop[row];
-      text(String(item.hour).padStart(2,'0')+'h',cx,base+52,26,600,INK,'center');
-      if(!item.missing){
-        const iconKind=conditionToIcon(item.condition,item.hour);
-        drawHourlyWeatherIcon(iconKind,cx,base+137,INK);
-      }
-      text(String(item.temperatureC)+(item.missing?'':'°'),cx,base+242,43,700,INK,'center');
-    }
-  }
-}
-function drawCommentBox(mainLine,secondaryLine){
-  const x=44,y=1263,w=992,h=172;
-  box(x,y,w,h);
-
-  const main=normalizeText(mainLine);
-  const secondary=normalizeText(secondaryLine);
-
-  const mainSize=fittedFontSize(main,910,34,28,600);
-
-  ctx.save();
-  font(mainSize,600);
-  const mainWidth=ctx.measureText(main).width;
-  ctx.restore();
-
-  if(mainWidth<=910){
-    text(main,540,1345,mainSize,600,INK,'center');
-  }else{
-    wrap(main,540,1329,910,36,27,600,INK,'center',2);
-  }
-
-  if(secondary){
-    const secondarySize=fittedFontSize(secondary,900,26,23,600);
-
-    ctx.save();
-    font(secondarySize,600);
-    const secondaryWidth=ctx.measureText(secondary).width;
-    ctx.restore();
-
-    if(secondaryWidth<=900){
-      text(secondary,540,1401,secondarySize,600,rgba(INK,0.99),'center');
-    }else{
-      wrap(secondary,540,1389,900,31,23,600,rgba(INK,0.99),'center',2);
-    }
-  }
-}
-function solarShiftLabel(value){
-  if(value===null||value===undefined||value==='') return '';
-  const delta=Number(value);
-  if(!Number.isFinite(delta)) return '';
-  const rounded=Math.round(delta);
-  if(rounded===0) return '0 min';
-  return (rounded>0?'+':'−')+
-    String(Math.abs(rounded))+
-    ' min';
-}
-
-function drawSolarBox(solar){
-  const x=44,y=1479,w=992,h=279;
-  box(x,y,w,h);
-  const colW=w/5;
-  for(let i=1;i<5;i++) separator(x+colW*i,y+28,x+colW*i,y+h-28);
-
-  const defs=[
-    ['AUBE','dawn',solar.dawn,null],
-    [
-      'LEVER',
-      'sunrise',
-      solar.sunrise,
-      solar.sunriseDeltaMinutes
-    ],
-    ['MIDI SOLAIRE','noon',solar.solarNoon,null],
-    [
-      'COUCHER',
-      'sunset',
-      solar.sunset,
-      solar.sunsetDeltaMinutes
-    ],
-    ['CRÉPUSCULE','dusk',solar.dusk,null]
-  ];
-
-  defs.forEach((def,i)=>{
-    const cx=x+colW*(i+0.5);
-    text(def[0],cx,1547,18,700,INK,'center');
-    drawSolarIcon(def[1],cx,1635,1.0,INK);
-    text(def[2]||'—',cx,1716,33,600,INK,'center');
-
-    const shift=solarShiftLabel(def[3]);
-    if(shift){
-      text(
-        shift,
-        cx,
-        1748,
-        19,
-        600,
-        rgba(INK,0.88),
-        'center'
-      );
-    }
-  });
-}
-function drawSignature(){
-  text('Ici, aujourd’hui.',540,1834,22,500,INK,'center');
-  ctx.save();
-  ctx.strokeStyle=rgba(INK,0.72);
-  ctx.lineWidth=1.2;
-  ctx.lineCap='round';
-  ctx.beginPath();
-  ctx.moveTo(514,1858);
-  ctx.lineTo(566,1858);
-  ctx.stroke();
-  ctx.restore();
-}
-
-async function draw(){
-  window.__LOKA_RENDER_STATUS={
-    version:'V12-16-20',
-    started:true,
-    textIntegrity:assertTextIntegrity(),
-    rendered:false,
-    error:null
-  };
-
-  ctx.clearRect(0,0,1080,1920);
-  const bg=await load(m.masterUrl);
-  drawMaster(bg);
-  drawHeader(m.city,m.date,INK);
-  drawGeneralBox({
-    title:m.sceneLabel,
-    subtitle:m.subtitle||'',
-    min:m.tempMinC,
-    max:m.tempMaxC
-  });
-
-  const slots=pickHourlySlots(m.hourly);
-  drawHourlyBox(slots);
-
-  const lines=commentLines(
-    slots,
-    m.summaryLines,
-    m.mainVerdict,
-    m.rainVerdict,
-    m.notableEvent
-  );
-  const mainLine=lines[0]||m.mainVerdict||'';
-  const secondaryLine=lines[1]||'';
-  drawCommentBox(mainLine,secondaryLine);
-  drawSolarBox(solar);
-  drawSignature();
-
-  window.__LOKA_RENDER_STATUS.rendered=true;
-  document.getElementById('summary').textContent=
-    String(m.city||'Tarnos')+' · '+
-    String(m.sceneLabel||'')+' · '+
-    String(m.tempMinC??'—')+'° — '+
-    String(m.tempMaxC??'—')+'°';
-}
-
-function pngFile(){
-  const b=atob(canvas.toDataURL('image/png').split(',')[1]);
-  const u=new Uint8Array(b.length);
-  for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
-  return new File([u],'loka-'+String(m.date||'meteo')+'.png',{type:'image/png'});
-}
-function fallbackDownload(file){
-  const url=URL.createObjectURL(file);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=file.name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),30000);
-}
-document.getElementById('share').onclick=()=>{
-  const file=pngFile();
-  if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){
-    navigator.share({files:[file],title:'LOKA!'}).catch(error=>{
-      if(error?.name!=='AbortError')fallbackDownload(file);
-    });
-    return;
-  }
-  fallbackDownload(file);
-};
-
-draw().catch((error)=>{
-  console.error('LOKA Instagram render failed',error);
-  window.__LOKA_RENDER_STATUS={
-    ...(window.__LOKA_RENDER_STATUS||{}),
-    rendered:false,
-    error:String(error&&error.message?error.message:error)
-  };
-});
+function normalizeText(value){return String(value??'').normalize('NFC').replace(/\\s+/g,' ').trim();}
+function font(size,weight){ctx.font=String(weight)+' '+String(size)+'px '+CANVAS_FONT;if('fontKerning' in ctx){ctx.fontKerning='normal';}}
+function drawFullTextLine(label,x,y,color,align){ctx.fillStyle=color;ctx.strokeStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.lineJoin='round';ctx.miterLimit=2;ctx.lineWidth=0.44;ctx.strokeText(label,x,y);ctx.fillText(label,x,y);}
+function text(value,x,y,size,weight,color,align='left'){const label=normalizeText(value);ctx.save();font(size,weight);drawFullTextLine(label,x,y,color,align);ctx.restore();}
+function fittedFontSize(value,maxWidth,maxSize,minSize,weight){const label=normalizeText(value);ctx.save();let size=maxSize;while(size>minSize){font(size,weight);if(ctx.measureText(label).width<=maxWidth)break;size-=1;}ctx.restore();return Math.max(minSize,size);}
+function fittedText(value,x,y,maxWidth,maxSize,minSize,weight,color,align='left'){const size=fittedFontSize(value,maxWidth,maxSize,minSize,weight);text(value,x,y,size,weight,color,align);return size;}
+function trackedText(value,x,y,size,weight,color,tracking,align='center'){const chars=normalizeText(value).split('');ctx.save();font(size,weight);const widths=chars.map(ch=>ctx.measureText(ch).width);const total=widths.reduce((a,b)=>a+b,0)+Math.max(0,chars.length-1)*tracking;let cursor=align==='center'?x-total/2:align==='right'?x-total:x;ctx.fillStyle=color;ctx.textBaseline='alphabetic';for(let i=0;i<chars.length;i++){ctx.fillText(chars[i],cursor,y);cursor+=widths[i]+tracking;}ctx.restore();}
+function assertTextIntegrity(){const regression=['Journée douce et nuageuse.','Nuages dominants · Éclaircies en soirée','Risque de pluie présent sur certains créneaux.','Aucun risque de pluie annoncé.'];try{ctx.save();font(24,500);for(const source of regression){const expected=source.normalize('NFC');const normalized=normalizeText(source);if(normalized!==expected){ctx.restore();return false;}const width=ctx.measureText(normalized).width;if(!Number.isFinite(width)||width<=0){ctx.restore();return false;}}ctx.restore();return true;}catch(error){try{ctx.restore();}catch{}return false;}}
+function wrap(value,x,y,maxWidth,lineHeight,size,weight,color,align='left',maxLines=2){ctx.save();font(size,weight);ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';const words=normalizeText(value).split(/\\s+/).filter(Boolean);let line='',yy=y,count=0;for(const word of words){const next=line?line+' '+word:word;if(ctx.measureText(next).width>maxWidth&&line){drawFullTextLine(line,x,yy,color,align);count++;if(count>=maxLines){ctx.restore();return;}line=word;yy+=lineHeight;}else{line=next;}}if(line&&count<maxLines)drawFullTextLine(line,x,yy,color,align);ctx.restore();}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function rgba(hex,a){const h=hex.replace('#','');const n=parseInt(h,16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
+function dateLabel(date){try{return new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',timeZone:cfg.timezone}).format(new Date(date+'T12:00:00')).toUpperCase();}catch{return String(date||'');}}
+function drawMaster(img){const cw=1080,ch=1920;const iw=Math.max(1,img.naturalWidth||img.width||cw);const ih=Math.max(1,img.naturalHeight||img.height||ch);const scale=Math.max(cw/iw,ch/ih);const dw=iw*scale;const dh=ih*scale;const dx=(cw-dw)/2;const dy=(ch-dh)/2;ctx.drawImage(img,dx,dy,dw,dh);}
+function drawFeedMaster(img){const cw=1080,ch=1440;const iw=Math.max(1,img.naturalWidth||img.width||cw);const ih=Math.max(1,img.naturalHeight||img.height||ch);const scale=Math.max(cw/iw,ch/ih);const dw=iw*scale;const dh=ih*scale;const dx=(cw-dw)/2;const dy=(ch-dh)/2;ctx.drawImage(img,dx,dy,dw,dh);}
+function box(x,y,w,h){ctx.save();rr(x,y,w,h,36);const g=ctx.createLinearGradient(x,y,x,y+h);g.addColorStop(0,'rgba(255,255,255,0.15)');g.addColorStop(0.48,'rgba(255,255,255,0.12)');g.addColorStop(1,'rgba(255,255,255,0.095)');ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.82)';ctx.lineWidth=1.45;ctx.stroke();ctx.save();rr(x+2,y+2,w-4,(h-4)*0.43,34);ctx.clip();const sheen=ctx.createLinearGradient(x,y,x,y+h*0.48);sheen.addColorStop(0,'rgba(255,255,255,0.16)');sheen.addColorStop(1,'rgba(255,255,255,0.018)');ctx.fillStyle=sheen;ctx.fillRect(x+2,y+2,w-4,h*0.48);ctx.restore();ctx.restore();}
+function separator(x1,y1,x2,y2){ctx.save();ctx.strokeStyle='rgba(18,38,74,0.13)';ctx.lineWidth=1.05;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore();}
+function iconStrokePx(size){return size>=128?4.15:3.65;}
+function iconContext(x,y,size,color){const scale=size/100;ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=iconStrokePx(size)/scale;ctx.lineCap='round';ctx.lineJoin='round';return scale;}
+function drawCloud(x,y,size,color){iconContext(x,y,size,color);ctx.beginPath();ctx.moveTo(-48,22);ctx.bezierCurveTo(-55,16,-55,5,-49,-3);ctx.bezierCurveTo(-44,-10,-36,-13,-28,-11);ctx.bezierCurveTo(-24,-31,-10,-45,8,-45);ctx.bezierCurveTo(25,-45,38,-33,40,-17);ctx.bezierCurveTo(47,-21,56,-19,62,-13);ctx.bezierCurveTo(70,-5,69,8,63,16);ctx.bezierCurveTo(58,23,51,27,41,27);ctx.lineTo(-38,27);ctx.bezierCurveTo(-43,27,-47,25,-48,22);ctx.stroke();ctx.restore();}
+function drawSun(x,y,size,color){iconContext(x,y,size,color);ctx.beginPath();ctx.arc(0,0,19,0,Math.PI*2);ctx.stroke();for(let i=0;i<8;i++){const a=i*Math.PI/4;ctx.beginPath();ctx.moveTo(Math.cos(a)*31,Math.sin(a)*31);ctx.lineTo(Math.cos(a)*44,Math.sin(a)*44);ctx.stroke();}ctx.restore();}
+function drawPartly(x,y,size,color){const s=size/100;drawSun(x+22*s,y-19*s,size*0.72,color);drawCloud(x-9*s,y+12*s,size*0.84,color);}
+function drawRain(x,y,size,color,drizzle=false){const s=size/100;drawCloud(x,y-14*s,size*0.86,color);ctx.save();ctx.strokeStyle=color;ctx.lineWidth=iconStrokePx(size);ctx.lineCap='round';const drops=drizzle?[-19,0,19]:[-27,-9,9,27];drops.forEach((dx,index)=>{const y0=y+(drizzle?24:22)*s+(index%2)*2*s;ctx.beginPath();ctx.moveTo(x+dx*s,y0);ctx.lineTo(x+(dx-5)*s,y0+(drizzle?12:20)*s);ctx.stroke();});ctx.restore();}
+function drawThunder(x,y,size,color){const s=size/100;drawCloud(x,y-15*s,size*0.86,color);ctx.save();ctx.strokeStyle=color;ctx.lineWidth=iconStrokePx(size)+0.2;ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x+4*s,y+5*s);ctx.lineTo(x-10*s,y+29*s);ctx.lineTo(x+1*s,y+28*s);ctx.lineTo(x-6*s,y+50*s);ctx.lineTo(x+18*s,y+17*s);ctx.lineTo(x+8*s,y+18*s);ctx.stroke();ctx.restore();}
+function drawWind(x,y,size,color){iconContext(x,y,size,color);ctx.beginPath();ctx.moveTo(-48,-20);ctx.lineTo(25,-20);ctx.bezierCurveTo(42,-20,43,-39,29,-39);ctx.bezierCurveTo(19,-39,15,-32,16,-27);ctx.stroke();ctx.beginPath();ctx.moveTo(-48,0);ctx.lineTo(39,0);ctx.bezierCurveTo(55,0,56,20,40,20);ctx.bezierCurveTo(30,20,26,13,27,8);ctx.stroke();ctx.beginPath();ctx.moveTo(-32,20);ctx.lineTo(10,20);ctx.bezierCurveTo(25,20,25,39,11,39);ctx.bezierCurveTo(2,39,-2,33,-2,28);ctx.stroke();ctx.restore();}
+function drawFog(x,y,size,color){iconContext(x,y,size,color);const rows=[[-44,-22,-9,-22,7,-22,39,-22],[-33,-7,8,-7,22,-7,47,-7],[-47,8,-16,8,-2,8,34,8],[-34,23,1,23,16,23,40,23]];for(const r of rows){ctx.beginPath();ctx.moveTo(r[0],r[1]);ctx.lineTo(r[2],r[3]);ctx.moveTo(r[4],r[5]);ctx.lineTo(r[6],r[7]);ctx.stroke();}ctx.restore();}
+function drawSnowflake(x,y,r,color,lineWidth){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=lineWidth;ctx.lineCap='round';const d=r*0.72;const line=(x1,y1,x2,y2)=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();};line(x-r,y,x+r,y);line(x,y-r,x,y+r);line(x-d,y-d,x+d,y+d);line(x-d,y+d,x+d,y-d);ctx.restore();}
+function drawSnow(x,y,size,color){const s=size/100;drawCloud(x,y-15*s,size*0.86,color);const lw=iconStrokePx(size)*0.78;drawSnowflake(x-24*s,y+31*s,7*s,color,lw);drawSnowflake(x,y+39*s,7*s,color,lw);drawSnowflake(x+24*s,y+31*s,7*s,color,lw);}
+function drawCloudWind(x,y,size,color){const s=size/100;drawCloud(x-7*s,y-17*s,size*0.78,color);drawWind(x+12*s,y+29*s,size*0.60,color);}
+function drawSunWind(x,y,size,color){const s=size/100;drawSun(x-18*s,y-20*s,size*0.66,color);drawWind(x+15*s,y+25*s,size*0.62,color);}
+function drawRainWind(x,y,size,color){const s=size/100;drawCloud(x-10*s,y-20*s,size*0.72,color);ctx.save();ctx.strokeStyle=color;ctx.lineWidth=iconStrokePx(size);ctx.lineCap='round';[-23,-7,9].forEach((dx,index)=>{const y0=y+(10+index*2)*s;ctx.beginPath();ctx.moveTo(x+dx*s,y0);ctx.lineTo(x+(dx-5)*s,y0+18*s);ctx.stroke();});ctx.restore();drawWind(x+20*s,y+31*s,size*0.48,color);}
+function weatherIconMetrics(kind,size){const base={sun:{w:96,h:96},partly:{w:122,h:103},cloud:{w:118,h:80},rain:{w:118,h:112},drizzle:{w:118,h:103},thunder:{w:118,h:119},fog:{w:112,h:64},wind:{w:120,h:88},snow:{w:118,h:116},'cloud-wind':{w:124,h:109},'rain-wind':{w:128,h:120},'sun-wind':{w:123,h:110}}[kind]||{w:118,h:80};return {w:base.w*(size/100),h:base.h*(size/100)};}
+function conditionToIcon(condition,hour){const c=String(condition||'').toLowerCase();if(c.includes('neige')||c.includes('gel'))return 'snow';if(c.includes('orage'))return 'thunder';if((c.includes('pluie')||c.includes('averse'))&&c.includes('vent'))return 'rain-wind';if(c.includes('bruine'))return 'drizzle';if(c.includes('pluie')||c.includes('averse'))return 'rain';if((c.includes('nuage')||c.includes('couvert'))&&c.includes('vent'))return 'cloud-wind';if((c.includes('soleil')||c.includes('ensoleillé')||c.includes('ensoleille'))&&c.includes('vent'))return 'sun-wind';if(c.includes('vent'))return 'wind';if(c.includes('brouillard')||c.includes('brume'))return 'fog';if(c.includes('peu nuageux')||c.includes('éclair')||c.includes('eclair')||c.includes('variable')||c.includes('amélioration')||c.includes('amelioration')||c.includes('passage')||c.includes('voilé')||c.includes('voile')||c.includes('instable'))return 'partly';if(c.includes('nuage')||c.includes('couvert')||c.includes('dégradation')||c.includes('degradation'))return 'cloud';if(c.includes('soleil')||c.includes('ensoleillé')||c.includes('ensoleille')||c.includes('clair')||c.includes('dégagé')||c.includes('degage')||c.includes('lumineux')||c.includes('lumineuse'))return 'sun';return 'cloud';}
+function drawWeatherIcon(kind,x,y,size,color){if(kind==='sun')return drawSun(x,y,size,color);if(kind==='partly')return drawPartly(x,y,size,color);if(kind==='rain')return drawRain(x,y,size,color,false);if(kind==='drizzle')return drawRain(x,y,size,color,true);if(kind==='thunder')return drawThunder(x,y,size,color);if(kind==='wind')return drawWind(x,y,size,color);if(kind==='fog')return drawFog(x,y,size,color);if(kind==='snow')return drawSnow(x,y,size,color);if(kind==='cloud-wind')return drawCloudWind(x,y,size,color);if(kind==='rain-wind')return drawRainWind(x,y,size,color);if(kind==='sun-wind')return drawSunWind(x,y,size,color);return drawCloud(x,y,size,color);}
+function drawHourlyWeatherIcon(kind,x,y,color){const size=kind==='fog'?114:kind==='wind'?112:kind==='sun'?112:kind==='partly'?112:kind==='cloud'?110:108;return drawWeatherIcon(kind,x,y,size,color);}
+function drawFeedHourlyWeatherIcon(kind,x,y,color){const size=kind==='fog'?104:kind==='wind'?102:kind==='sun'?103:kind==='partly'?103:kind==='cloud'?102:100;return drawWeatherIcon(kind,x,y,size,color);}
+function sceneIconKind(label){return conditionToIcon(label,12);}
+function drawSolarIcon(kind,x,y,scale,color){if(kind==='noon'){drawSun(x,y-1,76*scale,color);return;}ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.strokeStyle=color;ctx.lineWidth=2.65/scale;ctx.lineCap='round';ctx.lineJoin='round';function line(x1,y1,x2,y2){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}const isDawn=kind==='dawn';const isRise=kind==='sunrise';const isSet=kind==='sunset';const isDusk=kind==='dusk';const cy=isDawn?13:isDusk?15:11;const r=isDawn?14:isDusk?13:15;const horizonY=19;ctx.beginPath();ctx.arc(0,cy,r,Math.PI,0);ctx.stroke();line(-31,horizonY,31,horizonY);if(isRise){line(-25,27,25,27);line(-17,34,17,34);}else if(isSet){line(-24,27,24,27);line(-13,34,13,34);}else if(isDusk){line(-22,27,22,27);}const rays=isDawn?[[0,-18,0,-28],[-19,-10,-25,-17],[19,-10,25,-17]]:isDusk?[[0,-16,0,-24],[-18,-8,-23,-13],[18,-8,23,-13]]:[[0,-18,0,-29],[-20,-11,-27,-18],[20,-11,27,-18],[-31,1,-39,-2],[31,1,39,-2]];for(const ray of rays){line(ray[0],ray[1],ray[2],ray[3]);}ctx.restore();}
+function pickHourlySlots(source){const wanted=[4,6,8,10,12,14,16,18,20,22];const pool=Array.isArray(source)?source:[];return wanted.map(hour=>{const exact=pool.find(item=>Number(item.hour)===hour);return exact?{...exact,hour}:{hour,temperatureC:'—',condition:'',precipitationMm:0,missing:true};});}
+function commentLines(hourly,summary,mainVerdict,rainVerdict,notableEvent){const clean=(value)=>String(value||'').replace(/\\s+/g,' ').trim();const isTemp=(value)=>/temp[ée]rature|compris|entre\\s+\\d+|\\d+\\s*°/i.test(clean(value));const isSkyNarrative=(value)=>/ciel|soleil|nuage|couvert|éclair|eclair|variable/i.test(clean(value));const sentenceParts=(value)=>clean(value).split(/(?<=[.!?])\\s+/).map(clean).filter(Boolean);const useful=(Array.isArray(summary)?summary:[]).map(clean).filter(Boolean).filter(line=>!isTemp(line));const items=(Array.isArray(hourly)?hourly:[]).filter(x=>!x.missing);const cloudy=items.filter(x=>/nuage|couvert/i.test(String(x.condition||''))).length;const rain=items.filter(x=>/pluie|averse|orage/i.test(String(x.condition||''))).length;const brightEvening=items.filter(x=>Number(x.hour)>=16&&/soleil|éclair|eclair|clair/i.test(String(x.condition||''))).length;const bright=items.filter(x=>/soleil|éclair|eclair|clair/i.test(String(x.condition||''))).length;const wetAmount=items.reduce((sum,x)=>sum+Math.max(0,Number(x.precipitationMm)||0),0);let primary='';if(cloudy>=5&&brightEvening>=1)primary='Nuages dominants · Éclaircies en soirée';else if(rain>=4)primary='Passages pluvieux dominants sur la journée';else if(cloudy>=6)primary='Nuages dominants sur la journée';else if(bright>=6)primary='Éclaircies dominantes au fil de la journée';else primary=useful[0]||clean(mainVerdict)||'Conditions météo stables sur la journée';const expandedRain=sentenceParts(rainVerdict);const candidates=[clean(notableEvent),...useful,...expandedRain].filter(Boolean).filter(line=>!isTemp(line)).filter(line=>line!==primary);const operational=candidates.find(line=>!isSkyNarrative(line));let secondary=operational||'';if(!secondary){secondary=(rain>0||wetAmount>=0.2)?'Risque de pluie présent sur certains créneaux.':'Aucun risque de pluie annoncé.';}return [primary,secondary];}
+function drawHeader(city,date,ink){text('LOKA!',50,132,66,400,ink);trackedText(String(city||'Tarnos').toUpperCase(),540,122,25,680,ink,8,'center');text(dateLabel(date),1030,122,22,540,ink,'right');}
+function drawGeneralBox(opts){const x=44,y=224,w=992,h=250;box(x,y,w,h);const title=normalizeText(opts.title);const titleMaxWidth=455;const titleSize=fittedFontSize(title,titleMaxWidth,66,30,800);const iconX=172;const iconY=324;const iconSize=titleSize<42?130:142;const titleX=302;const titleY=330;const iconKind=sceneIconKind(title);drawWeatherIcon(iconKind,iconX,iconY,iconSize,INK);fittedText(title,titleX,titleY,titleMaxWidth,66,30,800,INK);ctx.save();font(titleSize,800);const measuredTitleWidth=ctx.measureText(title).width;ctx.restore();const iconDim=weatherIconMetrics(iconKind,iconSize);const iconLeft=iconX-Math.max(52,iconDim.w/2);const titleRight=titleX+Math.min(titleMaxWidth,measuredTitleWidth);const subtitleCenter=(iconLeft+titleRight)/2;const subtitle=normalizeText(opts.subtitle);const subtitleMaxWidth=Math.max(440,titleRight-iconLeft);const subtitleSize=fittedFontSize(subtitle,subtitleMaxWidth,27,23,550);text(subtitle,subtitleCenter,418,subtitleSize,550,rgba(INK,0.99),'center');text(String(opts.min??'—')+'° — '+String(opts.max??'—')+'°',976,354,49,600,INK,'right');}
+function drawHourlyBox(items){const x=44,y=520,w=992,h=704;box(x,y,w,h);const colW=w/5;const rowTop=[548,894];const rowBottom=[872,1198];separator(x+20,886,x+w-20,886);for(let row=0;row<2;row++){for(let i=1;i<5;i++){const sx=x+colW*i;separator(sx,rowTop[row]+18,sx,rowBottom[row]-18);}for(let c=0;c<5;c++){const item=items[row*5+c];if(!item)continue;const cx=x+colW*(c+0.5);const base=rowTop[row];text(String(item.hour).padStart(2,'0')+'h',cx,base+52,26,600,INK,'center');if(!item.missing){const iconKind=conditionToIcon(item.condition,item.hour);drawHourlyWeatherIcon(iconKind,cx,base+137,INK);}text(String(item.temperatureC)+(item.missing?'':'°'),cx,base+242,43,700,INK,'center');}}}
+function drawCommentBox(mainLine,secondaryLine){const x=44,y=1263,w=992,h=172;box(x,y,w,h);const main=normalizeText(mainLine);const secondary=normalizeText(secondaryLine);const mainSize=fittedFontSize(main,910,34,28,600);ctx.save();font(mainSize,600);const mainWidth=ctx.measureText(main).width;ctx.restore();if(mainWidth<=910){text(main,540,1345,mainSize,600,INK,'center');}else{wrap(main,540,1329,910,36,27,600,INK,'center',2);}if(secondary){const secondarySize=fittedFontSize(secondary,900,26,23,600);ctx.save();font(secondarySize,600);const secondaryWidth=ctx.measureText(secondary).width;ctx.restore();if(secondaryWidth<=900){text(secondary,540,1401,secondarySize,600,rgba(INK,0.99),'center');}else{wrap(secondary,540,1389,900,31,23,600,rgba(INK,0.99),'center',2);}}}
+function solarShiftLabel(value){if(value===null||value===undefined||value==='')return '';const delta=Number(value);if(!Number.isFinite(delta))return '';const rounded=Math.round(delta);if(rounded===0)return '0 min';return (rounded>0?'+':'−')+String(Math.abs(rounded))+' min';}
+function drawSolarBox(solar){const x=44,y=1479,w=992,h=279;box(x,y,w,h);const colW=w/5;for(let i=1;i<5;i++)separator(x+colW*i,y+28,x+colW*i,y+h-28);const defs=[['AUBE','dawn',solar.dawn,null],['LEVER','sunrise',solar.sunrise,solar.sunriseDeltaMinutes],['MIDI SOLAIRE','noon',solar.solarNoon,null],['COUCHER','sunset',solar.sunset,solar.sunsetDeltaMinutes],['CRÉPUSCULE','dusk',solar.dusk,null]];defs.forEach((def,i)=>{const cx=x+colW*(i+0.5);text(def[0],cx,1547,18,700,INK,'center');drawSolarIcon(def[1],cx,1635,1.0,INK);text(def[2]||'—',cx,1716,33,600,INK,'center');const shift=solarShiftLabel(def[3]);if(shift){text(shift,cx,1748,19,600,rgba(INK,0.88),'center');}});}
+function drawSignature(){text('Ici, aujourd’hui.',540,1834,22,500,INK,'center');ctx.save();ctx.strokeStyle=rgba(INK,0.72);ctx.lineWidth=1.2;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(514,1858);ctx.lineTo(566,1858);ctx.stroke();ctx.restore();}
+function drawFeedHeader(city,date,ink){text('LOKA!',50,92,64,400,ink);trackedText(String(city||'Tarnos').toUpperCase(),540,84,24,680,ink,8,'center');text(dateLabel(date),1030,84,21,540,ink,'right');}
+function drawFeedGeneralBox(opts){const x=44,y=122,w=992,h=220;box(x,y,w,h);const title=normalizeText(opts.title);const titleMaxWidth=480;const titleSize=fittedFontSize(title,titleMaxWidth,62,27,800);const iconX=160;const iconY=210;const iconSize=titleSize<40?118:128;const titleX=280;const titleY=217;const iconKind=sceneIconKind(title);drawWeatherIcon(iconKind,iconX,iconY,iconSize,INK);fittedText(title,titleX,titleY,titleMaxWidth,62,27,800,INK);ctx.save();font(titleSize,800);const measuredTitleWidth=ctx.measureText(title).width;ctx.restore();const iconDim=weatherIconMetrics(iconKind,iconSize);const iconLeft=iconX-Math.max(48,iconDim.w/2);const titleRight=titleX+Math.min(titleMaxWidth,measuredTitleWidth);const subtitleCenter=(iconLeft+titleRight)/2;const subtitle=normalizeText(opts.subtitle);const subtitleMaxWidth=Math.max(430,titleRight-iconLeft);const subtitleSize=fittedFontSize(subtitle,subtitleMaxWidth,26,23,550);text(subtitle,subtitleCenter,298,subtitleSize,550,rgba(INK,0.99),'center');text(String(opts.min??'—')+'° — '+String(opts.max??'—')+'°',976,238,47,600,INK,'right');}
+function drawFeedHourlyBox(items){const x=44,y=366,w=992,h=570;box(x,y,w,h);const colW=w/5;const rowTop=[382,664];const rowBottom=[646,918];separator(x+20,650,x+w-20,650);for(let row=0;row<2;row++){for(let i=1;i<5;i++){const sx=x+colW*i;separator(sx,rowTop[row]+16,sx,rowBottom[row]-14);}for(let c=0;c<5;c++){const item=items[row*5+c];if(!item)continue;const cx=x+colW*(c+0.5);const base=rowTop[row];text(String(item.hour).padStart(2,'0')+'h',cx,base+44,26,600,INK,'center');if(!item.missing){const iconKind=conditionToIcon(item.condition,item.hour);drawFeedHourlyWeatherIcon(iconKind,cx,base+120,INK);}text(String(item.temperatureC)+(item.missing?'':'°'),cx,base+220,42,700,INK,'center');}}}
+function drawFeedCommentBox(mainLine,secondaryLine){const x=44,y=960,w=992,h=140;box(x,y,w,h);const main=normalizeText(mainLine);const secondary=normalizeText(secondaryLine);const mainSize=fittedFontSize(main,910,32,28,600);ctx.save();font(mainSize,600);const mainWidth=ctx.measureText(main).width;ctx.restore();if(mainWidth<=910){text(main,540,1018,mainSize,600,INK,'center');}else{wrap(main,540,1007,910,32,27,600,INK,'center',2);}if(secondary){const secondarySize=fittedFontSize(secondary,900,25,23,600);ctx.save();font(secondarySize,600);const secondaryWidth=ctx.measureText(secondary).width;ctx.restore();if(secondaryWidth<=900){text(secondary,540,1068,secondarySize,600,rgba(INK,0.99),'center');}else{wrap(secondary,540,1058,900,29,23,600,rgba(INK,0.99),'center',2);}}}
+function drawFeedSolarBox(solar){const x=44,y=1124,w=992,h=228;box(x,y,w,h);const colW=w/5;for(let i=1;i<5;i++)separator(x+colW*i,y+22,x+colW*i,y+h-22);const defs=[['AUBE','dawn',solar.dawn,null],['LEVER','sunrise',solar.sunrise,solar.sunriseDeltaMinutes],['MIDI SOLAIRE','noon',solar.solarNoon,null],['COUCHER','sunset',solar.sunset,solar.sunsetDeltaMinutes],['CRÉPUSCULE','dusk',solar.dusk,null]];defs.forEach((def,i)=>{const cx=x+colW*(i+0.5);text(def[0],cx,1166,17,700,INK,'center');drawSolarIcon(def[1],cx,1227,0.88,INK);text(def[2]||'—',cx,1292,31,600,INK,'center');const shift=solarShiftLabel(def[3]);if(shift){text(shift,cx,1323,18,600,rgba(INK,0.88),'center');}});}
+function drawFeedSignature(){text('Ici, aujourd’hui.',540,1404,21,500,INK,'center');ctx.save();ctx.strokeStyle=rgba(INK,0.72);ctx.lineWidth=1.1;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(516,1424);ctx.lineTo(564,1424);ctx.stroke();ctx.restore();}
+function renderStory(bg,slots,mainLine,secondaryLine){ctx=storyCtx;ctx.clearRect(0,0,1080,1920);drawMaster(bg);drawHeader(m.city,m.date,INK);drawGeneralBox({title:m.sceneLabel,subtitle:m.subtitle||'',min:m.tempMinC,max:m.tempMaxC});drawHourlyBox(slots);drawCommentBox(mainLine,secondaryLine);drawSolarBox(solar);drawSignature();}
+function renderFeed(bg,slots,mainLine,secondaryLine){ctx=feedCtx;ctx.clearRect(0,0,1080,1440);drawFeedMaster(bg);drawFeedHeader(m.city,m.date,INK);drawFeedGeneralBox({title:m.sceneLabel,subtitle:m.subtitle||'',min:m.tempMinC,max:m.tempMaxC});drawFeedHourlyBox(slots);drawFeedCommentBox(mainLine,secondaryLine);drawFeedSolarBox(solar);drawFeedSignature();ctx=storyCtx;}
+async function draw(){ctx=storyCtx;window.__LOKA_RENDER_STATUS={version:'V12-16-21',started:true,textIntegrity:assertTextIntegrity(),storyRendered:false,feedRendered:false,rendered:false,error:null};const bg=await load(m.masterUrl);const slots=pickHourlySlots(m.hourly);const lines=commentLines(slots,m.summaryLines,m.mainVerdict,m.rainVerdict,m.notableEvent);const mainLine=lines[0]||m.mainVerdict||'';const secondaryLine=lines[1]||'';renderStory(bg,slots,mainLine,secondaryLine);window.__LOKA_RENDER_STATUS.storyRendered=true;renderFeed(bg,slots,mainLine,secondaryLine);window.__LOKA_RENDER_STATUS.feedRendered=true;window.__LOKA_RENDER_STATUS.rendered=true;document.getElementById('summary').textContent=String(m.city||'Tarnos')+' · '+String(m.sceneLabel||'')+' · '+String(m.tempMinC??'—')+'° — '+String(m.tempMaxC??'—')+'°';}
+function pngFile(targetCanvas,suffix){const b=atob(targetCanvas.toDataURL('image/png').split(',')[1]);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return new File([u],'loka-'+String(m.date||'meteo')+'-'+suffix+'.png',{type:'image/png'});}
+function fallbackDownload(file){const url=URL.createObjectURL(file);const a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
+function shareCanvas(targetCanvas,suffix){const file=pngFile(targetCanvas,suffix);if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){navigator.share({files:[file],title:'LOKA!'}).catch(error=>{if(error?.name!=='AbortError')fallbackDownload(file);});return;}fallbackDownload(file);}
+document.getElementById('shareStory').onclick=()=>shareCanvas(storyCanvas,'story');document.getElementById('shareFeed').onclick=()=>shareCanvas(feedCanvas,'post');
+draw().catch((error)=>{console.error('LOKA Instagram render failed',error);window.__LOKA_RENDER_STATUS={...(window.__LOKA_RENDER_STATUS||{}),rendered:false,error:String(error&&error.message?error.message:error)};});
 </script></body></html>`;
 }
