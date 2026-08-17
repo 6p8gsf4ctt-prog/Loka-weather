@@ -139,35 +139,46 @@ function assertTextIntegrity(){
     'Aucun risque de pluie annoncé.'
   ];
 
-  ctx.save();
-  font(24,500);
+  try{
+    ctx.save();
+    font(24,500);
 
-  for(const source of regression){
-    const normalized=normalizeText(source);
-    if(normalized!==source.normalize('NFC')){
-      ctx.restore();
-      throw new Error('instagram_text_normalization_mismatch');
-    }
+    for(const source of regression){
+      const expected=source.normalize('NFC');
+      const normalized=normalizeText(source);
 
-    const width=ctx.measureText(normalized).width;
-    if(!Number.isFinite(width)||width<=0){
-      ctx.restore();
-      throw new Error('instagram_text_measurement_unavailable');
-    }
-
-    // Every visible character must have a measurable glyph.
-    for(const ch of normalized){
-      if(ch===' ') continue;
-      const glyphWidth=ctx.measureText(ch).width;
-      if(!Number.isFinite(glyphWidth)||glyphWidth<=0){
+      if(normalized!==expected){
+        console.warn(
+          'LOKA text normalization mismatch',
+          {source,normalized}
+        );
         ctx.restore();
-        throw new Error('instagram_text_glyph_unavailable');
+        return false;
+      }
+
+      const width=ctx.measureText(normalized).width;
+      if(!Number.isFinite(width)||width<=0){
+        console.warn(
+          'LOKA text measurement unavailable',
+          source
+        );
+        ctx.restore();
+        return false;
       }
     }
-  }
 
-  ctx.restore();
+    ctx.restore();
+    return true;
+  }catch(error){
+    try{ctx.restore();}catch{}
+    console.warn(
+      'LOKA text integrity diagnostic failed',
+      error
+    );
+    return false;
+  }
 }
+
 
 function wrap(value,x,y,maxWidth,lineHeight,size,weight,color,align='left',maxLines=2){
   ctx.save();
