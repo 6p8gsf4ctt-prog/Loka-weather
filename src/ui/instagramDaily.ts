@@ -813,6 +813,15 @@ function drawCommentBox(mainLine,secondaryLine){
     }
   }
 }
+function daylightDeltaLabel(value){
+  const delta=Number(value);
+  if(!Number.isFinite(delta)) return '';
+  const rounded=Math.round(delta);
+  if(rounded===0) return 'DURÉE DU JOUR STABLE';
+  const sign=rounded>0?'+':'−';
+  return sign+String(Math.abs(rounded))+' MIN DE JOUR';
+}
+
 function drawSolarBox(solar){
   const x=44,y=1479,w=992,h=279;
   box(x,y,w,h);
@@ -833,6 +842,21 @@ function drawSolarBox(solar){
     drawSolarIcon(def[1],cx,1635,1.0,INK);
     text(def[2]||'—',cx,1718,33,600,INK,'center');
   });
+
+  const daylightDelta=daylightDeltaLabel(
+    solar.daylightDeltaMinutes
+  );
+  if(daylightDelta){
+    text(
+      daylightDelta,
+      540,
+      1792,
+      22,
+      600,
+      INK,
+      'center'
+    );
+  }
 }
 function drawSignature(){
   text('Ici, aujourd’hui.',540,1834,22,500,INK,'center');
@@ -849,7 +873,7 @@ function drawSignature(){
 
 async function draw(){
   window.__LOKA_RENDER_STATUS={
-    version:'V12-16-18',
+    version:'V12-16-19',
     started:true,
     textIntegrity:assertTextIntegrity(),
     rendered:false,
