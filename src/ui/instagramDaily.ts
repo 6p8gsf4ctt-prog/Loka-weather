@@ -726,9 +726,9 @@ function drawGeneralBox(opts){
 
   const subtitle=normalizeText(opts.subtitle);
   const subtitleMaxWidth=Math.max(440,titleRight-iconLeft);
-  const subtitleSize=fittedFontSize(subtitle,subtitleMaxWidth,27,20,500);
+  const subtitleSize=fittedFontSize(subtitle,subtitleMaxWidth,27,23,550);
 
-  text(subtitle,subtitleCenter,418,subtitleSize,500,rgba(INK,0.98),'center');
+  text(subtitle,subtitleCenter,418,subtitleSize,550,rgba(INK,0.99),'center');
 
   text(
     String(opts.min??'—')+'° — '+String(opts.max??'—')+'°',
@@ -769,7 +769,7 @@ function drawHourlyBox(items){
       if(!item) continue;
       const cx=x+colW*(c+0.5);
       const base=rowTop[row];
-      text(String(item.hour).padStart(2,'0')+'h',cx,base+52,25,600,INK,'center');
+      text(String(item.hour).padStart(2,'0')+'h',cx,base+52,26,600,INK,'center');
       if(!item.missing){
         const iconKind=conditionToIcon(item.condition,item.hour);
         drawHourlyWeatherIcon(iconKind,cx,base+137,INK);
@@ -785,7 +785,7 @@ function drawCommentBox(mainLine,secondaryLine){
   const main=normalizeText(mainLine);
   const secondary=normalizeText(secondaryLine);
 
-  const mainSize=fittedFontSize(main,910,34,26,600);
+  const mainSize=fittedFontSize(main,910,34,28,600);
 
   ctx.save();
   font(mainSize,600);
@@ -799,17 +799,17 @@ function drawCommentBox(mainLine,secondaryLine){
   }
 
   if(secondary){
-    const secondarySize=fittedFontSize(secondary,900,23,19,500);
+    const secondarySize=fittedFontSize(secondary,900,26,23,600);
 
     ctx.save();
-    font(secondarySize,500);
+    font(secondarySize,600);
     const secondaryWidth=ctx.measureText(secondary).width;
     ctx.restore();
 
     if(secondaryWidth<=900){
-      text(secondary,540,1401,secondarySize,500,rgba(INK,0.97),'center');
+      text(secondary,540,1401,secondarySize,600,rgba(INK,0.99),'center');
     }else{
-      wrap(secondary,540,1389,900,29,19,500,rgba(INK,0.97),'center',2);
+      wrap(secondary,540,1389,900,31,23,600,rgba(INK,0.99),'center',2);
     }
   }
 }
@@ -829,13 +829,13 @@ function drawSolarBox(solar){
 
   defs.forEach((def,i)=>{
     const cx=x+colW*(i+0.5);
-    text(def[0],cx,1547,17,700,INK,'center');
+    text(def[0],cx,1547,18,700,INK,'center');
     drawSolarIcon(def[1],cx,1635,1.0,INK);
-    text(def[2]||'—',cx,1718,32,600,INK,'center');
+    text(def[2]||'—',cx,1718,33,600,INK,'center');
   });
 }
 function drawSignature(){
-  text('Ici, aujourd’hui.',540,1834,19,500,INK,'center');
+  text('Ici, aujourd’hui.',540,1834,22,500,INK,'center');
   ctx.save();
   ctx.strokeStyle=rgba(INK,0.72);
   ctx.lineWidth=1.2;
@@ -849,7 +849,7 @@ function drawSignature(){
 
 async function draw(){
   window.__LOKA_RENDER_STATUS={
-    version:'V12-16-17',
+    version:'V12-16-18',
     started:true,
     textIntegrity:assertTextIntegrity(),
     rendered:false,
