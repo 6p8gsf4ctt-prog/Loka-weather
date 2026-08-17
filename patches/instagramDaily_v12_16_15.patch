@@ -1,0 +1,77 @@
+diff --git a/src/ui/instagramDaily.ts b/src/ui/instagramDaily.ts
+--- a/src/ui/instagramDaily.ts
++++ b/src/ui/instagramDaily.ts
+@@
+-import { ...existing imports... } from "...";
++import { ...existing imports... } from "...";
++import { VECTOR_WEATHER_ICON_RUNTIME } from "./vectorWeatherIcons15";
+@@
+-  <script>
++  <script>
++  ${VECTOR_WEATHER_ICON_RUNTIME}
+@@
+-  // Existing premium weather icons were raster PNG/base64 assets.
+-  // Keep solar / non-weather premium assets untouched.
++  // V12.16.15 — true vector weather icons.
++  // Keep solar / non-weather premium assets untouched.
++
++  function drawHourlyWeatherIcon(ctx, condition, centerX, centerY) {
++    return drawVectorWeatherIcon(
++      ctx,
++      condition,
++      centerX,
++      centerY,
++      LOKA_VECTOR_ICON_SYSTEM.hourlyVisibleSize,
++      {
++        stroke: LOKA_VECTOR_ICON_SYSTEM.color,
++        lineWidth: 3.2,
++        zone: 'hourly'
++      }
++    );
++  }
++
++  function drawMainWeatherIcon(ctx, condition, centerX, centerY) {
++    return drawVectorWeatherIcon(
++      ctx,
++      condition,
++      centerX,
++      centerY,
++      LOKA_VECTOR_ICON_SYSTEM.mainVisibleSize,
++      {
++        stroke: LOKA_VECTOR_ICON_SYSTEM.color,
++        lineWidth: 3.8,
++        zone: 'main'
++      }
++    );
++  }
+@@
+-  function drawWeatherIcon(ctx, condition, centerX, centerY, size) {
+-    // old PNG/base64 implementation
+-  }
++  function drawWeatherIcon(ctx, condition, centerX, centerY, size) {
++    return drawVectorWeatherIcon(ctx, condition, centerX, centerY, size, {
++      stroke: LOKA_VECTOR_ICON_SYSTEM.color,
++      lineWidth: size >= 118 ? 3.8 : 3.2,
++      zone: size >= 118 ? 'main' : 'hourly'
++    });
++  }
+@@
+-  const mainIconCenterY = 332;
++  // V12.16.15: lower the cloud slightly so it aligns with
++  // title + subtitle block and the min/max temperature block.
++  const mainIconCenterY = 344;
+@@
+-  drawWeatherIcon(ctx, mainCondition, 128, mainIconCenterY, 116);
++  drawMainWeatherIcon(ctx, mainCondition, 128, mainIconCenterY);
+@@
+-  const hourlyIconSize = 80;
+   hourly.forEach((item, index) => {
+     const cell = computeHourlyCell(index);
+-    drawWeatherIcon(ctx, item.condition, cell.centerX, cell.iconY, hourlyIconSize);
++    drawHourlyWeatherIcon(ctx, item.condition, cell.centerX, cell.iconY);
+   });
+@@
+-  // 22h had a separate night-icon shortcut in older branches.
+-  const condition = hour >= 22 ? forceNightIcon(sourceCondition) : sourceCondition;
++  // V12.16.15: never force a moon at 22h.
++  const condition = sourceCondition;
