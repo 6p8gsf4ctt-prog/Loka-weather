@@ -660,12 +660,12 @@ function commentLines(hourly,summary,mainVerdict,rainVerdict,notableEvent){
 }
 
 function drawHeader(city,date,ink){
-  text('LOKA!',50,124,62,400,ink);
-  trackedText(String(city||'Tarnos').toUpperCase(),540,114,22,680,ink,8,'center');
-  text(dateLabel(date),1030,114,19,540,ink,'right');
+  text('LOKA!',50,132,66,400,ink);
+  trackedText(String(city||'Tarnos').toUpperCase(),540,122,25,680,ink,8,'center');
+  text(dateLabel(date),1030,122,22,540,ink,'right');
 }
 function drawGeneralBox(opts){
-  const x=44,y=244,w=992,h=250;
+  const x=44,y=224,w=992,h=250;
   box(x,y,w,h);
 
   const title=normalizeText(opts.title);
@@ -673,10 +673,10 @@ function drawGeneralBox(opts){
   const titleSize=fittedFontSize(title,titleMaxWidth,66,30,800);
 
   const iconX=172;
-  const iconY=344;
+  const iconY=324;
   const iconSize=titleSize<42?130:142;
   const titleX=302;
-  const titleY=350;
+  const titleY=330;
 
   const iconKind=sceneIconKind(title);
   drawWeatherIcon(iconKind,iconX,iconY,iconSize,INK);
@@ -697,12 +697,12 @@ function drawGeneralBox(opts){
   const subtitleMaxWidth=Math.max(440,titleRight-iconLeft);
   const subtitleSize=fittedFontSize(subtitle,subtitleMaxWidth,27,20,500);
 
-  text(subtitle,subtitleCenter,438,subtitleSize,500,rgba(INK,0.98),'center');
+  text(subtitle,subtitleCenter,418,subtitleSize,500,rgba(INK,0.98),'center');
 
   text(
     String(opts.min??'—')+'° — '+String(opts.max??'—')+'°',
     976,
-    374,
+    354,
     49,
     600,
     INK,
@@ -721,13 +721,13 @@ function drawGeneralBox(opts){
   };
 }
 function drawHourlyBox(items){
-  const x=44,y=540,w=992,h=704;
+  const x=44,y=520,w=992,h=704;
   box(x,y,w,h);
   const colW=w/5;
-  const rowTop=[568,914];
-  const rowBottom=[892,1218];
+  const rowTop=[548,894];
+  const rowBottom=[872,1198];
 
-  separator(x+20,906,x+w-20,906);
+  separator(x+20,886,x+w-20,886);
   for(let row=0;row<2;row++){
     for(let i=1;i<5;i++){
       const sx=x+colW*i;
@@ -748,7 +748,7 @@ function drawHourlyBox(items){
   }
 }
 function drawCommentBox(mainLine,secondaryLine){
-  const x=44,y=1283,w=992,h=172;
+  const x=44,y=1263,w=992,h=172;
   box(x,y,w,h);
 
   const main=normalizeText(mainLine);
@@ -762,9 +762,9 @@ function drawCommentBox(mainLine,secondaryLine){
   ctx.restore();
 
   if(mainWidth<=910){
-    text(main,540,1365,mainSize,600,INK,'center');
+    text(main,540,1345,mainSize,600,INK,'center');
   }else{
-    wrap(main,540,1349,910,36,27,600,INK,'center',2);
+    wrap(main,540,1329,910,36,27,600,INK,'center',2);
   }
 
   if(secondary){
@@ -776,14 +776,14 @@ function drawCommentBox(mainLine,secondaryLine){
     ctx.restore();
 
     if(secondaryWidth<=900){
-      text(secondary,540,1421,secondarySize,500,rgba(INK,0.97),'center');
+      text(secondary,540,1401,secondarySize,500,rgba(INK,0.97),'center');
     }else{
-      wrap(secondary,540,1409,900,29,19,500,rgba(INK,0.97),'center',2);
+      wrap(secondary,540,1389,900,29,19,500,rgba(INK,0.97),'center',2);
     }
   }
 }
 function drawSolarBox(solar){
-  const x=44,y=1499,w=992,h=279;
+  const x=44,y=1479,w=992,h=279;
   box(x,y,w,h);
   const colW=w/5;
   for(let i=1;i<5;i++) separator(x+colW*i,y+28,x+colW*i,y+h-28);
@@ -798,27 +798,27 @@ function drawSolarBox(solar){
 
   defs.forEach((def,i)=>{
     const cx=x+colW*(i+0.5);
-    text(def[0],cx,1567,17,700,INK,'center');
-    drawSolarIcon(def[1],cx,1655,1.0,INK);
-    text(def[2]||'—',cx,1738,32,600,INK,'center');
+    text(def[0],cx,1547,17,700,INK,'center');
+    drawSolarIcon(def[1],cx,1635,1.0,INK);
+    text(def[2]||'—',cx,1718,32,600,INK,'center');
   });
 }
 function drawSignature(){
-  text('Ici, aujourd’hui.',540,1854,19,500,INK,'center');
+  text('Ici, aujourd’hui.',540,1834,19,500,INK,'center');
   ctx.save();
   ctx.strokeStyle=rgba(INK,0.72);
   ctx.lineWidth=1.2;
   ctx.lineCap='round';
   ctx.beginPath();
-  ctx.moveTo(514,1878);
-  ctx.lineTo(566,1878);
+  ctx.moveTo(514,1858);
+  ctx.lineTo(566,1858);
   ctx.stroke();
   ctx.restore();
 }
 
 async function draw(){
   window.__LOKA_RENDER_STATUS={
-    version:'V12-16-16',
+    version:'V12-16-17',
     started:true,
     textIntegrity:assertTextIntegrity(),
     rendered:false,
