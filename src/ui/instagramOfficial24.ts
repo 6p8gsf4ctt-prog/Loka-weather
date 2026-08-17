@@ -5,18 +5,96 @@ import {
   calculateSolarTimes
 } from "./solarTimes";
 
+
+function previousLocalDate(date: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return date;
+
+  const d = new Date(
+    Date.UTC(
+      Number(match[1]),
+      Number(match[2]) - 1,
+      Number(match[3]) - 1,
+      12,
+      0,
+      0
+    )
+  );
+
+  return d.toISOString().slice(0, 10);
+}
+
+function clockMinutes(value: string | null): number | null {
+  if (!value) return null;
+  const match = /^(\d{2}):(\d{2})$/.exec(value);
+  if (!match) return null;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+
+  if (
+    !Number.isFinite(hours) ||
+    !Number.isFinite(minutes)
+  ) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+}
+
+function clockDeltaMinutes(
+  current: string | null,
+  previous: string | null
+): number | null {
+  const currentMinutes = clockMinutes(current);
+  const previousMinutes = clockMinutes(previous);
+
+  if (
+    currentMinutes === null ||
+    previousMinutes === null
+  ) {
+    return null;
+  }
+
+  let delta = currentMinutes - previousMinutes;
+
+  if (delta > 720) delta -= 1440;
+  if (delta < -720) delta += 1440;
+
+  return delta;
+}
+
 export function renderInstagramOfficial24(
   p: V24OfficialPublicPayload,
   latitude: number,
   longitude: number,
   timezone: string
 ): string {
-  const solar = calculateSolarTimes(
+  const currentSolar = calculateSolarTimes(
     p.date,
     latitude,
     longitude,
     timezone
   );
+
+  const previousSolar = calculateSolarTimes(
+    previousLocalDate(p.date),
+    latitude,
+    longitude,
+    timezone
+  );
+
+  const solar = {
+    ...currentSolar,
+    sunriseDeltaMinutes: clockDeltaMinutes(
+      currentSolar.sunrise,
+      previousSolar.sunrise
+    ),
+    sunsetDeltaMinutes: clockDeltaMinutes(
+      currentSolar.sunset,
+      previousSolar.sunset
+    )
+  };
 
   const model = {
     city: p.city,
@@ -42,7 +120,7 @@ export function renderInstagramOfficial24(
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>LOKA! — Studio Instagram</title><style>
 :root{--ink:#171715;--muted:#73716c;--paper:#ecebe7}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;padding:max(14px,env(safe-area-inset-top)) 12px max(26px,env(safe-area-inset-bottom))}.wrap{width:min(100%,580px);margin:auto}.toolbar{background:#fff;border-radius:24px;padding:18px;margin-bottom:14px}.topline{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-size:12px;font-weight:760;letter-spacing:.16em}.badge{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#24653a;background:#e8f3ea;padding:6px 8px;border-radius:999px}h1{font-size:23px;line-height:1.08;margin:14px 0 5px}.muted{font-size:12px;line-height:1.5;color:var(--muted)}.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}button,a{border:0;border-radius:14px;padding:14px 10px;text-decoration:none;text-align:center;font:650 13px/1 -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer}.primary{background:#171715;color:#fff}.secondary{background:#f1f1ee;color:#171715}.canvas-wrap{background:#d8d8d4;border-radius:26px;overflow:hidden;box-shadow:0 18px 70px rgba(0,0,0,.14)}canvas{display:block;width:100%;height:auto}.note{text-align:center;font-size:11px;color:#8d8983;line-height:1.45;padding:12px 12px 0}@media(max-width:420px){.actions{grid-template-columns:1fr}}
 </style></head><body><div class="wrap"><div class="toolbar"><div class="topline"><div class="brand">LOKA!</div><div class="badge">Météo officielle · V24 · V12.16.16</div></div><h1>Visuel Instagram</h1><div class="muted" id="summary">Tarnos · visuel du jour</div><div class="actions"><button class="primary" id="share">Partager / enregistrer</button><a class="secondary" href="/admin">Retour</a></div></div><div class="canvas-wrap"><canvas id="post" width="1080" height="1920"></canvas></div><div class="note">Le visuel suit uniquement la météo officielle effectivement publiée par LOKA.</div></div><script>
-const state=${data};const m=state.model;const cfg={timezone:state.timezone};const solar=state.solar||{dawn:null,sunrise:null,solarNoon:null,sunset:null,dusk:null,daylightMinutes:null,daylightDeltaMinutes:null};const canvas=document.getElementById('post');const ctx=canvas.getContext('2d');const INK='#12264A';
+const state=${data};const m=state.model;const cfg={timezone:state.timezone};const solar=state.solar||{dawn:null,sunrise:null,solarNoon:null,sunset:null,dusk:null,daylightMinutes:null,daylightDeltaMinutes:null,sunriseDeltaMinutes:null,sunsetDeltaMinutes:null};const canvas=document.getElementById('post');const ctx=canvas.getContext('2d');const INK='#12264A';
 function load(src){
   return new Promise((resolve,reject)=>{
     const i=new Image();
@@ -782,13 +860,15 @@ function drawCommentBox(mainLine,secondaryLine){
     }
   }
 }
-function daylightDeltaLabel(value){
+function solarShiftLabel(value){
+  if(value===null||value===undefined||value==='') return '';
   const delta=Number(value);
   if(!Number.isFinite(delta)) return '';
   const rounded=Math.round(delta);
-  if(rounded===0) return 'DURÉE DU JOUR STABLE';
-  const sign=rounded>0?'+':'−';
-  return sign+String(Math.abs(rounded))+' MIN DE JOUR';
+  if(rounded===0) return '0 min';
+  return (rounded>0?'+':'−')+
+    String(Math.abs(rounded))+
+    ' min';
 }
 
 function drawSolarBox(solar){
@@ -798,34 +878,42 @@ function drawSolarBox(solar){
   for(let i=1;i<5;i++) separator(x+colW*i,y+28,x+colW*i,y+h-28);
 
   const defs=[
-    ['AUBE','dawn',solar.dawn],
-    ['LEVER','sunrise',solar.sunrise],
-    ['MIDI SOLAIRE','noon',solar.solarNoon],
-    ['COUCHER','sunset',solar.sunset],
-    ['CRÉPUSCULE','dusk',solar.dusk]
+    ['AUBE','dawn',solar.dawn,null],
+    [
+      'LEVER',
+      'sunrise',
+      solar.sunrise,
+      solar.sunriseDeltaMinutes
+    ],
+    ['MIDI SOLAIRE','noon',solar.solarNoon,null],
+    [
+      'COUCHER',
+      'sunset',
+      solar.sunset,
+      solar.sunsetDeltaMinutes
+    ],
+    ['CRÉPUSCULE','dusk',solar.dusk,null]
   ];
 
   defs.forEach((def,i)=>{
     const cx=x+colW*(i+0.5);
     text(def[0],cx,1547,18,700,INK,'center');
     drawSolarIcon(def[1],cx,1635,1.0,INK);
-    text(def[2]||'—',cx,1718,33,600,INK,'center');
-  });
+    text(def[2]||'—',cx,1716,33,600,INK,'center');
 
-  const daylightDelta=daylightDeltaLabel(
-    solar.daylightDeltaMinutes
-  );
-  if(daylightDelta){
-    text(
-      daylightDelta,
-      540,
-      1792,
-      22,
-      600,
-      INK,
-      'center'
-    );
-  }
+    const shift=solarShiftLabel(def[3]);
+    if(shift){
+      text(
+        shift,
+        cx,
+        1748,
+        19,
+        600,
+        rgba(INK,0.88),
+        'center'
+      );
+    }
+  });
 }
 function drawSignature(){
   text('Ici, aujourd’hui.',540,1834,22,500,INK,'center');
@@ -842,7 +930,7 @@ function drawSignature(){
 
 async function draw(){
   window.__LOKA_RENDER_STATUS={
-    version:'V12-16-19',
+    version:'V12-16-20',
     started:true,
     textIntegrity:assertTextIntegrity(),
     rendered:false,
