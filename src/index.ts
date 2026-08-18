@@ -8,6 +8,7 @@ import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
 import { renderDashboard24 } from "./ui/dashboard24";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
+import { renderInstagramRecovery } from "./ui/instagramRecovery";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: { "cache-control": "no-store", "access-control-allow-origin": "*" } });
@@ -83,6 +84,71 @@ export default {
         return json({ ok: true, previewOnly: true, generationId: generated.generationId, payload: generated.payload, manifest: generated.manifest });
       } catch (error) { return json({ error: error instanceof Error ? error.message : String(error) }, 500); }
     }
+    if (url.pathname === "/api/admin/instagram/prepare" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+      const slug = url.searchParams.get("city") || "tarnos";
+      const city = getCity(slug);
+      if (!city) return json({ error: "unknown_city" }, 404);
+
+      const existing = await safeToday(env, slug);
+      if (existing && existing.surface.engine === "V24") {
+        return json({
+          ok: true,
+          alreadyOfficial: true,
+          scene: { id: existing.surface.payload.scene.id, label: existing.surface.payload.scene.label }
+        });
+      }
+
+      try {
+        const generated = await runManualCity(env, city);
+
+        // A scheduled job may have officialized the day while the manual generation was running.
+        // In that case, keep the manual generation only as an archived preview and never create a correction.
+        const concurrent = await safeToday(env, slug);
+        if (concurrent && concurrent.surface.engine === "V24") {
+          return json({
+            ok: true,
+            alreadyOfficial: true,
+            archivedPreviewGenerationId: generated.generationId,
+            scene: { id: concurrent.surface.payload.scene.id, label: concurrent.surface.payload.scene.label }
+          });
+        }
+
+        try {
+          const ledger = await promoteVerifiedGeneration(
+            env.DB,
+            generated.generationId,
+            "Préparation Instagram manuelle"
+          );
+          const prepared = await safeToday(env, slug);
+          if (!prepared || prepared.surface.engine === "UNAVAILABLE") {
+            throw new Error("prepared_surface_unavailable");
+          }
+          return json({
+            ok: true,
+            prepared: true,
+            generationId: generated.generationId,
+            ledger: { revision: ledger.revision, status: ledger.status },
+            scene: { id: prepared.surface.payload.scene.id, label: prepared.surface.payload.scene.label }
+          });
+        } catch (promotionError) {
+          // If another request won the race, a valid official surface is enough: do not retry promotion.
+          const raced = await safeToday(env, slug);
+          if (raced && raced.surface.engine === "V24") {
+            return json({
+              ok: true,
+              alreadyOfficial: true,
+              archivedPreviewGenerationId: generated.generationId,
+              scene: { id: raced.surface.payload.scene.id, label: raced.surface.payload.scene.label }
+            });
+          }
+          throw promotionError;
+        }
+      } catch (error) {
+        return json({ error: error instanceof Error ? error.message : String(error) }, 500);
+      }
+    }
+
     if (url.pathname === "/api/admin/generations") {
       if (!isAuthorized(request, env)) return unauthorized();
       const slug = url.searchParams.get("city") || "tarnos";
@@ -104,7 +170,12 @@ export default {
 
     if (url.pathname === "/instagram") {
       const result = await safeToday(env, "tarnos");
-      if (!result || result.surface.engine === "UNAVAILABLE") return unavailable(result && result.surface.engine === "UNAVAILABLE" ? result.surface.reason : "unknown_city");
+      if (!result) return unavailable("unknown_city");
+      if (result.surface.engine === "UNAVAILABLE") {
+        return new Response(renderInstagramRecovery(result.city.slug, result.surface.reason), {
+          headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
+        });
+      }
       if (!await masterAvailable(request, env, result.surface.payload.scene.masterUrl)) return unavailable("master_graphic_unavailable");
       return new Response(renderInstagramOfficial24(result.surface.payload, result.city), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
     }
