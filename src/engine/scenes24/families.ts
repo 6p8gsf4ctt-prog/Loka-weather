@@ -1,0 +1,57 @@
+import { SCENE_THRESHOLDS } from "../../config/scenes24";
+import type { DayProfileV2, Scene24Family, Scene24Id } from "../../types";
+
+export interface FamilyDecision { family: Scene24Family; candidateSceneIds: Scene24Id[]; reason: string }
+
+export function determineFamily(p: DayProfileV2): FamilyDecision {
+  if (p.convection.thunderHours >= 1 && p.convection.peakThunderSupport >= SCENE_THRESHOLDS.thunder.supportMin) {
+    return { family: "THUNDER", candidateSceneIds: [22], reason: "robust_thunder_signal" };
+  }
+  if (p.wind.rainOverlapHours >= 2 && p.rain.rainHours >= 2 && p.wind.notableHours >= 2) {
+    return { family: "RAIN_WIND", candidateSceneIds: [24], reason: "rain_wind_overlap" };
+  }
+  if (p.wind.strongHours >= 3 && p.wind.strongBlockMaxHours >= 2) {
+    return { family: "WIND", candidateSceneIds: [10], reason: "strong_wind_dominant" };
+  }
+  if (p.rain.rainHours >= SCENE_THRESHOLDS.rain.sustainedMinHours && p.rain.rainBlockMaxHours >= SCENE_THRESHOLDS.rain.sustainedBlockMinHours && p.rain.continuityRatio >= SCENE_THRESHOLDS.rain.sustainedContinuityMin) {
+    return { family: "RAIN", candidateSceneIds: [12, 13], reason: "sustained_rain" };
+  }
+  if (p.visibility.denseFogHours >= SCENE_THRESHOLDS.fog.denseMinHours || p.visibility.denseFogBlockMaxHours >= 3) {
+    return { family: "VISIBILITY", candidateSceneIds: [8, 17], reason: "dense_fog_structuring" };
+  }
+  const e = p.evolution;
+  const strongImprovement = e.cloudTrend <= -SCENE_THRESHOLDS.trend.moderateCloudDelta && e.reversals <= 1;
+  const strongDegradation = e.cloudTrend >= SCENE_THRESHOLDS.trend.moderateCloudDelta && e.reversals <= 1;
+  if (strongImprovement || strongDegradation) {
+    return { family: "TREND", candidateSceneIds: [5, 11, 15], reason: strongImprovement ? "directional_improvement" : "directional_degradation" };
+  }
+  if (p.structure.distinctStateCount >= 4 && p.evolution.reversals >= 3 && (p.rain.rainHours >= 1 || p.structure.meaningfulTransitions >= 5)) {
+    return { family: "INSTABILITY", candidateSceneIds: [19], reason: "multi_state_instability" };
+  }
+  if (p.rain.rainHours >= 2 || p.rain.showerHours >= 2) {
+    return { family: "RAIN", candidateSceneIds: [12, 13], reason: "intermittent_precipitation" };
+  }
+  if (p.wind.notableHours >= 3) {
+    return { family: "WIND_COMBINATION", candidateSceneIds: [6, 14, 20], reason: "notable_wind_combination" };
+  }
+  if (p.visibility.fogHours >= 2 || p.visibility.fogBlockMaxHours >= 2) {
+    return { family: "VISIBILITY", candidateSceneIds: [8, 17], reason: "fog_significant" };
+  }
+  const high = p.cloud.highMeanPct ?? 0;
+  const lowMid = (p.cloud.lowMeanPct ?? 0) + (p.cloud.midMeanPct ?? 0);
+  if (high >= 55 && lowMid <= 55 && p.rain.rainHours === 0) {
+    return { family: "VEIL", candidateSceneIds: [2, 7], reason: "high_cloud_veil" };
+  }
+  if (p.light.denseFraction >= 0.6 || (p.cloud.meanCoverPct >= 78 && p.light.cloudyFraction + p.light.denseFraction >= 0.7)) {
+    return { family: "CLOUD", candidateSceneIds: [9, 23], reason: "cloud_dominant" };
+  }
+  if (p.light.brightFraction >= 0.65 && p.light.clearFraction >= 0.45) {
+    return { family: "LIGHT", candidateSceneIds: [1, 16], reason: "bright_dominant" };
+  }
+  if (p.structure.meaningfulTransitions >= 3 || p.light.mixedFraction >= 0.25 || (p.light.brightFraction >= 0.25 && p.light.brightFraction <= 0.75)) {
+    return { family: "MIXED_SKY", candidateSceneIds: [3, 4, 18, 21], reason: "shared_or_variable_sky" };
+  }
+  return p.cloud.meanCoverPct >= 65
+    ? { family: "CLOUD", candidateSceneIds: [9, 23], reason: "conservative_cloud" }
+    : { family: "LIGHT", candidateSceneIds: [1, 16], reason: "conservative_bright" };
+}

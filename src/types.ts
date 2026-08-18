@@ -1,5 +1,6 @@
 export interface Env {
   DB: D1Database;
+  ASSETS?: Fetcher;
   OPEN_METEO_BASE_URL?: string;
   OPEN_METEO_API_KEY?: string;
   ADMIN_TOKEN?: string;
@@ -19,7 +20,7 @@ export interface CityConfig {
   longitude: number;
   timezone: string;
   displayHours: number[];
-  wind: { gustNotableKmh: number; gustStrongKmh: number; };
+  wind: { gustNotableKmh: number; gustStrongKmh: number };
   thermal: {
     morningCoolBelowC: number;
     morningMildBelowC: number;
@@ -46,15 +47,9 @@ export interface HourPoint {
   precipitationMm: number;
   rainMm: number;
   cloudCoverPct: number | null;
-
-  /**
-   * V24 cloud layers. Nullable by design: a missing model variable must never
-   * be interpreted as 0% cloud cover.
-   */
   cloudCoverLowPct: number | null;
   cloudCoverMidPct: number | null;
   cloudCoverHighPct: number | null;
-
   windSpeedKmh: number | null;
   windGustKmh: number | null;
   weatherCode: number | null;
@@ -77,21 +72,10 @@ export interface ConsensusHour {
   apparentTemperatureC: number;
   precipitationMm: number;
   cloudCoverPct: number;
-
-  /**
-   * V24 weighted cloud-layer consensus.
-   * null means no usable layer value was supplied by any contributing model.
-   */
   cloudCoverLowPct: number | null;
   cloudCoverMidPct: number | null;
   cloudCoverHighPct: number | null;
-
-  /**
-   * Number of models contributing at least one usable low/mid/high layer
-   * value for this hour. Used later by V24 confidence/uncertainty scoring.
-   */
   cloudLayerModelCount: number;
-
   windSpeedKmh: number;
   windGustKmh: number;
   modelCount: number;
@@ -100,47 +84,27 @@ export interface ConsensusHour {
   rainCodeSupport: number;
   showerSupport: number;
   thunderstormSupport: number;
-  /** V24 weighted support for WMO fog codes 45/48. */
   fogSupport: number;
 }
 
 export interface DisplayHour {
   hour: number;
   temperatureC: number;
-  condition: string;
+  condition: HourlyCondition;
   precipitationMm: number;
 }
 
-export type LokaScene =
-  | "SOLEIL"
-  | "NUAGES"
-  | "PLUIE"
-  | "ORAGES"
-  | "VENT FORT"
-  | "INSTABLE";
-
-export interface SceneCandidate {
-  scene: LokaScene;
-  score: number;
-  eligible: boolean;
-  reasons: string[];
-}
-
-export interface DecisionLog {
-  version: string;
-  selectedScene: LokaScene;
-  selectedScore: number;
-  candidates: SceneCandidate[];
-  metrics: Record<string, number | string | boolean | null>;
-  reasons: string[];
-  suppressed: string[];
-}
-
-/**
- * Legacy alias kept explicitly during the V24 transition.
- * Production still uses LokaScene until the V24 classifier is validated.
- */
-export type LegacyLokaScene = LokaScene;
+export type HourlyCondition =
+  | "soleil"
+  | "peu nuageux"
+  | "variable"
+  | "nuageux"
+  | "couvert"
+  | "brouillard"
+  | "vent"
+  | "averse"
+  | "pluie"
+  | "orage";
 
 export type Scene24Id =
   | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12
@@ -188,6 +152,9 @@ export type Scene24Family =
   | "RAIN_WIND";
 
 export type Scene24Confidence = "HIGH" | "MEDIUM" | "LOW";
+export type ResolutionMode = "DIRECT" | "NEIGHBOR_RESOLUTION" | "CONSERVATIVE" | "HYSTERESIS";
+export type DecisionValidity = "VALID" | "INVALID";
+export type VisualIcon = "sun" | "partly" | "cloud" | "veil" | "fog" | "wind" | "rain" | "shower" | "thunder" | "mixed" | "rain-wind" | "cloud-wind" | "sun-wind";
 
 export interface Scene24Definition {
   id: Scene24Id;
@@ -196,12 +163,13 @@ export interface Scene24Definition {
   family: Scene24Family;
   description: string;
   masterFileName: string;
+  emoji: string;
+  visualIcon: VisualIcon;
 }
 
 export interface Scene24Candidate {
   sceneId: Scene24Id;
   sceneKey: Scene24Key;
-  eligible: boolean;
   score: number;
   confidence: Scene24Confidence;
   reasons: string[];
@@ -216,6 +184,12 @@ export interface Scene24RunnerUp {
 
 export interface SceneDecisionV24 {
   version: string;
+  doctrineVersion: string;
+  validity: DecisionValidity;
+  decisionFamily: Scene24Family;
+  resolutionMode: ResolutionMode;
+  familyReason: string;
+  candidateSceneIds: Scene24Id[];
   sceneId: Scene24Id;
   sceneKey: Scene24Key;
   sceneLabel: string;
@@ -224,15 +198,40 @@ export interface SceneDecisionV24 {
   runnerUp: Scene24RunnerUp | null;
   candidates: Scene24Candidate[];
   reasons: string[];
-  fallbackUsed: boolean;
+  fallbackUsed: false;
   hysteresisApplied: boolean;
+  invariantChecks: Array<{ name: string; pass: boolean; detail: string }>;
+  profileSummary: Record<string, number | string | boolean | null>;
 }
 
-export type DaySkyState = "CLEAR" | "BRIGHT" | "MIXED" | "CLOUDY" | "DENSE";
+export type SkyBand = "CLEAR" | "BRIGHT" | "MIXED" | "CLOUDY" | "DENSE";
 
-export interface DayProfile {
-  period: { startHour: number; endHour: number };
+export interface DayPeriodProfile {
+  count: number;
+  meanCloudPct: number;
+  brightFraction: number;
+  cloudyFraction: number;
+  meanWindGustKmh: number;
+  rainHours: number;
+}
 
+export interface DayProfileV2 {
+  version: "2.0";
+  citySlug: string;
+  date: string;
+  period: {
+    startHour: number;
+    endHour: number;
+    sunriseLocalHour: number;
+    sunsetLocalHour: number;
+    daylightHours: number;
+  };
+  periods: {
+    early: DayPeriodProfile;
+    mid: DayPeriodProfile;
+    late: DayPeriodProfile;
+    lastHours: DayPeriodProfile;
+  };
   light: {
     clearFraction: number;
     brightFraction: number;
@@ -241,8 +240,8 @@ export interface DayProfile {
     denseFraction: number;
     brightBlockMaxHours: number;
     cloudBlockMaxHours: number;
+    lastHoursBrightFraction: number;
   };
-
   cloud: {
     meanCoverPct: number;
     medianCoverPct: number;
@@ -255,7 +254,6 @@ export interface DayProfile {
     highFractionAbove70: number | null;
     denseBlockMaxHours: number;
   };
-
   rain: {
     rainHours: number;
     rainBlockMaxHours: number;
@@ -268,7 +266,6 @@ export interface DayProfile {
     showerBlockCount: number;
     convectiveRainFraction: number;
   };
-
   wind: {
     notableHours: number;
     strongHours: number;
@@ -280,12 +277,10 @@ export interface DayProfile {
     cloudOverlapHours: number;
     rainOverlapHours: number;
   };
-
   convection: {
     thunderHours: number;
     peakThunderSupport: number;
   };
-
   visibility: {
     fogHours: number;
     denseFogHours: number;
@@ -293,44 +288,139 @@ export interface DayProfile {
     denseFogBlockMaxHours: number;
     fogSupportPeak: number;
     fogSupportMean: number;
-    visibilityMinKm: number | null;
+    visibilityMinKm: null;
   };
-
   evolution: {
-    meanCloudMorning: number;
-    meanCloudAfternoon: number;
-    meanCloudEvening: number;
-    brightFractionMorning: number;
-    brightFractionAfternoon: number;
-    brightFractionEvening: number;
+    earlyCloudPct: number;
+    midCloudPct: number;
+    lateCloudPct: number;
+    earlyBrightFraction: number;
+    midBrightFraction: number;
+    lateBrightFraction: number;
     cloudTrend: number;
     trendStrength: "STABLE" | "WEAK" | "MODERATE" | "STRONG";
     reversals: number;
   };
-
   structure: {
     meaningfulTransitions: number;
     uncertainWeather: boolean;
     distinctStateCount: number;
+    modelCountMin: number;
+    modelCountMean: number;
   };
 }
 
-export interface LokaForecast {
+export interface EditorialFacts {
+  sceneId: Scene24Id;
+  sceneKey: Scene24Key;
+  trajectory: "STABLE" | "IMPROVING" | "DEGRADING" | "VARIABLE";
+  startSky: SkyBand;
+  middleSky: SkyBand;
+  endSky: SkyBand;
+  transitionStrength: "NONE" | "WEAK" | "MODERATE" | "STRONG";
+  brightestPeriod: "EARLY" | "MID" | "LATE" | "ALL_DAY";
+  cloudiestPeriod: "EARLY" | "MID" | "LATE" | "ALL_DAY";
+  precipitation: { kind: "DRY" | "SHOWERS" | "RAIN" | "THUNDER"; hours: number; totalMm: number };
+  wind: { kind: "NONE" | "NOTABLE" | "STRONG"; maxGustKmh: number };
+  fog: { kind: "NONE" | "BRIEF" | "DENSE"; hours: number };
+  temperature: { minC: number; maxC: number; character: "COOL" | "MILD" | "WARM" | "HOT" | "VERY_HOT" };
+  confidence: Scene24Confidence;
+  modelSignalUncertain: boolean;
+}
+
+export interface EditorialProductV2 {
+  version: "2.0";
+  scene: {
+    id: Scene24Id;
+    key: Scene24Key;
+    title: string;
+    emoji: string;
+    visualIcon: VisualIcon;
+  };
+  visual: {
+    subtitle: string;
+    primaryLine: string;
+    secondaryLine: string;
+  };
+  social: {
+    paragraph1: string;
+    paragraph2: string;
+    signature: "Ici, aujourd’hui.";
+    handle: string;
+    caption: string;
+    hashtags: string;
+  };
+  facts: EditorialFacts;
+}
+
+export interface OfficialPublicPayloadV24 {
+  version: "2.0";
   city: string;
   citySlug: string;
   date: string;
   generatedAt: string;
-  tempMaxC: number;
-  tempMinC: number;
-  scene?: LokaScene;
-  subtitle?: string;
-  summaryLines?: string[];
-  decisionLog?: DecisionLog;
-  mainVerdict: string;
-  rainVerdict: string;
-  notableEvent: string | null;
-  confidenceMain: number;
-  confidenceRain: number;
+  source: string;
+  scene: {
+    id: Scene24Id;
+    key: Scene24Key;
+    label: string;
+    family: Scene24Family;
+    masterUrl: string;
+    visualIcon: VisualIcon;
+    emoji: string;
+  };
+  temperatures: { minC: number; maxC: number };
   hourly: DisplayHour[];
-  diagnostics: Record<string, unknown>;
+  editorial: EditorialProductV2;
+  decision: SceneDecisionV24;
+  models: { count: number; ok: string[]; failed: Record<string, string> };
+}
+
+export interface PublicationManifestV24 {
+  version: "2.0";
+  engine: "V24";
+  citySlug: string;
+  forecastDate: string;
+  generatedAt: string;
+  sceneId: Scene24Id;
+  sceneKey: Scene24Key;
+  payloadSha256: string;
+  createdAt: string;
+}
+
+export type DailySceneStatus = "OFFICIAL" | "RECOVERED";
+
+export interface DailySceneLedgerRow {
+  id: number;
+  citySlug: string;
+  forecastDate: string;
+  revision: number;
+  status: DailySceneStatus;
+  generationId: number;
+  sceneId: Scene24Id;
+  sceneKey: Scene24Key;
+  sceneLabel: string;
+  confidence: Scene24Confidence;
+  resolutionMode: ResolutionMode;
+  runnerUpSceneId: Scene24Id | null;
+  engineVersion: string;
+  doctrineVersion: string;
+  manifestHash: string;
+  reason: string | null;
+  createdAt: string;
+}
+
+export interface GenerationArchiveRow {
+  id: number;
+  citySlug: string;
+  forecastDate: string;
+  generatedAt: string;
+  source: string;
+  sceneId: Scene24Id;
+  sceneKey: Scene24Key;
+  score: number;
+  confidence: Scene24Confidence;
+  modelCount: number;
+  publicPayload: OfficialPublicPayloadV24;
+  manifestHash: string;
 }

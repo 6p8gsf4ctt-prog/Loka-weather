@@ -1,158 +1,106 @@
-import { SCENE24_CONFIG } from "../../config/scenes24";
-import type {
-  DayProfile,
-  Scene24Candidate,
-  Scene24Confidence,
-  Scene24Id,
-  Scene24Key
-} from "../../types";
-import { getScene24ById } from "./registry";
+import { SCENE_THRESHOLDS } from "../../config/scenes24";
+import type { DayProfileV2, Scene24Candidate, Scene24Confidence, Scene24Id } from "../../types";
+import { clamp } from "../math";
+import { scene24ById } from "./registry";
 
-export interface Scene24ScoreParts {
-  phenomenonFit: number;
-  durationFit: number;
-  structureFit: number;
-  modelConfidence: number;
-  specificityBonus?: number;
-  uncertaintyPenalty?: number;
+function closeness(value: number, target: number, tolerance: number): number {
+  return clamp(100 - Math.abs(value - target) / Math.max(1, tolerance) * 50, 0, 100);
+}
+function confidence(score: number): Scene24Confidence {
+  return score >= 82 ? "HIGH" : score >= 66 ? "MEDIUM" : "LOW";
+}
+function candidate(id: Scene24Id, score: number, reasons: string[], penalties: string[] = []): Scene24Candidate {
+  const def = scene24ById(id);
+  const s = Math.round(clamp(score, 0, 100));
+  return { sceneId: id, sceneKey: def.key, score: s, confidence: confidence(s), reasons, penalties };
 }
 
-export interface Scene24CandidateInput {
-  sceneId: Scene24Id;
-  eligible: boolean;
-  reasons: string[];
-  penalties?: string[];
-  parts: Scene24ScoreParts;
-}
-
-function clamp(value: number, min = 0, max = 100): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function round1(value: number): number {
-  return Math.round(value * 10) / 10;
-}
-
-export function normalizedFit(value: number, min: number, max: number): number {
-  if (max <= min) return value >= max ? 100 : 0;
-  return clamp(((value - min) / (max - min)) * 100);
-}
-
-export function inverseFit(value: number, goodMax: number, badFrom: number): number {
-  if (badFrom <= goodMax) return value <= goodMax ? 100 : 0;
-  return clamp(100 - ((value - goodMax) / (badFrom - goodMax)) * 100);
-}
-
-export function rangeFit(value: number, min: number, max: number, shoulder = 10): number {
-  if (value >= min && value <= max) return 100;
-  if (value < min) return clamp(100 - ((min - value) / shoulder) * 100);
-  return clamp(100 - ((value - max) / shoulder) * 100);
-}
-
-export function averageFit(...values: number[]): number {
-  if (!values.length) return 0;
-  return values.reduce((sum, value) => sum + clamp(value), 0) / values.length;
-}
-
-export function scoreCandidate(input: Scene24CandidateInput): Scene24Candidate {
-  const definition = getScene24ById(input.sceneId);
-  const weights = SCENE24_CONFIG.scoring;
-
-  if (!input.eligible) {
-    return {
-      sceneId: definition.id,
-      sceneKey: definition.key,
-      eligible: false,
-      score: 0,
-      confidence: "LOW",
-      reasons: input.reasons,
-      penalties: input.penalties ?? []
-    };
+export function scoreScene(id: Scene24Id, p: DayProfileV2): Scene24Candidate {
+  const e = p.evolution;
+  const cloudy = p.light.cloudyFraction + p.light.denseFraction;
+  const high = p.cloud.highMeanPct ?? 0;
+  const reasons: string[] = [];
+  let s = 50;
+  switch (id) {
+    case 1:
+      s = 35 + 45 * p.light.clearFraction + 20 * p.light.brightFraction - 20 * Math.min(1, p.structure.meaningfulTransitions / 4) - 20 * Math.min(1, p.light.cloudBlockMaxHours / 3);
+      reasons.push("clear_stable_day"); break;
+    case 16:
+      s = 35 + 45 * p.light.brightFraction + 15 * Math.min(1, p.light.cloudBlockMaxHours / 3) - 20 * p.light.denseFraction - 10 * p.light.clearFraction;
+      reasons.push("sun_with_cloud_passages"); break;
+    case 2:
+      s = 45 + 0.35 * high + 20 * p.light.brightFraction - 0.2 * Math.max(0, p.cloud.meanCoverPct - 50);
+      reasons.push("light_high_veil"); break;
+    case 7:
+      s = 35 + 0.45 * high + closeness(p.cloud.meanCoverPct, 62, 35) * 0.25;
+      reasons.push("dense_high_veil"); break;
+    case 3:
+      s = 40 + 60 * cloudy + 40 * Math.min(0.35, p.light.brightFraction) + 8 * Math.min(1, p.structure.meaningfulTransitions / 4) - 40 * Math.max(0, p.light.brightFraction - 0.35);
+      reasons.push("cloudy_with_openings"); break;
+    case 4:
+      s = 40 + 55 * p.light.brightFraction + 20 * Math.min(1, p.structure.meaningfulTransitions / 5) + 5 * p.light.mixedFraction - 10 * cloudy;
+      reasons.push("frequent_bright_variability"); break;
+    case 18:
+      s = 35 + closeness(p.light.brightFraction, 0.45, 0.45) * 0.25 + 10 * Math.min(1, p.structure.meaningfulTransitions / 5) + 20 * Math.min(1, e.reversals / 3) + 15 * cloudy - 15 * Math.min(1, p.light.brightBlockMaxHours / 3);
+      reasons.push("balanced_variability"); break;
+    case 21:
+      s = 43 + 30 * p.light.brightFraction + 35 * Math.min(1, p.light.brightBlockMaxHours / 4) + 10 * p.light.mixedFraction;
+      reasons.push("long_bright_blocks"); break;
+    case 5:
+      s = 25 + clamp(e.cloudTrend, 0, 70) + 15 * e.earlyBrightFraction + 15 * (1 - e.lateBrightFraction) - 10 * Math.min(1, e.reversals / 2);
+      reasons.push("degrading_trajectory"); break;
+    case 11:
+      s = 22 + clamp(-e.cloudTrend, 0, 48) + 12 * (1 - e.earlyBrightFraction) + 10 * Math.min(0.7, e.lateBrightFraction) - 10 * Math.min(1, e.reversals / 2);
+      reasons.push("general_improvement"); break;
+    case 15: {
+      const t = SCENE_THRESHOLDS.trend;
+      s = 25 + clamp(-e.cloudTrend, 0, 70)
+        + (e.earlyCloudPct >= t.luminousEarlyCloudMin ? 12 : -12)
+        + (e.lateCloudPct <= t.luminousLateCloudMax ? 12 : -12)
+        + (e.lateBrightFraction >= t.luminousLateBrightMin ? 10 : -10)
+        + (p.light.lastHoursBrightFraction >= t.luminousLastHoursBrightMin ? 10 : -10)
+        - 12 * Math.min(1, e.reversals / 2);
+      reasons.push("cloudy_start_bright_finish"); break;
+    }
+    case 6:
+      s = 35 + 40 * p.light.brightFraction + 25 * Math.min(1, p.wind.notableHours / 5);
+      reasons.push("bright_windy"); break;
+    case 14:
+      s = 35 + closeness(p.light.brightFraction, 0.5, 0.5) * 0.35 + 25 * Math.min(1, p.wind.notableHours / 5) + 10 * p.light.mixedFraction;
+      reasons.push("openings_windy"); break;
+    case 20:
+      s = 35 + 35 * cloudy + 30 * Math.min(1, p.wind.notableHours / 5);
+      reasons.push("cloudy_windy"); break;
+    case 8:
+      s = 35 + 25 * Math.min(1, p.visibility.fogHours / 3) + 25 * p.visibility.fogSupportPeak - 20 * Math.min(1, p.visibility.denseFogHours / 4);
+      reasons.push("limited_fog"); break;
+    case 17:
+      s = 25 + 35 * Math.min(1, p.visibility.denseFogHours / 4) + 30 * p.visibility.fogSupportMean + 10 * Math.min(1, p.visibility.denseFogBlockMaxHours / 4);
+      reasons.push("dense_persistent_fog"); break;
+    case 9:
+      s = 35 + 40 * cloudy + 20 * Math.min(1, p.light.cloudBlockMaxHours / 5) - 20 * p.light.denseFraction;
+      reasons.push("stable_overcast"); break;
+    case 23:
+      s = 25 + 55 * p.light.denseFraction + 20 * Math.min(1, p.cloud.denseBlockMaxHours / 5) + 10 * (p.cloud.meanCoverPct / 100);
+      reasons.push("uniform_dense_overcast"); break;
+    case 10:
+      s = 45 + 30 * Math.min(1, p.wind.strongHours / 5) + 25 * Math.min(1, p.wind.maxGustKmh / 90);
+      reasons.push("strong_wind"); break;
+    case 12:
+      s = 30 + 30 * Math.min(1, p.rain.rainHours / 7) + 25 * p.rain.continuityRatio + 15 * Math.min(1, p.rain.rainBlockMaxHours / 5);
+      reasons.push("sustained_rain"); break;
+    case 13:
+      s = 35 + 30 * Math.min(1, p.rain.showerHours / 5) + 20 * Math.min(1, p.rain.showerBlockCount / 3) + 15 * Math.min(1, p.rain.dryGapMaxHours / 3) - 15 * p.rain.continuityRatio;
+      reasons.push("intermittent_showers"); break;
+    case 19:
+      s = 35 + 20 * Math.min(1, p.structure.distinctStateCount / 5) + 20 * Math.min(1, e.reversals / 4) + 20 * Math.min(1, p.structure.meaningfulTransitions / 7) + 5 * Math.min(1, p.rain.rainHours / 3);
+      reasons.push("disordered_multi_state_day"); break;
+    case 22:
+      s = 55 + 20 * Math.min(1, p.convection.thunderHours / 3) + 25 * p.convection.peakThunderSupport;
+      reasons.push("robust_thunder"); break;
+    case 24:
+      s = 45 + 25 * Math.min(1, p.wind.rainOverlapHours / 4) + 15 * Math.min(1, p.rain.rainHours / 5) + 15 * Math.min(1, p.wind.notableHours / 5);
+      reasons.push("rain_wind_overlap"); break;
   }
-
-  const weighted =
-    clamp(input.parts.phenomenonFit) * weights.phenomenonFitWeight +
-    clamp(input.parts.durationFit) * weights.durationFitWeight +
-    clamp(input.parts.structureFit) * weights.structureFitWeight +
-    clamp(input.parts.modelConfidence) * weights.modelConfidenceWeight;
-
-  const specificityBonus = Math.min(
-    input.parts.specificityBonus ?? 0,
-    weights.specificityBonusMax
-  );
-
-  const uncertaintyPenalty = Math.min(
-    input.parts.uncertaintyPenalty ?? 0,
-    weights.uncertaintyPenaltyMax
-  );
-
-  const score = clamp(weighted + specificityBonus - uncertaintyPenalty);
-
-  return {
-    sceneId: definition.id,
-    sceneKey: definition.key,
-    eligible: true,
-    score: round1(score),
-    confidence: confidenceForCandidate(score),
-    reasons: input.reasons,
-    penalties: input.penalties ?? []
-  };
-}
-
-export function confidenceForCandidate(score: number): Scene24Confidence {
-  if (score >= SCENE24_CONFIG.confidence.highScoreMin) return "HIGH";
-  if (score >= SCENE24_CONFIG.confidence.mediumScoreMin) return "MEDIUM";
-  return "LOW";
-}
-
-export function finalConfidence(
-  winnerScore: number,
-  runnerUpScore: number
-): Scene24Confidence {
-  const gap = winnerScore - runnerUpScore;
-  const c = SCENE24_CONFIG.confidence;
-
-  if (winnerScore >= c.highScoreMin && gap >= c.highGapMin) return "HIGH";
-  if (winnerScore >= c.mediumScoreMin && gap >= c.mediumGapMin) return "MEDIUM";
-  return "LOW";
-}
-
-/**
- * Confidence proxy based only on the completeness/robustness signals currently
- * available in DayProfile. It deliberately stays conservative in shadow mode.
- */
-export function profileModelConfidence(profile: DayProfile, sceneKey: Scene24Key): number {
-  let confidence = 88;
-
-  if (profile.structure.uncertainWeather) confidence -= 12;
-
-  if (
-    sceneKey === "SOLEIL_VOILE" ||
-    sceneKey === "SOLEIL_VOILE_DENSE"
-  ) {
-    const completeLayers =
-      profile.cloud.lowMeanPct !== null &&
-      profile.cloud.midMeanPct !== null &&
-      profile.cloud.highMeanPct !== null;
-
-    confidence += completeLayers ? 6 : -25;
-  }
-
-  if (
-    sceneKey === "BRUME_BROUILLARD" ||
-    sceneKey === "BROUILLARD_DENSE"
-  ) {
-    // V1 has WMO fog support but not physical visibility yet.
-    confidence -= profile.visibility.visibilityMinKm === null ? 10 : 0;
-  }
-
-  return clamp(confidence);
-}
-
-export function sceneSpecificityBonus(sceneId: Scene24Id): number {
-  // Combined/strongly distinctive scenes receive a modest bonus only after
-  // eligibility has already been proven by the classifier.
-  if ([6, 10, 14, 17, 22, 24].includes(sceneId)) return 6;
-  if ([5, 7, 11, 12, 13, 15, 20, 23].includes(sceneId)) return 3;
-  return 0;
+  return candidate(id, s, reasons);
 }

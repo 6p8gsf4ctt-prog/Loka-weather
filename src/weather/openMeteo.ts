@@ -15,11 +15,7 @@ function numeric(values: Array<string | number | null> | undefined, i: number): 
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-export async function fetchModelForecast(
-  env: Env,
-  city: CityConfig,
-  model: ModelConfig
-): Promise<ModelForecast> {
+export async function fetchModelForecast(env: Env, city: CityConfig, model: ModelConfig): Promise<ModelForecast> {
   const base = env.OPEN_METEO_BASE_URL || "https://api.open-meteo.com/v1/forecast";
   const url = new URL(base);
   url.searchParams.set("latitude", String(city.latitude));
@@ -37,25 +33,16 @@ export async function fetchModelForecast(
   const timeout = setTimeout(() => controller.abort(), 10_000);
   let response: Response;
   try {
-    response = await fetch(url, {
-      signal: controller.signal,
-      headers: { "User-Agent": "LOKA-Weather/0.1" }
-    });
+    response = await fetch(url, { signal: controller.signal, headers: { "User-Agent": "LOKA-Weather/2.0" } });
   } finally {
     clearTimeout(timeout);
   }
-
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`${model.id}: Open-Meteo ${response.status} ${detail.slice(0, 300)}`);
-  }
-
-  const data = (await response.json()) as OpenMeteoPayload;
+  if (!response.ok) throw new Error(`${model.id}: Open-Meteo ${response.status} ${(await response.text()).slice(0, 300)}`);
+  const data = await response.json() as OpenMeteoPayload;
   if (data.error) throw new Error(`${model.id}: ${data.reason || "Open-Meteo error"}`);
   const hourly = data.hourly;
   const times = hourly?.time ?? [];
   if (!hourly || !times.length) throw new Error(`${model.id}: no hourly data`);
-
   const points: HourPoint[] = times.map((time, i) => ({
     time,
     temperatureC: numeric(hourly.temperature_2m, i),
@@ -63,25 +50,16 @@ export async function fetchModelForecast(
     precipitationMm: numeric(hourly.precipitation, i) ?? 0,
     rainMm: numeric(hourly.rain, i) ?? 0,
     cloudCoverPct: numeric(hourly.cloud_cover, i),
-
-    // V24 — nullable cloud layers; missing must never become 0%.
     cloudCoverLowPct: numeric(hourly.cloud_cover_low, i),
     cloudCoverMidPct: numeric(hourly.cloud_cover_mid, i),
     cloudCoverHighPct: numeric(hourly.cloud_cover_high, i),
-
     windSpeedKmh: numeric(hourly.wind_speed_10m, i),
     windGustKmh: numeric(hourly.wind_gusts_10m, i),
     weatherCode: numeric(hourly.weather_code, i)
   }));
-
   return {
-    modelId: model.id,
-    family: model.family,
-    weight: model.baseWeight,
-    fetchedAt: new Date().toISOString(),
-    latitude: data.latitude,
-    longitude: data.longitude,
-    generationTimeMs: data.generationtime_ms,
-    hourly: points
+    modelId: model.id, family: model.family, weight: model.baseWeight,
+    fetchedAt: new Date().toISOString(), latitude: data.latitude, longitude: data.longitude,
+    generationTimeMs: data.generationtime_ms, hourly: points
   };
 }

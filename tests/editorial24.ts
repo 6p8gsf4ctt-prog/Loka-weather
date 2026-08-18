@@ -1,0 +1,38 @@
+import { CITIES } from "../src/config/cities";
+import { buildEditorialProductV2 } from "../src/engine/editorial24";
+import { scene24ById } from "../src/engine/scenes24/registry";
+import type { Scene24Confidence, Scene24Id } from "../src/types";
+import { classify } from "./scenes24/fixtures";
+
+let passed=0;
+function ok(v:boolean,label:string){if(!v)throw new Error(`EDITORIAL_FAIL:${label}`);passed++;}
+const confidences:Scene24Confidence[]=["HIGH","MEDIUM","LOW"];
+const temps:Array<[number,number]>=[[8,14],[16,23],[21,31]];
+let products=0;
+for(let id=1;id<=24;id++){
+  const base=classify(id as Scene24Id);
+  for(const confidence of confidences){
+    for(const [min,max] of temps){
+      const decision={...base.decision,confidence};
+      const product=buildEditorialProductV2(CITIES.tarnos,base.profile,decision,min,max);
+      const def=scene24ById(id as Scene24Id);
+      ok(product.scene.title===def.label,`title_${id}_${confidence}_${max}`);
+      ok(product.scene.emoji===def.emoji,`emoji_${id}_${confidence}_${max}`);
+      ok(product.scene.visualIcon===def.visualIcon,`icon_${id}_${confidence}_${max}`);
+      ok(product.visual.subtitle.trim().length>0&&product.visual.subtitle.toUpperCase()!==def.label,`subtitle_${id}_${confidence}_${max}`);
+      ok(product.visual.primaryLine!==product.visual.secondaryLine,`distinct_${id}_${confidence}_${max}`);
+      ok(product.social.caption.startsWith(def.emoji+" "),`caption_emoji_${id}_${confidence}_${max}`);
+      ok(product.social.caption.includes("Ici, aujourd’hui.")&&product.social.caption.includes("@loka.tarnos"),`signature_${id}_${confidence}_${max}`);
+      ok(product.social.hashtags.includes("#LOKA"),`hashtags_${id}_${confidence}_${max}`);
+      products++;
+    }
+  }
+}
+ok(products===216,`product_count_${products}`);
+const p15=buildEditorialProductV2(CITIES.tarnos,classify(15).profile,classify(15).decision,21,26);
+ok(p15.scene.title==="AMÉLIORATION LUMINEUSE",'scene15_title');
+ok(p15.visual.subtitle==="Une fin de journée nettement plus dégagée.",'scene15_subtitle');
+ok(p15.visual.primaryLine.toLowerCase().includes('matinée nuageuse'),'scene15_trajectory');
+const p24=buildEditorialProductV2(CITIES.tarnos,classify(24).profile,classify(24).decision,15,20);
+ok(p24.visual.primaryLine.toLowerCase().includes('pluie')&&p24.visual.primaryLine.toLowerCase().includes('vent'),'scene24_combo');
+console.log(`EDITORIAL_ENGINE_V2 ${products}/216 PASS (${passed} invariants)`);

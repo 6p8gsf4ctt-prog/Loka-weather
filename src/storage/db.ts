@@ -1,70 +1,32 @@
-import type { DecisionLog, LokaForecast, LokaScene } from "../types";
-
-export async function saveForecast(db: D1Database, forecast: LokaForecast, source: string): Promise<void> {
-  await db.prepare(`
-    INSERT INTO forecasts (
-      city_slug, city_name, forecast_date, generated_at, source,
-      temp_max_c, temp_min_c, main_verdict, rain_verdict, notable_event,
-      confidence_main, confidence_rain, hourly_json, diagnostics_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(city_slug, forecast_date) DO UPDATE SET
-      city_name = excluded.city_name,
-      generated_at = excluded.generated_at,
-      source = excluded.source,
-      temp_max_c = excluded.temp_max_c,
-      temp_min_c = excluded.temp_min_c,
-      main_verdict = excluded.main_verdict,
-      rain_verdict = excluded.rain_verdict,
-      notable_event = excluded.notable_event,
-      confidence_main = excluded.confidence_main,
-      confidence_rain = excluded.confidence_rain,
-      hourly_json = excluded.hourly_json,
-      diagnostics_json = excluded.diagnostics_json
-  `).bind(
-    forecast.citySlug, forecast.city, forecast.date, forecast.generatedAt, source,
-    forecast.tempMaxC, forecast.tempMinC, forecast.mainVerdict, forecast.rainVerdict,
-    forecast.notableEvent, forecast.confidenceMain, forecast.confidenceRain,
-    JSON.stringify(forecast.hourly), JSON.stringify(forecast.diagnostics)
-  ).run();
-}
+import type { GenerationArchiveRow, OfficialPublicPayloadV24, PublicationManifestV24 } from "../types";
+import { parseOfficialPayload } from "../engine/publicProduct";
 
 interface ForecastRow {
-  city_slug: string; city_name: string; forecast_date: string; generated_at: string;
-  temp_max_c: number; temp_min_c: number; main_verdict: string; rain_verdict: string;
-  notable_event: string | null; confidence_main: number; confidence_rain: number;
-  hourly_json: string; diagnostics_json: string;
+  city_slug: string;
+  forecast_date: string;
+  generated_at: string;
+  source: string;
+  diagnostics_json: string;
+}
+interface ShadowRow {
+  id: number;
+  city_slug: string;
+  forecast_date: string;
+  generated_at: string;
+  source: string;
+  final_scene_id: number;
+  final_scene_key: string;
+  final_score: number;
+  final_confidence: string;
+  model_count: number;
+  public_payload_json: string | null;
+  manifest_json: string | null;
+  manifest_hash: string | null;
 }
 
-function fromRow(row: ForecastRow): LokaForecast {
-  const diagnostics = JSON.parse(row.diagnostics_json || "{}") as Record<string, unknown>;
-  const scene = typeof diagnostics.scene === "string" ? diagnostics.scene as LokaScene : undefined;
-  const subtitle = typeof diagnostics.subtitle === "string" ? diagnostics.subtitle : undefined;
-  const summaryLines = Array.isArray(diagnostics.summaryLines)
-    ? diagnostics.summaryLines.filter((x): x is string => typeof x === "string")
-    : undefined;
-  const decisionLog = diagnostics.decisionLog && typeof diagnostics.decisionLog === "object"
-    ? diagnostics.decisionLog as DecisionLog
-    : undefined;
-
-  return {
-    city: row.city_name, citySlug: row.city_slug, date: row.forecast_date,
-    generatedAt: row.generated_at, tempMaxC: row.temp_max_c, tempMinC: row.temp_min_c,
-    scene, subtitle, summaryLines, decisionLog,
-    mainVerdict: row.main_verdict, rainVerdict: row.rain_verdict,
-    notableEvent: row.notable_event, confidenceMain: row.confidence_main,
-    confidenceRain: row.confidence_rain, hourly: JSON.parse(row.hourly_json), diagnostics
-  };
-}
-
-export async function latestForecast(db: D1Database, citySlug: string): Promise<LokaForecast | null> {
-  const row = await db.prepare(`SELECT * FROM forecasts WHERE city_slug = ? ORDER BY forecast_date DESC, generated_at DESC LIMIT 1`).bind(citySlug).first<ForecastRow>();
-  return row ? fromRow(row) : null;
-}
-
-export async function forecastHistory(db: D1Database, citySlug: string, limit = 30): Promise<LokaForecast[]> {
-  const safeLimit = Math.min(100, Math.max(1, limit));
-  const result = await db.prepare(`SELECT * FROM forecasts WHERE city_slug = ? ORDER BY forecast_date DESC, generated_at DESC LIMIT ?`).bind(citySlug, safeLimit).all<ForecastRow>();
-  return result.results.map(fromRow);
+function parseJson<T>(value: string | null): T | null {
+  if (!value) return null;
+  try { return JSON.parse(value) as T; } catch { return null; }
 }
 
 export async function saveRun(db: D1Database, args: {
@@ -72,240 +34,132 @@ export async function saveRun(db: D1Database, args: {
   status: "ok" | "partial" | "failed"; modelsOk: string[];
   modelsFailed: Record<string, string>; durationMs: number; errorMessage?: string;
 }): Promise<void> {
-  await db.prepare(`INSERT INTO runs (city_slug, forecast_date, generated_at, source, status, models_ok_json, models_failed_json, duration_ms, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+  await db.prepare(`INSERT INTO runs
+    (city_slug, forecast_date, generated_at, source, status, models_ok_json, models_failed_json, duration_ms, error_message)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .bind(args.citySlug, args.forecastDate, args.generatedAt, args.source, args.status,
       JSON.stringify(args.modelsOk), JSON.stringify(args.modelsFailed), args.durationMs, args.errorMessage ?? null).run();
 }
 
-type JsonObject = Record<string, unknown>;
-
-function objectValue(value: unknown): JsonObject | null {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? value as JsonObject
-    : null;
-}
-
-function numberValue(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function stringValue(value: unknown): string | null {
-  return typeof value === "string" ? value : null;
-}
-
-function boolInt(value: unknown): number {
-  return value === true ? 1 : 0;
-}
-
-/**
- * Append one immutable V24 shadow snapshot per generation.
- *
- * This table is intentionally separate from forecasts:
- * forecasts keeps the current official daily product and may be overwritten
- * for the same date; shadow_history preserves every V24 generation.
- */
-export async function saveShadowHistory(
+export async function archiveGeneration(
   db: D1Database,
-  forecast: LokaForecast,
-  source: string,
-  modelsOk: string[],
-  modelsFailed: Record<string, string>
-): Promise<void> {
-  const d = forecast.diagnostics ?? {};
-
-  const legacy = objectValue(d.sceneLegacy);
-  const raw = objectValue(d.scene24Raw);
-  const final = objectValue(d.scene24);
-  const reliability = objectValue(d.scene24Reliability);
-  const runnerUp = final ? objectValue(final.runnerUp) : null;
-
-  const candidates = final && Array.isArray(final.candidates)
-    ? final.candidates
-    : [];
-
+  payload: OfficialPublicPayloadV24,
+  manifest: PublicationManifestV24
+): Promise<number> {
   await db.prepare(`
     INSERT INTO shadow_history (
       city_slug, forecast_date, generated_at, source,
-      production_scene, legacy_score, legacy_version,
       raw_scene_id, raw_scene_key, raw_score, raw_confidence,
       final_scene_id, final_scene_key, final_score, final_confidence,
       runner_up_scene_id, runner_up_score,
       fallback_used, hysteresis_applied,
       reliability_applied, reliability_reason, reliability_version,
       model_count, models_ok_json, models_failed_json,
-      scene24_raw_json, scene24_json, reliability_json, day_profile_json, candidates_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      scene24_raw_json, scene24_json, reliability_json, day_profile_json, candidates_json,
+      public_payload_json, manifest_json, manifest_hash, resolution_mode, doctrine_version, engine_version
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 0, NULL, NULL, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(city_slug, generated_at) DO NOTHING
   `).bind(
-    forecast.citySlug,
-    forecast.date,
-    forecast.generatedAt,
-    source,
-
-    forecast.scene ?? null,
-    legacy ? numberValue(legacy.score) : forecast.decisionLog?.selectedScore ?? null,
-    legacy ? stringValue(legacy.version) : forecast.decisionLog?.version ?? null,
-
-    raw ? numberValue(raw.sceneId) : null,
-    raw ? stringValue(raw.sceneKey) : null,
-    raw ? numberValue(raw.score) : null,
-    raw ? stringValue(raw.confidence) : null,
-
-    final ? numberValue(final.sceneId) : null,
-    final ? stringValue(final.sceneKey) : null,
-    final ? numberValue(final.score) : null,
-    final ? stringValue(final.confidence) : null,
-
-    runnerUp ? numberValue(runnerUp.sceneId) : null,
-    runnerUp ? numberValue(runnerUp.score) : null,
-
-    final ? boolInt(final.fallbackUsed) : 0,
-    final ? boolInt(final.hysteresisApplied) : 0,
-
-    reliability ? boolInt(reliability.applied) : 0,
-    reliability ? stringValue(reliability.reason) : null,
-    reliability ? stringValue(reliability.version) : null,
-
-    modelsOk.length,
-    JSON.stringify(modelsOk),
-    JSON.stringify(modelsFailed),
-
-    raw ? JSON.stringify(raw) : null,
-    final ? JSON.stringify(final) : null,
-    reliability ? JSON.stringify(reliability) : null,
-    d.dayProfile24 ? JSON.stringify(d.dayProfile24) : null,
-    JSON.stringify(candidates)
+    payload.citySlug, payload.date, payload.generatedAt, payload.source,
+    payload.scene.id, payload.scene.key, payload.decision.score, payload.decision.confidence,
+    payload.scene.id, payload.scene.key, payload.decision.score, payload.decision.confidence,
+    payload.decision.runnerUp?.sceneId ?? null, payload.decision.runnerUp?.score ?? null,
+    payload.decision.hysteresisApplied ? 1 : 0,
+    payload.models.count, JSON.stringify(payload.models.ok), JSON.stringify(payload.models.failed),
+    JSON.stringify(payload.decision), JSON.stringify(payload.decision), JSON.stringify(payload.decision.candidates),
+    JSON.stringify(payload), JSON.stringify(manifest), manifest.payloadSha256,
+    payload.decision.resolutionMode, payload.decision.doctrineVersion, payload.decision.version
   ).run();
+  const row = await db.prepare(`SELECT id FROM shadow_history WHERE city_slug = ? AND generated_at = ?`)
+    .bind(payload.citySlug, payload.generatedAt).first<{ id: number }>();
+  if (!row) throw new Error("generation_archive_readback_failed");
+  return row.id;
 }
 
-interface ShadowHistoryRow {
-  id: number;
-  city_slug: string;
-  forecast_date: string;
-  generated_at: string;
-  source: string;
-  production_scene: string | null;
-  legacy_score: number | null;
-  legacy_version: string | null;
-  raw_scene_id: number | null;
-  raw_scene_key: string | null;
-  raw_score: number | null;
-  raw_confidence: string | null;
-  final_scene_id: number | null;
-  final_scene_key: string | null;
-  final_score: number | null;
-  final_confidence: string | null;
-  runner_up_scene_id: number | null;
-  runner_up_score: number | null;
-  fallback_used: number;
-  hysteresis_applied: number;
-  reliability_applied: number;
-  reliability_reason: string | null;
-  reliability_version: string | null;
-  model_count: number;
-  models_ok_json: string;
-  models_failed_json: string;
-  scene24_raw_json: string | null;
-  scene24_json: string | null;
-  reliability_json: string | null;
-  day_profile_json: string | null;
-  candidates_json: string | null;
-}
-
-function parseJson(value: string | null, fallback: unknown): unknown {
-  if (!value) return fallback;
-  try { return JSON.parse(value); } catch { return fallback; }
-}
-
-function shadowRow(row: ShadowHistoryRow, includeDetail: boolean): Record<string, unknown> {
-  const compact: Record<string, unknown> = {
+function shadowToGeneration(row: ShadowRow): GenerationArchiveRow | null {
+  const payload = parseOfficialPayload(parseJson(row.public_payload_json));
+  if (!payload || !row.manifest_hash) return null;
+  return {
     id: row.id,
     citySlug: row.city_slug,
     forecastDate: row.forecast_date,
     generatedAt: row.generated_at,
     source: row.source,
-
-    production: {
-      scene: row.production_scene,
-      score: row.legacy_score,
-      version: row.legacy_version
-    },
-
-    raw: {
-      sceneId: row.raw_scene_id,
-      sceneKey: row.raw_scene_key,
-      score: row.raw_score,
-      confidence: row.raw_confidence
-    },
-
-    v24: {
-      sceneId: row.final_scene_id,
-      sceneKey: row.final_scene_key,
-      score: row.final_score,
-      confidence: row.final_confidence,
-      runnerUp: row.runner_up_scene_id === null ? null : {
-        sceneId: row.runner_up_scene_id,
-        score: row.runner_up_score
-      },
-      fallbackUsed: row.fallback_used === 1,
-      hysteresisApplied: row.hysteresis_applied === 1
-    },
-
-    reliability: {
-      applied: row.reliability_applied === 1,
-      reason: row.reliability_reason,
-      version: row.reliability_version
-    },
-
-    models: {
-      count: row.model_count,
-      ok: parseJson(row.models_ok_json, []),
-      failed: parseJson(row.models_failed_json, {})
-    }
+    sceneId: payload.scene.id,
+    sceneKey: payload.scene.key,
+    score: row.final_score,
+    confidence: payload.decision.confidence,
+    modelCount: row.model_count,
+    publicPayload: payload,
+    manifestHash: row.manifest_hash
   };
+}
 
-  if (includeDetail) {
-    compact.detail = {
-      scene24Raw: parseJson(row.scene24_raw_json, null),
-      scene24: parseJson(row.scene24_json, null),
-      reliability: parseJson(row.reliability_json, null),
-      dayProfile: parseJson(row.day_profile_json, null),
-      candidates: parseJson(row.candidates_json, [])
-    };
+export async function generationById(db: D1Database, id: number): Promise<{ generation: GenerationArchiveRow; manifest: PublicationManifestV24 } | null> {
+  const row = await db.prepare(`SELECT * FROM shadow_history WHERE id = ?`).bind(id).first<ShadowRow>();
+  if (!row) return null;
+  const generation = shadowToGeneration(row);
+  const manifest = parseJson<PublicationManifestV24>(row.manifest_json);
+  return generation && manifest ? { generation, manifest } : null;
+}
+
+export async function generationHistory(db: D1Database, citySlug: string, limit = 30): Promise<GenerationArchiveRow[]> {
+  const safe = Math.min(200, Math.max(1, limit));
+  const rows = await db.prepare(`SELECT * FROM shadow_history WHERE city_slug = ? AND public_payload_json IS NOT NULL ORDER BY generated_at DESC LIMIT ?`)
+    .bind(citySlug, safe).all<ShadowRow>();
+  return rows.results.map(shadowToGeneration).filter((x): x is GenerationArchiveRow => x !== null);
+}
+
+export function officialForecastWriteStatement(
+  db: D1Database,
+  payload: OfficialPublicPayloadV24,
+  manifest: PublicationManifestV24,
+  onlyIfPreviousStatementChanged = false
+): D1PreparedStatement {
+  const confidence = payload.decision.confidence === "HIGH" ? 90 : payload.decision.confidence === "MEDIUM" ? 75 : 60;
+  const where = onlyIfPreviousStatementChanged ? "SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE changes() = 1" : "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+  return db.prepare(`
+    INSERT INTO forecasts (
+      city_slug, city_name, forecast_date, generated_at, source,
+      temp_max_c, temp_min_c, main_verdict, rain_verdict, notable_event,
+      confidence_main, confidence_rain, hourly_json, diagnostics_json
+    ) ${where}
+    ON CONFLICT(city_slug, forecast_date) DO UPDATE SET
+      city_name = excluded.city_name, generated_at = excluded.generated_at, source = excluded.source,
+      temp_max_c = excluded.temp_max_c, temp_min_c = excluded.temp_min_c,
+      main_verdict = excluded.main_verdict, rain_verdict = excluded.rain_verdict,
+      notable_event = excluded.notable_event, confidence_main = excluded.confidence_main,
+      confidence_rain = excluded.confidence_rain, hourly_json = excluded.hourly_json,
+      diagnostics_json = excluded.diagnostics_json
+  `).bind(
+    payload.citySlug, payload.city, payload.date, payload.generatedAt, payload.source,
+    payload.temperatures.maxC, payload.temperatures.minC,
+    payload.editorial.visual.subtitle,
+    `${payload.editorial.visual.primaryLine} ${payload.editorial.visual.secondaryLine}`,
+    payload.editorial.visual.secondaryLine,
+    confidence, confidence,
+    JSON.stringify(payload.hourly),
+    JSON.stringify({ v24: { payload, manifest } })
+  );
+}
+
+export async function officialForDate(db: D1Database, citySlug: string, date: string): Promise<{ payload: OfficialPublicPayloadV24; manifest: PublicationManifestV24 } | null> {
+  const row = await db.prepare(`SELECT * FROM forecasts WHERE city_slug = ? AND forecast_date = ? LIMIT 1`).bind(citySlug, date).first<ForecastRow>();
+  if (!row) return null;
+  const diagnostics = parseJson<{ v24?: { payload?: unknown; manifest?: PublicationManifestV24 } }>(row.diagnostics_json);
+  const payload = parseOfficialPayload(diagnostics?.v24?.payload);
+  const manifest = diagnostics?.v24?.manifest ?? null;
+  return payload && manifest ? { payload, manifest } : null;
+}
+
+export async function officialHistory(db: D1Database, citySlug: string, limit = 30): Promise<OfficialPublicPayloadV24[]> {
+  const safe = Math.min(100, Math.max(1, limit));
+  const rows = await db.prepare(`SELECT * FROM forecasts WHERE city_slug = ? ORDER BY forecast_date DESC LIMIT ?`).bind(citySlug, safe).all<ForecastRow>();
+  const result: OfficialPublicPayloadV24[] = [];
+  for (const row of rows.results) {
+    const diagnostics = parseJson<{ v24?: { payload?: unknown } }>(row.diagnostics_json);
+    const payload = parseOfficialPayload(diagnostics?.v24?.payload);
+    if (payload) result.push(payload);
   }
-
-  return compact;
-}
-
-export async function shadowHistory(
-  db: D1Database,
-  citySlug: string,
-  limit = 30,
-  includeDetail = false
-): Promise<Record<string, unknown>[]> {
-  const safeLimit = Math.min(200, Math.max(1, limit));
-
-  const result = await db.prepare(`
-    SELECT * FROM shadow_history
-    WHERE city_slug = ?
-    ORDER BY generated_at DESC
-    LIMIT ?
-  `).bind(citySlug, safeLimit).all<ShadowHistoryRow>();
-
-  return result.results.map((row) => shadowRow(row, includeDetail));
-}
-
-export async function shadowHistoryForDate(
-  db: D1Database,
-  citySlug: string,
-  forecastDate: string,
-  includeDetail = false
-): Promise<Record<string, unknown>[]> {
-  const result = await db.prepare(`
-    SELECT * FROM shadow_history
-    WHERE city_slug = ? AND forecast_date = ?
-    ORDER BY generated_at ASC
-  `).bind(citySlug, forecastDate).all<ShadowHistoryRow>();
-
-  return result.results.map((row) => shadowRow(row, includeDetail));
+  return result;
 }
