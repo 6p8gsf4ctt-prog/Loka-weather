@@ -4,10 +4,12 @@ import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
 import { localDate, runManualCity, runScheduledCity } from "./pipeline";
 import { generationHistory, officialForDate, officialHistory } from "./storage/db";
 import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySceneLedger";
+import { editorialFeedbackForOfficial, saveEditorialFeedback } from "./storage/editorialFeedback";
 import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
 import { renderDashboard24 } from "./ui/dashboard24";
 import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
+import { enhanceInstagramWithEditorialPersistence } from "./ui/instagramEditorialPersistence";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 
@@ -150,6 +152,65 @@ export default {
       }
     }
 
+    if (url.pathname === "/api/admin/instagram/editorial-feedback") {
+      if (!isAuthorized(request, env)) return unauthorized();
+      const slug = url.searchParams.get("city") || "tarnos";
+      const city = getCity(slug);
+      if (!city) return json({ error: "unknown_city" }, 404);
+
+      const date = localDate(city.timezone);
+      const stored = await officialForDate(env.DB, city.slug, date);
+      const surface = await resolvePublicSurfaceSafely(stored?.payload ?? null, stored?.manifest ?? null);
+      if (!stored || surface.engine === "UNAVAILABLE") {
+        return json({ error: surface.engine === "UNAVAILABLE" ? surface.reason : "official_v24_unavailable" }, 409);
+      }
+
+      if (request.method === "GET") {
+        try {
+          const feedback = await editorialFeedbackForOfficial(env.DB, surface.payload, stored.manifest);
+          return json({
+            ok: true,
+            feedback: feedback ? {
+              storyEdited: feedback.storyEdited,
+              feedEdited: feedback.feedEdited,
+              updatedAt: feedback.updatedAt
+            } : null
+          });
+        } catch (error) {
+          return json({ error: error instanceof Error ? error.message : String(error) }, 409);
+        }
+      }
+
+      if (request.method === "POST") {
+        let body: { story?: unknown; feed?: unknown } = {};
+        try { body = await request.json() as typeof body; }
+        catch { return json({ error: "invalid_json" }, 400); }
+
+        try {
+          const feedback = await saveEditorialFeedback(env.DB, {
+            payload: surface.payload,
+            manifest: stored.manifest,
+            story: (body.story ?? null) as Parameters<typeof saveEditorialFeedback>[1]["story"],
+            feed: (body.feed ?? null) as Parameters<typeof saveEditorialFeedback>[1]["feed"]
+          });
+          return json({
+            ok: true,
+            feedback: feedback ? {
+              storyEdited: feedback.storyEdited,
+              feedEdited: feedback.feedEdited,
+              updatedAt: feedback.updatedAt
+            } : null
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          const status = message.startsWith("editorial_feedback_invalid_") || message.includes("too_long") ? 400 : 409;
+          return json({ error: message }, status);
+        }
+      }
+
+      return json({ error: "method_not_allowed" }, 405);
+    }
+
     if (url.pathname === "/api/admin/generations") {
       if (!isAuthorized(request, env)) return unauthorized();
       const slug = url.searchParams.get("city") || "tarnos";
@@ -179,7 +240,9 @@ export default {
       }
       if (!await masterAvailable(request, env, result.surface.payload.scene.masterUrl)) return unavailable("master_graphic_unavailable");
       const instagramHtml = renderInstagramOfficial24(result.surface.payload, result.city);
-      return new Response(enhanceInstagramWithEditorialStudio(instagramHtml), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+      const editorialHtml = enhanceInstagramWithEditorialStudio(instagramHtml);
+      const persistentHtml = enhanceInstagramWithEditorialPersistence(editorialHtml, result.city.slug);
+      return new Response(persistentHtml, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
     }
 
     if (url.pathname === "/" || url.pathname === "/tarnos") {
