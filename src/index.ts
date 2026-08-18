@@ -7,6 +7,7 @@ import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySce
 import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
 import { renderDashboard24 } from "./ui/dashboard24";
+import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 
@@ -177,7 +178,8 @@ export default {
         });
       }
       if (!await masterAvailable(request, env, result.surface.payload.scene.masterUrl)) return unavailable("master_graphic_unavailable");
-      return new Response(renderInstagramOfficial24(result.surface.payload, result.city), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+      const instagramHtml = renderInstagramOfficial24(result.surface.payload, result.city);
+      return new Response(enhanceInstagramWithEditorialStudio(instagramHtml), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
     }
 
     if (url.pathname === "/" || url.pathname === "/tarnos") {
