@@ -5,11 +5,13 @@ import { localDate, runManualCity, runScheduledCity } from "./pipeline";
 import { generationHistory, officialForDate, officialHistory } from "./storage/db";
 import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySceneLedger";
 import { editorialFeedbackForOfficial, saveEditorialFeedback } from "./storage/editorialFeedback";
+import { buildEditorialLearningExport } from "./storage/editorialFeedbackExport";
 import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
 import { renderDashboard24 } from "./ui/dashboard24";
 import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
 import { enhanceInstagramWithEditorialPersistence } from "./ui/instagramEditorialPersistence";
+import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExport";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 
@@ -211,6 +213,27 @@ export default {
       return json({ error: "method_not_allowed" }, 405);
     }
 
+    if (url.pathname === "/api/admin/instagram/editorial-feedback/export" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+      const slug = url.searchParams.get("city") || "tarnos";
+      const city = getCity(slug);
+      if (!city) return json({ error: "unknown_city" }, 404);
+      const limit = Number(url.searchParams.get("limit") || 100);
+      try {
+        const dataset = await buildEditorialLearningExport(env.DB, slug, limit);
+        const date = localDate(city.timezone);
+        return new Response(JSON.stringify(dataset, null, 2), {
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+            "content-disposition": `attachment; filename="loka-editorial-feedback-${slug}-${date}.json"`,
+            "cache-control": "no-store"
+          }
+        });
+      } catch (error) {
+        return json({ error: error instanceof Error ? error.message : String(error) }, 500);
+      }
+    }
+
     if (url.pathname === "/api/admin/generations") {
       if (!isAuthorized(request, env)) return unauthorized();
       const slug = url.searchParams.get("city") || "tarnos";
@@ -242,7 +265,8 @@ export default {
       const instagramHtml = renderInstagramOfficial24(result.surface.payload, result.city);
       const editorialHtml = enhanceInstagramWithEditorialStudio(instagramHtml);
       const persistentHtml = enhanceInstagramWithEditorialPersistence(editorialHtml, result.city.slug);
-      return new Response(persistentHtml, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+      const exportHtml = enhanceInstagramWithEditorialExport(persistentHtml, result.city.slug);
+      return new Response(exportHtml, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
     }
 
     if (url.pathname === "/" || url.pathname === "/tarnos") {
