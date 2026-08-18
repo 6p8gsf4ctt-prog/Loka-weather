@@ -1,5 +1,5 @@
 import type { CityConfig, ConsensusHour, DisplayHour, HourlyCondition, ModelForecast, OfficialPublicPayloadV24, Scene24Id } from "../types";
-import { buildEditorialProductV2 } from "./editorial24";
+import { buildEditorialProductV2 } from "./editorial24/index";
 import { hourOf } from "./math";
 import { chooseScene24V2 } from "./scenes24/classifier";
 import { buildDayProfileV2 } from "./scenes24/profile";
