@@ -34,10 +34,10 @@ function functionLine(html: string, name: string): string {
 
 const base = renderInstagramOfficial24(payloadFor(21), CITIES.tarnos);
 
-ok(base.includes("function drawStoryGeneral(mainIcon){const x=44,y=224,w=992,h=190") && !functionLine(base, "drawStoryGeneral").includes("subtitle"), "story_general_step3_no_subtitle");
-ok(base.includes("function drawFeedGeneral(mainIcon){const x=50,y=160,w=980,h=185") && !functionLine(base, "drawFeedGeneral").includes("subtitle"), "feed_general_step3_no_subtitle");
-ok(base.includes("const visual=m.storyVisual||m.visual;const x=44,y=1203,w=992,h=232"), "story_comments_native_visual_slot");
-ok(base.includes("const visual=m.feedVisual||m.visual;const x=50,y=900,w=980,h=175"), "feed_comments_native_visual_slot");
+ok(base.includes("function drawStoryGeneral(mainIcon){const x=44,y=224,w=992,h=150") && !functionLine(base, "drawStoryGeneral").includes("subtitle"), "story_general_step3_no_subtitle");
+ok(base.includes("function drawFeedGeneral(mainIcon){const x=50,y=160,w=980,h=150") && !functionLine(base, "drawFeedGeneral").includes("subtitle"), "feed_general_step3_no_subtitle");
+ok(base.includes("const visual=m.storyVisual||m.visual;const x=44,y=1163,w=992,h=272"), "story_comments_native_visual_slot");
+ok(base.includes("const visual=m.feedVisual||m.visual;const x=50,y=865,w=980,h=210"), "feed_comments_native_visual_slot");
 ok(base.includes("<!--LOKA_EDITORIAL_STYLE_MOUNT-->"), "style_mount_present");
 ok(base.includes("<!--LOKA_EDITORIAL_STUDIO_MOUNT-->"), "studio_mount_present");
 ok(base.includes("<!--LOKA_EDITORIAL_SCRIPT_MOUNT-->"), "script_mount_present");
@@ -62,8 +62,8 @@ ok(enhanced.includes('id="editorialStudio"'), "studio_markup_injected");
 ok(!enhanced.includes("<!--LOKA_EDITORIAL_STYLE_MOUNT-->") && !enhanced.includes("<!--LOKA_EDITORIAL_STUDIO_MOUNT-->") && !enhanced.includes("<!--LOKA_EDITORIAL_SCRIPT_MOUNT-->"), "studio_mounts_consumed");
 
 const geometryVariant = base
-  .replace("const x=44,y=224,w=992,h=190", "const x=44,y=225,w=992,h=189")
-  .replace("const x=50,y=900,w=980,h=175", "const x=50,y=901,w=980,h=174");
+  .replace("const x=44,y=224,w=992,h=150", "const x=44,y=225,w=992,h=149")
+  .replace("const x=50,y=865,w=980,h=210", "const x=50,y=866,w=980,h=209");
 const geometryEnhanced = enhanceInstagramWithEditorialStudio(geometryVariant);
 ok(geometryEnhanced.includes('id="editorialStudio"'), "studio_independent_from_renderer_geometry");
 

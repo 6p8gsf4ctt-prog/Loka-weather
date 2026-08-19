@@ -23,6 +23,9 @@ function functionLine(html: string, name: string): string {
 }
 
 const html = renderInstagramOfficial24(payloadFor(21), CITIES.tarnos);
+const wordmark = functionLine(html, "drawLokaWordmark");
+const storyHeader = functionLine(html, "drawHeader");
+const feedHeader = functionLine(html, "drawFeedHeader");
 const group = functionLine(html, "drawCenteredGeneralGroup");
 const storyGeneral = functionLine(html, "drawStoryGeneral");
 const feedGeneral = functionLine(html, "drawFeedGeneral");
@@ -30,6 +33,12 @@ const summary = functionLine(html, "drawEditorialSummary");
 const storyComments = functionLine(html, "drawStoryComments");
 const feedComments = functionLine(html, "drawFeedComments");
 
+
+ok(wordmark.includes("const label='LOKA',logoInk='#051C3C',logoGold='#FDB31E'") && wordmark.includes("font(size,500)"), "wordmark_ab_medium_weight_official_colors");
+ok(wordmark.includes("bodyH=overallH*.72,bodyW=bodyH*.30") && wordmark.includes("ctx.lineTo(markX+bodyW*.405,top+bodyH*.591)"), "wordmark_official_bolt_silhouette_refined");
+ok(wordmark.includes("ctx.arc(markX+bodyW*.52,baseline-dotR,dotR") && wordmark.includes("ctx.fillStyle=logoGold"), "wordmark_gold_dot_separate");
+ok(storyHeader.includes("drawLokaWordmark(50,132,66)") && !storyHeader.includes("text('LOKA!"), "story_header_uses_vector_wordmark");
+ok(feedHeader.includes("drawLokaWordmark(50,100,60)") && !feedHeader.includes("text('LOKA!"), "feed_header_uses_vector_wordmark");
 ok(group.includes("centerX=x+w/2,centerY=y+h/2"), "general_group_centered_both_axes");
 ok(group.includes("startX=centerX-groupW/2"), "general_group_centered_by_measured_width");
 ok(group.includes("drawImageCentered(mainIcon,startX+iconW/2,centerY"), "pictogram_on_vertical_axis");
@@ -46,5 +55,5 @@ ok(summary.includes("'left'"), "summary_text_left_aligned");
 ok(storyComments.includes("drawEditorialSummary(visual,x,y,w,h,34,23,25,19,58)"), "story_summary_contract");
 ok(feedComments.includes("drawEditorialSummary(visual,x,y,w,h,29,20,21,17,52)"), "feed_summary_contract");
 
-if (passed !== 15) throw new Error(`instagram_visual_hierarchy_step7_count_mismatch:${passed}`);
-console.log(`INSTAGRAM_VISUAL_HIERARCHY_STEP7 ${passed}/15 PASS`);
+if (passed !== 20) throw new Error(`instagram_visual_hierarchy_step7_count_mismatch:${passed}`);
+console.log(`INSTAGRAM_VISUAL_HIERARCHY_STEP7 ${passed}/20 PASS`);

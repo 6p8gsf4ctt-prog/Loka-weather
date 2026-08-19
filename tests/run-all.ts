@@ -10,3 +10,4 @@ import "./instagramEditorialStudioStep5";
 
 import "./editorialFeedbackExportStep6";
 import "./instagramVisualHierarchyStep7";
+import "./instagramBrandV3";

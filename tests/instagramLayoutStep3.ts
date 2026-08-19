@@ -33,20 +33,20 @@ const html = renderInstagramOfficial24(payloadFor(21), CITIES.tarnos);
 const storyGeneral = functionLine(html, "drawStoryGeneral");
 const feedGeneral = functionLine(html, "drawFeedGeneral");
 
-ok(storyGeneral.includes("x=44,y=224,w=992,h=190"), "story_general_compact_190");
-ok(feedGeneral.includes("x=50,y=160,w=980,h=185"), "feed_general_compact_185");
+ok(storyGeneral.includes("x=44,y=224,w=992,h=150"), "story_general_compact_150");
+ok(feedGeneral.includes("x=50,y=160,w=980,h=150"), "feed_general_compact_150");
 ok(!storyGeneral.includes("drawSubtitleBlock") && !feedGeneral.includes("drawSubtitleBlock"), "subtitle_not_drawn_in_general_boxes");
-ok(html.includes("function drawStoryHours(slots,icons){const x=44,y=460,w=992,h=704"), "story_hours_shifted_up_60");
-ok(html.includes("function drawFeedHours(slots,icons){const x=50,y=371,w=980,h=500"), "feed_hours_shifted_up_55");
-ok(html.includes("function drawStoryComments(){const visual=m.storyVisual||m.visual;const x=44,y=1203,w=992,h=232"), "story_comments_expanded_232");
-ok(html.includes("function drawFeedComments(){const visual=m.feedVisual||m.visual;const x=50,y=900,w=980,h=175"), "feed_comments_expanded_175");
+ok(html.includes("function drawStoryHours(slots,icons){const x=44,y=420,w=992,h=704"), "story_hours_shifted_up_100");
+ok(html.includes("function drawFeedHours(slots,icons){const x=50,y=336,w=980,h=500"), "feed_hours_shifted_up_90");
+ok(html.includes("function drawStoryComments(){const visual=m.storyVisual||m.visual;const x=44,y=1163,w=992,h=272"), "story_comments_expanded_272");
+ok(html.includes("function drawFeedComments(){const visual=m.feedVisual||m.visual;const x=50,y=865,w=980,h=210"), "feed_comments_expanded_210");
 ok(html.includes("function drawStorySolar(solarIcons){const x=44,y=1479,w=992,h=279"), "story_solar_anchor_unchanged");
 ok(html.includes("function drawFeedSolar(solarIcons){const x=50,y=1100,w=980,h=205"), "feed_solar_anchor_unchanged");
 ok(html.includes("function drawStorySignature(){text('Ici, aujourd’hui.',540,1834"), "story_signature_anchor_unchanged");
 ok(html.includes("function drawFeedSignature(){text('Ici, aujourd’hui.',540,1368"), "feed_signature_anchor_unchanged");
 
-const story = { generalY: 224, generalH: 190, hoursY: 460, hoursH: 704, commentsY: 1203, commentsH: 232, solarY: 1479 };
-const feed = { generalY: 160, generalH: 185, hoursY: 371, hoursH: 500, commentsY: 900, commentsH: 175, solarY: 1100 };
+const story = { generalY: 224, generalH: 150, hoursY: 420, hoursH: 704, commentsY: 1163, commentsH: 272, solarY: 1479 };
+const feed = { generalY: 160, generalH: 150, hoursY: 336, hoursH: 500, commentsY: 865, commentsH: 210, solarY: 1100 };
 ok(story.hoursY - (story.generalY + story.generalH) === 46, "story_general_hours_gap_preserved");
 ok(story.commentsY - (story.hoursY + story.hoursH) === 39, "story_hours_comments_gap_preserved");
 ok(story.solarY - (story.commentsY + story.commentsH) === 44, "story_comments_solar_gap_preserved");
