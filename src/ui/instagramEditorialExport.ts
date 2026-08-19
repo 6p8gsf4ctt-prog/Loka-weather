@@ -29,7 +29,7 @@ button.type='button';
 button.textContent='Exporter l’historique pour ChatGPT';
 const help=document.createElement('div');
 help.className='editor-export-help';
-help.textContent='Télécharge un JSON structuré contenant OFFICIEL ↔ MODIFIÉ et le contexte météo nécessaire pour analyser les intentions éditoriales.';
+help.textContent='Télécharge un JSON structuré OFFICIEL ↔ VALIDÉ avec le contexte météo et le statut ACTIVE / LEGACY_RETIRED de chaque différence éditoriale.';
 if(saveButton){saveButton.insertAdjacentElement('afterend',button);button.insertAdjacentElement('afterend',help);}else{panel.appendChild(button);panel.appendChild(help);}
 
 const status=document.getElementById('editorStatus');
@@ -57,7 +57,7 @@ button.onclick=async()=>{
   }catch(error){stateMessage('Export impossible','error');message('Export impossible : '+String(error));}
   finally{button.disabled=false;button.textContent='Exporter l’historique pour ChatGPT';}
 };
-window.__LOKA_EDITORIAL_EXPORT={version:'1.0',citySlug:EXPORT_DATA.citySlug};
+window.__LOKA_EDITORIAL_EXPORT={version:'1.1',citySlug:EXPORT_DATA.citySlug};
 })();
 </script>`;
 

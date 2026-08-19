@@ -3,8 +3,14 @@
     "target": "ES2022",
     "module": "CommonJS",
     "moduleResolution": "Node",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["@cloudflare/workers-types"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "@cloudflare/workers-types"
+    ],
     "strict": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
@@ -12,5 +18,7 @@
     "rootDir": ".",
     "noEmit": false
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts"]
+  "files": [
+    "tests/run-all.ts"
+  ]
 }

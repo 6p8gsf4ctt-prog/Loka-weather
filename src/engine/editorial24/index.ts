@@ -17,7 +17,13 @@ export function buildEditorialProductV2(
   const visual = buildVisualEditorial(facts);
   const hashtags = buildHashtags(city.slug, city.name, facts);
   const social = buildSocialEditorial(city.slug, city.name, facts, scene.emoji, hashtags);
-  if (scene.label === visual.subtitle.toUpperCase()) throw new Error("editorial_subtitle_redundant");
+  if (visual.subtitle !== "") throw new Error("editorial_subtitle_legacy_not_empty");
+  if (!visual.primaryLine.trim() || !visual.secondaryLine.trim() || visual.primaryLine === visual.secondaryLine) {
+    throw new Error("editorial_visual_invalid");
+  }
+  if (visual.primaryLine.length > 80 || visual.secondaryLine.length > 120) {
+    throw new Error("editorial_visual_too_long");
+  }
   return {
     version: "2.0",
     scene: { id: scene.id, key: scene.key, title: scene.label, emoji: scene.emoji, visualIcon: scene.visualIcon },

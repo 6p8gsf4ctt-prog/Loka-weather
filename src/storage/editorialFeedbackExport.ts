@@ -12,13 +12,22 @@ import {
   type StoryEditorialDraft
 } from "./editorialFeedback";
 
+export const EDITORIAL_EXPORT_SCHEMA_VERSION = "1.1" as const;
+export const EDITORIAL_STORAGE_SCHEMA_VERSION = "1.0" as const;
+export const EDITORIAL_ACTIVE_VISUAL_FIELDS = ["primaryLine", "secondaryLine"] as const;
+export const EDITORIAL_LEGACY_RETIRED_FIELDS = ["subtitle"] as const;
+
+export type EditorialFieldStatus = "ACTIVE" | "LEGACY_RETIRED";
+export type EditorialVisualEra = "LEGACY_SUBTITLE_VISIBLE" | "PRIMARY_SECONDARY";
+
 export type EditorialFieldDifference = {
   field: string;
+  status: EditorialFieldStatus;
   official: string;
   edited: string;
 };
 
-export interface EditorialLearningCaseV1 {
+export interface EditorialLearningCaseV11 {
   feedbackId: number;
   citySlug: string;
   forecastDate: string;
@@ -32,6 +41,10 @@ export interface EditorialLearningCaseV1 {
     version: string;
     doctrineVersion: string;
     manifestHash: string;
+  };
+  editorialContract: {
+    visualEra: EditorialVisualEra;
+    legacySubtitleCorrectionPresent: boolean;
   };
   weatherContext: {
     temperatures: OfficialPublicPayloadV24["temperatures"];
@@ -61,14 +74,31 @@ export interface EditorialLearningCaseV1 {
   savedAt: string;
 }
 
-export interface EditorialLearningExportV1 {
-  schemaVersion: "1.0";
+export type EditorialLearningCaseV1 = EditorialLearningCaseV11;
+
+export interface EditorialLearningExportV11 {
+  schemaVersion: "1.1";
+  storageSchemaVersion: "1.0";
   exportType: "LOKA_EDITORIAL_LEARNING";
   generatedAt: string;
   citySlug: string;
   caseCount: number;
+  fieldPolicy: {
+    activeVisualFields: string[];
+    legacyRetiredFields: Array<{
+      field: "subtitle";
+      currentGenerationValue: "";
+      guidance: string;
+    }>;
+  };
   analysisGoal: string[];
-  cases: EditorialLearningCaseV1[];
+  cases: EditorialLearningCaseV11[];
+}
+
+export type EditorialLearningExportV1 = EditorialLearningExportV11;
+
+export function editorialExportFieldStatus(field: string): EditorialFieldStatus {
+  return field === "subtitle" ? "LEGACY_RETIRED" : "ACTIVE";
 }
 
 function differences<T extends object>(
@@ -80,8 +110,10 @@ function differences<T extends object>(
     const officialValue = String(official[key] ?? "");
     const editedValue = String(edited[key] ?? "");
     if (officialValue !== editedValue) {
+      const field = String(key);
       result.push({
-        field: String(key),
+        field,
+        status: editorialExportFieldStatus(field),
         official: officialValue,
         edited: editedValue
       });
@@ -90,12 +122,17 @@ function differences<T extends object>(
   return result;
 }
 
-function toLearningCase(record: EditorialFeedbackRecord): EditorialLearningCaseV1 {
+function toLearningCase(record: EditorialFeedbackRecord): EditorialLearningCaseV11 {
   const payload = record.officialPayload;
   const officialStory = officialStoryDraft(payload);
   const officialFeed = officialFeedDraft(payload);
   const validatedStory = record.storyEdited ?? officialStory;
   const validatedFeed = record.feedEdited ?? officialFeed;
+  const storyDifferences = differences(officialStory, validatedStory);
+  const feedDifferences = differences(officialFeed, validatedFeed);
+  const legacySubtitleVisible = officialStory.subtitle.length > 0 || officialFeed.subtitle.length > 0;
+  const legacySubtitleCorrectionPresent = [...storyDifferences, ...feedDifferences]
+    .some((difference) => difference.field === "subtitle");
 
   return {
     feedbackId: record.id,
@@ -111,6 +148,10 @@ function toLearningCase(record: EditorialFeedbackRecord): EditorialLearningCaseV
       version: record.engineVersion,
       doctrineVersion: record.doctrineVersion,
       manifestHash: record.manifestHash
+    },
+    editorialContract: {
+      visualEra: legacySubtitleVisible ? "LEGACY_SUBTITLE_VISIBLE" : "PRIMARY_SECONDARY",
+      legacySubtitleCorrectionPresent
     },
     weatherContext: {
       temperatures: payload.temperatures,
@@ -134,8 +175,8 @@ function toLearningCase(record: EditorialFeedbackRecord): EditorialLearningCaseV
       feed: validatedFeed
     },
     differences: {
-      story: differences(officialStory, validatedStory),
-      feed: differences(officialFeed, validatedFeed)
+      story: storyDifferences,
+      feed: feedDifferences
     },
     savedAt: record.updatedAt
   };
@@ -145,21 +186,32 @@ export async function buildEditorialLearningExport(
   db: D1Database,
   citySlug: string,
   limit = 100
-): Promise<EditorialLearningExportV1> {
+): Promise<EditorialLearningExportV11> {
   const safeLimit = Math.min(500, Math.max(1, Math.trunc(limit)));
   const records = await editorialFeedbackHistory(db, citySlug, safeLimit);
   const cases = records.map(toLearningCase);
 
   return {
-    schemaVersion: "1.0",
+    schemaVersion: EDITORIAL_EXPORT_SCHEMA_VERSION,
+    storageSchemaVersion: EDITORIAL_STORAGE_SCHEMA_VERSION,
     exportType: "LOKA_EDITORIAL_LEARNING",
     generatedAt: new Date().toISOString(),
     citySlug,
     caseCount: cases.length,
+    fieldPolicy: {
+      activeVisualFields: [...EDITORIAL_ACTIVE_VISUAL_FIELDS],
+      legacyRetiredFields: [{
+        field: "subtitle",
+        currentGenerationValue: "",
+        guidance: "Champ historique conservé pour compatibilité. Ne pas en déduire une règle de la composition actuelle."
+      }]
+    },
     analysisGoal: [
       "Comparer la version officielle LOKA! à la version réellement validée par l'utilisateur.",
       "Comprendre l'intention éditoriale derrière chaque modification, pas seulement les mots remplacés.",
       "Relier chaque correction au contexte météo disponible, notamment aux données horaires.",
+      "Distinguer les champs visuels actifs des champs historiques retirés de la composition actuelle.",
+      "Ne pas transformer une ancienne correction du champ subtitle en règle pour les nouvelles générations.",
       "Identifier des principes généralisables de langage LOKA! sans transformer une correction ponctuelle en règle automatique.",
       "Privilégier la précision utile (horaire, intensité, évolution) lorsque les données la justifient, sans inventer d'information météo."
     ],
