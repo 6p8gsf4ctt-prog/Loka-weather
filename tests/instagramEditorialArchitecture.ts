@@ -79,6 +79,8 @@ const activeFieldIds = [
   "feedPrimary", "feedSecondary", "feedParagraph1", "feedParagraph2", "feedHashtags"
 ];
 ok(activeFieldIds.every((id) => exported.includes(`id="${id}"`)) && !exported.includes('id="storySubtitle"') && !exported.includes('id="feedSubtitle"'), "editor_fields_step5_active_contract");
+ok(exported.includes('id="publicationInstagramPack"') && exported.includes('id="copyFeedPublication"'), "publication_instagram_single_visual_zone");
+ok(exported.includes("publicationFromFields()") && !exported.includes('id="feedFullText"'), "publication_copy_keeps_granular_storage");
 
-if (passed !== 14) throw new Error(`instagram_architecture_count_mismatch:${passed}`);
-console.log(`INSTAGRAM_EDITORIAL_ARCHITECTURE ${passed}/14 PASS`);
+if (passed !== 16) throw new Error(`instagram_architecture_count_mismatch:${passed}`);
+console.log(`INSTAGRAM_EDITORIAL_ARCHITECTURE ${passed}/16 PASS`);

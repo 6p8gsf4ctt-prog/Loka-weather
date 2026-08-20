@@ -13,6 +13,16 @@ Cette évolution ajoute une troisième sortie au Studio Instagram : **Story 2 ·
 - Ces champs sont enregistrés dans la mémoire éditoriale existante avec les autres retouches Story.
 - L’export d’apprentissage passe en schéma `1.2` et expose les différences d’interaction séparément.
 
+
+## Éditeur Publication Instagram
+
+La zone éditoriale de la publication est regroupée visuellement en un seul bloc **Publication Instagram** avec trois sous-champs toujours distincts : `paragraph1`, `paragraph2` et `hashtags`.
+
+- Un seul bouton **Copier la publication complète** prépare le texte à coller dans Instagram.
+- La copie utilise les valeurs actuellement affichées, y compris avant enregistrement.
+- La signature et le handle LOKA! sont ajoutés automatiquement à la copie.
+- L’enregistrement et l’export d’apprentissage restent granulaires : aucune donnée `fullText` redondante n’est créée.
+
 ## Compatibilité
 
 Aucune migration D1 n’est requise. Les nouveaux champs sont stockés dans le JSON Story existant.
