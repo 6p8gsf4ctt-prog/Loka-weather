@@ -350,7 +350,16 @@ export interface EditorialProductV2 {
     caption: string;
     hashtags: string;
   };
+  engagement: EditorialEngagementV2;
   facts: EditorialFacts;
+}
+
+export type EditorialEngagementFormat = "POLL" | "QUESTION";
+
+export interface EditorialEngagementV2 {
+  format: EditorialEngagementFormat;
+  question: string;
+  options: [string, string] | null;
 }
 
 export interface OfficialPublicPayloadV24 {

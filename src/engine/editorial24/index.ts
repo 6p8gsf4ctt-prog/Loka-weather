@@ -4,6 +4,7 @@ import { buildEditorialFacts } from "./facts";
 import { buildHashtags } from "./hashtags";
 import { buildSocialEditorial } from "./social";
 import { buildVisualEditorial } from "./visual";
+import { buildEngagementEditorial } from "./engagement";
 
 export function buildEditorialProductV2(
   city: CityConfig,
@@ -17,6 +18,7 @@ export function buildEditorialProductV2(
   const visual = buildVisualEditorial(facts);
   const hashtags = buildHashtags(city.slug, city.name, facts);
   const social = buildSocialEditorial(city.slug, city.name, facts, scene.emoji, hashtags);
+  const engagement = buildEngagementEditorial(city.name, profile.date, facts);
   if (visual.subtitle !== "") throw new Error("editorial_subtitle_legacy_not_empty");
   if (!visual.primaryLine.trim() || !visual.secondaryLine.trim() || visual.primaryLine === visual.secondaryLine) {
     throw new Error("editorial_visual_invalid");
@@ -29,6 +31,7 @@ export function buildEditorialProductV2(
     scene: { id: scene.id, key: scene.key, title: scene.label, emoji: scene.emoji, visualIcon: scene.visualIcon },
     visual,
     social,
+    engagement,
     facts
   };
 }

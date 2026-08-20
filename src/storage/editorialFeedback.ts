@@ -1,11 +1,16 @@
-import type { OfficialPublicPayloadV24, PublicationManifestV24, Scene24Id, Scene24Key } from "../types";
+import type { EditorialEngagementFormat, OfficialPublicPayloadV24, PublicationManifestV24, Scene24Id, Scene24Key } from "../types";
 import { parseOfficialPayload, validateOfficialProduct } from "../engine/publicProduct";
+import { buildEngagementEditorial } from "../engine/editorial24/engagement";
 
 export interface StoryEditorialDraft {
   subtitle: string;
   primaryLine: string;
   secondaryLine: string;
   hashtags: string;
+  engagementFormat: EditorialEngagementFormat;
+  engagementQuestion: string;
+  engagementOptionA: string;
+  engagementOptionB: string;
 }
 
 export interface FeedEditorialDraft {
@@ -73,6 +78,8 @@ interface LedgerPointerRow {
 const VISUAL_TEXT_LIMIT = 500;
 const SOCIAL_TEXT_LIMIT = 8_000;
 const HASHTAG_TEXT_LIMIT = 3_000;
+const ENGAGEMENT_QUESTION_LIMIT = 140;
+const ENGAGEMENT_OPTION_LIMIT = 40;
 
 function cleanText(value: string, limit: number, field: string): string {
   if (typeof value !== "string") throw new Error(`editorial_feedback_invalid_${field}`);
@@ -81,12 +88,32 @@ function cleanText(value: string, limit: number, field: string): string {
   return cleaned;
 }
 
-function normalizeStoryDraft(value: StoryEditorialDraft): StoryEditorialDraft {
+function normalizeEngagementFormat(value: unknown, fallback: EditorialEngagementFormat): EditorialEngagementFormat {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (value !== "POLL" && value !== "QUESTION") throw new Error("editorial_feedback_invalid_engagement_format");
+  return value;
+}
+
+function officialEngagement(payload: OfficialPublicPayloadV24) {
+  return payload.editorial.engagement
+    ?? buildEngagementEditorial(payload.city, payload.date, payload.editorial.facts);
+}
+
+function normalizeStoryDraft(value: StoryEditorialDraft, payload?: OfficialPublicPayloadV24): StoryEditorialDraft {
+  const engagement = payload ? officialEngagement(payload) : null;
+  const fallbackFormat = engagement?.format ?? "QUESTION";
+  const fallbackQuestion = engagement?.question ?? "";
+  const fallbackOptionA = engagement?.options?.[0] ?? "";
+  const fallbackOptionB = engagement?.options?.[1] ?? "";
   return {
     subtitle: cleanText(value.subtitle, VISUAL_TEXT_LIMIT, "story_subtitle"),
     primaryLine: cleanText(value.primaryLine, VISUAL_TEXT_LIMIT, "story_primary_line"),
     secondaryLine: cleanText(value.secondaryLine, VISUAL_TEXT_LIMIT, "story_secondary_line"),
-    hashtags: cleanText(value.hashtags, HASHTAG_TEXT_LIMIT, "story_hashtags")
+    hashtags: cleanText(value.hashtags, HASHTAG_TEXT_LIMIT, "story_hashtags"),
+    engagementFormat: normalizeEngagementFormat(value.engagementFormat, fallbackFormat),
+    engagementQuestion: cleanText(value.engagementQuestion ?? fallbackQuestion, ENGAGEMENT_QUESTION_LIMIT, "engagement_question"),
+    engagementOptionA: cleanText(value.engagementOptionA ?? fallbackOptionA, ENGAGEMENT_OPTION_LIMIT, "engagement_option_a"),
+    engagementOptionB: cleanText(value.engagementOptionB ?? fallbackOptionB, ENGAGEMENT_OPTION_LIMIT, "engagement_option_b")
   };
 }
 
@@ -103,12 +130,17 @@ function normalizeFeedDraft(value: FeedEditorialDraft): FeedEditorialDraft {
 }
 
 export function officialStoryDraft(payload: OfficialPublicPayloadV24): StoryEditorialDraft {
+  const engagement = officialEngagement(payload);
   return normalizeStoryDraft({
     subtitle: payload.editorial.visual.subtitle,
     primaryLine: payload.editorial.visual.primaryLine,
     secondaryLine: payload.editorial.visual.secondaryLine,
-    hashtags: payload.editorial.social.hashtags
-  });
+    hashtags: payload.editorial.social.hashtags,
+    engagementFormat: engagement.format,
+    engagementQuestion: engagement.question,
+    engagementOptionA: engagement.options?.[0] ?? "",
+    engagementOptionB: engagement.options?.[1] ?? ""
+  }, payload);
 }
 
 export function officialFeedDraft(payload: OfficialPublicPayloadV24): FeedEditorialDraft {
@@ -127,7 +159,11 @@ function sameStory(a: StoryEditorialDraft, b: StoryEditorialDraft): boolean {
   return a.subtitle === b.subtitle
     && a.primaryLine === b.primaryLine
     && a.secondaryLine === b.secondaryLine
-    && a.hashtags === b.hashtags;
+    && a.hashtags === b.hashtags
+    && a.engagementFormat === b.engagementFormat
+    && a.engagementQuestion === b.engagementQuestion
+    && a.engagementOptionA === b.engagementOptionA
+    && a.engagementOptionB === b.engagementOptionB;
 }
 
 function sameFeed(a: FeedEditorialDraft, b: FeedEditorialDraft): boolean {
@@ -149,7 +185,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
-function parseStoryDraft(value: string | null): StoryEditorialDraft | null {
+function parseStoryDraft(value: string | null, payload: OfficialPublicPayloadV24): StoryEditorialDraft | null {
   if (value === null) return null;
   const raw = parseJson(value);
   if (!isRecord(raw)) throw new Error("editorial_feedback_corrupt_story");
@@ -157,7 +193,17 @@ function parseStoryDraft(value: string | null): StoryEditorialDraft | null {
   if (typeof subtitle !== "string" || typeof primaryLine !== "string" || typeof secondaryLine !== "string" || typeof hashtags !== "string") {
     throw new Error("editorial_feedback_corrupt_story");
   }
-  return normalizeStoryDraft({ subtitle, primaryLine, secondaryLine, hashtags });
+  const official = officialStoryDraft(payload);
+  return normalizeStoryDraft({
+    subtitle,
+    primaryLine,
+    secondaryLine,
+    hashtags,
+    engagementFormat: normalizeEngagementFormat(raw.engagementFormat, official.engagementFormat),
+    engagementQuestion: typeof raw.engagementQuestion === "string" ? raw.engagementQuestion : official.engagementQuestion,
+    engagementOptionA: typeof raw.engagementOptionA === "string" ? raw.engagementOptionA : official.engagementOptionA,
+    engagementOptionB: typeof raw.engagementOptionB === "string" ? raw.engagementOptionB : official.engagementOptionB
+  }, payload);
 }
 
 function parseFeedDraft(value: string | null): FeedEditorialDraft | null {
@@ -203,7 +249,7 @@ function toRecord(row: FeedbackDbRow): EditorialFeedbackRecord {
     sceneKey: row.scene_key as Scene24Key,
     sceneLabel: row.scene_label,
     officialPayload: payload,
-    storyEdited: parseStoryDraft(row.story_edited_json),
+    storyEdited: parseStoryDraft(row.story_edited_json, payload),
     feedEdited: parseFeedDraft(row.feed_edited_json),
     manifestHash: row.manifest_hash,
     engineVersion: row.engine_version,
@@ -310,7 +356,7 @@ export async function saveEditorialFeedback(
 
   const officialStory = officialStoryDraft(payload);
   const officialFeed = officialFeedDraft(payload);
-  const requestedStory = input.story ? normalizeStoryDraft(input.story) : officialStory;
+  const requestedStory = input.story ? normalizeStoryDraft(input.story, payload) : officialStory;
   const requestedFeed = input.feed ? normalizeFeedDraft(input.feed) : officialFeed;
 
   const storyEdited = sameStory(requestedStory, officialStory) ? null : requestedStory;

@@ -75,6 +75,7 @@ ok(exported.includes("exportEditorialFeedback") && exported.includes("__LOKA_EDI
 
 const activeFieldIds = [
   "storyPrimary", "storySecondary", "storyHashtags",
+  "engagementFormat", "engagementQuestion", "engagementOptionA", "engagementOptionB",
   "feedPrimary", "feedSecondary", "feedParagraph1", "feedParagraph2", "feedHashtags"
 ];
 ok(activeFieldIds.every((id) => exported.includes(`id="${id}"`)) && !exported.includes('id="storySubtitle"') && !exported.includes('id="feedSubtitle"'), "editor_fields_step5_active_contract");

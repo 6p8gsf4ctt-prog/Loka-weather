@@ -12,9 +12,10 @@ import {
   type StoryEditorialDraft
 } from "./editorialFeedback";
 
-export const EDITORIAL_EXPORT_SCHEMA_VERSION = "1.1" as const;
+export const EDITORIAL_EXPORT_SCHEMA_VERSION = "1.2" as const;
 export const EDITORIAL_STORAGE_SCHEMA_VERSION = "1.0" as const;
 export const EDITORIAL_ACTIVE_VISUAL_FIELDS = ["primaryLine", "secondaryLine"] as const;
+export const EDITORIAL_ACTIVE_ENGAGEMENT_FIELDS = ["engagementFormat", "engagementQuestion", "engagementOptionA", "engagementOptionB"] as const;
 export const EDITORIAL_LEGACY_RETIRED_FIELDS = ["subtitle"] as const;
 
 export type EditorialFieldStatus = "ACTIVE" | "LEGACY_RETIRED";
@@ -77,7 +78,7 @@ export interface EditorialLearningCaseV11 {
 export type EditorialLearningCaseV1 = EditorialLearningCaseV11;
 
 export interface EditorialLearningExportV11 {
-  schemaVersion: "1.1";
+  schemaVersion: "1.2";
   storageSchemaVersion: "1.0";
   exportType: "LOKA_EDITORIAL_LEARNING";
   generatedAt: string;
@@ -85,6 +86,7 @@ export interface EditorialLearningExportV11 {
   caseCount: number;
   fieldPolicy: {
     activeVisualFields: string[];
+    activeEngagementFields: string[];
     legacyRetiredFields: Array<{
       field: "subtitle";
       currentGenerationValue: "";
@@ -200,6 +202,7 @@ export async function buildEditorialLearningExport(
     caseCount: cases.length,
     fieldPolicy: {
       activeVisualFields: [...EDITORIAL_ACTIVE_VISUAL_FIELDS],
+      activeEngagementFields: [...EDITORIAL_ACTIVE_ENGAGEMENT_FIELDS],
       legacyRetiredFields: [{
         field: "subtitle",
         currentGenerationValue: "",
@@ -211,6 +214,7 @@ export async function buildEditorialLearningExport(
       "Comprendre l'intention éditoriale derrière chaque modification, pas seulement les mots remplacés.",
       "Relier chaque correction au contexte météo disponible, notamment aux données horaires.",
       "Distinguer les champs visuels actifs des champs historiques retirés de la composition actuelle.",
+      "Analyser séparément la performance éditoriale de Story 2 : format d’interaction, question et réponses proposées.",
       "Ne pas transformer une ancienne correction du champ subtitle en règle pour les nouvelles générations.",
       "Identifier des principes généralisables de langage LOKA! sans transformer une correction ponctuelle en règle automatique.",
       "Privilégier la précision utile (horaire, intensité, évolution) lorsque les données la justifient, sans inventer d'information météo."
