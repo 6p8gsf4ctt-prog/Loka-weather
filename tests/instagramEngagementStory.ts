@@ -41,6 +41,11 @@ ok(base.includes("STORY 2 · INTERACTION") && base.includes("sticker Instagram r
 const renderLine = functionLine(base, "renderEngagementStory");
 ok(renderLine.includes("drawCover(bg,1080,1920)") && renderLine.includes("drawHeader()") && renderLine.includes("drawStorySignature()"), "second_story_header_footer_contract");
 ok(!renderLine.includes("drawStoryGeneral") && !renderLine.includes("drawStoryHours") && !renderLine.includes("drawStoryComments") && !renderLine.includes("drawStorySolar"), "second_story_center_is_blank");
+ok(base.includes("const STORY_HEADER_SAFE={logoBaseline:184,cityBaseline:174,dateBaseline:174}"), "story_safe_header_coordinates_are_centralized");
+const storyHeaderLine = functionLine(base, "drawHeader");
+const feedHeaderLine = functionLine(base, "drawFeedHeader");
+ok(storyHeaderLine.includes("STORY_HEADER_SAFE.logoBaseline") && storyHeaderLine.includes("STORY_HEADER_SAFE.cityBaseline") && storyHeaderLine.includes("STORY_HEADER_SAFE.dateBaseline"), "story_uses_safe_header_coordinates");
+ok(feedHeaderLine.includes("drawLokaWordmark(50,100,60)") && feedHeaderLine.includes(",540,94,22,680") && feedHeaderLine.includes(",1030,94,19,540"), "feed_header_geometry_is_unchanged");
 ok(base.includes("story-interaction"), "second_story_filename_suffix");
 
 const enhanced = enhanceInstagramWithEditorialStudio(base);
@@ -58,5 +63,5 @@ delete legacy.editorial.engagement;
 const legacyHtml = renderInstagramOfficial24(legacy as OfficialPublicPayloadV24, CITIES.tarnos);
 ok(legacyHtml.includes('id="engagementStory"') && legacyHtml.includes('"engagement":'), "legacy_official_payload_gets_runtime_engagement_fallback");
 
-if (passed !== 14) throw new Error(`instagram_engagement_story_count_mismatch:${passed}`);
-console.log(`INSTAGRAM_ENGAGEMENT_STORY ${passed}/14 PASS`);
+if (passed !== 17) throw new Error(`instagram_engagement_story_count_mismatch:${passed}`);
+console.log(`INSTAGRAM_ENGAGEMENT_STORY ${passed}/17 PASS`);

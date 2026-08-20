@@ -38,7 +38,7 @@ ok(wordmark.includes("logoInk='#051C3C'") && wordmark.includes("logoGold='#FDB31
 ok(wordmark.includes("bodyW=bodyH*.30"), "official_bolt_optically_refined_width");
 ok(wordmark.includes("ctx.lineTo(markX+bodyW*.405,top+bodyH*.591)"), "official_bolt_not_generic_zigzag");
 ok(wordmark.includes("ctx.arc(markX+bodyW*.52,baseline-dotR,dotR"), "separate_gold_dot");
-ok(storyHeader.includes("drawLokaWordmark(50,132,66)"), "story_wordmark_real_header_size");
+ok(storyHeader.includes("drawLokaWordmark(50,STORY_HEADER_SAFE.logoBaseline,66)") && html.includes("const STORY_HEADER_SAFE={logoBaseline:184,cityBaseline:174,dateBaseline:174}"), "story_wordmark_real_header_size");
 ok(feedHeader.includes("drawLokaWordmark(50,100,60)"), "feed_wordmark_real_header_size");
 ok(storyGeneral.includes("x=44,y=224,w=992,h=150"), "story_box1_150");
 ok(feedGeneral.includes("x=50,y=160,w=980,h=150"), "feed_box1_150");

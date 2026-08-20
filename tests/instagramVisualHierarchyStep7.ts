@@ -37,7 +37,7 @@ const feedComments = functionLine(html, "drawFeedComments");
 ok(wordmark.includes("const label='LOKA',logoInk='#051C3C',logoGold='#FDB31E'") && wordmark.includes("font(size,500)"), "wordmark_ab_medium_weight_official_colors");
 ok(wordmark.includes("bodyH=overallH*.72,bodyW=bodyH*.30") && wordmark.includes("ctx.lineTo(markX+bodyW*.405,top+bodyH*.591)"), "wordmark_official_bolt_silhouette_refined");
 ok(wordmark.includes("ctx.arc(markX+bodyW*.52,baseline-dotR,dotR") && wordmark.includes("ctx.fillStyle=logoGold"), "wordmark_gold_dot_separate");
-ok(storyHeader.includes("drawLokaWordmark(50,132,66)") && !storyHeader.includes("text('LOKA!"), "story_header_uses_vector_wordmark");
+ok(storyHeader.includes("drawLokaWordmark(50,STORY_HEADER_SAFE.logoBaseline,66)") && html.includes("const STORY_HEADER_SAFE={logoBaseline:184,cityBaseline:174,dateBaseline:174}") && !storyHeader.includes("text('LOKA!"), "story_header_uses_vector_wordmark");
 ok(feedHeader.includes("drawLokaWordmark(50,100,60)") && !feedHeader.includes("text('LOKA!"), "feed_header_uses_vector_wordmark");
 ok(group.includes("centerX=x+w/2,centerY=y+h/2"), "general_group_centered_both_axes");
 ok(group.includes("startX=centerX-groupW/2"), "general_group_centered_by_measured_width");
