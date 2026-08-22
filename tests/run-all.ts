@@ -12,3 +12,4 @@ import "./editorialFeedbackExportStep6";
 import "./instagramVisualHierarchyStep7";
 import "./instagramEngagementStory";
 import "./instagramBrandV3";
+import "./sceneDisplayTitles";
