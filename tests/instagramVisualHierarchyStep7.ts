@@ -34,7 +34,7 @@ const storyComments = functionLine(html, "drawStoryComments");
 const feedComments = functionLine(html, "drawFeedComments");
 
 
-ok(html.includes('"logoUrl":"/brand/loka-logo-v2.png"'), "official_logo_asset_v2");
+ok(html.includes('"logoUrl":"data:image/png;base64,'), "official_logo_asset_v2_embedded");
 ok(logo.includes("ctx.drawImage(logo,x,centerY-dh/2,dw,dh)"), "logo_asset_drawn_without_reconstruction");
 ok(logo.includes("scale=Math.min(maxWidth/iw,maxHeight/ih)"), "logo_asset_aspect_ratio_preserved");
 ok(storyHeader.includes("drawLokaLogo(logo,STORY_HEADER_SAFE.logoX,STORY_HEADER_SAFE.logoCenterY,STORY_HEADER_SAFE.logoWidth,STORY_HEADER_SAFE.logoHeight)") && html.includes("logoCenterY:144") && !storyHeader.includes("text('LOKA!"), "story_header_uses_logo_asset");

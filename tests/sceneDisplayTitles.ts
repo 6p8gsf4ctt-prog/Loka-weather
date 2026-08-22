@@ -55,12 +55,12 @@ function payloadFor(scene: number): OfficialPublicPayloadV24 {
     modelId: `m${index}`, family: "noaa", weight: 0.2, fetchedAt: "test",
     latitude: 0, longitude: 0, hourly: []
   }));
-  return buildCandidateProduct(CITIES.tarnos, "2026-08-22", consensus, forecasts, {}, "test");
+  return buildCandidateProduct(CITIES.tarnos, "2026-08-18", consensus, forecasts, {}, "test");
 }
 
 const scene16 = payloadFor(16);
 const instagram = renderInstagramOfficial24(scene16, CITIES.tarnos);
-ok(instagram.includes('"title":"SOLEIL & NUAGES"'), "instagram_uses_display_title");
+ok(instagram.includes('"title":"SOLEIL \\u0026 NUAGES"'), "instagram_uses_display_title");
 ok(instagram.includes('"canonicalTitle":"SOLEIL + PASSAGES NUAGEUX"'), "instagram_keeps_canonical_title_for_audit");
 const titleLayout = instagram.split("\n").find((line) => line.startsWith("function centeredTitleLayout(")) ?? "";
 ok(titleLayout.includes("lines:[label]") && !titleLayout.includes("fitLines"), "instagram_scene_title_is_forced_to_one_line");

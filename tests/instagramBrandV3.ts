@@ -33,7 +33,7 @@ const feedHours = functionLine(html, "drawFeedHours");
 const storyComments = functionLine(html, "drawStoryComments");
 const feedComments = functionLine(html, "drawFeedComments");
 
-ok(html.includes('"logoUrl":"/brand/loka-logo-v2.png"'), "new_logo_asset_is_embedded_in_model");
+ok(html.includes('"logoUrl":"data:image/png;base64,'), "new_logo_is_embedded_in_model_without_static_asset_dependency");
 ok(logo.includes("ctx.drawImage(logo,x,centerY-dh/2,dw,dh)"), "new_logo_is_drawn_as_transparent_asset");
 ok(logo.includes("scale=Math.min(maxWidth/iw,maxHeight/ih)"), "new_logo_preserves_aspect_ratio");
 ok(storyHeader.includes("drawLokaLogo(logo,STORY_HEADER_SAFE.logoX,STORY_HEADER_SAFE.logoCenterY,STORY_HEADER_SAFE.logoWidth,STORY_HEADER_SAFE.logoHeight)"), "story_uses_new_logo_asset");
