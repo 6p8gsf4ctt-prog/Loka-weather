@@ -14,6 +14,7 @@ import { enhanceInstagramWithEditorialPersistence } from "./ui/instagramEditoria
 import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExport";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
+import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: { "cache-control": "no-store", "access-control-allow-origin": "*" } });
@@ -72,6 +73,31 @@ export default {
       if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
       return json(await officialHistory(env.DB, slug, Number(url.searchParams.get("limit") || 30)));
     }
+    if (url.pathname === "/instagram-scenes-preview") {
+      const slug = url.searchParams.get("city") || "tarnos";
+      const city = getCity(slug); if (!city) return json({ error: "unknown_city" }, 404);
+      const pack = Number(url.searchParams.get("pack") || 1);
+      const rawView = url.searchParams.get("view");
+      const view: PreviewGalleryView = rawView === "feed" || rawView === "engagement" ? rawView : "story";
+      return new Response(renderScenePreviewGallery(city, pack, view), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+    }
+    if (url.pathname === "/instagram-scenes-preview/frame") {
+      const slug = url.searchParams.get("city") || "tarnos";
+      const city = getCity(slug); if (!city) return json({ error: "unknown_city" }, 404);
+      const sceneId = Number(url.searchParams.get("scene") || 1) as any;
+      if (!Number.isInteger(sceneId) || sceneId < 1 || sceneId > 24) return json({ error: "invalid_scene" }, 400);
+      const rawView = url.searchParams.get("view");
+      const view: PreviewGalleryView = rawView === "feed" || rawView === "engagement" ? rawView : "story";
+      return new Response(renderScenePreviewFrame(city, sceneId, view), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+    }
+    if (url.pathname === "/instagram-scenes-preview/studio") {
+      const slug = url.searchParams.get("city") || "tarnos";
+      const city = getCity(slug); if (!city) return json({ error: "unknown_city" }, 404);
+      const sceneId = Number(url.searchParams.get("scene") || 1) as any;
+      if (!Number.isInteger(sceneId) || sceneId < 1 || sceneId > 24) return json({ error: "invalid_scene" }, 400);
+      return new Response(renderScenePreviewStudio(city, sceneId), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+    }
+
     if (url.pathname === "/api/scenes/year") {
       const slug = url.searchParams.get("city") || "tarnos";
       const city = getCity(slug); if (!city) return json({ error: "unknown_city" }, 404);
