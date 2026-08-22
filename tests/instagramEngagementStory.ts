@@ -39,13 +39,13 @@ const base = renderInstagramOfficial24(payload, CITIES.tarnos);
 ok(base.includes('id="engagementStory"') && base.includes('id="shareEngagementStory"'), "second_story_canvas_and_download");
 ok(base.includes("STORY 2 · INTERACTION") && base.includes("sticker Instagram reste volontairement hors image"), "second_story_ui_explains_blank_sticker_area");
 const renderLine = functionLine(base, "renderEngagementStory");
-ok(renderLine.includes("drawCover(bg,1080,1920)") && renderLine.includes("drawHeader()") && renderLine.includes("drawStorySignature()"), "second_story_header_footer_contract");
+ok(renderLine.includes("drawCover(bg,1080,1920)") && renderLine.includes("drawHeader(logo)") && renderLine.includes("drawStorySignature()"), "second_story_header_footer_contract");
 ok(!renderLine.includes("drawStoryGeneral") && !renderLine.includes("drawStoryHours") && !renderLine.includes("drawStoryComments") && !renderLine.includes("drawStorySolar"), "second_story_center_is_blank");
-ok(base.includes("const STORY_HEADER_SAFE={logoBaseline:184,cityBaseline:174,dateBaseline:174}"), "story_safe_header_coordinates_are_centralized");
+ok(base.includes("const STORY_HEADER_SAFE={logoX:50,logoCenterY:144,logoWidth:190,logoHeight:64,cityBaseline:158,dateBaseline:158}"), "story_safe_header_coordinates_are_centralized");
 const storyHeaderLine = functionLine(base, "drawHeader");
 const feedHeaderLine = functionLine(base, "drawFeedHeader");
-ok(storyHeaderLine.includes("STORY_HEADER_SAFE.logoBaseline") && storyHeaderLine.includes("STORY_HEADER_SAFE.cityBaseline") && storyHeaderLine.includes("STORY_HEADER_SAFE.dateBaseline"), "story_uses_safe_header_coordinates");
-ok(feedHeaderLine.includes("drawLokaWordmark(50,100,60)") && feedHeaderLine.includes(",540,94,22,680") && feedHeaderLine.includes(",1030,94,19,540"), "feed_header_geometry_is_unchanged");
+ok(storyHeaderLine.includes("STORY_HEADER_SAFE.logoCenterY") && storyHeaderLine.includes("STORY_HEADER_SAFE.cityBaseline") && storyHeaderLine.includes("STORY_HEADER_SAFE.dateBaseline"), "story_uses_safe_header_coordinates");
+ok(feedHeaderLine.includes("drawLokaLogo(logo,FEED_HEADER.logoX,FEED_HEADER.logoCenterY,FEED_HEADER.logoWidth,FEED_HEADER.logoHeight)") && feedHeaderLine.includes("FEED_HEADER.cityBaseline") && feedHeaderLine.includes("FEED_HEADER.dateBaseline"), "feed_header_geometry_is_unchanged");
 ok(base.includes("story-interaction"), "second_story_filename_suffix");
 
 const enhanced = enhanceInstagramWithEditorialStudio(base);

@@ -23,7 +23,7 @@ function functionLine(html: string, name: string): string {
 }
 
 const html = renderInstagramOfficial24(payloadFor(21), CITIES.tarnos);
-const wordmark = functionLine(html, "drawLokaWordmark");
+const logo = functionLine(html, "drawLokaLogo");
 const storyHeader = functionLine(html, "drawHeader");
 const feedHeader = functionLine(html, "drawFeedHeader");
 const storyGeneral = functionLine(html, "drawStoryGeneral");
@@ -33,20 +33,20 @@ const feedHours = functionLine(html, "drawFeedHours");
 const storyComments = functionLine(html, "drawStoryComments");
 const feedComments = functionLine(html, "drawFeedComments");
 
-ok(wordmark.includes("font(size,500)"), "variant_ab_intermediate_weight");
-ok(wordmark.includes("logoInk='#051C3C'") && wordmark.includes("logoGold='#FDB31E'"), "official_logo_colors");
-ok(wordmark.includes("bodyW=bodyH*.30"), "official_bolt_optically_refined_width");
-ok(wordmark.includes("ctx.lineTo(markX+bodyW*.405,top+bodyH*.591)"), "official_bolt_not_generic_zigzag");
-ok(wordmark.includes("ctx.arc(markX+bodyW*.52,baseline-dotR,dotR"), "separate_gold_dot");
-ok(storyHeader.includes("drawLokaWordmark(50,STORY_HEADER_SAFE.logoBaseline,66)") && html.includes("const STORY_HEADER_SAFE={logoBaseline:184,cityBaseline:174,dateBaseline:174}"), "story_wordmark_real_header_size");
-ok(feedHeader.includes("drawLokaWordmark(50,100,60)"), "feed_wordmark_real_header_size");
-ok(storyGeneral.includes("x=44,y=224,w=992,h=150"), "story_box1_150");
+ok(html.includes('"logoUrl":"/brand/loka-logo-v2.png"'), "new_logo_asset_is_embedded_in_model");
+ok(logo.includes("ctx.drawImage(logo,x,centerY-dh/2,dw,dh)"), "new_logo_is_drawn_as_transparent_asset");
+ok(logo.includes("scale=Math.min(maxWidth/iw,maxHeight/ih)"), "new_logo_preserves_aspect_ratio");
+ok(storyHeader.includes("drawLokaLogo(logo,STORY_HEADER_SAFE.logoX,STORY_HEADER_SAFE.logoCenterY,STORY_HEADER_SAFE.logoWidth,STORY_HEADER_SAFE.logoHeight)"), "story_uses_new_logo_asset");
+ok(html.includes("const STORY_HEADER_SAFE={logoX:50,logoCenterY:144,logoWidth:190,logoHeight:64,cityBaseline:158,dateBaseline:158}"), "story_logo_respects_safe_zone");
+ok(feedHeader.includes("drawLokaLogo(logo,FEED_HEADER.logoX,FEED_HEADER.logoCenterY,FEED_HEADER.logoWidth,FEED_HEADER.logoHeight)"), "feed_uses_new_logo_asset");
+ok(html.includes("const FEED_HEADER={logoX:50,logoCenterY:79,logoWidth:174,logoHeight:58,cityBaseline:94,dateBaseline:94}"), "feed_header_geometry_preserved_with_new_logo");
+ok(storyGeneral.includes("x=44,y=200,w=992,h=150"), "story_box1_150");
 ok(feedGeneral.includes("x=50,y=160,w=980,h=150"), "feed_box1_150");
-ok(storyHours.includes("x=44,y=420,w=992,h=704"), "story_hour_grid_height_preserved_shifted");
+ok(storyHours.includes("x=44,y=396,w=992,h=704"), "story_hour_grid_height_preserved_shifted");
 ok(feedHours.includes("x=50,y=336,w=980,h=500"), "feed_hour_grid_height_preserved_shifted");
-ok(storyComments.includes("x=44,y=1163,w=992,h=272"), "story_box3_272");
+ok(storyComments.includes("x=44,y=1139,w=992,h=272"), "story_box3_272");
 ok(feedComments.includes("x=50,y=865,w=980,h=210"), "feed_box3_210");
-ok(!wordmark.includes("LOKA!") && !wordmark.includes("TARNOS") && !wordmark.includes("arc(540"), "wordmark_only_no_round_logo_or_subbrand");
+ok(!logo.includes("fillText") && !logo.includes("trackedText"), "logo_renderer_contains_no_reconstructed_text_wordmark");
 
 if (passed !== 14) throw new Error(`instagram_brand_v3_count_mismatch:${passed}`);
 console.log(`INSTAGRAM_BRAND_V3 ${passed}/14 PASS`);
