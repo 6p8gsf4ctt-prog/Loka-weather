@@ -1,5 +1,6 @@
 import { SCENE_THRESHOLDS } from "../../config/scenes24";
 import type { DayProfileV2, Scene24Family, Scene24Id } from "../../types";
+import { isStructuringShowers, isSustainedRain } from "./rainDoctrine";
 
 export interface FamilyDecision { family: Scene24Family; candidateSceneIds: Scene24Id[]; reason: string }
 
@@ -13,8 +14,10 @@ export function determineFamily(p: DayProfileV2): FamilyDecision {
   if (p.wind.strongHours >= 3 && p.wind.strongBlockMaxHours >= 2) {
     return { family: "WIND", candidateSceneIds: [10], reason: "strong_wind_dominant" };
   }
-  if (p.rain.rainHours >= SCENE_THRESHOLDS.rain.sustainedMinHours && p.rain.rainBlockMaxHours >= SCENE_THRESHOLDS.rain.sustainedBlockMinHours && p.rain.continuityRatio >= SCENE_THRESHOLDS.rain.sustainedContinuityMin) {
-    return { family: "RAIN", candidateSceneIds: [12, 13], reason: "sustained_rain" };
+  const sustainedRain = isSustainedRain(p);
+  const structuringShowers = isStructuringShowers(p);
+  if (sustainedRain) {
+    return { family: "RAIN", candidateSceneIds: structuringShowers ? [12, 13] : [12], reason: "sustained_rain" };
   }
   if (p.visibility.denseFogHours >= SCENE_THRESHOLDS.fog.denseMinHours || p.visibility.denseFogBlockMaxHours >= 3) {
     return { family: "VISIBILITY", candidateSceneIds: [8, 17], reason: "dense_fog_structuring" };
@@ -28,8 +31,8 @@ export function determineFamily(p: DayProfileV2): FamilyDecision {
   if (p.structure.distinctStateCount >= 4 && p.evolution.reversals >= 3 && (p.rain.rainHours >= 1 || p.structure.meaningfulTransitions >= 5)) {
     return { family: "INSTABILITY", candidateSceneIds: [19], reason: "multi_state_instability" };
   }
-  if (p.rain.rainHours >= 2 || p.rain.showerHours >= 2) {
-    return { family: "RAIN", candidateSceneIds: [12, 13], reason: "intermittent_precipitation" };
+  if (structuringShowers) {
+    return { family: "RAIN", candidateSceneIds: [13], reason: "structuring_showers" };
   }
   if (p.wind.notableHours >= 3) {
     return { family: "WIND_COMBINATION", candidateSceneIds: [6, 14, 20], reason: "notable_wind_combination" };

@@ -2,8 +2,9 @@ import type { Scene24Candidate, Scene24Id } from "../../src/types";
 import { applyLocalHysteresis } from "../../src/engine/scenes24/hysteresis";
 import { buildDayProfileV2 } from "../../src/engine/scenes24/profile";
 import { chooseScene24V2 } from "../../src/engine/scenes24/classifier";
+import { isStructuringShowers, isSustainedRain } from "../../src/engine/scenes24/rainDoctrine";
 import { CITIES } from "../../src/config/cities";
-import { canonicalPoints, classify } from "./fixtures";
+import { canonicalPoints, classify, makeDay } from "./fixtures";
 
 let passed = 0;
 function ok(condition: boolean, label: string): void { if (!condition) throw new Error(`FAIL:${label}`); passed++; }
@@ -41,7 +42,7 @@ const priorityCases: Array<{base:Scene24Id; expected:Scene24Id; mutate:(p:Return
   {base:1,expected:22,mutate:p=>p.forEach(x=>{if(x.time.includes('14:00')||x.time.includes('15:00'))x.thunderstormSupport=.8;})},
   {base:1,expected:24,mutate:p=>p.forEach(x=>{const h=Number(x.time.slice(11,13));if(h>=10&&h<=15){x.precipitationMm=.8;x.precipitationSupport=.8;x.rainCodeSupport=.8;x.windGustKmh=65;}})},
   {base:18,expected:10,mutate:p=>p.forEach(x=>{const h=Number(x.time.slice(11,13));if(h>=8&&h<=17)x.windGustKmh=82;})},
-  {base:16,expected:12,mutate:p=>p.forEach(x=>{const h=Number(x.time.slice(11,13));if(h>=9&&h<=17){x.precipitationMm=.8;x.precipitationSupport=.8;x.rainCodeSupport=.8;}})},
+  {base:16,expected:12,mutate:p=>p.forEach(x=>{const h=Number(x.time.slice(11,13));if(h>=8&&h<=17){x.precipitationMm=.8;x.precipitationSupport=.8;x.rainCodeSupport=.8;}})},
   {base:1,expected:17,mutate:p=>p.forEach(x=>{const h=Number(x.time.slice(11,13));if(h>=7&&h<=11)x.fogSupport=.82;})},
   {base:16,expected:15,mutate:p=>p.forEach(x=>{const h=Number(x.time.slice(11,13));x.cloudCoverPct=h<=11?88:h<=15?58:18;})},
   {base:9,expected:20,mutate:p=>p.forEach(x=>{x.windGustKmh=63;})},
@@ -52,6 +53,98 @@ const priorityCases: Array<{base:Scene24Id; expected:Scene24Id; mutate:(p:Return
   {base:13,expected:22,mutate:p=>p.forEach(x=>{if(x.precipitationMm>.2)x.thunderstormSupport=.7;})}
 ];
 for(let i=0;i<priorityCases.length;i++){const c=priorityCases[i];const points=canonicalPoints(c.base);c.mutate(points);const p=buildDayProfileV2(CITIES.tarnos,'2026-08-18',points);const d=chooseScene24V2(p);ok(d.sceneId===c.expected,`priority_${i}:got_${d.sceneId}_expected_${c.expected}`);}
+
+// 14 rain-doctrine non-regression cases.
+const rainCase = (points: ReturnType<typeof makeDay>, previous?: Scene24Id) => {
+  const profile = buildDayProfileV2(CITIES.tarnos, "2026-08-18", points);
+  return { profile, decision: chooseScene24V2(profile, previous) };
+};
+const weakRainDay = () => makeDay("2026-08-18", (h) => ({
+  cloud: 82,
+  rain: [8, 9, 10].includes(h) ? 0.27 : 0,
+  precipSupport: [8, 9, 10].includes(h) ? 0.82 : 0.05,
+  shower: 0.05
+}));
+{
+  const { profile, decision } = rainCase(weakRainDay());
+  ok(profile.rain.rainHours===3 && Math.abs(profile.rain.rainTotalMm-.81)<.01 && decision.sceneId===9 && decision.decisionFamily==="CLOUD" && !decision.candidateSceneIds.includes(12), "rain_R01_aug25_secondary_cloud");
+}
+{
+  const wet=[9,10]; const { decision }=rainCase(makeDay("2026-08-18",h=>({cloud:25,rain:wet.includes(h)?.25:0,precipSupport:wet.includes(h)?.8:.05,shower:.05})));
+  ok(decision.decisionFamily==="LIGHT" && !decision.candidateSceneIds.includes(12) && !decision.candidateSceneIds.includes(13), "rain_R02_two_regular_hours_keep_sky");
+}
+{
+  const wet=[9,10,11,12]; const { profile, decision }=rainCase(makeDay("2026-08-18",h=>({cloud:82,rain:wet.includes(h)?.4:0,precipSupport:wet.includes(h)?.8:.05,shower:.05})));
+  ok(profile.rain.rainBlockMaxHours===4 && !isSustainedRain(profile) && decision.sceneId!==12, "rain_R03_four_continuous_hours_not_sustained");
+}
+{
+  const wet=[8,10,12,14,16]; const { profile, decision }=rainCase(makeDay("2026-08-18",h=>({cloud:82,rain:wet.includes(h)?.35:0,precipSupport:wet.includes(h)?.8:.05,shower:.05})));
+  ok(profile.rain.rainHours===5 && profile.rain.continuityRatio<.58 && !isSustainedRain(profile) && decision.sceneId!==12, "rain_R04_five_hours_low_continuity_not_sustained");
+}
+{
+  const wet=[7,8,9,11,12,13,15,16,17,20]; const { profile, decision }=rainCase(makeDay("2026-08-18",h=>({cloud:82,rain:wet.includes(h)?.3:0,precipSupport:wet.includes(h)?.8:.05,shower:.05})));
+  ok(profile.rain.rainHours===10 && profile.rain.continuityRatio>=.58 && profile.rain.rainBlockMaxHours<4 && !isSustainedRain(profile) && decision.sceneId!==12, "rain_R05_no_four_hour_block_not_sustained");
+}
+{
+  const wet=[8,9,10,11,12,13,14,15,16,17]; const { profile, decision }=rainCase(makeDay("2026-08-18",h=>({cloud:88,rain:wet.includes(h)?.6:0,precipSupport:wet.includes(h)?.85:.05,shower:.05})));
+  ok(isSustainedRain(profile) && decision.sceneId===12 && decision.candidateSceneIds.includes(12), "rain_R06_sustained_threshold_allows_scene12");
+}
+{
+  const { profile, decision }=classify(12);
+  ok(isSustainedRain(profile) && decision.sceneId===12 && decision.validity==="VALID", "rain_R07_canonical12_preserved");
+}
+{
+  const wet=[9,12]; const { profile, decision }=rainCase(makeDay("2026-08-18",h=>({cloud:60,rain:wet.includes(h)?.7:0,precipSupport:wet.includes(h)?.8:.05,shower:wet.includes(h)?.8:.05})));
+  ok(isStructuringShowers(profile) && decision.sceneId===13 && decision.decisionFamily==="RAIN", "rain_R08_separated_showers_allow_scene13");
+}
+{
+  const wet=[9,10]; const { profile, decision }=rainCase(makeDay("2026-08-18",h=>({cloud:60,rain:wet.includes(h)?.7:0,precipSupport:wet.includes(h)?.8:.05,shower:wet.includes(h)?.8:.05})));
+  ok(profile.rain.rainBreakCount===0 && !isStructuringShowers(profile) && decision.sceneId!==13 && !decision.candidateSceneIds.includes(13), "rain_R09_consecutive_showers_not_structuring");
+}
+{
+  const wet=[8,11,14,17]; const { profile, decision }=rainCase(makeDay("2026-08-18",h=>({cloud:72,rain:wet.includes(h)?.45:0,precipSupport:wet.includes(h)?.8:.05,shower:wet.includes(h)?.3:.05})));
+  ok(profile.rain.showerHours===0 && !isStructuringShowers(profile) && decision.sceneId!==13, "rain_R10_low_shower_support_not_scene13");
+}
+{
+  const { profile, decision }=classify(13);
+  ok(isStructuringShowers(profile) && decision.sceneId===13 && decision.validity==="VALID", "rain_R11_canonical13_preserved");
+}
+{
+  const { decision }=rainCase(weakRainDay(),12);
+  ok(decision.sceneId!==12 && !decision.candidateSceneIds.includes(12) && decision.hysteresisApplied===false, "rain_R12_old_scene12_cannot_survive_secondary_rain");
+}
+{
+  const { profile, decision }=classify(12);
+  const invariant=decision.invariantChecks.find(x=>x.name==="sustained_rain_scene_meets_doctrine");
+  ok(decision.sceneId===12 && isSustainedRain(profile) && invariant?.pass===true, "rain_R13_scene12_invariant");
+}
+{
+  const { profile, decision }=classify(13);
+  const invariant=decision.invariantChecks.find(x=>x.name==="showers_scene_meets_doctrine");
+  ok(decision.sceneId===13 && isStructuringShowers(profile) && invariant?.pass===true, "rain_R14_scene13_invariant");
+}
+
+// Property checks: forbidden territories must never emit scenes 12 or 13.
+{
+  let pass=true;
+  for(let n=0;n<=10;n++){
+    const wet=Array.from({length:n},(_,i)=>8+i);
+    const { profile, decision }=rainCase(makeDay("2026-08-18",h=>({cloud:82,rain:wet.includes(h)?.35:0,precipSupport:wet.includes(h)?.8:.05,shower:.05})));
+    if(!isSustainedRain(profile) && decision.sceneId===12) pass=false;
+  }
+  ok(pass,"rain_property_scene12_requires_sustained_doctrine");
+}
+{
+  const patterns=[[9,10],[9,12],[8,11,14],[8,9,13]];
+  let pass=true;
+  for(const wet of patterns){
+    for(const shower of [.05,.3,.8]){
+      const { profile, decision }=rainCase(makeDay("2026-08-18",h=>({cloud:62,rain:wet.includes(h)?.55:0,precipSupport:wet.includes(h)?.8:.05,shower:wet.includes(h)?shower:.05})));
+      if(!isStructuringShowers(profile) && decision.sceneId===13) pass=false;
+    }
+  }
+  ok(pass,"rain_property_scene13_requires_structuring_showers");
+}
 
 // 8 uncertainty/model coverage cases.
 for(const models of [5,4,3]){const d=classify(15,'2026-08-18',models).decision;ok(d.validity==='VALID'&&d.sceneId===15,`models_${models}`);}
@@ -72,5 +165,5 @@ for(let i=0;i<hCases.length;i++){const [selected,prev,s1,s2,expect]=hCases[i];co
 // Determinism: same input 100 times -> exact same decision JSON.
 {const p=classify(15).profile;const first=JSON.stringify(chooseScene24V2(p));let same=true;for(let i=0;i<100;i++)same=same&&JSON.stringify(chooseScene24V2(p))===first;ok(same,'determinism_100');}
 
-if(passed!==177) throw new Error(`certification_count_mismatch:${passed}`);
-console.log(`SCENE_ENGINE_V2_CERTIFICATION ${passed}/177 PASS`);
+if(passed!==193) throw new Error(`certification_count_mismatch:${passed}`);
+console.log(`SCENE_ENGINE_V2_CERTIFICATION ${passed}/193 PASS`);

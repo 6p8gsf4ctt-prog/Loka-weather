@@ -3,6 +3,7 @@ import type { DayProfileV2, ResolutionMode, Scene24Candidate, Scene24Confidence,
 import { determineFamily } from "./families";
 import { applyLocalHysteresis } from "./hysteresis";
 import { profileSummary } from "./diagnostics";
+import { isStructuringShowers, isSustainedRain } from "./rainDoctrine";
 import { scene24ById } from "./registry";
 import { scoreScene } from "./scoring";
 
@@ -27,6 +28,8 @@ export function chooseScene24V2(profile: DayProfileV2, previousSceneId?: Scene24
     { name: "minimum_models", pass: profile.structure.modelCountMin >= 3, detail: `modelCountMin=${profile.structure.modelCountMin}` },
     { name: "thunder_scene_has_thunder", pass: selected.sceneId !== 22 || profile.convection.thunderHours > 0, detail: `thunderHours=${profile.convection.thunderHours}` },
     { name: "rain_wind_scene_has_overlap", pass: selected.sceneId !== 24 || profile.wind.rainOverlapHours > 0, detail: `overlap=${profile.wind.rainOverlapHours}` },
+    { name: "sustained_rain_scene_meets_doctrine", pass: selected.sceneId !== 12 || isSustainedRain(profile), detail: `rainHours=${profile.rain.rainHours};rainBlockMaxHours=${profile.rain.rainBlockMaxHours};continuityRatio=${profile.rain.continuityRatio}` },
+    { name: "showers_scene_meets_doctrine", pass: selected.sceneId !== 13 || isStructuringShowers(profile), detail: `showerHours=${profile.rain.showerHours};rainBreakCount=${profile.rain.rainBreakCount};convectiveRainFraction=${profile.rain.convectiveRainFraction}` },
     { name: "luminous_improvement_has_cloudy_start", pass: selected.sceneId !== 15 || profile.evolution.earlyCloudPct >= 65, detail: `earlyCloud=${profile.evolution.earlyCloudPct}` },
     { name: "dense_overcast_is_dense", pass: selected.sceneId !== 23 || profile.light.denseFraction >= 0.5, detail: `denseFraction=${profile.light.denseFraction}` }
   ];

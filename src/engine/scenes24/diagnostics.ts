@@ -1,5 +1,6 @@
 import type { DayProfileV2 } from "../../types";
 import { round } from "../math";
+import { isStructuringShowers, isSustainedRain } from "./rainDoctrine";
 
 export function profileSummary(p: DayProfileV2): Record<string, number | string | boolean | null> {
   return {
@@ -13,6 +14,16 @@ export function profileSummary(p: DayProfileV2): Record<string, number | string 
     cloudTrend: round(p.evolution.cloudTrend, 1),
     reversals: p.evolution.reversals,
     rainHours: p.rain.rainHours,
+    rainBlockMaxHours: p.rain.rainBlockMaxHours,
+    rainTotalMm: round(p.rain.rainTotalMm, 2),
+    rainContinuityPct: round(p.rain.continuityRatio * 100, 1),
+    rainBreakCount: p.rain.rainBreakCount,
+    showerHours: p.rain.showerHours,
+    showerBlockCount: p.rain.showerBlockCount,
+    convectiveRainPct: round(p.rain.convectiveRainFraction * 100, 1),
+    sustainedRainEligible: isSustainedRain(p),
+    structuringShowersEligible: isStructuringShowers(p),
+    rainRole: p.rain.rainHours === 0 ? "NONE" : isSustainedRain(p) ? "SUSTAINED" : isStructuringShowers(p) ? "SHOWERS" : "SECONDARY",
     rainWindOverlap: p.wind.rainOverlapHours,
     notableWindHours: p.wind.notableHours,
     strongWindHours: p.wind.strongHours,

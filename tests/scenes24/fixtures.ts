@@ -58,7 +58,7 @@ export function canonicalPoints(id: Scene24Id, date = "2026-08-18", models = 5):
       case 9: return { ...base, cloud: 82, low: 70, mid: 65, high: 72 };
       case 10: return { ...base, cloud: 55, gust: 82, wind: 50 };
       case 11: return { ...base, cloud: h <= 11 ? 86 : h <= 15 ? 68 : 48 };
-      case 12: return { ...base, cloud: 88, rain: h >= 9 && h <= 16 ? 0.9 : 0.12, precipSupport: h >= 9 && h <= 16 ? 0.85 : 0.2, shower: 0.1 };
+      case 12: return { ...base, cloud: 88, rain: h >= 8 && h <= 17 ? 0.9 : 0.12, precipSupport: h >= 8 && h <= 17 ? 0.85 : 0.2, shower: 0.1 };
       case 13: {
         const wet = [9,12,16,19].includes(h); return { ...base, cloud: wet ? 82 : 48, rain: wet ? 0.8 : 0, precipSupport: wet ? 0.8 : 0.1, shower: wet ? 0.8 : 0.05 };
       }
