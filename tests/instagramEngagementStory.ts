@@ -43,7 +43,9 @@ const renderLine = functionLine(base, "renderLegendStory");
 ok(renderLine.includes("drawCover(bg,1080,1920)") && renderLine.includes("drawHeader(logo)") && renderLine.includes("drawLegendPanel()") && renderLine.includes("drawStorySignature()"), "legend_story_header_body_footer_contract");
 ok(functionLine(base, "drawLegendPanel").includes("m.legendText") && base.includes('"legendText":') && base.includes(payload.editorial.social.paragraph1), "legend_story_uses_editorial_caption_body");
 ok(base.includes("const LEGEND_FONT='Georgia,\"Times New Roman\",serif'") && base.includes("function drawLegendSerifLine"), "legend_story_serif_editorial_typography");
-ok(!functionLine(base, "drawLegendPanel").includes("rgba(255,255,255,.84)") && functionLine(base, "drawLegendPanel").includes("areaTop=390") && functionLine(base, "drawLegendPanel").includes("editorialAccent(540-55"), "legend_story_full_background_no_panel");
+ok(functionLine(base, "drawLegendPanel").includes("box(panelX,panelY,panelW,panelH)") && functionLine(base, "drawLegendPanel").includes("panelX=44") && functionLine(base, "drawLegendPanel").includes("panelW=992"), "legend_story_liquid_glass_panel");
+ok(base.includes("function drawLegendAccent") && functionLine(base, "drawLegendAccent").includes("ctx.lineWidth=4") && functionLine(base, "drawLegendAccent").includes("ctx.moveTo(455,y)") && functionLine(base, "drawLegendAccent").includes("ctx.lineTo(625,y)"), "legend_story_larger_gold_separator");
+ok(functionLine(base, "legendLayout").includes("separatorSpace=Math.round(size*1.82)") && functionLine(base, "drawLegendPanel").includes("layout.separatorSpace*.24"), "legend_story_more_space_after_separator");
 ok(base.includes("function splitLegendEmoji") && base.includes("function drawLegendEmoji") && functionLine(base, "drawLegendPanel").includes("drawLegendEmoji"), "legend_story_leading_weather_emoji");
 ok(base.includes("story-legende"), "legend_story_filename_suffix");
 
@@ -64,5 +66,5 @@ delete legacy.editorial.engagement;
 const legacyHtml = renderInstagramOfficial24(legacy as OfficialPublicPayloadV24, CITIES.tarnos);
 ok(legacyHtml.includes('id="legendStory"') && legacyHtml.includes('"engagement":'), "legacy_payload_runtime_compatibility_preserved");
 
-if (passed !== 20) throw new Error(`instagram_legend_story_count_mismatch:${passed}`);
-console.log(`INSTAGRAM_LEGEND_STORY ${passed}/20 PASS`);
+if (passed !== 22) throw new Error(`instagram_legend_story_count_mismatch:${passed}`);
+console.log(`INSTAGRAM_LEGEND_STORY ${passed}/22 PASS`);
