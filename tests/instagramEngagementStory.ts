@@ -37,11 +37,14 @@ ok(payload.editorial.engagement.format === "QUESTION" && payload.editorial.engag
 
 const base = renderInstagramOfficial24(payload, CITIES.tarnos);
 ok(base.includes('id="legendStory"') && base.includes('id="shareLegendStory"'), "legend_story_canvas_and_download");
-ok(base.includes("STORY · LÉGENDE DU JOUR") && base.includes("même légende que la publication"), "legend_story_ui_contract");
+ok(base.includes("STORY · LÉGENDE DU JOUR") && base.includes("identique à celle de la publication"), "legend_story_ui_contract");
 ok(!base.includes('id="engagementStory"') && !base.includes('id="shareEngagementStory"'), "old_interaction_canvas_removed");
 const renderLine = functionLine(base, "renderLegendStory");
 ok(renderLine.includes("drawCover(bg,1080,1920)") && renderLine.includes("drawHeader(logo)") && renderLine.includes("drawLegendPanel()") && renderLine.includes("drawStorySignature()"), "legend_story_header_body_footer_contract");
 ok(functionLine(base, "drawLegendPanel").includes("m.legendText") && base.includes('"legendText":') && base.includes(payload.editorial.social.paragraph1), "legend_story_uses_editorial_caption_body");
+ok(base.includes("const LEGEND_FONT='Georgia,\"Times New Roman\",serif'") && base.includes("function drawLegendSerifLine"), "legend_story_serif_editorial_typography");
+ok(!functionLine(base, "drawLegendPanel").includes("rgba(255,255,255,.84)") && functionLine(base, "drawLegendPanel").includes("areaTop=390") && functionLine(base, "drawLegendPanel").includes("editorialAccent(540-55"), "legend_story_full_background_no_panel");
+ok(base.includes("function splitLegendEmoji") && base.includes("function drawLegendEmoji") && functionLine(base, "drawLegendPanel").includes("drawLegendEmoji"), "legend_story_leading_weather_emoji");
 ok(base.includes("story-legende"), "legend_story_filename_suffix");
 
 const enhanced = enhanceInstagramWithEditorialStudio(base);
@@ -61,5 +64,5 @@ delete legacy.editorial.engagement;
 const legacyHtml = renderInstagramOfficial24(legacy as OfficialPublicPayloadV24, CITIES.tarnos);
 ok(legacyHtml.includes('id="legendStory"') && legacyHtml.includes('"engagement":'), "legacy_payload_runtime_compatibility_preserved");
 
-if (passed !== 17) throw new Error(`instagram_legend_story_count_mismatch:${passed}`);
-console.log(`INSTAGRAM_LEGEND_STORY ${passed}/17 PASS`);
+if (passed !== 20) throw new Error(`instagram_legend_story_count_mismatch:${passed}`);
+console.log(`INSTAGRAM_LEGEND_STORY ${passed}/20 PASS`);
