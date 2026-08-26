@@ -16,7 +16,7 @@ export type WeatherPictogramKind =
 
 export type SolarPictogramKind = "dawn" | "sunrise" | "noon" | "sunset" | "dusk";
 
-export const PICTOGRAM_LIBRARY_VERSION = "LOKA_PREMIUM_1.1" as const;
+export const PICTOGRAM_LIBRARY_VERSION = "LOKA_PREMIUM_1.2" as const;
 
 export const PICTOGRAM_STYLE = {
   ink: "#12264A",
@@ -31,6 +31,23 @@ export const OFFICIAL_WEATHER_PICTOGRAMS = [
 ] as const satisfies readonly WeatherPictogramKind[];
 
 export const OFFICIAL_SOLAR_PICTOGRAMS = ["dawn", "sunrise", "noon", "sunset", "dusk"] as const satisfies readonly SolarPictogramKind[];
+
+// Offsets keep the visible artwork centered in the shared 160×120 canvas.
+// Geometry, stroke weights and palette remain unchanged.
+const WEATHER_OPTICAL_CALIBRATION: Record<WeatherPictogramKind, { dx: number; dy: number }> = {
+  sun: { dx: 0.5, dy: 1.5 },
+  partly: { dx: 0, dy: 18.5 },
+  cloud: { dx: -11, dy: 6.5 },
+  rain: { dx: -9.5, dy: 0 },
+  drizzle: { dx: -9.5, dy: 3 },
+  thunder: { dx: -9.5, dy: 0 },
+  wind: { dx: 2, dy: 1 },
+  fog: { dx: 0.5, dy: -4.5 },
+  snow: { dx: -9.5, dy: -2 },
+  "sun-wind": { dx: 10.5, dy: 13.5 },
+  "cloud-wind": { dx: 1.5, dy: 4 },
+  "rain-wind": { dx: 0.5, dy: 5.5 }
+};
 
 export function visualIconToPictogram(icon: VisualIcon): WeatherPictogramKind {
   switch (icon) {
@@ -163,7 +180,8 @@ export function weatherPictogramSvg(kind: WeatherPictogramKind): string {
     case "cloud-wind": body = `${cloud(57, 47, 0.58)}${wind(108, 70, 0.50)}`; break;
     case "rain-wind": body = `${cloud(56, 41, 0.54)}${drops([45,60,75], 75, true)}${wind(111, 69, 0.45)}`; break;
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="120" viewBox="0 0 160 120" fill="none">${body}</svg>`;
+  const optical = WEATHER_OPTICAL_CALIBRATION[kind];
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="120" viewBox="0 0 160 120" fill="none"><g transform="translate(${optical.dx} ${optical.dy})">${body}</g></svg>`;
 }
 
 function solarRays(cx: number, cy: number, angles: number[], startR: number, endR: number): string {
