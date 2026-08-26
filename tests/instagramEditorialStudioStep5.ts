@@ -12,21 +12,21 @@ const studio = enhanceInstagramWithEditorialStudio(base);
 
 ok(!studio.includes('id="storySubtitle"') && !studio.includes('id="feedSubtitle"'), "subtitle_fields_removed");
 ok(!studio.includes("<span>Sous-titre</span>"), "subtitle_label_removed");
-ok(studio.includes('id="storyPrimary"') && studio.includes('id="storySecondary"'), "story_active_visual_fields");
-ok(studio.includes('id="feedPrimary"') && studio.includes('id="feedSecondary"'), "feed_active_visual_fields");
-ok(studio.includes("[['storyPrimary','feedPrimary'],['storySecondary','feedSecondary']]"), "story_to_feed_sync_two_fields");
-ok(studio.includes("[['feedPrimary','storyPrimary'],['feedSecondary','storySecondary']]"), "feed_to_story_sync_two_fields");
+ok(studio.includes('id="sharedPrimary"') && studio.includes('id="sharedSecondary"'), "single_visual_field_pair");
+ok(studio.includes('id="sharedLegend"') && studio.includes('id="sharedHashtags"'), "shared_social_fields");
+ok(!studio.includes('id="storyPrimary"') && !studio.includes('id="feedPrimary"'), "duplicate_visual_fields_removed");
+ok(!studio.includes('id="feedParagraph1"') && !studio.includes('id="feedParagraph2"') && !studio.includes('id="storyHashtags"'), "duplicate_social_fields_removed");
+ok(!studio.includes('id="engagementFormat"') && !studio.includes('id="engagementQuestion"'), "engagement_ui_removed");
+ok(studio.includes("m.storyVisual={...officialVisual") && studio.includes("m.feedVisual={...officialVisual"), "one_visual_pair_updates_both_canvases");
+ok(studio.includes("m.legendText=legend") && studio.includes("renderLegendStory(a.bg,a.logo)"), "shared_legend_drives_story");
+ok(studio.includes("publicationCaption(legend)") && studio.includes("copySharedPublication"), "shared_legend_drives_publication");
 ok(studio.includes("__LOKA_EDITORIAL_LEGACY_SUBTITLE"), "legacy_subtitle_bridge_present");
-ok(studio.includes("subtitle:legacySubtitle.story") && studio.includes("subtitle:legacySubtitle.feed"), "legacy_subtitle_kept_in_drafts");
-ok(studio.includes("resetLegacySubtitles();byId('storyPrimary')"), "reset_restores_legacy_official");
-ok(studio.includes("activeVisualFields:['primaryLine','secondaryLine']"), "active_visual_contract_declared");
+ok(studio.includes("activeSharedFields:['legend','hashtags']") && studio.includes("engagementUi:'DISABLED'"), "shared_editor_contract_declared");
 
 const persisted = enhanceInstagramWithEditorialPersistence(studio, "tarnos");
 ok(!persisted.includes("document.getElementById('storySubtitle')") && !persisted.includes("document.getElementById('feedSubtitle')"), "persistence_no_removed_dom_dependency");
 ok(persisted.includes("subtitle:legacySubtitle('story')") && persisted.includes("subtitle:legacySubtitle('feed')"), "save_preserves_legacy_subtitle");
-ok(persisted.includes("setLegacySubtitle('story',story.subtitle") && persisted.includes("setLegacySubtitle('feed',feed.subtitle"), "old_feedback_legacy_loaded_hidden");
-ok(persisted.includes("legacySubtitle:'PRESERVED_HIDDEN'"), "persistence_contract_declared");
-ok(persisted.includes("Rétablir l’officiel") && persisted.includes("anciens sous-titres"), "compatibility_explained_in_ui");
+ok(persisted.includes("legacyEngagement:'PRESERVED_HIDDEN'") && persisted.includes("sharedLegend:true"), "persistence_compatibility_contract");
 
 for (const body of [...persisted.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((match) => match[1])) {
   new Function(body);

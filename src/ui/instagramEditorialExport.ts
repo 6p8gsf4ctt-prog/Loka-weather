@@ -29,7 +29,7 @@ button.type='button';
 button.textContent='Exporter l’historique pour ChatGPT';
 const help=document.createElement('div');
 help.className='editor-export-help';
-help.textContent='Télécharge un JSON structuré OFFICIEL ↔ VALIDÉ avec le contexte météo, l’interaction Story 2 (question/sondage) et le statut ACTIVE / LEGACY_RETIRED de chaque différence éditoriale.';
+help.textContent='Télécharge un JSON structuré OFFICIEL ↔ VALIDÉ avec le contexte météo, la légende commune Story / Publication et le statut ACTIVE / LEGACY_RETIRED de chaque différence éditoriale.';
 if(saveButton){saveButton.insertAdjacentElement('afterend',button);button.insertAdjacentElement('afterend',help);}else{panel.appendChild(button);panel.appendChild(help);}
 
 const status=document.getElementById('editorStatus');

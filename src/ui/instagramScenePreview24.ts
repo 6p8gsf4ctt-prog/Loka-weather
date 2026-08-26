@@ -39,7 +39,7 @@ const PRESETS: Readonly<Record<Scene24Id, PreviewScenePreset>> = {
     secondaryLine: "La lumière reste généreuse malgré un ciel parfois un peu filtré.",
     paragraph1: "🌤️ Le soleil garde l’avantage à Tarnos, avec un voile discret qui adoucit simplement le ciel.",
     paragraph2: "Une atmosphère douce et lumineuse, sans vraie contrariété météo.",
-    engagement: { format: "POLL", question: "Tu préfères un ciel pur ou légèrement voilé ?", options: ["Ciel pur", "Voilé"] }
+    engagement: { format: "QUESTION", question: "Tu préfères un ciel pur ou légèrement voilé ?", options: null }
   },
   3: {
     minC: 17, maxC: 27,
@@ -57,7 +57,7 @@ const PRESETS: Readonly<Record<Scene24Id, PreviewScenePreset>> = {
     secondaryLine: "Les ambiances changent souvent, sans jamais basculer franchement.",
     paragraph1: "🌥️ Tarnos évolue aujourd’hui sous un ciel mobile, changeant mais plutôt agréable à suivre.",
     paragraph2: "Une scène idéale pour mettre en valeur la variété du moteur visuel.",
-    engagement: { format: "POLL", question: "Tu trouves ce ciel changeant agréable ?", options: ["Oui", "Pas vraiment"] }
+    engagement: { format: "QUESTION", question: "Tu trouves ce ciel changeant agréable ?", options: null }
   },
   5: {
     minC: 18, maxC: 25,
@@ -75,7 +75,7 @@ const PRESETS: Readonly<Record<Scene24Id, PreviewScenePreset>> = {
     secondaryLine: "Le soleil reste présent, mais les rafales accompagnent la journée d’un bout à l’autre.",
     paragraph1: "🌬️ Soleil bien présent à Tarnos, avec un vent déjà perceptible dès le matin.",
     paragraph2: "Une journée lumineuse, mais clairement animée par l’air marin.",
-    engagement: { format: "POLL", question: "Le vent te dérange quand le soleil est là ?", options: ["Oui", "Non"] }
+    engagement: { format: "QUESTION", question: "Le vent te dérange quand le soleil est là ?", options: null }
   },
   7: {
     minC: 18, maxC: 26,
@@ -93,7 +93,7 @@ const PRESETS: Readonly<Record<Scene24Id, PreviewScenePreset>> = {
     secondaryLine: "La visibilité s’améliore ensuite, avec une ambiance de plus en plus respirable.",
     paragraph1: "🌫️ La journée démarre dans une ambiance brumeuse à Tarnos, avant une amélioration progressive.",
     paragraph2: "Le rendu visuel joue ici sur les tons laiteux et la levée de brume.",
-    engagement: { format: "POLL", question: "La brume du matin, tu trouves ça beau ?", options: ["Oui", "Non"] }
+    engagement: { format: "QUESTION", question: "La brume du matin, tu trouves ça beau ?", options: null }
   },
   9: {
     minC: 17, maxC: 23,
@@ -111,7 +111,7 @@ const PRESETS: Readonly<Record<Scene24Id, PreviewScenePreset>> = {
     secondaryLine: "Le vent devient clairement le fait marquant de la journée.",
     paragraph1: "🌬️ À Tarnos, le vent s’impose aujourd’hui comme l’élément principal du décor.",
     paragraph2: "Même sans météo agitée, le rendu donne une vraie énergie à la scène.",
-    engagement: { format: "POLL", question: "Tu aimes les journées de grand vent ?", options: ["Plutôt oui", "Plutôt non"] }
+    engagement: { format: "QUESTION", question: "Tu aimes les journées de grand vent ?", options: null }
   },
   11: {
     minC: 16, maxC: 25,
@@ -129,7 +129,7 @@ const PRESETS: Readonly<Record<Scene24Id, PreviewScenePreset>> = {
     secondaryLine: "Les précipitations dominent largement, avec peu de vraies accalmies.",
     paragraph1: "🌧️ La pluie s’installe sérieusement à Tarnos, avec une impression de continuité marquée.",
     paragraph2: "Une scène forte pour vérifier les ambiances froides et humides.",
-    engagement: { format: "POLL", question: "Parapluie aujourd’hui : indispensable ?", options: ["Évidemment", "Probablement"] }
+    engagement: { format: "QUESTION", question: "Parapluie aujourd’hui : indispensable ?", options: null }
   },
   13: {
     minC: 17, maxC: 24,
@@ -147,7 +147,7 @@ const PRESETS: Readonly<Record<Scene24Id, PreviewScenePreset>> = {
     secondaryLine: "La lumière revient souvent, mais l’atmosphère reste bien brassée.",
     paragraph1: "🌬️ Les éclaircies font le spectacle à Tarnos, avec un vent qui accompagne toute la scène.",
     paragraph2: "Un bon cas pour juger l’équilibre entre ciel lumineux et énergie visuelle.",
-    engagement: { format: "POLL", question: "Vent + éclaircies, combo agréable ?", options: ["Oui", "Bof"] }
+    engagement: { format: "QUESTION", question: "Vent + éclaircies, combo agréable ?", options: null }
   },
   15: {
     minC: 16, maxC: 26,
@@ -165,7 +165,7 @@ const PRESETS: Readonly<Record<Scene24Id, PreviewScenePreset>> = {
     secondaryLine: "La lumière reste très présente tout au long de la journée.",
     paragraph1: "⛅ Tarnos profite d’une très belle journée, avec seulement quelques passages nuageux pour nuancer le ciel.",
     paragraph2: "Le titre plus court doit ici rester très lisible dans le cartouche principal.",
-    engagement: { format: "POLL", question: "Tu préfères plein soleil ou soleil & nuages ?", options: ["Plein soleil", "Soleil & nuages"] }
+    engagement: { format: "QUESTION", question: "Tu préfères plein soleil ou soleil & nuages ?", options: null }
   },
   17: {
     minC: 14, maxC: 21,
@@ -183,7 +183,7 @@ const PRESETS: Readonly<Record<Scene24Id, PreviewScenePreset>> = {
     secondaryLine: "Le ciel change souvent, sans vraie ligne directrice.",
     paragraph1: "🌥️ La journée reste changeante à Tarnos, avec des séquences différentes qui se succèdent.",
     paragraph2: "Cette scène sert à contrôler la neutralité des ambiances intermédiaires.",
-    engagement: { format: "POLL", question: "Tu aimes les journées impossibles à résumer ?", options: ["Oui", "Non"] }
+    engagement: { format: "QUESTION", question: "Tu aimes les journées impossibles à résumer ?", options: null }
   },
   19: {
     minC: 18, maxC: 25,
@@ -201,7 +201,7 @@ const PRESETS: Readonly<Record<Scene24Id, PreviewScenePreset>> = {
     secondaryLine: "L’ensemble garde une tonalité grise, animée par un ressenti plus dynamique.",
     paragraph1: "🌬️ Tarnos reste sous un ciel plutôt nuageux, avec un vent qui renforce la sensation de mouvement.",
     paragraph2: "La scène est utile pour contrôler les rendus plus frais et plus toniques.",
-    engagement: { format: "POLL", question: "Nuages & vent : ambiance que tu aimes ?", options: ["Oui", "Pas trop"] }
+    engagement: { format: "QUESTION", question: "Nuages & vent : ambiance que tu aimes ?", options: null }
   },
   21: {
     minC: 17, maxC: 28,
@@ -219,7 +219,7 @@ const PRESETS: Readonly<Record<Scene24Id, PreviewScenePreset>> = {
     secondaryLine: "Le ciel devient plus sombre et plus contrasté, avec un potentiel orageux visible.",
     paragraph1: "⛈️ Le ton devient nettement plus menaçant à Tarnos, avec une ambiance orageuse qui structure la journée.",
     paragraph2: "C’est la scène idéale pour juger les fonds les plus dramatiques du moteur.",
-    engagement: { format: "POLL", question: "Les ciels d’orage, tu trouves ça impressionnant ?", options: ["Magnifique", "Inquiétant"] }
+    engagement: { format: "QUESTION", question: "Les ciels d’orage, tu trouves ça impressionnant ?", options: null }
   },
   23: {
     minC: 16, maxC: 21,
@@ -237,7 +237,7 @@ const PRESETS: Readonly<Record<Scene24Id, PreviewScenePreset>> = {
     secondaryLine: "Le vent renforce la sensation humide et accentue le caractère de la scène.",
     paragraph1: "🌧️ Entre pluie et vent, Tarnos compose aujourd’hui avec une ambiance plutôt rugueuse.",
     paragraph2: "Une scène très pratique pour valider les situations les plus agitées sans orage.",
-    engagement: { format: "POLL", question: "Pluie & vent ensemble : pire combo météo ?", options: ["Oui", "Pas forcément"] }
+    engagement: { format: "QUESTION", question: "Pluie & vent ensemble : pire combo météo ?", options: null }
   }
 } as const;
 
@@ -454,7 +454,7 @@ function compactHeight(view: PreviewGalleryView): number {
 }
 
 function compactifyInstagramHtml(html: string, view: PreviewGalleryView): string {
-  const keepId = view === "feed" ? "feed" : view === "engagement" ? "engagementStory" : "story";
+  const keepId = view === "feed" ? "feed" : view === "engagement" ? "legendStory" : "story";
   const injectedStyle = `<style id="loka-preview-compact-style">html,body{margin:0;background:transparent!important}body{padding:0!important}.wrap{width:100%!important;max-width:none!important;margin:0!important}.canvas-wrap{border-radius:24px!important;box-shadow:none!important}.visual-card{margin:0!important}.visual-head{padding:0 0 8px!important}.visual-title,.visual-size,button,.toolbar,.caption-card,.note{display:none!important}</style>`;
   const injectedScript = `<script>(function(){const keepCanvas=document.getElementById(${JSON.stringify(keepId)});const keepCard=keepCanvas?keepCanvas.closest('.visual-card'):null;document.querySelectorAll('.toolbar,.caption-card,.note').forEach((node)=>node.remove());document.querySelectorAll('.visual-card').forEach((node)=>{if(node!==keepCard)node.remove();});if(keepCard){keepCard.querySelectorAll('button').forEach((node)=>node.remove());}const wrap=document.querySelector('.wrap');if(wrap){wrap.style.width='100%';wrap.style.maxWidth='none';wrap.style.margin='0';}document.body.style.padding='0';document.body.style.background='transparent';})();</script>`;
   return html
@@ -499,13 +499,13 @@ export function renderScenePreviewGallery(city: CityConfig, pack: number, view: 
       </div>
       <div class="quick-switches">
         <a class="${view === "story" ? "mini active" : "mini"}" href="/instagram-scenes-preview?city=${encodeURIComponent(city.slug)}&pack=${normalizedPack}&view=story#scene-${sceneId}">Story</a>
-        <a class="${view === "engagement" ? "mini active" : "mini"}" href="/instagram-scenes-preview?city=${encodeURIComponent(city.slug)}&pack=${normalizedPack}&view=engagement#scene-${sceneId}">Story 2</a>
+        <a class="${view === "engagement" ? "mini active" : "mini"}" href="/instagram-scenes-preview?city=${encodeURIComponent(city.slug)}&pack=${normalizedPack}&view=engagement#scene-${sceneId}">Story légende</a>
         <a class="${view === "feed" ? "mini active" : "mini"}" href="/instagram-scenes-preview?city=${encodeURIComponent(city.slug)}&pack=${normalizedPack}&view=feed#scene-${sceneId}">Publication</a>
       </div>
       <div class="frame-wrap" id="scene-${sceneId}"><iframe title="Scène ${sceneId}" loading="lazy" src="${activeFrame}"></iframe></div>
       <div class="scene-links">
         <a href="${storyUrl}" target="_blank" rel="noopener">Ouvrir Story</a>
-        <a href="${engagementUrl}" target="_blank" rel="noopener">Ouvrir Story 2</a>
+        <a href="${engagementUrl}" target="_blank" rel="noopener">Ouvrir Story légende</a>
         <a href="${feedUrl}" target="_blank" rel="noopener">Ouvrir Publication</a>
       </div>
     </article>`;
@@ -513,5 +513,5 @@ export function renderScenePreviewGallery(city: CityConfig, pack: number, view: 
 
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow,noarchive"><title>LOKA! — Preview 24 scènes</title><style>
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#ecebe7;color:#171715;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;padding:16px 12px 34px}.wrap{width:min(100%,900px);margin:auto}.hero{background:#fff;border-radius:28px;padding:18px 18px 20px;box-shadow:0 18px 48px rgba(0,0,0,.06)}.badge{display:inline-block;padding:7px 10px;border-radius:999px;background:#fff1cc;color:#8a6100;font-size:11px;font-weight:760;letter-spacing:.08em;text-transform:uppercase}.hero h1{font-size:30px;line-height:1.04;margin:12px 0 6px}.muted{font-size:13px;line-height:1.55;color:#6d6b67}.toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.tab,.view-pill,.cta,.mini,.scene-actions a,.scene-links a{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-radius:14px;padding:12px 14px;font-weight:650;font-size:13px}.tab{background:#f1f1ee;color:#171715}.tab.active,.view-pill.active,.mini.active{background:#171715;color:#fff}.view-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.view-pill{background:#f1f1ee;color:#171715;padding:10px 12px}.cta{background:#171715;color:#fff;margin-top:14px}.list{display:grid;gap:18px;margin-top:18px}.scene-card{background:#fff;border-radius:28px;padding:16px;box-shadow:0 18px 48px rgba(0,0,0,.05)}.scene-top{display:flex;justify-content:space-between;gap:10px;align-items:start}.scene-kicker{font-size:11px;font-weight:760;letter-spacing:.12em;color:#8a6100}.scene-card h2{font-size:26px;line-height:1.06;margin:8px 0 6px}.scene-meta{margin:0;color:#6d6b67;font-size:12px;letter-spacing:.04em;text-transform:uppercase}.scene-actions.inline a{background:#f1f1ee;color:#171715}.quick-switches{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 10px}.mini{background:#f4f3f0;color:#171715;padding:8px 10px;border-radius:999px;font-size:12px}.frame-wrap{background:#deddd9;border-radius:24px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.03)}iframe{display:block;border:0;width:100%;height:${frameHeight}px;background:transparent}.scene-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.scene-links a{background:#f4f3f0;color:#171715;padding:10px 12px}.footer-note{margin-top:18px;color:#6d6b67;font-size:12px;line-height:1.55;text-align:center}.top-back{margin-top:12px}.top-back a{color:#171715;text-decoration:none;font-size:13px;font-weight:650}.title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}@media(max-width:760px){.scene-top{flex-direction:column}.scene-card h2{font-size:22px}iframe{height:${frameHeight}px}}@media(max-width:460px){body{padding:12px 8px 24px}.hero h1{font-size:24px}.scene-card{padding:12px;border-radius:22px}.scene-card h2{font-size:20px}}
-</style></head><body><main class="wrap"><section class="hero"><div class="badge">Preview interne · 24 scènes</div><div class="title-row"><div><h1>Mode preview du moteur · ${esc(packLabel)}</h1><p class="muted">Visualisation par paquets de 5, avec données fictives et rendu généré par le vrai Studio Instagram V24. Ce mode n’écrit rien en base et n’impacte jamais la production officielle.</p></div><div class="top-back"><a href="/admin">← Retour admin</a></div></div><div class="toolbar">${nav}</div><div class="view-row"><a class="${view === "story" ? "view-pill active" : "view-pill"}" href="/instagram-scenes-preview?city=${encodeURIComponent(city.slug)}&pack=${normalizedPack}&view=story">Vue Story</a><a class="${view === "engagement" ? "view-pill active" : "view-pill"}" href="/instagram-scenes-preview?city=${encodeURIComponent(city.slug)}&pack=${normalizedPack}&view=engagement">Vue Story 2</a><a class="${view === "feed" ? "view-pill active" : "view-pill"}" href="/instagram-scenes-preview?city=${encodeURIComponent(city.slug)}&pack=${normalizedPack}&view=feed">Vue Publication</a></div><a class="cta" href="/instagram-scenes-preview/studio?city=${encodeURIComponent(city.slug)}&scene=${scenes[0]}" target="_blank" rel="noopener">Ouvrir un studio complet d’exemple</a></section><section class="list">${cards}</section><p class="footer-note">Packs : 1 (scènes 1 à 5), 2 (6 à 10), 3 (11 à 15), 4 (16 à 20), 5 (21 à 24). Route principale : <code>/instagram-scenes-preview</code>.</p></main></body></html>`;
+</style></head><body><main class="wrap"><section class="hero"><div class="badge">Preview interne · 24 scènes</div><div class="title-row"><div><h1>Mode preview du moteur · ${esc(packLabel)}</h1><p class="muted">Visualisation par paquets de 5, avec données fictives et rendu généré par le vrai Studio Instagram V24. Ce mode n’écrit rien en base et n’impacte jamais la production officielle.</p></div><div class="top-back"><a href="/admin">← Retour admin</a></div></div><div class="toolbar">${nav}</div><div class="view-row"><a class="${view === "story" ? "view-pill active" : "view-pill"}" href="/instagram-scenes-preview?city=${encodeURIComponent(city.slug)}&pack=${normalizedPack}&view=story">Vue Story</a><a class="${view === "engagement" ? "view-pill active" : "view-pill"}" href="/instagram-scenes-preview?city=${encodeURIComponent(city.slug)}&pack=${normalizedPack}&view=engagement">Vue Story légende</a><a class="${view === "feed" ? "view-pill active" : "view-pill"}" href="/instagram-scenes-preview?city=${encodeURIComponent(city.slug)}&pack=${normalizedPack}&view=feed">Vue Publication</a></div><a class="cta" href="/instagram-scenes-preview/studio?city=${encodeURIComponent(city.slug)}&scene=${scenes[0]}" target="_blank" rel="noopener">Ouvrir un studio complet d’exemple</a></section><section class="list">${cards}</section><p class="footer-note">Packs : 1 (scènes 1 à 5), 2 (6 à 10), 3 (11 à 15), 4 (16 à 20), 5 (21 à 24). Route principale : <code>/instagram-scenes-preview</code>.</p></main></body></html>`;
 }

@@ -33,19 +33,19 @@ const html = renderInstagramOfficial24(payloadFor(21), CITIES.tarnos);
 const storyGeneral = functionLine(html, "drawStoryGeneral");
 const feedGeneral = functionLine(html, "drawFeedGeneral");
 
-ok(storyGeneral.includes("x=44,y=224,w=992,h=150"), "story_general_compact_150");
+ok(storyGeneral.includes("x=44,y=200,w=992,h=150"), "story_general_compact_150");
 ok(feedGeneral.includes("x=50,y=160,w=980,h=150"), "feed_general_compact_150");
 ok(!storyGeneral.includes("drawSubtitleBlock") && !feedGeneral.includes("drawSubtitleBlock"), "subtitle_not_drawn_in_general_boxes");
-ok(html.includes("function drawStoryHours(slots,icons){const x=44,y=420,w=992,h=704"), "story_hours_shifted_up_100");
+ok(html.includes("function drawStoryHours(slots,icons){const x=44,y=396,w=992,h=704"), "story_hours_shifted_up_100");
 ok(html.includes("function drawFeedHours(slots,icons){const x=50,y=336,w=980,h=500"), "feed_hours_shifted_up_90");
-ok(html.includes("function drawStoryComments(){const visual=m.storyVisual||m.visual;const x=44,y=1163,w=992,h=272"), "story_comments_expanded_272");
+ok(html.includes("function drawStoryComments(){const visual=m.storyVisual||m.visual;const x=44,y=1139,w=992,h=272"), "story_comments_expanded_272");
 ok(html.includes("function drawFeedComments(){const visual=m.feedVisual||m.visual;const x=50,y=865,w=980,h=210"), "feed_comments_expanded_210");
-ok(html.includes("function drawStorySolar(solarIcons){const x=44,y=1479,w=992,h=279"), "story_solar_anchor_unchanged");
+ok(html.includes("function drawStorySolar(solarIcons){const x=44,y=1455,w=992,h=279"), "story_solar_anchor_unchanged");
 ok(html.includes("function drawFeedSolar(solarIcons){const x=50,y=1100,w=980,h=205"), "feed_solar_anchor_unchanged");
-ok(html.includes("function drawStorySignature(){text('Ici, aujourd’hui.',540,1834"), "story_signature_anchor_unchanged");
+ok(html.includes("function drawStorySignature(){text('Ici, aujourd’hui.',540,1810"), "story_signature_anchor_unchanged");
 ok(html.includes("function drawFeedSignature(){text('Ici, aujourd’hui.',540,1368"), "feed_signature_anchor_unchanged");
 
-const story = { generalY: 224, generalH: 150, hoursY: 420, hoursH: 704, commentsY: 1163, commentsH: 272, solarY: 1479 };
+const story = { generalY: 200, generalH: 150, hoursY: 396, hoursH: 704, commentsY: 1139, commentsH: 272, solarY: 1455 };
 const feed = { generalY: 160, generalH: 150, hoursY: 336, hoursH: 500, commentsY: 865, commentsH: 210, solarY: 1100 };
 ok(story.hoursY - (story.generalY + story.generalH) === 46, "story_general_hours_gap_preserved");
 ok(story.commentsY - (story.hoursY + story.hoursH) === 39, "story_hours_comments_gap_preserved");
@@ -53,7 +53,7 @@ ok(story.solarY - (story.commentsY + story.commentsH) === 44, "story_comments_so
 ok(feed.hoursY - (feed.generalY + feed.generalH) === 26, "feed_general_hours_gap_preserved");
 ok(feed.commentsY - (feed.hoursY + feed.hoursH) === 29, "feed_hours_comments_gap_preserved");
 ok(feed.solarY - (feed.commentsY + feed.commentsH) === 25, "feed_comments_solar_gap_preserved");
-ok(story.commentsY + story.commentsH === 1435 && feed.commentsY + feed.commentsH === 1075, "lower_layout_anchors_preserved");
+ok(story.commentsY + story.commentsH === 1411 && feed.commentsY + feed.commentsH === 1075, "lower_layout_anchors_preserved");
 
 if (passed !== 18) throw new Error(`instagram_layout_step3_count_mismatch:${passed}`);
 console.log(`INSTAGRAM_LAYOUT_STEP3 ${passed}/18 PASS`);

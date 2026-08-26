@@ -27,7 +27,7 @@ for(let id=1;id<=24;id++){
       ok(product.social.caption.includes("Ici, aujourd’hui.")&&product.social.caption.includes("@loka.tarnos"),`signature_${id}_${confidence}_${max}`);
       ok(product.social.hashtags.includes("#LOKA"),`hashtags_${id}_${confidence}_${max}`);
       ok(product.engagement.question.length>0&&product.engagement.question.length<=140,`engagement_question_${id}_${confidence}_${max}`);
-      ok(product.engagement.format==="QUESTION"||product.engagement.options?.length===2,`engagement_format_${id}_${confidence}_${max}`);
+      ok(product.engagement.format==="QUESTION"&&product.engagement.options===null,`engagement_question_only_${id}_${confidence}_${max}`);
       products++;
     }
   }

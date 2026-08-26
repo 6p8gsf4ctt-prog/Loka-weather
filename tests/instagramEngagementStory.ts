@@ -8,7 +8,7 @@ import { canonicalPoints } from "./scenes24/fixtures";
 
 let passed = 0;
 function ok(value: boolean, label: string): void {
-  if (!value) throw new Error(`INSTAGRAM_ENGAGEMENT_STORY_FAIL:${label}`);
+  if (!value) throw new Error(`INSTAGRAM_LEGEND_STORY_FAIL:${label}`);
   passed++;
 }
 
@@ -32,36 +32,34 @@ function functionLine(html: string, name: string): string {
 }
 
 const payload = payloadFor(12);
-ok(payload.editorial.engagement.question.length > 0, "engine_generates_question");
-ok(payload.editorial.engagement.format === "POLL" || payload.editorial.engagement.format === "QUESTION", "engine_generates_interaction_format");
+ok(payload.editorial.engagement.question.length > 0, "compatibility_question_still_generated");
+ok(payload.editorial.engagement.format === "QUESTION" && payload.editorial.engagement.options === null, "polls_disabled_in_engine");
 
 const base = renderInstagramOfficial24(payload, CITIES.tarnos);
-ok(base.includes('id="engagementStory"') && base.includes('id="shareEngagementStory"'), "second_story_canvas_and_download");
-ok(base.includes("STORY 2 · INTERACTION") && base.includes("sticker Instagram reste volontairement hors image"), "second_story_ui_explains_blank_sticker_area");
-const renderLine = functionLine(base, "renderEngagementStory");
-ok(renderLine.includes("drawCover(bg,1080,1920)") && renderLine.includes("drawHeader(logo)") && renderLine.includes("drawStorySignature()"), "second_story_header_footer_contract");
-ok(!renderLine.includes("drawStoryGeneral") && !renderLine.includes("drawStoryHours") && !renderLine.includes("drawStoryComments") && !renderLine.includes("drawStorySolar"), "second_story_center_is_blank");
-ok(base.includes("const STORY_HEADER_SAFE={logoX:50,logoCenterY:144,logoWidth:190,logoHeight:64,cityBaseline:158,dateBaseline:158}"), "story_safe_header_coordinates_are_centralized");
-const storyHeaderLine = functionLine(base, "drawHeader");
-const feedHeaderLine = functionLine(base, "drawFeedHeader");
-ok(storyHeaderLine.includes("STORY_HEADER_SAFE.logoCenterY") && storyHeaderLine.includes("STORY_HEADER_SAFE.cityBaseline") && storyHeaderLine.includes("STORY_HEADER_SAFE.dateBaseline"), "story_uses_safe_header_coordinates");
-ok(feedHeaderLine.includes("drawLokaLogo(logo,FEED_HEADER.logoX,FEED_HEADER.logoCenterY,FEED_HEADER.logoWidth,FEED_HEADER.logoHeight)") && feedHeaderLine.includes("FEED_HEADER.cityBaseline") && feedHeaderLine.includes("FEED_HEADER.dateBaseline"), "feed_header_geometry_is_unchanged");
-ok(base.includes("story-interaction"), "second_story_filename_suffix");
+ok(base.includes('id="legendStory"') && base.includes('id="shareLegendStory"'), "legend_story_canvas_and_download");
+ok(base.includes("STORY · LÉGENDE DU JOUR") && base.includes("même légende que la publication"), "legend_story_ui_contract");
+ok(!base.includes('id="engagementStory"') && !base.includes('id="shareEngagementStory"'), "old_interaction_canvas_removed");
+const renderLine = functionLine(base, "renderLegendStory");
+ok(renderLine.includes("drawCover(bg,1080,1920)") && renderLine.includes("drawHeader(logo)") && renderLine.includes("drawLegendPanel()") && renderLine.includes("drawStorySignature()"), "legend_story_header_body_footer_contract");
+ok(functionLine(base, "drawLegendPanel").includes("m.legendText") && base.includes('"legendText":') && base.includes(payload.editorial.social.paragraph1), "legend_story_uses_editorial_caption_body");
+ok(base.includes("story-legende"), "legend_story_filename_suffix");
 
 const enhanced = enhanceInstagramWithEditorialStudio(base);
-ok(enhanced.includes('id="engagementFormat"') && enhanced.includes('id="engagementQuestion"'), "engagement_editor_fields");
-ok(enhanced.includes('id="engagementOptionA"') && enhanced.includes('id="engagementOptionB"'), "poll_option_fields");
-ok(enhanced.includes("m.engagement=engagementFromFields()"), "editor_updates_engagement_draft");
-ok(enhanced.includes("copyEngagementQuestion"), "question_copy_action");
+ok(enhanced.includes('id="sharedLegend"') && enhanced.includes('id="sharedHashtags"'), "shared_legend_editor_fields");
+ok(enhanced.includes('id="sharedPrimary"') && enhanced.includes('id="sharedSecondary"'), "shared_visual_editor_fields");
+ok(!enhanced.includes('id="engagementFormat"') && !enhanced.includes('id="engagementQuestion"') && !enhanced.includes('id="engagementOptionA"'), "interaction_editor_removed");
+ok(enhanced.includes("renderLegendStory(a.bg,a.logo)") && enhanced.includes("m.legendText=legend"), "editor_rerenders_legend_story");
+ok(enhanced.includes("publicationCaption(m.legendText)") && enhanced.includes("activeSharedFields:['legend','hashtags']"), "publication_and_story_share_legend");
 
 const persisted = enhanceInstagramWithEditorialPersistence(enhanced, "tarnos");
-ok(persisted.includes("engagementQuestion:field('engagementQuestion')"), "question_saved_in_editorial_feedback");
-ok(persisted.includes("story.engagementQuestion??m.engagement?.question"), "saved_question_reloaded");
+ok(persisted.includes("legend=field('sharedLegend')") && persisted.includes("hashtags=field('sharedHashtags')"), "shared_fields_saved");
+ok(persisted.includes("feedbackLegend(feed)") && persisted.includes("document.getElementById('sharedLegend').value"), "shared_legend_reloaded");
+ok(persisted.includes("legacyEngagement:'PRESERVED_HIDDEN'"), "legacy_engagement_kept_only_for_storage_compatibility");
 
 const legacy: any = structuredClone(payload);
 delete legacy.editorial.engagement;
 const legacyHtml = renderInstagramOfficial24(legacy as OfficialPublicPayloadV24, CITIES.tarnos);
-ok(legacyHtml.includes('id="engagementStory"') && legacyHtml.includes('"engagement":'), "legacy_official_payload_gets_runtime_engagement_fallback");
+ok(legacyHtml.includes('id="legendStory"') && legacyHtml.includes('"engagement":'), "legacy_payload_runtime_compatibility_preserved");
 
-if (passed !== 17) throw new Error(`instagram_engagement_story_count_mismatch:${passed}`);
-console.log(`INSTAGRAM_ENGAGEMENT_STORY ${passed}/17 PASS`);
+if (passed !== 17) throw new Error(`instagram_legend_story_count_mismatch:${passed}`);
+console.log(`INSTAGRAM_LEGEND_STORY ${passed}/17 PASS`);

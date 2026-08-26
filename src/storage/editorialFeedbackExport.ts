@@ -15,8 +15,8 @@ import {
 export const EDITORIAL_EXPORT_SCHEMA_VERSION = "1.2" as const;
 export const EDITORIAL_STORAGE_SCHEMA_VERSION = "1.0" as const;
 export const EDITORIAL_ACTIVE_VISUAL_FIELDS = ["primaryLine", "secondaryLine"] as const;
-export const EDITORIAL_ACTIVE_ENGAGEMENT_FIELDS = ["engagementFormat", "engagementQuestion", "engagementOptionA", "engagementOptionB"] as const;
-export const EDITORIAL_LEGACY_RETIRED_FIELDS = ["subtitle"] as const;
+export const EDITORIAL_ACTIVE_ENGAGEMENT_FIELDS = [] as const;
+export const EDITORIAL_LEGACY_RETIRED_FIELDS = ["subtitle", "engagementFormat", "engagementQuestion", "engagementOptionA", "engagementOptionB"] as const;
 
 export type EditorialFieldStatus = "ACTIVE" | "LEGACY_RETIRED";
 export type EditorialVisualEra = "LEGACY_SUBTITLE_VISIBLE" | "PRIMARY_SECONDARY";
@@ -88,8 +88,8 @@ export interface EditorialLearningExportV11 {
     activeVisualFields: string[];
     activeEngagementFields: string[];
     legacyRetiredFields: Array<{
-      field: "subtitle";
-      currentGenerationValue: "";
+      field: string;
+      currentGenerationValue: string;
       guidance: string;
     }>;
   };
@@ -100,7 +100,7 @@ export interface EditorialLearningExportV11 {
 export type EditorialLearningExportV1 = EditorialLearningExportV11;
 
 export function editorialExportFieldStatus(field: string): EditorialFieldStatus {
-  return field === "subtitle" ? "LEGACY_RETIRED" : "ACTIVE";
+  return (EDITORIAL_LEGACY_RETIRED_FIELDS as readonly string[]).includes(field) ? "LEGACY_RETIRED" : "ACTIVE";
 }
 
 function differences<T extends object>(
@@ -203,18 +203,20 @@ export async function buildEditorialLearningExport(
     fieldPolicy: {
       activeVisualFields: [...EDITORIAL_ACTIVE_VISUAL_FIELDS],
       activeEngagementFields: [...EDITORIAL_ACTIVE_ENGAGEMENT_FIELDS],
-      legacyRetiredFields: [{
-        field: "subtitle",
-        currentGenerationValue: "",
-        guidance: "Champ historique conservé pour compatibilité. Ne pas en déduire une règle de la composition actuelle."
-      }]
+      legacyRetiredFields: EDITORIAL_LEGACY_RETIRED_FIELDS.map((field) => ({
+        field,
+        currentGenerationValue: field === "subtitle" ? "" : "HIDDEN_COMPATIBILITY",
+        guidance: field === "subtitle"
+          ? "Champ historique conservé pour compatibilité. Ne pas en déduire une règle de la composition actuelle."
+          : "Ancien champ d’interaction conservé uniquement pour relire l’historique. Les sondages ne font plus partie du Studio actif."
+      }))
     },
     analysisGoal: [
       "Comparer la version officielle LOKA! à la version réellement validée par l'utilisateur.",
       "Comprendre l'intention éditoriale derrière chaque modification, pas seulement les mots remplacés.",
       "Relier chaque correction au contexte météo disponible, notamment aux données horaires.",
       "Distinguer les champs visuels actifs des champs historiques retirés de la composition actuelle.",
-      "Analyser séparément la performance éditoriale de Story 2 : format d’interaction, question et réponses proposées.",
+      "Analyser la qualité de la légende commune utilisée à la fois dans la Story dédiée et dans la publication Instagram.",
       "Ne pas transformer une ancienne correction du champ subtitle en règle pour les nouvelles générations.",
       "Identifier des principes généralisables de langage LOKA! sans transformer une correction ponctuelle en règle automatique.",
       "Privilégier la précision utile (horaire, intensité, évolution) lorsque les données la justifient, sans inventer d'information météo."
