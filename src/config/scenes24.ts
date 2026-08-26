@@ -1,5 +1,5 @@
-export const SCENE_ENGINE_VERSION = "2.0.1";
-export const SCENE_DOCTRINE_VERSION = "2.0.1";
+export const SCENE_ENGINE_VERSION = "2.0.2";
+export const SCENE_DOCTRINE_VERSION = "2.0.2";
 
 export const SCENE_THRESHOLDS = {
   sky: {
@@ -18,6 +18,18 @@ export const SCENE_THRESHOLDS = {
     showersMinHours: 2,
     showersMinBreaks: 1,
     showersConvectiveFractionMin: 0.50
+  },
+  instability: {
+    minTransitions: 5,
+    minDistinctStates: 4,
+    minReversals: 3,
+    minIndependentEvidence: 2,
+    skyContrastRangeMinPct: 45,
+    skyContrastBrightFractionMin: 0.20,
+    skyContrastCloudyFractionMin: 0.35,
+    showerBlocksMin: 2,
+    fogHoursMin: 2,
+    notableWindHoursMin: 2
   },
   thunder: { supportMin: 0.35 },
   fog: { supportMin: 0.35, denseSupportMin: 0.65, denseMinHours: 3 },

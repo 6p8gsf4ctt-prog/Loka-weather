@@ -1,8 +1,10 @@
 import type { DayProfileV2 } from "../../types";
 import { round } from "../math";
+import { instabilityEvidence, isStructuringInstability } from "./instabilityDoctrine";
 import { isStructuringShowers, isSustainedRain } from "./rainDoctrine";
 
 export function profileSummary(p: DayProfileV2): Record<string, number | string | boolean | null> {
+  const instability = instabilityEvidence(p);
   return {
     daylightStart: p.period.startHour,
     daylightEnd: p.period.endHour,
@@ -32,6 +34,12 @@ export function profileSummary(p: DayProfileV2): Record<string, number | string 
     thunderHours: p.convection.thunderHours,
     transitions: p.structure.meaningfulTransitions,
     distinctStates: p.structure.distinctStateCount,
+    instabilityEligible: isStructuringInstability(p),
+    instabilityEvidenceCount: instability.independentEvidenceCount,
+    instabilitySkyContrast: instability.skyRegimeContrast,
+    instabilityRepeatedShowers: instability.repeatedShowers,
+    instabilityFogPhase: instability.fogPhase,
+    instabilityWindPhase: instability.windPhase,
     modelCountMin: p.structure.modelCountMin,
     uncertainWeather: p.structure.uncertainWeather
   };

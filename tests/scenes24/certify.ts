@@ -2,6 +2,7 @@ import type { Scene24Candidate, Scene24Id } from "../../src/types";
 import { applyLocalHysteresis } from "../../src/engine/scenes24/hysteresis";
 import { buildDayProfileV2 } from "../../src/engine/scenes24/profile";
 import { chooseScene24V2 } from "../../src/engine/scenes24/classifier";
+import { instabilityEvidence, isStructuringInstability } from "../../src/engine/scenes24/instabilityDoctrine";
 import { isStructuringShowers, isSustainedRain } from "../../src/engine/scenes24/rainDoctrine";
 import { CITIES } from "../../src/config/cities";
 import { canonicalPoints, classify, makeDay } from "./fixtures";
@@ -146,6 +147,73 @@ const weakRainDay = () => makeDay("2026-08-18", (h) => ({
   ok(pass,"rain_property_scene13_requires_structuring_showers");
 }
 
+
+// 9 instability-doctrine non-regression cases.
+const instabilityCase = (points: ReturnType<typeof makeDay>, previous?: Scene24Id) => {
+  const profile = buildDayProfileV2(CITIES.tarnos, "2026-08-18", points);
+  return { profile, decision: chooseScene24V2(profile, previous) };
+};
+const aug25InstabilityTrap = () => {
+  const clouds = [84,72,90,78,88,74,93,78,86,69,82,70,88,72,84];
+  return makeDay("2026-08-18", h => ({
+    cloud: h >= 7 && h <= 21 ? clouds[h - 7] : 80,
+    rain: h >= 8 && h <= 12 ? .2 : 0,
+    precipSupport: h >= 8 && h <= 12 ? .8 : .05,
+    shower: .05,
+    fog: .03,
+    gust: 30
+  }));
+};
+{
+  const { profile, decision } = instabilityCase(aug25InstabilityTrap());
+  ok(profile.structure.distinctStateCount===4 && profile.evolution.reversals>=3 && !isStructuringInstability(profile) && decision.sceneId===9 && decision.decisionFamily==="CLOUD" && !decision.candidateSceneIds.includes(19) && decision.profileSummary.instabilityEligible===false, "instability_I01_aug25_cloud_not_instable");
+}
+{
+  const { profile, decision } = classify(19);
+  ok(isStructuringInstability(profile) && decision.sceneId===19 && decision.decisionFamily==="INSTABILITY" && decision.validity==="VALID", "instability_I02_canonical19_preserved");
+}
+{
+  const { profile, decision } = instabilityCase(aug25InstabilityTrap());
+  const e=instabilityEvidence(profile);
+  ok(profile.structure.meaningfulTransitions>=5 && profile.evolution.reversals>=3 && e.independentEvidenceCount===0 && decision.sceneId!==19, "instability_I03_numeric_oscillation_alone_insufficient");
+}
+{
+  const points=aug25InstabilityTrap();
+  points.forEach(p=>{ if(p.time.includes("13:00")){p.precipitationMm=.1;p.precipitationSupport=.4;} });
+  const { profile, decision }=instabilityCase(points);
+  ok(profile.structure.uncertainWeather===true && instabilityEvidence(profile).independentEvidenceCount===0 && !isStructuringInstability(profile) && decision.sceneId!==19, "instability_I04_model_uncertainty_not_physical_evidence");
+}
+{
+  const points=canonicalPoints(19);
+  points.forEach(p=>{p.precipitationMm=0;p.precipitationSupport=.05;p.rainCodeSupport=.05;p.showerSupport=.05;p.fogSupport=.03;p.windGustKmh=30;p.windSpeedKmh=15;});
+  const profile=buildDayProfileV2(CITIES.tarnos,"2026-08-18",points); const decision=chooseScene24V2(profile); const e=instabilityEvidence(profile);
+  ok(e.skyRegimeContrast===true && e.independentEvidenceCount===1 && !isStructuringInstability(profile) && decision.sceneId!==19, "instability_I05_sky_contrast_alone_insufficient");
+}
+{
+  const points=canonicalPoints(19);
+  points.forEach(p=>{p.fogSupport=.03;p.windGustKmh=30;p.windSpeedKmh=15;});
+  const profile=buildDayProfileV2(CITIES.tarnos,"2026-08-18",points); const decision=chooseScene24V2(profile); const e=instabilityEvidence(profile);
+  ok(e.skyRegimeContrast===true && e.repeatedShowers===true && e.independentEvidenceCount===2 && isStructuringInstability(profile) && decision.sceneId===19, "instability_I06_two_independent_signals_allow_scene19");
+}
+{
+  const { profile, decision }=classify(19);
+  const invariant=decision.invariantChecks.find(x=>x.name==="instability_scene_meets_doctrine");
+  ok(decision.sceneId===19 && isStructuringInstability(profile) && invariant?.pass===true, "instability_I07_scene19_invariant");
+}
+{
+  const { decision }=instabilityCase(aug25InstabilityTrap(),19);
+  ok(decision.sceneId!==19 && !decision.candidateSceneIds.includes(19) && decision.hysteresisApplied===false, "instability_I08_old_scene19_cannot_survive_stable_cloud_day");
+}
+{
+  let pass=true;
+  const patterns = [aug25InstabilityTrap(), makeDay("2026-08-18",h=>({cloud:[35,82,38,85][h%4],gust:30})), makeDay("2026-08-18",h=>({cloud:[55,92,58,88][h%4],rain:[9,12].includes(h)?.6:0,precipSupport:[9,12].includes(h)?.8:.05,shower:.05}))];
+  for(const points of patterns){
+    const { profile, decision }=instabilityCase(points);
+    if(!isStructuringInstability(profile) && decision.sceneId===19) pass=false;
+  }
+  ok(pass,"instability_I09_property_scene19_requires_doctrine");
+}
+
 // 8 uncertainty/model coverage cases.
 for(const models of [5,4,3]){const d=classify(15,'2026-08-18',models).decision;ok(d.validity==='VALID'&&d.sceneId===15,`models_${models}`);}
 {const d=classify(15,'2026-08-18',2).decision;ok(d.validity==='INVALID',`models_2_invalid`);}
@@ -165,5 +233,5 @@ for(let i=0;i<hCases.length;i++){const [selected,prev,s1,s2,expect]=hCases[i];co
 // Determinism: same input 100 times -> exact same decision JSON.
 {const p=classify(15).profile;const first=JSON.stringify(chooseScene24V2(p));let same=true;for(let i=0;i<100;i++)same=same&&JSON.stringify(chooseScene24V2(p))===first;ok(same,'determinism_100');}
 
-if(passed!==193) throw new Error(`certification_count_mismatch:${passed}`);
-console.log(`SCENE_ENGINE_V2_CERTIFICATION ${passed}/193 PASS`);
+if(passed!==202) throw new Error(`certification_count_mismatch:${passed}`);
+console.log(`SCENE_ENGINE_V2_CERTIFICATION ${passed}/202 PASS`);

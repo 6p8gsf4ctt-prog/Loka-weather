@@ -1,5 +1,6 @@
 import { SCENE_THRESHOLDS } from "../../config/scenes24";
 import type { DayProfileV2, Scene24Family, Scene24Id } from "../../types";
+import { isStructuringInstability } from "./instabilityDoctrine";
 import { isStructuringShowers, isSustainedRain } from "./rainDoctrine";
 
 export interface FamilyDecision { family: Scene24Family; candidateSceneIds: Scene24Id[]; reason: string }
@@ -28,8 +29,8 @@ export function determineFamily(p: DayProfileV2): FamilyDecision {
   if (strongImprovement || strongDegradation) {
     return { family: "TREND", candidateSceneIds: [5, 11, 15], reason: strongImprovement ? "directional_improvement" : "directional_degradation" };
   }
-  if (p.structure.distinctStateCount >= 4 && p.evolution.reversals >= 3 && (p.rain.rainHours >= 1 || p.structure.meaningfulTransitions >= 5)) {
-    return { family: "INSTABILITY", candidateSceneIds: [19], reason: "multi_state_instability" };
+  if (isStructuringInstability(p)) {
+    return { family: "INSTABILITY", candidateSceneIds: [19], reason: "structuring_multi_regime_instability" };
   }
   if (structuringShowers) {
     return { family: "RAIN", candidateSceneIds: [13], reason: "structuring_showers" };
