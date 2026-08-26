@@ -16,7 +16,7 @@ export type WeatherPictogramKind =
 
 export type SolarPictogramKind = "dawn" | "sunrise" | "noon" | "sunset" | "dusk";
 
-export const PICTOGRAM_LIBRARY_VERSION = "LOKA_PREMIUM_1.0" as const;
+export const PICTOGRAM_LIBRARY_VERSION = "LOKA_PREMIUM_1.1" as const;
 
 export const PICTOGRAM_STYLE = {
   ink: "#12264A",
@@ -150,7 +150,7 @@ function thunderBolt(): string {
 export function weatherPictogramSvg(kind: WeatherPictogramKind): string {
   let body = "";
   switch (kind) {
-    case "sun": body = sun(80, 57, 23, false); break;
+    case "sun": body = sun(80, 57, 23, true); break;
     case "partly": body = `${sun(57, 40, 18, true)}${cloud(84, 64, 0.76)}`; break;
     case "cloud": body = cloud(80, 61, 0.82); break;
     case "rain": body = `${cloud(80, 50, 0.76)}${drops([55, 80, 105], 81, false)}`; break;
