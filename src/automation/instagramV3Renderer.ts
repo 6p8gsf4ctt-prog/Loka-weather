@@ -71,7 +71,11 @@ async function screenshotOnce(env: Env, url: string, position: 1 | 2): Promise<R
     selector,
     viewport: { width: EXPECTED_WIDTH, height: EXPECTED_HEIGHT, deviceScaleFactor: 1 },
     gotoOptions: { waitUntil: "networkidle0", timeout: 60000 },
-    waitForSelector: `${selector}[data-render-ready="1"]`
+    waitForSelector: {
+      selector: `${selector}[data-render-ready="1"]`,
+      visible: true,
+      timeout: 60000
+    }
   });
 }
 
@@ -101,7 +105,16 @@ async function renderOne(
 ): Promise<InstagramV3RenderedAsset> {
   if (!env.INSTAGRAM_MEDIA) throw new Error("instagram_media_kv_binding_missing");
   const response = await screenshotWithOneRetry(env, renderUrl(baseUrl, position), position);
-  if (!response.ok) throw new Error(`browser_screenshot_failed:${position}:${response.status}`);
+  if (!response.ok) {
+    let detail = "";
+    try {
+      const body = await response.clone().text();
+      if (body) detail = `:${body.slice(0, 240).replace(/\s+/g, " ")}`;
+    } catch {
+      // Keep the stable status-only error if Cloudflare does not expose a body.
+    }
+    throw new Error(`browser_screenshot_failed:${position}:${response.status}${detail}`);
+  }
   const arrayBuffer = await response.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
   ensureExpectedDimensions(bytes);

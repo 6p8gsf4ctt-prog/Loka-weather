@@ -71,7 +71,9 @@ function ok(value: boolean, label: string): void { if (!value) throw new Error(`
         browserCalls++;
         ok(action === "screenshot", `browser_action_${browserCalls}`);
         ok(options.selector === (browserCalls === 1 ? "#page1" : "#page2"), `browser_selector_${browserCalls}`);
-        ok(String(options.waitForSelector).includes("data-render-ready"), `browser_wait_ready_${browserCalls}`);
+        ok(typeof options.waitForSelector === "object", `browser_wait_shape_${browserCalls}`);
+        ok(options.waitForSelector?.selector?.includes("data-render-ready") === true, `browser_wait_ready_${browserCalls}`);
+        ok(options.waitForSelector?.visible === true && options.waitForSelector?.timeout === 60000, `browser_wait_options_${browserCalls}`);
         return new Response(fakePng(), { status: 200, headers: { "content-type": "image/png" } });
       }
     }

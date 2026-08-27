@@ -1,0 +1,36 @@
+LOKA V3 — ETAPE 7L.4 — CORRECTIF BROWSER RUN 400
+
+FICHIERS A AJOUTER : 0
+FICHIERS A REMPLACER : 3
+FICHIERS A SUPPRIMER : 0
+
+REMPLACER :
+- src/automation/instagramV3Renderer.ts
+  Corrige waitForSelector pour le schema Cloudflare Browser Run actuel.
+  Ajoute le detail de reponse Browser Run en cas d'erreur HTTP.
+- src/types.ts
+  Type waitForSelector comme objet { selector, visible/hidden, timeout }.
+- tests/instagramV3Render.test.ts
+  Verifie explicitement le schema Browser Run et les options d'attente.
+
+CAUSE DU BUG :
+waitForSelector etait envoye comme une chaine CSS.
+Cloudflare Browser Run attend un objet contenant au minimum la cle selector.
+Cela provoquait browser_screenshot_failed:1:400.
+
+SECURITE :
+- Aucun changement Meta/Instagram.
+- Aucun changement D1.
+- Aucun changement KV.
+- Aucun changement de pipeline meteo.
+- MEDIA_PUBLISH reste bloque en Shadow.
+
+VALIDATION LOCALE :
+- npm run typecheck : PASS
+- npm test : PASS
+- instagramV3Render : 37 checks passed
+- scenes V2 : 202/202
+- stress scenes : 1200/1200
+- validation visuelle V3 : 249 checks
+
+NOTE : wrangler deploy --dry-run n'a pas termine dans l'environnement local (timeout reseau) et n'est donc pas revendique comme valide.

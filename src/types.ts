@@ -3,7 +3,7 @@ export interface BrowserRunScreenshotOptions {
   selector?: string;
   viewport?: { width: number; height: number; deviceScaleFactor?: number };
   gotoOptions?: { waitUntil?: string; timeout?: number };
-  waitForSelector?: string;
+  waitForSelector?: { selector: string; hidden?: true; visible?: true; timeout?: number };
 }
 
 export interface BrowserRunBinding {
