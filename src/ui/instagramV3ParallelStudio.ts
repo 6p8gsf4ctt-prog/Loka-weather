@@ -29,3 +29,23 @@ export function enhanceInstagramWithV3PrimaryStudio(html: string): string {
   return result;
 }
 
+
+
+const OFFICIAL_STYLE = `<style>
+.v3-official{background:#fff;border-radius:24px;padding:18px;margin:0 0 18px;box-shadow:0 12px 45px rgba(0,0,0,.06)}.v3-official-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.v3-official h2{font-size:21px;line-height:1.12;margin:6px 0}.v3-official p{font-size:11px;line-height:1.5;color:#73716c;margin:0}.v3-official-badge{font-size:9px;font-weight:850;letter-spacing:.08em;color:#164e2d;background:#e7f5eb;padding:7px 9px;border-radius:999px;white-space:nowrap}.v3-official-status{margin-top:14px;padding:12px 14px;border-radius:18px;background:#f3f8f4;border:1px solid #d7e9dc}.v3-official-status strong{display:block;font-size:12px;margin-bottom:4px}.v3-official-frame{display:block;width:100%;height:1690px;border:0;border-radius:20px;background:#ecebe7;margin-top:12px}.v3-official-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.v3-official-actions a{border-radius:14px;padding:13px 10px;text-decoration:none;text-align:center;font:650 13px/1 -apple-system,BlinkMacSystemFont,sans-serif}.v3-official-actions .primary{background:#171715;color:#fff}.v3-official-actions .secondary{background:#f1f1ee;color:#171715}.v2-rollback-label{font-size:11px;font-weight:800;letter-spacing:.09em;color:#73716c;margin:2px 4px 10px}.v2-rollback-note{background:#fff7dd;color:#76530a;border-radius:18px;padding:12px 14px;margin:2px 0 12px;font-size:11px;line-height:1.5}.v2-rollback-note strong{display:block;font-size:12px;margin-bottom:3px}@media(max-width:420px){.v3-official-top{display:block}.v3-official-badge{display:inline-block;margin-bottom:8px}.v3-official-actions{grid-template-columns:1fr}.v3-official-frame{height:1630px}}
+</style>`;
+
+const OFFICIAL_MARKUP = `<section class="v3-official" id="v3OfficialStudio"><div class="v3-official-top"><div><p>FORMAT OFFICIEL DE PUBLICATION MANUELLE</p><h2>Carrousel V3 · Page 1 + Page 2</h2><p>Le carrousel V3 devient la référence officielle pour les exports et publications manuelles depuis le Studio. Les Stories actuelles restent inchangées.</p></div><span class="v3-official-badge">V3 OFFICIEL · MANUEL</span></div><div class="v3-official-status"><strong>Bascule officielle contrôlée</strong><p>L’automatisation Instagram reste encore sur le format V2. Le visuel V2 est conservé plus bas comme rollback immédiat en cas de besoin.</p></div><iframe class="v3-official-frame" title="Carrousel V3 officiel" src="/instagram-v3-preview?embed=1&studio=official" loading="eager"></iframe><div class="v3-official-actions"><a class="primary" href="/instagram-v3-preview?studio=official" target="_blank" rel="noopener">Ouvrir / exporter le V3 officiel</a><a class="secondary" href="#v2RollbackPublication">Rollback V2</a></div></section><div class="v2-rollback-label">STORIES ACTUELLES · V2</div>`;
+
+export function enhanceInstagramWithV3OfficialStudio(html: string): string {
+  const styleMarker = "</style><!--LOKA_EDITORIAL_STYLE_MOUNT-->";
+  const storyMarker = '<div class="visual-card"><div class="visual-head"><div class="visual-title">STORY / REEL</div>';
+  const publicationMarker = '<div class="visual-card"><div class="visual-head"><div class="visual-title">PUBLICATION</div>';
+  if (!html.includes(styleMarker)) throw new Error("instagram_v3_official_style_marker_missing");
+  if (!html.includes(storyMarker)) throw new Error("instagram_v3_official_story_marker_missing");
+  if (!html.includes(publicationMarker)) throw new Error("instagram_v3_official_publication_marker_missing");
+  let result = html.replace(styleMarker, `</style>${OFFICIAL_STYLE}<!--LOKA_EDITORIAL_STYLE_MOUNT-->`);
+  result = result.replace(storyMarker, `${OFFICIAL_MARKUP}${storyMarker}`);
+  result = result.replace(publicationMarker, `<div class="v2-rollback-note" id="v2RollbackPublication"><strong>Publication V2 · rollback immédiat</strong>Ce visuel reste disponible pour un retour manuel immédiat et demeure la référence de l’automatisation tant que l’activation automatique du V3 n’est pas validée.</div><div class="visual-card"><div class="visual-head"><div class="visual-title">PUBLICATION V2 · ROLLBACK</div>`);
+  return result;
+}

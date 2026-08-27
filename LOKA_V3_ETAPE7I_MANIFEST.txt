@@ -1,0 +1,44 @@
+LOKA V3 — ETAPE 7I — FORMAT OFFICIEL MANUEL
+
+Pré-requis : Etape 7G déployée et validée.
+
+OBJECTIF
+- Le carrousel V3 Page 1 + Page 2 devient le format officiel de publication MANUELLE dans /instagram.
+- Les Stories V2 restent inchangées.
+- La Publication V2 reste disponible comme ROLLBACK immédiat.
+- L'automatisation Instagram reste sur le format V2 : aucune automatisation V3 n'est activée par ce lot.
+
+FICHIERS A REMPLACER
+- src/index.ts
+- src/ui/instagramCarouselV3Preview.ts
+- src/ui/instagramV3ParallelStudio.ts
+- tests/run-all.ts
+
+FICHIER A AJOUTER
+- tests/instagramV3OfficialStudio.test.ts
+
+FICHIERS A SUPPRIMER
+- Aucun.
+
+SECURITE
+- Aucun changement de pipeline météo.
+- Aucun changement de verdict.ts.
+- Aucun changement D1.
+- Aucun changement publicationGuard.ts.
+- Aucun changement productionSupervisor.ts.
+- Aucun changement wrangler.jsonc.
+- Aucun changement de l'automatisation planifiée.
+- Si analysis V3 est absent, /instagram retombe automatiquement sur le Studio V2 existant.
+
+CERTIFICATION LOCALE
+- npm test : PASS complet.
+- TypeScript npm run typecheck : PASS.
+- Instagram V3 Official Studio : 18/18 contrôles.
+- Scene Engine V2 : 202/202.
+- Stress scènes : 1200/1200.
+- Certification V3 : 15 scénarios / 143 contrôles.
+- Validation visuelle V3 : 15 scénarios / 249 contrôles.
+- Publication V24 : 10/10.
+
+NOTE
+Le dry-run Wrangler n'a pas pu être finalisé dans l'environnement de travail à cause d'un timeout de la commande, après validation TypeScript. Le déploiement Cloudflare réel reste le contrôle final post-GitHub.

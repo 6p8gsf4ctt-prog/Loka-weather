@@ -26,3 +26,5 @@ import "./instagramCarouselV3Scenarios.test";
 
 import "./instagramV3ParallelStudio.test";
 import "./instagramV3PrimaryStudio.test";
+
+import "./instagramV3OfficialStudio.test";
