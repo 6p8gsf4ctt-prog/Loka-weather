@@ -86,8 +86,8 @@ function modeFor(classification: DayClassification, confidence: WeatherConfidenc
 
 function limits(mode: AdaptiveTimeline["mode"]): { target: number; max: number } {
   if (mode === "STABLE") return { target: 5, max: 5 };
-  if (mode === "STANDARD") return { target: 6, max: 7 };
-  if (mode === "EVENT_FOCUSED") return { target: 7, max: 8 };
+  if (mode === "STANDARD") return { target: 6, max: 8 };
+  if (mode === "EVENT_FOCUSED") return { target: 7, max: 9 };
   return { target: 8, max: 9 };
 }
 

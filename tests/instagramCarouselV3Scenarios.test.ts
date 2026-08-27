@@ -108,15 +108,20 @@ for (const [name, shape] of scenarios) {
   ok(html.includes('id="page1" width="1080" height="1350"'), `${name}:page1_geometry`);
   ok(html.includes('id="page2" width="1080" height="1350"'), `${name}:page2_geometry`);
   ok(m.timeline.length >= 5 && m.timeline.length <= 9, `${name}:timeline_density:${m.timeline.length}`);
+  const hours = m.timeline.map((p: any) => p.hour);
+  const maxClockGap = hours.slice(1).reduce((max: number, hour: number, i: number) => Math.max(max, hour - hours[i]), 0);
+  ok(maxClockGap <= 5, `${name}:timeline_clock_gap:${maxClockGap}`);
   const spacing = m.timeline.length <= 1 ? 940 : 940 / (m.timeline.length - 1);
   ok(spacing >= 117.5, `${name}:timeline_spacing:${spacing}`); // 9 points is the densest supported layout.
   ok(estimatedWidth(m.title, 64) <= 960, `${name}:headline_fits:${m.title}`);
   ok(estimatedLines(m.keyTakeaway, 26, 870) <= 2, `${name}:takeaway_2_lines:${m.keyTakeaway}`);
   ok(!m.context || estimatedWidth(m.context, 28) <= 960, `${name}:context_fits:${m.context ?? "none"}`);
   ok(estimatedLines(m.editorial.paragraph1, 32, 920) <= 3, `${name}:paragraph1_3_lines`);
+  ok(!/[☀☁⛅🌤🌥🌦🌧⛈🌩🌫💨❄]/u.test(m.editorial.paragraph1), `${name}:no_emoji_in_page2_summary`);
+  ok(!m.editorial.paragraph1.includes("°C") && !m.editorial.paragraph1.includes(" mm"), `${name}:no_technical_repetition_page2`);
   ok(!m.editorial.paragraph2 || estimatedLines(m.editorial.paragraph2, 24, 920) <= 3, `${name}:paragraph2_3_lines`);
   ok(estimatedLines(m.confidence.detail, 16, 900) <= 2, `${name}:confidence_2_lines`);
-  ok(m.timeline.filter((p: any) => p.importance === "KEY").length <= 2, `${name}:key_points_limited`);
+  ok(m.timeline.filter((p: any) => p.importance === "KEY").length <= 1, `${name}:single_key_point`);
   ok(html.includes("V3 PREVIEW · NON PUBLIÉ"), `${name}:isolated_preview`);
 }
 
