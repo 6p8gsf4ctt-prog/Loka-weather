@@ -222,17 +222,27 @@ export function buildAdaptiveTimeline(
   fillToTarget(selected, day, Math.min(target, max));
   fillLargeGaps(selected, day, max);
 
+  // The visual system deliberately highlights a single key hour. Several events can
+  // remain IMPORTANT, but multiple KEY points would compete for attention in the
+  // Instagram timeline and contradict the editorial hierarchy.
+  const keyCandidate = [...selected.values()]
+    .filter((candidate) => candidate.importance === "KEY")
+    .sort((a, b) => b.priority - a.priority || a.hour - b.hour)[0] ?? null;
+
   const points: TimelinePoint[] = [...selected.values()]
     .sort((a, b) => a.hour - b.hour)
     .map((candidate) => {
       const p = byHour.get(candidate.hour);
       if (!p) throw new Error(`adaptive_timeline_missing_hour:${candidate.hour}`);
+      const importance: TimelinePointImportance = candidate.importance === "KEY" && candidate.hour !== keyCandidate?.hour
+        ? "IMPORTANT"
+        : candidate.importance;
       return {
         hour: candidate.hour,
         temperatureC: Math.round(p.temperatureC),
         condition: conditionForPoint(p),
         precipitationMm: Math.round(p.precipitationMm * 100) / 100,
-        importance: candidate.importance,
+        importance,
         reason: candidate.reason
       };
     });

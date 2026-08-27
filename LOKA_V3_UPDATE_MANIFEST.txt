@@ -1,41 +1,60 @@
-LOKA V3 — Étape 7A — Preview carrousel isolé
+LOKA V3 — MISE À JOUR GITHUB — ÉTAPE 7C CERTIFIÉE
+=================================================
 
-OBJECTIF
-Ajouter une nouvelle route de prévisualisation Page 1 / Page 2 V3 sans modifier le Studio V2 actuel, les Stories, la publication officielle ni le stockage.
+BASE DE RÉFÉRENCE
+- À appliquer après le paquet certifié Étape 6.
+- Ce paquet est CUMULATIF pour les étapes 7A à 7C : il peut être utilisé même si le paquet 7A n'a pas été appliqué séparément.
+- Aucun fichier V2 de rendu officiel n'est remplacé.
+- Aucun fichier n'est à supprimer.
 
-FICHIERS À AJOUTER
-- src/ui/instagramCarouselV3Preview.ts
-- tests/instagramCarouselV3Preview.test.ts
+FICHIERS À AJOUTER (si absents)
+1. src/ui/instagramCarouselV3Preview.ts
+2. tests/instagramCarouselV3Preview.test.ts
+3. tests/instagramCarouselV3Scenarios.test.ts
 
 FICHIERS À REMPLACER
-- src/index.ts
-- tests/run-all.ts
+1. src/index.ts
+2. src/engine/adaptiveTimeline.ts
+3. tests/run-all.ts
 
-FICHIERS À SUPPRIMER
-- aucun
+CE QUE CETTE ÉTAPE AJOUTE
+- Route isolée /instagram-v3-preview (non publiée / noindex).
+- Carrousel V3 Page 1 + Page 2 en 1080 x 1350.
+- Chronologie adaptative 5 à 9 points.
+- Une seule heure visuellement KEY pour préserver la hiérarchie.
+- Ajustement automatique de taille des textes longs dans les zones bornées.
+- Certification automatique de la mise en page sur les 15 scénarios météo du cahier des charges.
 
-NOUVELLE ROUTE
-- /instagram-v3-preview
+SÉCURITÉ PRODUCTION
+- /instagram actuel inchangé.
+- Stories V2 inchangées.
+- publication officielle V2 inchangée.
+- stockage D1 inchangé.
+- moteur 24 scènes inchangé dans son fonctionnement officiel.
+- /instagram-v3-preview reste un laboratoire graphique séparé.
 
-GARANTIES DE CETTE ÉTAPE
-- /instagram reste inchangé
-- Story V2 inchangée
-- Publication V2 inchangée
-- aucune migration D1
-- aucune modification des 24 scènes
-- aucune modification des moteurs V2/V3
-- le preview utilise uniquement payload.analysis lorsque disponible
-
-VALIDATION LOCALE
-- TypeScript application : PASS
-- Suite de tests complète : PASS
-- V3 15 scénarios : 143 contrôles PASS
+CERTIFICATION EFFECTUÉE
+- DayClassification : 21 checks PASS
+- WeatherConfidence : 11 checks PASS
+- AdaptiveTimeline : 9 checks PASS
+- EditorialSignals : 11 checks PASS
+- Analysis V3 integration : 9 checks PASS
+- Certification V3 : 15 scénarios / 143 checks PASS
 - Scene Engine V2 : 202/202 PASS
-- Stress scènes : 1200/1200 PASS
-- Editorial Engine V2 : 216/216 PASS
-- Tests historiques Instagram : PASS
-- Nouveau preview V3 : 8/8 PASS
+- Editorial Engine V2 : 216/216 PASS (2602 invariants)
+- Scene stress : 1200/1200 PASS, 24 scènes atteintes
+- Instagram V2 architecture/layout/editorial/brand/logo : PASS
+- Preview V3 : 8 checks PASS
+- Certification visuelle V3 : 15 scénarios / 204 checks PASS
+- Publication V24 : 10/10 PASS
+
+CORRECTIONS ISSUES DE LA CERTIFICATION 7C
+1. Les textes éditoriaux trop longs sont réduits automatiquement dans une plage typographique contrôlée au lieu d'être coupés ou de déborder.
+2. « À retenir » reste limité à deux lignes visuelles.
+3. La chronologie ne met plus plusieurs heures en emphase KEY : une seule heure principale est accentuée, les autres restent IMPORTANT.
 
 APRÈS DÉPLOIEMENT
-Ouvrir : https://loka-weather.jpbm62n289.workers.dev/instagram-v3-preview
-Le nouveau preview doit apparaître sans changement sur /instagram.
+Vérifier :
+- /instagram fonctionne toujours comme avant.
+- /instagram-v3-preview affiche bien les deux pages.
+- build Cloudflare = Success.
