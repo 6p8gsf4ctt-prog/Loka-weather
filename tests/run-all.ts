@@ -23,3 +23,5 @@ import "./sceneDisplayTitles";
 import "./instagramLogoRuntimeV4";
 import "./instagramCarouselV3Preview.test";
 import "./instagramCarouselV3Scenarios.test";
+
+import "./instagramV3ParallelStudio.test";

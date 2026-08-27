@@ -1,40 +1,46 @@
-LOKA V3 — Mise à jour GitHub — Étape 7D certifiée
+LOKA V3 — Étape 7E — Studio parallèle
 
-BASE REQUISE
-- Étape 7C déjà installée.
+PRÉREQUIS
+- Étape 7D certifiée déjà installée.
 
 FICHIERS À AJOUTER
-- Aucun.
+- src/ui/instagramV3ParallelStudio.ts
+- tests/instagramV3ParallelStudio.test.ts
 
 FICHIERS À REMPLACER
-- src/engine/adaptiveTimeline.ts
+- src/index.ts
 - src/ui/instagramCarouselV3Preview.ts
-- tests/instagramCarouselV3Preview.test.ts
-- tests/instagramCarouselV3Scenarios.test.ts
+- tests/run-all.ts
 
 FICHIERS À SUPPRIMER
-- Aucun.
+- Aucun
 
-OBJET
-- Validation réelle du rendu 1080x1350 Page 1 / Page 2 dans Chromium.
-- Page 2 utilise désormais un résumé V3 déterministe, sans emoji ni répétition technique des données V2.
-- Repositionnement du moment clé, du module solaire et de la confiance pour améliorer la respiration verticale.
-- Chronologie adaptative autorisée jusqu'à 9 points pour les journées événementielles et jusqu'à 8 points pour les évolutions standards lorsque cela évite de grands trous temporels.
-- Une seule heure KEY visuellement.
-- Contrôle ajouté sur les écarts horaires de la chronologie et les textes Page 2.
+EFFET PRODUIT
+- /instagram reste le Studio officiel V2.
+- Ajout dans /instagram d'un bloc V3 parallèle isolé, sous la publication V2.
+- Le bloc charge /instagram-v3-preview?embed=1 dans une iframe same-origin.
+- Page 1 et Page 2 V3 peuvent être exportées manuellement séparément ou ensemble.
+- Aucun bouton V3 ne publie automatiquement sur Instagram.
+- Aucun changement D1.
+- Aucun changement du moteur de scènes V2.
+- Aucun changement des Stories V2.
+
+VALIDATION LOCALE
+- TypeScript Worker: PASS
+- DayClassification: 21 checks PASS
+- WeatherConfidence: 11 PASS
+- AdaptiveTimeline: 9 PASS
+- EditorialSignals: 11 PASS
+- Analysis V3 integration: 9 PASS
+- Certification V3 15 scénarios: 143 checks PASS
+- Scene Engine V2: 202/202 PASS
+- Stress scènes: 1200/1200 PASS
+- Editorial Engine V2: 216/216 PASS
+- Instagram Carousel V3 Preview: 11 PASS
+- Instagram Carousel V3 Scenarios: 249 visual-layout checks PASS
+- Studio V3 parallèle: 10/10 PASS
+- Publication V24: 10/10 PASS
 
 SÉCURITÉ
-- Aucun changement du rendu officiel V2 /instagram.
-- Aucun changement D1.
-- Aucun changement du moteur 24 scènes V2.
-- Le preview V3 reste isolé sur /instagram-v3-preview.
-
-VALIDATION
-- 15 scénarios météo V3 : PASS.
-- Certification V3 : 143 contrôles PASS.
-- Scènes V2 : 202/202 PASS.
-- Stress scènes : 1200/1200 PASS.
-- Editorial V2 : 216/216 PASS (2602 invariants).
-- Preview V3 : 11 contrôles PASS.
-- Certification visuelle V3 : 15 scénarios, 249 contrôles PASS.
-- Publication V24 : 10/10 PASS.
+- Le V2 reste la référence officielle.
+- Le V3 est uniquement preview/export manuel à cette étape.
