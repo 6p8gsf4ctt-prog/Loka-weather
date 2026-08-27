@@ -1,10 +1,12 @@
 import { CITIES, getCity } from "./config/cities";
 import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
+import { buildInstagramV3ShadowPlan } from "./engine/instagramV3Shadow";
 import { localDate, runManualCity, runScheduledCity } from "./pipeline";
 import { generationHistory, officialForDate, officialHistory } from "./storage/db";
 import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySceneLedger";
 import { editorialFeedbackForOfficial, saveEditorialFeedback } from "./storage/editorialFeedback";
+import { recentInstagramV3ShadowAudits, recordInstagramV3ShadowAudit } from "./storage/instagramV3Shadow";
 import { buildEditorialLearningExport } from "./storage/editorialFeedbackExport";
 import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
@@ -257,6 +259,35 @@ export default {
             "cache-control": "no-store"
           }
         });
+      } catch (error) {
+        return json({ error: error instanceof Error ? error.message : String(error) }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/instagram/v3-shadow" && request.method === "GET") {
+      if (!isAuthorized(request, env)) return unauthorized();
+      const slug = url.searchParams.get("city") || "tarnos";
+      if (!getCity(slug)) return json({ error: "unknown_city" }, 404);
+      try {
+        return json({
+          mode: "DRY_RUN",
+          realInstagramPublicationAllowed: false,
+          audits: await recentInstagramV3ShadowAudits(env.DB, slug, Number(url.searchParams.get("limit") || 14))
+        });
+      } catch (error) {
+        return json({ error: error instanceof Error ? error.message : String(error) }, 500);
+      }
+    }
+    if (url.pathname === "/api/admin/instagram/v3-shadow/run" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+      const slug = url.searchParams.get("city") || "tarnos";
+      const result = await safeToday(env, slug);
+      if (!result) return json({ error: "unknown_city" }, 404);
+      if (result.surface.engine === "UNAVAILABLE") return json({ error: result.surface.reason }, 503);
+      try {
+        const plan = await buildInstagramV3ShadowPlan(result.surface.payload, null, "MANUAL_ADMIN");
+        await recordInstagramV3ShadowAudit(env.DB, plan);
+        return json({ ok: plan.status === "DRY_RUN_READY", plan });
       } catch (error) {
         return json({ error: error instanceof Error ? error.message : String(error) }, 500);
       }
