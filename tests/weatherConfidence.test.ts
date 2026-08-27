@@ -85,4 +85,25 @@ function ok(value: boolean, label: string): void { if (!value) throw new Error(`
   ok(c.mainUncertainty === "WIND_INTENSITY", "wind_main_uncertainty");
 }
 
+
+{
+  const variableModels: ModelForecast[] = weights.map(([modelId, family, weight]) => {
+    const hourly: HourPoint[] = [];
+    for (let h = 0; h <= 23; h++) {
+      const cloud = h <= 8 ? 12 : h <= 11 ? 90 : h <= 14 ? 28 : h <= 17 ? 92 : h <= 19 ? 35 : 88;
+      const temp = 17 + Math.max(0, 1 - Math.abs(h - 14) / 10) * 3;
+      hourly.push({
+        time: `${date}T${String(h).padStart(2, "0")}:00`, temperatureC: temp, apparentTemperatureC: temp,
+        precipitationMm: 0, rainMm: 0, cloudCoverPct: cloud, cloudCoverLowPct: cloud,
+        cloudCoverMidPct: cloud, cloudCoverHighPct: cloud, windSpeedKmh: 15, windGustKmh: 25,
+        weatherCode: cloud >= 85 ? 3 : cloud >= 50 ? 2 : cloud >= 20 ? 1 : 0
+      });
+    }
+    return { modelId, family, weight, fetchedAt: new Date().toISOString(), latitude: 43.54, longitude: -1.46, hourly };
+  });
+  const c = buildWeatherConfidence(CITIES.tarnos, date, variableModels, classification("MIXED"));
+  ok(c.level === "STABLE", "mixed_variable_identical_models_stable");
+  ok(c.agreements.scenario >= 95, "mixed_variable_scenario_high");
+}
+
 console.log(`weatherConfidence: ${passed} checks passed`);

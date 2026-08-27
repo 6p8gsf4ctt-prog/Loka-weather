@@ -126,7 +126,7 @@ function scenarioSupport(city: CityConfig, dominant: DominantPhenomenon, signals
     case "SKY_IMPROVEMENT": return weightedSupport(signals, (s) => s.cloudTrend <= -15);
     case "SUN": return weightedSupport(signals, (s) => s.brightFraction >= 0.60);
     case "CLOUD": return weightedSupport(signals, (s) => s.cloudHeavyFraction >= 0.50 || s.meanCloudPct >= 70);
-    case "MIXED": return weightedSupport(signals, (s) => s.brightFraction < 0.60 && s.cloudHeavyFraction < 0.50);
+    case "MIXED": return weightedSupport(signals, (s) => s.brightFraction < 0.60 && s.cloudHeavyFraction < 0.55 && s.meanCloudPct < 70);
   }
 }
 
