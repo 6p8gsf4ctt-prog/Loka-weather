@@ -34,11 +34,11 @@ export interface InstagramV3ShadowPage {
   height: 1350;
   mimeType: "image/png";
   browserRenderSource: string;
-  canvasId: "v3Page1" | "v3Page2";
+  canvasId: "page1" | "page2";
 }
 
 export interface InstagramV3ShadowPlan {
-  version: "7K.1";
+  version: "7K.1" | "7L.1";
   mode: "DRY_RUN";
   status: InstagramV3ShadowStatus;
   citySlug: string;
@@ -62,7 +62,29 @@ export interface InstagramV3ShadowPlan {
     hardStopStage: "META_MEDIA_PUBLISH";
     realInstagramSideEffectsAllowed: false;
   };
+  render?: InstagramV3ShadowRenderEvidence;
   fingerprintSha256: string;
+}
+
+export interface InstagramV3ShadowRenderAssetEvidence {
+  position: 1 | 2;
+  objectKey: string;
+  publicPath: string;
+  publicUrl: string;
+  width: number;
+  height: number;
+  mimeType: string;
+  byteLength: number;
+  sha256: string;
+  expiresAt: string;
+}
+
+export interface InstagramV3ShadowRenderEvidence {
+  version: "7L.1";
+  status: "RENDERED" | "BLOCKED";
+  renderedAt: string;
+  assets: InstagramV3ShadowRenderAssetEvidence[];
+  detail: string;
 }
 
 function check(name: string, pass: boolean, detail: string): InstagramV3ShadowCheck {
@@ -76,8 +98,8 @@ function page(position: 1 | 2): InstagramV3ShadowPage {
     width: 1080,
     height: 1350,
     mimeType: "image/png",
-    browserRenderSource: "/instagram-v3-preview?embed=1&studio=official&automation=shadow",
-    canvasId: position === 1 ? "v3Page1" : "v3Page2"
+    browserRenderSource: `/instagram-v3-preview?embed=1&studio=official&automation=render&page=${position}`,
+    canvasId: position === 1 ? "page1" : "page2"
   };
 }
 
@@ -110,8 +132,8 @@ export async function buildInstagramV3ShadowPlan(
     { id: "V3_ANALYSIS", status: checks[1].pass ? "PASS" : "BLOCKED", detail: checks[1].detail },
     { id: "PUBLICATION_GUARD", status: checks[2].pass ? "PASS" : "BLOCKED", detail: checks[2].detail },
     { id: "CAROUSEL_CONTRACT", status: ready ? "PASS" : "BLOCKED", detail: ready ? "2 pages · 1080x1350 · PNG" : "preflight_blocked" },
-    { id: "PNG_RENDER_PAGE_1", status: ready ? "WOULD_RUN" : "BLOCKED", detail: ready ? "browser render v3Page1" : "preflight_blocked" },
-    { id: "PNG_RENDER_PAGE_2", status: ready ? "WOULD_RUN" : "BLOCKED", detail: ready ? "browser render v3Page2" : "preflight_blocked" },
+    { id: "PNG_RENDER_PAGE_1", status: ready ? "WOULD_RUN" : "BLOCKED", detail: ready ? "browser render #page1" : "preflight_blocked" },
+    { id: "PNG_RENDER_PAGE_2", status: ready ? "WOULD_RUN" : "BLOCKED", detail: ready ? "browser render #page2" : "preflight_blocked" },
     { id: "META_CREATE_CHILD_1", status: ready ? "WOULD_RUN" : "BLOCKED", detail: ready ? "simulated only · no HTTP" : "preflight_blocked" },
     { id: "META_CREATE_CHILD_2", status: ready ? "WOULD_RUN" : "BLOCKED", detail: ready ? "simulated only · no HTTP" : "preflight_blocked" },
     { id: "META_CREATE_CAROUSEL", status: ready ? "WOULD_RUN" : "BLOCKED", detail: ready ? "simulated only · no HTTP" : "preflight_blocked" },
@@ -148,5 +170,51 @@ export async function buildInstagramV3ShadowPlan(
   return {
     ...base,
     fingerprintSha256: await sha256Hex(canonicalJson(base))
+  };
+}
+
+export async function finalizeInstagramV3ShadowPlanWithRender(
+  plan: InstagramV3ShadowPlan,
+  render: InstagramV3ShadowRenderEvidence
+): Promise<InstagramV3ShadowPlan> {
+  const rendered = render.status === "RENDERED"
+    && render.assets.length === 2
+    && render.assets.every((asset) => asset.width === 1080 && asset.height === 1350 && asset.mimeType === "image/png" && asset.byteLength > 24);
+
+  const checks = [
+    ...plan.checks,
+    check("real_png_page_1", rendered && render.assets.some((asset) => asset.position === 1), rendered ? "1080x1350 stored in R2" : render.detail),
+    check("real_png_page_2", rendered && render.assets.some((asset) => asset.position === 2), rendered ? "1080x1350 stored in R2" : render.detail),
+    check("temporary_public_urls", rendered && render.assets.every((asset) => /^https:\/\//.test(asset.publicUrl)), rendered ? "2 temporary HTTPS media URLs" : render.detail)
+  ];
+
+  const stages = plan.stages.map((stage): InstagramV3ShadowStage => {
+    if (stage.id === "PNG_RENDER_PAGE_1") return { ...stage, status: rendered ? "PASS" : "BLOCKED", detail: rendered ? "real PNG rendered · R2 stored" : render.detail };
+    if (stage.id === "PNG_RENDER_PAGE_2") return { ...stage, status: rendered ? "PASS" : "BLOCKED", detail: rendered ? "real PNG rendered · R2 stored" : render.detail };
+    if (stage.id === "META_CREATE_CHILD_1" || stage.id === "META_CREATE_CHILD_2" || stage.id === "META_CREATE_CAROUSEL") {
+      return { ...stage, status: rendered ? "WOULD_RUN" : "BLOCKED", detail: rendered ? "real PNG URL ready · Meta HTTP still simulated" : "png_render_blocked" };
+    }
+    if (stage.id === "META_MEDIA_PUBLISH") return { ...stage, status: "BLOCKED", detail: "7L hard stop · Instagram publication forbidden" };
+    return stage;
+  });
+
+  const base = {
+    ...plan,
+    version: "7L.1" as const,
+    status: rendered ? "DRY_RUN_READY" as const : "BLOCKED" as const,
+    checks,
+    stages,
+    render,
+    safety: {
+      publishAttempted: false as const,
+      outboundMetaRequests: 0 as const,
+      hardStopStage: "META_MEDIA_PUBLISH" as const,
+      realInstagramSideEffectsAllowed: false as const
+    }
+  };
+  const { fingerprintSha256: _oldFingerprint, ...fingerprintSource } = base;
+  return {
+    ...base,
+    fingerprintSha256: await sha256Hex(canonicalJson(fingerprintSource))
   };
 }

@@ -1,7 +1,8 @@
 import { CITIES, getCity } from "./config/cities";
 import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
-import { buildInstagramV3ShadowPlan } from "./engine/instagramV3Shadow";
+import { renderInstagramV3Assets, serveInstagramV3Asset } from "./automation/instagramV3Renderer";
+import { buildInstagramV3ShadowPlan, finalizeInstagramV3ShadowPlanWithRender } from "./engine/instagramV3Shadow";
 import { localDate, runManualCity, runScheduledCity } from "./pipeline";
 import { generationHistory, officialForDate, officialHistory } from "./storage/db";
 import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySceneLedger";
@@ -56,6 +57,7 @@ async function masterAvailable(request: Request, env: Env, path: string): Promis
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname.startsWith("/media/instagram-v3/")) return serveInstagramV3Asset(env, url.pathname);
     if (url.pathname === "/api/health") return json({ ok: true, engine: "V24", version: "2.0.0", models: MODELS.map((m) => m.id), sceneCount: 24 });
 
     if (url.pathname === "/api/latest") {
@@ -285,9 +287,11 @@ export default {
       if (!result) return json({ error: "unknown_city" }, 404);
       if (result.surface.engine === "UNAVAILABLE") return json({ error: result.surface.reason }, 503);
       try {
-        const plan = await buildInstagramV3ShadowPlan(result.surface.payload, null, "MANUAL_ADMIN");
+        const shadow = await buildInstagramV3ShadowPlan(result.surface.payload, null, "MANUAL_ADMIN");
+        const render = await renderInstagramV3Assets(env, result.surface.payload, shadow);
+        const plan = await finalizeInstagramV3ShadowPlanWithRender(shadow, render);
         await recordInstagramV3ShadowAudit(env.DB, plan);
-        return json({ ok: plan.status === "DRY_RUN_READY", plan });
+        return json({ ok: plan.status === "DRY_RUN_READY", renderStatus: render.status, plan });
       } catch (error) {
         return json({ error: error instanceof Error ? error.message : String(error) }, 500);
       }
@@ -318,7 +322,14 @@ export default {
       if (!result) return unavailable("unknown_city");
       if (result.surface.engine === "UNAVAILABLE") return unavailable(result.surface.reason);
       if (!await masterAvailable(request, env, result.surface.payload.scene.masterUrl)) return unavailable("master_graphic_unavailable");
-      return new Response(renderInstagramCarouselV3Preview(result.surface.payload, result.city, { embedded: url.searchParams.get("embed") === "1", studioPrimary: url.searchParams.get("studio") === "primary", studioOfficial: url.searchParams.get("studio") === "official" }), {
+      const requestedPage = url.searchParams.get("page") === "2" ? 2 : 1;
+      return new Response(renderInstagramCarouselV3Preview(result.surface.payload, result.city, {
+        embedded: url.searchParams.get("embed") === "1",
+        studioPrimary: url.searchParams.get("studio") === "primary",
+        studioOfficial: url.searchParams.get("studio") === "official",
+        automationRender: url.searchParams.get("automation") === "render",
+        automationPage: requestedPage
+      }), {
         headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
       });
     }

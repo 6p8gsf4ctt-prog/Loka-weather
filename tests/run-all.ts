@@ -30,3 +30,5 @@ import "./instagramV3PrimaryStudio.test";
 import "./instagramV3OfficialStudio.test";
 
 import "./instagramV3Shadow.test";
+
+import "./instagramV3Render.test";

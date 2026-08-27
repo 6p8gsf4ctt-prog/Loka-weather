@@ -1,6 +1,36 @@
+export interface BrowserRunScreenshotOptions {
+  url: string;
+  selector?: string;
+  viewport?: { width: number; height: number; deviceScaleFactor?: number };
+  gotoOptions?: { waitUntil?: string; timeout?: number };
+  waitForSelector?: string;
+}
+
+export interface BrowserRunBinding {
+  quickAction(action: "screenshot", options: BrowserRunScreenshotOptions): Promise<Response>;
+}
+
+export interface R2ObjectBodyLike {
+  body: ReadableStream<Uint8Array> | null;
+  customMetadata?: Record<string, string>;
+  httpEtag: string;
+  writeHttpMetadata(headers: Headers): void;
+}
+
+export interface R2BucketLike {
+  put(key: string, value: ArrayBuffer, options?: {
+    httpMetadata?: { contentType?: string; cacheControl?: string };
+    customMetadata?: Record<string, string>;
+  }): Promise<unknown>;
+  get(key: string): Promise<R2ObjectBodyLike | null>;
+}
+
 export interface Env {
   DB: D1Database;
   ASSETS?: Fetcher;
+  BROWSER?: BrowserRunBinding;
+  INSTAGRAM_MEDIA?: R2BucketLike;
+  PUBLIC_BASE_URL?: string;
   OPEN_METEO_BASE_URL?: string;
   OPEN_METEO_API_KEY?: string;
   ADMIN_TOKEN?: string;

@@ -52,9 +52,9 @@ function ok(value: boolean, label: string): void {
   ok(plan.status === "DRY_RUN_READY", "ready");
   ok(plan.pageCount === 2 && plan.pages.length === 2, "two_pages");
   ok(plan.pages.every((p) => p.width === 1080 && p.height === 1350 && p.mimeType === "image/png"), "instagram_dimensions");
-  ok(plan.pages[0].canvasId === "v3Page1" && plan.pages[1].canvasId === "v3Page2", "canvas_contract");
+  ok(plan.pages[0].canvasId === "page1" && plan.pages[1].canvasId === "page2", "canvas_contract");
   ok(plan.checks.every((c) => c.pass), "all_preflight_checks_pass");
-  ok(plan.stages.some((s) => s.id === "PNG_RENDER_PAGE_1" && s.status === "WOULD_RUN"), "page1_render_simulated");
+  ok(plan.stages.some((s) => s.id === "PNG_RENDER_PAGE_1" && s.status === "WOULD_RUN"), "page1_render_planned");
   ok(plan.stages.some((s) => s.id === "META_CREATE_CHILD_1" && s.status === "WOULD_RUN"), "meta_child_simulated");
   ok(plan.stages.some((s) => s.id === "META_CREATE_CAROUSEL" && s.status === "WOULD_RUN"), "meta_carousel_simulated");
   ok(plan.stages.some((s) => s.id === "META_MEDIA_PUBLISH" && s.status === "BLOCKED"), "publish_hard_stop");
