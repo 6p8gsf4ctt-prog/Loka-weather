@@ -1,0 +1,37 @@
+LOKA V3 — Étape 7L.1 — Accès simple aux PNG dans le Studio
+
+PRÉREQUIS
+- Étape 7L-KV installée.
+- Migration D1 0018 déjà appliquée.
+- Workers KV utilisé pour les PNG temporaires.
+
+FICHIERS À REMPLACER
+1. src/ui/instagramV3ParallelStudio.ts
+   - Ajoute dans /instagram la zone « IMAGES V3 GÉNÉRÉES AUTOMATIQUEMENT ».
+   - Bouton « Voir PNG Page 1 ».
+   - Bouton « Voir PNG Page 2 ».
+   - Bouton « Générer / actualiser les PNG ».
+   - Réutilise le mot de passe administrateur mémorisé sur l'appareil.
+   - Si nécessaire, demande ADMIN_TOKEN directement dans le Studio.
+   - Lit le dernier dry-run V3 existant et active automatiquement les liens.
+   - Aucun appel Meta / aucune publication Instagram.
+
+2. tests/instagramV3OfficialStudio.test.ts
+   - Ajoute les contrôles de présence et de sécurité du panneau PNG.
+
+FICHIERS À AJOUTER
+- Aucun.
+
+FICHIERS À SUPPRIMER
+- Aucun.
+
+UTILISATION APRÈS DÉPLOIEMENT
+1. Ouvrir /instagram.
+2. Dans « IMAGES V3 GÉNÉRÉES AUTOMATIQUEMENT », cliquer « Générer / actualiser les PNG ».
+3. Si demandé, saisir ADMIN_TOKEN une seule fois.
+4. Cliquer « Voir PNG Page 1 » ou « Voir PNG Page 2 ».
+
+SÉCURITÉ
+- MEDIA_PUBLISH reste bloqué.
+- Aucune requête Meta n'est déclenchée par ce panneau.
+- V2 et rollback V2 restent inchangés.
