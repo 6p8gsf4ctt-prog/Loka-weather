@@ -1,0 +1,31 @@
+LOKA V3 — ETAPE 7L.2 — ZONE IMAGES TOUJOURS VISIBLE
+
+OBJECTIF
+Rendre l'accès aux PNG V3 visible sur /instagram indépendamment de payload.analysis et indépendamment de la présence du panneau 7L.1 dans le bloc V3 officiel.
+
+FICHIERS A AJOUTER
+- src/ui/instagramV3MediaAccess.ts
+- tests/instagramV3MediaAccess.test.ts
+
+FICHIERS A REMPLACER
+- src/index.ts
+- tests/run-all.ts
+
+FICHIERS A SUPPRIMER
+- aucun
+
+COMPORTEMENT
+- si le panneau 7L.1 existe déjà : aucun doublon n'est créé ;
+- s'il n'existe pas : un panneau autonome est injecté avant STORY / REEL ;
+- boutons Voir PNG Page 1 / Page 2 ;
+- bouton Générer / actualiser les PNG ;
+- ADMIN_TOKEN réutilisé depuis le Studio ;
+- aucune publication Instagram ; mode Shadow conservé.
+
+VALIDATION
+- npm test : PASS
+- npm run typecheck : PASS
+- scènes V2 : 202/202
+- stress : 1200/1200
+- validation visuelle V3 : 249 contrôles
+- instagramV3MediaAccess : 8/8

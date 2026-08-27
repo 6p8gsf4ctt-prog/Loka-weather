@@ -28,6 +28,7 @@ import "./instagramV3ParallelStudio.test";
 import "./instagramV3PrimaryStudio.test";
 
 import "./instagramV3OfficialStudio.test";
+import "./instagramV3MediaAccess.test";
 
 import "./instagramV3Shadow.test";
 

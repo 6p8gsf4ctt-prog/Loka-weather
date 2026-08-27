@@ -18,6 +18,7 @@ import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExpo
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramCarouselV3Preview } from "./ui/instagramCarouselV3Preview";
 import { enhanceInstagramWithV3OfficialStudio } from "./ui/instagramV3ParallelStudio";
+import { enhanceInstagramWithV3MediaAccess } from "./ui/instagramV3MediaAccess";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
 
@@ -345,7 +346,8 @@ export default {
       if (!await masterAvailable(request, env, result.surface.payload.scene.masterUrl)) return unavailable("master_graphic_unavailable");
       const instagramHtml = renderInstagramOfficial24(result.surface.payload, result.city);
       const studioHtml = result.surface.payload.analysis ? enhanceInstagramWithV3OfficialStudio(instagramHtml) : instagramHtml;
-      const editorialHtml = enhanceInstagramWithEditorialStudio(studioHtml);
+      const mediaHtml = enhanceInstagramWithV3MediaAccess(studioHtml);
+      const editorialHtml = enhanceInstagramWithEditorialStudio(mediaHtml);
       const persistentHtml = enhanceInstagramWithEditorialPersistence(editorialHtml, result.city.slug);
       const exportHtml = enhanceInstagramWithEditorialExport(persistentHtml, result.city.slug);
       return new Response(exportHtml, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
