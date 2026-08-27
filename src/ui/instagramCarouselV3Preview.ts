@@ -142,7 +142,7 @@ function daylightLabel(minutes: number | null): string {
   return `${h} h ${String(m).padStart(2, "0")} de lumière`;
 }
 
-export function renderInstagramCarouselV3Preview(payload: OfficialPublicPayloadV24, city: CityConfig, options: { embedded?: boolean; studioPrimary?: boolean; studioOfficial?: boolean; automationRender?: boolean; automationPage?: 1 | 2 } = {}): string {
+export function renderInstagramCarouselV3Preview(payload: OfficialPublicPayloadV24, city: CityConfig, options: { embedded?: boolean; studioPrimary?: boolean; studioOfficial?: boolean; automationRender?: boolean; automationPage?: 1 | 2; automationAssetOrigin?: string } = {}): string {
   if (!payload.analysis) {
     return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>LOKA — Carrousel V3 indisponible</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;background:#ecebe7;color:#171715;padding:24px}.box{max-width:560px;margin:auto;background:#fff;padding:24px;border-radius:24px}a{color:#171715}</style></head><body><div class="box"><strong>Carrousel V3 indisponible</strong><p>Cette génération ne contient pas encore d’analyse V3. Le Studio V2 reste inchangé.</p><a href="/instagram">Retour au Studio Instagram</a></div></body></html>`;
   }
@@ -152,6 +152,8 @@ export function renderInstagramCarouselV3Preview(payload: OfficialPublicPayloadV
   const studioOfficial = options.studioOfficial === true;
   const automationRender = options.automationRender === true;
   const automationPage = options.automationPage === 2 ? 2 : 1;
+  const automationAssetOrigin = options.automationAssetOrigin ? new URL(options.automationAssetOrigin).origin : null;
+  const assetUrl = (path: string): string => automationRender && automationAssetOrigin ? new URL(path, `${automationAssetOrigin}/`).toString() : path;
   const solar = solarPresentation(city, payload.date);
   const analysis = payload.analysis;
   const timeline = analysis.timeline.points.map((point) => ({
@@ -163,8 +165,8 @@ export function renderInstagramCarouselV3Preview(payload: OfficialPublicPayloadV
     city: payload.city,
     date: payload.date,
     timezone: city.timezone,
-    masterUrl: payload.scene.masterUrl,
-    logoUrl: "/masters24/brand/loka-logo-v2.png",
+    masterUrl: assetUrl(payload.scene.masterUrl),
+    logoUrl: assetUrl("/masters24/brand/loka-logo-v2.png"),
     title: scene24DisplayTitle(payload.scene.id),
     temperatures: payload.temperatures,
     timeline,

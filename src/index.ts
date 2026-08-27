@@ -2,6 +2,7 @@ import { CITIES, getCity } from "./config/cities";
 import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
 import { renderInstagramV3Assets, serveInstagramV3Asset } from "./automation/instagramV3Renderer";
+import { resolveInstagramV3RenderSource } from "./automation/instagramV3RenderSource";
 import { buildInstagramV3ShadowPlan, finalizeInstagramV3ShadowPlanWithRender } from "./engine/instagramV3Shadow";
 import { localDate, runManualCity, runScheduledCity } from "./pipeline";
 import { generationHistory, officialForDate, officialHistory } from "./storage/db";
@@ -46,6 +47,7 @@ async function safeToday(env: Env, citySlug: string) {
   const surface = await resolvePublicSurfaceSafely(stored?.payload ?? null, stored?.manifest ?? null);
   return { city, date, surface };
 }
+
 async function masterAvailable(request: Request, env: Env, path: string): Promise<boolean> {
   if (!env.ASSETS) return true;
   try {
@@ -288,11 +290,18 @@ export default {
       if (!result) return json({ error: "unknown_city" }, 404);
       if (result.surface.engine === "UNAVAILABLE") return json({ error: result.surface.reason }, 503);
       try {
-        const shadow = await buildInstagramV3ShadowPlan(result.surface.payload, null, "MANUAL_ADMIN");
-        const render = await renderInstagramV3Assets(env, result.surface.payload, shadow);
+        const renderSource = await resolveInstagramV3RenderSource(result.surface.payload, {
+          loadHistory: () => generationHistory(env.DB, slug, 30),
+          generateFresh: async () => {
+            const generated = await runManualCity(env, result.city);
+            return { payload: generated.payload, generationId: generated.generationId };
+          }
+        });
+        const shadow = await buildInstagramV3ShadowPlan(renderSource.payload, renderSource.generationId, "MANUAL_ADMIN");
+        const render = await renderInstagramV3Assets(env, renderSource.payload, shadow);
         const plan = await finalizeInstagramV3ShadowPlanWithRender(shadow, render);
         await recordInstagramV3ShadowAudit(env.DB, plan);
-        return json({ ok: plan.status === "DRY_RUN_READY", renderStatus: render.status, plan });
+        return json({ ok: plan.status === "DRY_RUN_READY", renderStatus: render.status, renderSource: renderSource.source, plan });
       } catch (error) {
         return json({ error: error instanceof Error ? error.message : String(error) }, 500);
       }

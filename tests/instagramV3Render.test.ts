@@ -71,9 +71,13 @@ function ok(value: boolean, label: string): void { if (!value) throw new Error(`
         browserCalls++;
         ok(action === "screenshot", `browser_action_${browserCalls}`);
         ok(options.selector === (browserCalls === 1 ? "#page1" : "#page2"), `browser_selector_${browserCalls}`);
+        ok(typeof options.html === "string" && options.html.includes("dataset.renderReady"), `browser_uses_direct_html_${browserCalls}`);
+        ok(options.url === undefined, `browser_does_not_reload_public_preview_${browserCalls}`);
+        ok(options.gotoOptions === undefined, `browser_avoids_networkidle_${browserCalls}`);
+        ok(options.html.includes("https://loka-weather.example.test/masters24/"), `browser_absolute_static_assets_${browserCalls}`);
         ok(typeof options.waitForSelector === "object", `browser_wait_shape_${browserCalls}`);
         ok(options.waitForSelector?.selector?.includes("data-render-ready") === true, `browser_wait_ready_${browserCalls}`);
-        ok(options.waitForSelector?.visible === true && options.waitForSelector?.timeout === 60000, `browser_wait_options_${browserCalls}`);
+        ok(options.waitForSelector?.visible === true && options.waitForSelector?.timeout === 20000, `browser_wait_options_${browserCalls}`);
         return new Response(fakePng(), { status: 200, headers: { "content-type": "image/png" } });
       }
     }
@@ -100,8 +104,9 @@ function ok(value: boolean, label: string): void { if (!value) throw new Error(`
   ok(finalized.stages.find((s) => s.id === "META_MEDIA_PUBLISH")?.status === "BLOCKED", "publish_still_blocked");
   ok(finalized.safety.publishAttempted === false && finalized.safety.outboundMetaRequests === 0, "zero_meta_side_effects");
 
-  const html = renderInstagramCarouselV3Preview(payload, CITIES.tarnos, { embedded: true, studioOfficial: true, automationRender: true, automationPage: 2 });
+  const html = renderInstagramCarouselV3Preview(payload, CITIES.tarnos, { embedded: true, studioOfficial: true, automationRender: true, automationPage: 2, automationAssetOrigin: "https://loka-weather.example.test" });
   ok(html.includes('.visual[data-page="2"]'), "automation_page_css");
+  ok(html.includes("https://loka-weather.example.test/masters24/") && !html.includes('masterUrl":"/masters24/'), "automation_static_assets_absolute");
   ok(html.includes('p1.dataset.renderReady="1"') && html.includes('p2.dataset.renderReady="1"'), "canvas_ready_markers");
   ok(html.includes('width:1080px!important;height:1350px!important'), "automation_exact_canvas_css");
 
@@ -134,6 +139,28 @@ function ok(value: boolean, label: string): void { if (!value) throw new Error(`
 
   const missingBindings = await renderInstagramV3Assets({ DB: {} as any }, payload, plan);
   ok(missingBindings.status === "BLOCKED" && missingBindings.assets.length === 0, "missing_bindings_non_throwing_block");
+
+  let legacyBrowserCalls = 0;
+  const legacyPayload = { ...payload, analysis: undefined };
+  const legacyRender = await renderInstagramV3Assets({
+    DB: {} as any,
+    PUBLIC_BASE_URL: "https://loka-weather.example.test",
+    INSTAGRAM_MEDIA: new MemoryKv(),
+    BROWSER: { async quickAction(): Promise<Response> { legacyBrowserCalls++; return new Response(fakePng(), { status: 200 }); } }
+  }, legacyPayload, plan);
+  ok(legacyRender.status === "BLOCKED" && legacyRender.detail === "v3_analysis_missing_for_render", "legacy_payload_rejected_before_browser");
+  ok(legacyBrowserCalls === 0, "legacy_payload_never_waits_for_selector");
+
+  let assetBrowserCalls = 0;
+  const assetFailure = await renderInstagramV3Assets({
+    DB: {} as any,
+    PUBLIC_BASE_URL: "https://loka-weather.example.test",
+    INSTAGRAM_MEDIA: new MemoryKv(),
+    ASSETS: { async fetch(): Promise<Response> { return new Response(null, { status: 404 }); } } as any,
+    BROWSER: { async quickAction(): Promise<Response> { assetBrowserCalls++; return new Response(fakePng(), { status: 200 }); } }
+  }, payload, plan);
+  ok(assetFailure.status === "BLOCKED" && assetFailure.detail === "render_asset_missing:master:404", "missing_static_asset_fails_fast");
+  ok(assetBrowserCalls === 0, "missing_static_asset_never_starts_browser");
 
   console.log(`instagramV3Render: ${checks} checks passed`);
 })().catch((error) => { throw error; });

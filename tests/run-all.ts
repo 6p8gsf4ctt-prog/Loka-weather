@@ -33,3 +33,4 @@ import "./instagramV3MediaAccess.test";
 import "./instagramV3Shadow.test";
 
 import "./instagramV3Render.test";
+import "./instagramV3RenderSource.test";

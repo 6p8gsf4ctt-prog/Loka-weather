@@ -1,4 +1,6 @@
 import type { InstagramV3ShadowPlan } from "../engine/instagramV3Shadow";
+import { getCity } from "../config/cities";
+import { renderInstagramCarouselV3Preview } from "../ui/instagramCarouselV3Preview";
 import type { Env, OfficialPublicPayloadV24 } from "../types";
 
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const;
@@ -54,38 +56,57 @@ function ensureExpectedDimensions(bytes: Uint8Array): void {
   }
 }
 
-function renderUrl(baseUrl: string, position: 1 | 2): string {
-  const url = new URL("/instagram-v3-preview", baseUrl);
-  url.searchParams.set("embed", "1");
-  url.searchParams.set("studio", "official");
-  url.searchParams.set("automation", "render");
-  url.searchParams.set("page", String(position));
-  return url.toString();
+async function assertStaticRenderAssets(env: Env, baseUrl: string, payload: OfficialPublicPayloadV24): Promise<void> {
+  if (!env.ASSETS) return;
+  const assets: Array<[string, string]> = [
+    ["master", payload.scene.masterUrl],
+    ["logo", "/masters24/brand/loka-logo-v2.png"]
+  ];
+  for (const [label, path] of assets) {
+    const url = new URL(path, baseUrl);
+    const response = await env.ASSETS.fetch(new Request(url.toString(), { method: "HEAD" }));
+    if (!response.ok) throw new Error(`render_asset_missing:${label}:${response.status}`);
+  }
 }
 
-async function screenshotOnce(env: Env, url: string, position: 1 | 2): Promise<Response> {
+function automationHtml(payload: OfficialPublicPayloadV24, baseUrl: string, position: 1 | 2): string {
+  if (!payload.analysis) throw new Error("v3_analysis_missing_for_render");
+  const city = getCity(payload.citySlug);
+  if (!city) throw new Error(`unknown_city_for_render:${payload.citySlug}`);
+  return renderInstagramCarouselV3Preview(payload, city, {
+    embedded: true,
+    studioOfficial: true,
+    automationRender: true,
+    automationPage: position,
+    automationAssetOrigin: baseUrl
+  });
+}
+
+async function screenshotOnce(env: Env, html: string, position: 1 | 2): Promise<Response> {
   if (!env.BROWSER) throw new Error("browser_binding_missing");
   const selector = position === 1 ? "#page1" : "#page2";
   return env.BROWSER.quickAction("screenshot", {
-    url,
+    html,
     selector,
     viewport: { width: EXPECTED_WIDTH, height: EXPECTED_HEIGHT, deviceScaleFactor: 1 },
-    gotoOptions: { waitUntil: "networkidle0", timeout: 60000 },
+    // Do not use networkidle here. Cloudflare recommends waitForSelector as the
+    // faster path for JS-rendered content, and this automation document marks
+    // the canvas only after all required images have loaded and drawing ended.
     waitForSelector: {
       selector: `${selector}[data-render-ready="1"]`,
       visible: true,
-      timeout: 60000
+      timeout: 20_000
     }
   });
 }
 
-async function screenshotWithOneRetry(env: Env, url: string, position: 1 | 2): Promise<Response> {
-  let response = await screenshotOnce(env, url, position);
+async function screenshotWithOneRetry(env: Env, html: string, position: 1 | 2): Promise<Response> {
+  let response = await screenshotOnce(env, html, position);
   if (response.status !== 429) return response;
-  // Workers Free allows a lower Quick Action request rate. A single bounded retry
-  // keeps the once-daily two-page render compatible without creating a loop.
+  // Browser Run Free allows one Quick Action every 10 seconds. A single bounded
+  // retry handles a request that arrives just after another dashboard action.
   await new Promise((resolve) => setTimeout(resolve, 10_500));
-  response = await screenshotOnce(env, url, position);
+  response = await screenshotOnce(env, html, position);
   return response;
 }
 
@@ -104,7 +125,8 @@ async function renderOne(
   renderedAt: string
 ): Promise<InstagramV3RenderedAsset> {
   if (!env.INSTAGRAM_MEDIA) throw new Error("instagram_media_kv_binding_missing");
-  const response = await screenshotWithOneRetry(env, renderUrl(baseUrl, position), position);
+  const html = automationHtml(payload, baseUrl, position);
+  const response = await screenshotWithOneRetry(env, html, position);
   if (!response.ok) {
     let detail = "";
     try {
@@ -170,6 +192,7 @@ export async function renderInstagramV3Assets(
 
   try {
     const baseUrl = new URL(env.PUBLIC_BASE_URL).toString();
+    await assertStaticRenderAssets(env, baseUrl, payload);
     const first = await renderOne(env, payload, plan, 1, baseUrl, renderedAt);
     const second = await renderOne(env, payload, plan, 2, baseUrl, renderedAt);
     return {

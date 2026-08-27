@@ -1,5 +1,6 @@
 export interface BrowserRunScreenshotOptions {
-  url: string;
+  url?: string;
+  html?: string;
   selector?: string;
   viewport?: { width: number; height: number; deviceScaleFactor?: number };
   gotoOptions?: { waitUntil?: string; timeout?: number };
