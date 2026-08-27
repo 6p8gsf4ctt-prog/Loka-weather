@@ -109,6 +109,27 @@ function ok(value: boolean, label: string): void { if (!value) throw new Error(`
   try { inspectPng(new Uint8Array(3)); } catch { badDims = true; }
   ok(badDims, "png_inspector_rejects_invalid");
 
+  const blockedPayload = { ...payload, models: { ...payload.models, count: 2 } };
+  const blockedPlan = await buildInstagramV3ShadowPlan(blockedPayload, 78, "TEST", "2026-08-27T05:02:00.000Z");
+  ok(blockedPlan.status === "BLOCKED", "preflight_blocked_for_low_models");
+  const blockedKv = new MemoryKv();
+  let blockedBrowserCalls = 0;
+  const blockedEnv = {
+    DB: {} as any,
+    PUBLIC_BASE_URL: "https://loka-weather.example.test",
+    INSTAGRAM_MEDIA: blockedKv,
+    BROWSER: {
+      async quickAction(): Promise<Response> { blockedBrowserCalls++; return new Response(fakePng(), { status: 200 }); }
+    }
+  } satisfies Env;
+  const visualOnlyRender = await renderInstagramV3Assets(blockedEnv, blockedPayload, blockedPlan, "2026-08-27T05:03:00.000Z");
+  ok(visualOnlyRender.status === "RENDERED" && blockedBrowserCalls === 2, "blocked_shadow_still_allows_visual_png_render");
+  const blockedFinal = await finalizeInstagramV3ShadowPlanWithRender(blockedPlan, visualOnlyRender);
+  ok(blockedFinal.status === "BLOCKED", "render_does_not_override_shadow_preflight");
+  ok(blockedFinal.stages.filter((stage) => stage.id.startsWith("PNG_RENDER")).every((stage) => stage.status === "PASS"), "visual_png_stages_pass_when_shadow_blocked");
+  ok(blockedFinal.stages.find((stage) => stage.id === "META_CREATE_CAROUSEL")?.status === "BLOCKED", "blocked_shadow_meta_remains_blocked");
+  ok(blockedFinal.stages.find((stage) => stage.id === "META_MEDIA_PUBLISH")?.status === "BLOCKED", "blocked_shadow_publish_remains_blocked");
+
   const missingBindings = await renderInstagramV3Assets({ DB: {} as any }, payload, plan);
   ok(missingBindings.status === "BLOCKED" && missingBindings.assets.length === 0, "missing_bindings_non_throwing_block");
 

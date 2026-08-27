@@ -145,9 +145,9 @@ export async function renderInstagramV3Assets(
   plan: InstagramV3ShadowPlan,
   renderedAt = new Date().toISOString()
 ): Promise<InstagramV3RenderResult> {
-  if (plan.status !== "DRY_RUN_READY") {
-    return { version: "7L.1", status: "BLOCKED", renderedAt, assets: [], detail: "shadow_plan_not_ready" };
-  }
+  // 7L.3: rendering preview PNGs is observational and has no Instagram side effect.
+  // A BLOCKED shadow publication plan must not prevent visual QA. Publication
+  // readiness is preserved separately by finalizeInstagramV3ShadowPlanWithRender.
   if (!env.PUBLIC_BASE_URL) {
     return { version: "7L.1", status: "BLOCKED", renderedAt, assets: [], detail: "public_base_url_missing" };
   }

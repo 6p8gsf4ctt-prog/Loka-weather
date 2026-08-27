@@ -188,11 +188,12 @@ export async function finalizeInstagramV3ShadowPlanWithRender(
     check("temporary_public_urls", rendered && render.assets.every((asset) => /^https:\/\//.test(asset.publicUrl)), rendered ? "2 temporary HTTPS media URLs" : render.detail)
   ];
 
+  const publicationReady = plan.status === "DRY_RUN_READY" && rendered;
   const stages = plan.stages.map((stage): InstagramV3ShadowStage => {
     if (stage.id === "PNG_RENDER_PAGE_1") return { ...stage, status: rendered ? "PASS" : "BLOCKED", detail: rendered ? "real PNG rendered · KV stored" : render.detail };
     if (stage.id === "PNG_RENDER_PAGE_2") return { ...stage, status: rendered ? "PASS" : "BLOCKED", detail: rendered ? "real PNG rendered · KV stored" : render.detail };
     if (stage.id === "META_CREATE_CHILD_1" || stage.id === "META_CREATE_CHILD_2" || stage.id === "META_CREATE_CAROUSEL") {
-      return { ...stage, status: rendered ? "WOULD_RUN" : "BLOCKED", detail: rendered ? "real PNG URL ready · Meta HTTP still simulated" : "png_render_blocked" };
+      return { ...stage, status: publicationReady ? "WOULD_RUN" : "BLOCKED", detail: publicationReady ? "real PNG URL ready · Meta HTTP still simulated" : (rendered ? "png_ready_but_shadow_preflight_blocked" : "png_render_blocked") };
     }
     if (stage.id === "META_MEDIA_PUBLISH") return { ...stage, status: "BLOCKED", detail: "7L hard stop · Instagram publication forbidden" };
     return stage;
@@ -201,7 +202,7 @@ export async function finalizeInstagramV3ShadowPlanWithRender(
   const base = {
     ...plan,
     version: "7L.1" as const,
-    status: rendered ? "DRY_RUN_READY" as const : "BLOCKED" as const,
+    status: publicationReady ? "DRY_RUN_READY" as const : "BLOCKED" as const,
     checks,
     stages,
     render,

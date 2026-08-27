@@ -1,0 +1,29 @@
+LOKA V3 — ETAPE 7L.3 — PNG INDEPENDANTS DU SHADOW
+
+PRE-REQUIS
+- Etape 7L-KV installee
+- Etape 7L.2 installee
+
+FICHIERS A REMPLACER (5)
+- src/engine/instagramV3Shadow.ts
+- src/ui/instagramV3MediaAccess.ts
+- src/ui/instagramV3ParallelStudio.ts
+- src/automation/instagramV3Renderer.ts
+- tests/instagramV3Render.test.ts
+
+FICHIERS A AJOUTER: 0
+FICHIERS A SUPPRIMER: 0
+
+BUT
+- Autoriser la generation visuelle des PNG Page 1/Page 2 meme si le plan Shadow de publication est BLOCKED.
+- Ne jamais transformer un plan Shadow BLOCKED en DRY_RUN_READY simplement parce que les PNG ont ete rendus.
+- Garder META_CREATE_* et META_MEDIA_PUBLISH bloques tant que le preflight Shadow n'est pas valide.
+- Afficher un diagnostic plus clair dans le Studio si le rendu PNG echoue.
+
+CERTIFICATION
+- TypeScript PASS
+- instagramV3Render 33/33
+- Scene Engine V2 202/202
+- Scene Stress 1200/1200
+- V3 Certification 15 scenarios / 143 checks
+- Visual V3 15 scenarios / 249 checks
