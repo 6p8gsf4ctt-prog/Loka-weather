@@ -310,6 +310,177 @@ export interface DayProfileV2 {
   };
 }
 
+export type DominantPhenomenon =
+  | "THUNDER"
+  | "RAIN"
+  | "SHOWERS"
+  | "FOG"
+  | "WIND"
+  | "HEAT"
+  | "COLD"
+  | "SKY_DEGRADATION"
+  | "SKY_IMPROVEMENT"
+  | "CLOUD"
+  | "SUN"
+  | "MIXED";
+
+export type DayEvolution =
+  | "STABLE"
+  | "IMPROVING"
+  | "DEGRADING"
+  | "INTERMITTENT"
+  | "VARIABLE"
+  | "TWO_PHASES";
+
+export type EvolutionStrength = "NONE" | "WEAK" | "MODERATE" | "STRONG";
+export type ChangeLevel = "LOW" | "MODERATE" | "HIGH";
+
+export interface DayClassification {
+  version: "3.0";
+  dominantPhenomenon: DominantPhenomenon;
+  secondaryPhenomenon: DominantPhenomenon | "NONE";
+  evolution: DayEvolution;
+  evolutionStrength: EvolutionStrength;
+  changeLevel: ChangeLevel;
+  changeScore: number;
+  transition: {
+    startHour: number | null;
+    peakHour: number | null;
+    endHour: number | null;
+  };
+  keyPeriod: { startHour: number; endHour: number } | null;
+}
+
+export type WeatherConfidenceLevel = "STABLE" | "SOME_UNCERTAINTY" | "WATCH";
+export type WeatherUncertaintyType =
+  | "NONE"
+  | "RAIN_PRESENCE"
+  | "RAIN_START"
+  | "RAIN_END"
+  | "RAIN_INTENSITY"
+  | "THUNDER_PRESENCE"
+  | "FOG_PRESENCE"
+  | "FOG_END"
+  | "WIND_INTENSITY"
+  | "WIND_PEAK"
+  | "TEMPERATURE_MAX"
+  | "CLOUD_EVOLUTION";
+
+export interface WeatherConfidence {
+  level: WeatherConfidenceLevel;
+  score: number;
+  agreements: {
+    scenario: number;
+    timing: number | null;
+    intensity: number | null;
+    duration: number | null;
+    thermal: number;
+  };
+  mainUncertainty: WeatherUncertaintyType;
+  period: { startHour: number; endHour: number } | null;
+  impact: "LOW" | "MEDIUM" | "HIGH";
+  availableModels: number;
+  availableWeight: number;
+  reasons: string[];
+}
+
+export type TimelinePointImportance = "NORMAL" | "IMPORTANT" | "KEY";
+export type TimelinePointReason =
+  | "DAY_START"
+  | "DAY_END"
+  | "TRANSITION"
+  | "RAIN_START"
+  | "RAIN_END"
+  | "THUNDER"
+  | "FOG_END"
+  | "WIND_THRESHOLD"
+  | "WIND_PEAK"
+  | "TEMPERATURE_PEAK"
+  | "WEATHER_CHANGE"
+  | "SPACING";
+
+export interface TimelinePoint extends DisplayHour {
+  importance: TimelinePointImportance;
+  reason: TimelinePointReason;
+}
+
+export interface AdaptiveTimeline {
+  mode: "STABLE" | "STANDARD" | "DENSE" | "EVENT_FOCUSED";
+  points: TimelinePoint[];
+}
+
+export type KeyTakeawayType =
+  | "THUNDER"
+  | "RAIN_START"
+  | "RAIN_END"
+  | "WIND"
+  | "FOG"
+  | "HEAT_PEAK"
+  | "COOL"
+  | "CHANGE"
+  | "IMPROVEMENT"
+  | "DRY_WINDOW"
+  | "BEST_PERIOD"
+  | "TEMPERATURE_PEAK"
+  | "STABILITY";
+
+export interface KeyTakeaway {
+  type: KeyTakeawayType;
+  startHour: number | null;
+  endHour: number | null;
+  uncertain?: boolean;
+}
+
+export type KeyMomentType =
+  | "CHANGE"
+  | "RAIN_START"
+  | "RAIN_END"
+  | "HOTTEST"
+  | "BEST_WINDOW"
+  | "DRY_WINDOW"
+  | "WIND_PEAK"
+  | "FOG_END"
+  | "IMPROVEMENT"
+  | "THUNDER";
+
+export interface KeyMoment {
+  type: KeyMomentType;
+  hour: number | null;
+  startHour: number | null;
+  endHour: number | null;
+}
+
+export type ContextualDataType =
+  | "WIND_GUST"
+  | "RAIN_TOTAL"
+  | "DRY_WINDOW"
+  | "FOG_DURATION"
+  | "TEMPERATURE_MAX"
+  | "TEMPERATURE_RANGE";
+
+export interface ContextualData {
+  type: ContextualDataType;
+  value: number | null;
+  unit: string | null;
+  startHour?: number | null;
+  endHour?: number | null;
+}
+
+export interface EditorialSignals {
+  keyTakeaway: KeyTakeaway;
+  keyMoment: KeyMoment;
+  contextualData: ContextualData | null;
+}
+
+export interface LokaDayAnalysisV3 {
+  version: "3.0";
+  profile: DayProfileV2;
+  classification: DayClassification;
+  weatherConfidence: WeatherConfidence;
+  timeline: AdaptiveTimeline;
+  editorialSignals: EditorialSignals;
+}
+
 export interface EditorialFacts {
   sceneId: Scene24Id;
   sceneKey: Scene24Key;
@@ -383,6 +554,7 @@ export interface OfficialPublicPayloadV24 {
   editorial: EditorialProductV2;
   decision: SceneDecisionV24;
   models: { count: number; ok: string[]; failed: Record<string, string> };
+  analysis?: LokaDayAnalysisV3;
 }
 
 export interface PublicationManifestV24 {

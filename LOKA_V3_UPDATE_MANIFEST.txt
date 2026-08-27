@@ -1,0 +1,80 @@
+LOKA METEO — MISE A JOUR V3 — ETAPE 6 — VERSION CERTIFIEE / FAIL-SAFE
+======================================================================
+
+IMPORTANT
+---------
+Cette archive remplace la precedente archive LOKA_V3_GitHub_Update_Etape6.zip.
+Ne pas utiliser l'ancienne archive.
+
+OBJECTIF
+--------
+Ajouter le coeur d'analyse V3 en parallele du moteur V2 actuel, sans modifier
+le rendu ou la decision de scene V2 utilisee en production.
+
+SECURITE DE MIGRATION
+---------------------
+Le V3 est NON BLOQUANT dans src/engine/verdict.ts.
+Si un calcul V3 echoue pour une donnee inhabituelle, l'erreur est journalisee
+et le moteur continue a produire le payload V2 certifie, avec analysis absent.
+
+FICHIERS A AJOUTER (10)
+-----------------------
+src/engine/adaptiveTimeline.ts
+src/engine/dayClassification.ts
+src/engine/editorialSignals.ts
+src/engine/weatherConfidence.ts
+tests/adaptiveTimeline.test.ts
+tests/analysisV3.integration.test.ts
+tests/dayClassification.test.ts
+tests/editorialSignals.test.ts
+tests/v3Certification15.test.ts
+tests/weatherConfidence.test.ts
+
+FICHIERS A REMPLACER (4)
+------------------------
+src/engine/publicationGuard.ts
+src/engine/verdict.ts
+src/types.ts
+tests/run-all.ts
+
+FICHIERS A SUPPRIMER
+--------------------
+Aucun.
+
+AUDIT ET REGRESSION EFFECTUES
+-----------------------------
+- Suite historique V2 complete : PASS
+- Scene Engine V2 : 202/202 PASS
+- Scene stress : 1200/1200 PASS, 24 scenes atteintes
+- Editorial Engine V2 : 216/216 PASS, 2602 invariants
+- Tests architecture / Instagram / branding / publication V2 : PASS
+- Certification V3 : 15/15 scenarios, 143 controles PASS
+- Stress runtime V3 supplementaire : 3000/3000 generations PASS
+- Parite V2 sur 100 journees synthetiques : hash identique avant/apres V3
+  (champ analysis et timestamp exclus)
+
+PERFORMANCE MESUREE SUR ENVIRONNEMENT LOCAL
+-------------------------------------------
+Cas synthetique :
+- V2 : ~0,418 ms/appel
+- V2 + analyse V3 : ~0,470 ms/appel
+Surcout observe : ~0,052 ms/appel dans ce benchmark local.
+
+TAILLE PAYLOAD MESUREE SUR LE MEME CAS
+--------------------------------------
+- V2 : ~5,1 Ko
+- V2 + analysis V3 : ~9,1 Ko
+Le stockage utilise des champs JSON/TEXT ; aucune migration D1 n'est necessaire
+pour cette etape.
+
+INSTALLATION
+------------
+Copier uniquement les dossiers src/ et tests/ dans le depot en conservant
+exactement l'arborescence. Le present manifeste et SHA256SUMS.txt sont des
+documents de controle et n'ont pas besoin d'etre ajoutes au depot.
+
+APRES COPIE
+-----------
+Lancer idealement : npm test
+Puis laisser le build/deploiement Cloudflare verifier le depot avant toute
+modification de l'interface Page 1 / Page 2.

@@ -1,3 +1,9 @@
+import "./dayClassification.test";
+import "./weatherConfidence.test";
+import "./adaptiveTimeline.test";
+import "./editorialSignals.test";
+import "./analysisV3.integration.test";
+import "./v3Certification15.test";
 import "./scenes24/certify";
 import "./editorial24";
 import "./editorialDoctrineStep4";

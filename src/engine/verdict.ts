@@ -1,5 +1,9 @@
-import type { CityConfig, ConsensusHour, DisplayHour, HourlyCondition, ModelForecast, OfficialPublicPayloadV24, Scene24Id } from "../types";
+import type { CityConfig, ConsensusHour, DisplayHour, HourlyCondition, LokaDayAnalysisV3, ModelForecast, OfficialPublicPayloadV24, Scene24Id } from "../types";
 import { buildEditorialProductV2 } from "./editorial24/index";
+import { buildDayClassification } from "./dayClassification";
+import { buildWeatherConfidence } from "./weatherConfidence";
+import { buildAdaptiveTimeline } from "./adaptiveTimeline";
+import { buildEditorialSignals } from "./editorialSignals";
 import { hourOf } from "./math";
 import { chooseScene24V2 } from "./scenes24/classifier";
 import { buildDayProfileV2 } from "./scenes24/profile";
@@ -45,6 +49,20 @@ export function buildCandidateProduct(
     return { hour, temperatureC: Math.round(p.temperatureC), condition: conditionForHour(p), precipitationMm: Math.round(p.precipitationMm * 100) / 100 };
   });
   const scene = scene24ById(decision.sceneId);
+
+  // V3 is deliberately non-blocking during migration: an analysis failure must never
+  // prevent the certified V2 product from being generated and published.
+  let analysis: LokaDayAnalysisV3 | undefined;
+  try {
+    const classification = buildDayClassification(city, date, profile, day);
+    const weatherConfidence = buildWeatherConfidence(city, date, forecasts, classification);
+    const timeline = buildAdaptiveTimeline(city, date, day, classification, weatherConfidence);
+    const editorialSignals = buildEditorialSignals(city, date, profile, classification, weatherConfidence, timeline, day);
+    analysis = { version: "3.0", profile, classification, weatherConfidence, timeline, editorialSignals };
+  } catch (error) {
+    console.error("analysis_v3_failed", city.slug, date, error instanceof Error ? error.message : String(error));
+  }
+
   return {
     version: "2.0",
     city: city.name,
@@ -60,6 +78,7 @@ export function buildCandidateProduct(
     hourly,
     editorial,
     decision,
-    models: { count: forecasts.length, ok: forecasts.map((f) => f.modelId), failed: failures }
+    models: { count: forecasts.length, ok: forecasts.map((f) => f.modelId), failed: failures },
+    analysis
   };
 }
