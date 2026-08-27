@@ -183,14 +183,14 @@ export async function finalizeInstagramV3ShadowPlanWithRender(
 
   const checks = [
     ...plan.checks,
-    check("real_png_page_1", rendered && render.assets.some((asset) => asset.position === 1), rendered ? "1080x1350 stored in R2" : render.detail),
-    check("real_png_page_2", rendered && render.assets.some((asset) => asset.position === 2), rendered ? "1080x1350 stored in R2" : render.detail),
+    check("real_png_page_1", rendered && render.assets.some((asset) => asset.position === 1), rendered ? "1080x1350 stored in KV" : render.detail),
+    check("real_png_page_2", rendered && render.assets.some((asset) => asset.position === 2), rendered ? "1080x1350 stored in KV" : render.detail),
     check("temporary_public_urls", rendered && render.assets.every((asset) => /^https:\/\//.test(asset.publicUrl)), rendered ? "2 temporary HTTPS media URLs" : render.detail)
   ];
 
   const stages = plan.stages.map((stage): InstagramV3ShadowStage => {
-    if (stage.id === "PNG_RENDER_PAGE_1") return { ...stage, status: rendered ? "PASS" : "BLOCKED", detail: rendered ? "real PNG rendered · R2 stored" : render.detail };
-    if (stage.id === "PNG_RENDER_PAGE_2") return { ...stage, status: rendered ? "PASS" : "BLOCKED", detail: rendered ? "real PNG rendered · R2 stored" : render.detail };
+    if (stage.id === "PNG_RENDER_PAGE_1") return { ...stage, status: rendered ? "PASS" : "BLOCKED", detail: rendered ? "real PNG rendered · KV stored" : render.detail };
+    if (stage.id === "PNG_RENDER_PAGE_2") return { ...stage, status: rendered ? "PASS" : "BLOCKED", detail: rendered ? "real PNG rendered · KV stored" : render.detail };
     if (stage.id === "META_CREATE_CHILD_1" || stage.id === "META_CREATE_CHILD_2" || stage.id === "META_CREATE_CAROUSEL") {
       return { ...stage, status: rendered ? "WOULD_RUN" : "BLOCKED", detail: rendered ? "real PNG URL ready · Meta HTTP still simulated" : "png_render_blocked" };
     }

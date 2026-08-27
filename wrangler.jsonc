@@ -26,10 +26,9 @@
       "migrations_dir": "migrations"
     }
   ],
-  "r2_buckets": [
+  "kv_namespaces": [
     {
-      "binding": "INSTAGRAM_MEDIA",
-      "bucket_name": "loka-instagram-v3-media"
+      "binding": "INSTAGRAM_MEDIA"
     }
   ],
   "assets": {

@@ -10,26 +10,24 @@ export interface BrowserRunBinding {
   quickAction(action: "screenshot", options: BrowserRunScreenshotOptions): Promise<Response>;
 }
 
-export interface R2ObjectBodyLike {
-  body: ReadableStream<Uint8Array> | null;
-  customMetadata?: Record<string, string>;
-  httpEtag: string;
-  writeHttpMetadata(headers: Headers): void;
+export interface KvAssetValueWithMetadataLike {
+  value: ArrayBuffer | null;
+  metadata: Record<string, string> | null;
 }
 
-export interface R2BucketLike {
+export interface KvAssetNamespaceLike {
   put(key: string, value: ArrayBuffer, options?: {
-    httpMetadata?: { contentType?: string; cacheControl?: string };
-    customMetadata?: Record<string, string>;
-  }): Promise<unknown>;
-  get(key: string): Promise<R2ObjectBodyLike | null>;
+    expirationTtl?: number;
+    metadata?: Record<string, string>;
+  }): Promise<void>;
+  getWithMetadata(key: string, type: "arrayBuffer"): Promise<KvAssetValueWithMetadataLike>;
 }
 
 export interface Env {
   DB: D1Database;
   ASSETS?: Fetcher;
   BROWSER?: BrowserRunBinding;
-  INSTAGRAM_MEDIA?: R2BucketLike;
+  INSTAGRAM_MEDIA?: KvAssetNamespaceLike;
   PUBLIC_BASE_URL?: string;
   OPEN_METEO_BASE_URL?: string;
   OPEN_METEO_API_KEY?: string;

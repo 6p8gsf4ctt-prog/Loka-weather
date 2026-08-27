@@ -99,7 +99,7 @@ async function renderOne(
   baseUrl: string,
   renderedAt: string
 ): Promise<InstagramV3RenderedAsset> {
-  if (!env.INSTAGRAM_MEDIA) throw new Error("instagram_media_r2_binding_missing");
+  if (!env.INSTAGRAM_MEDIA) throw new Error("instagram_media_kv_binding_missing");
   const response = await screenshotWithOneRetry(env, renderUrl(baseUrl, position), position);
   if (!response.ok) throw new Error(`browser_screenshot_failed:${position}:${response.status}`);
   const arrayBuffer = await response.arrayBuffer();
@@ -113,15 +113,13 @@ async function renderOne(
   const expiresAt = new Date(new Date(renderedAt).getTime() + ASSET_TTL_MS).toISOString();
 
   await env.INSTAGRAM_MEDIA.put(objectKey, arrayBuffer, {
-    httpMetadata: {
-      contentType: "image/png",
-      cacheControl: "public, max-age=3600"
-    },
-    customMetadata: {
+    expirationTtl: ASSET_TTL_MS / 1000,
+    metadata: {
       citySlug: payload.citySlug,
       forecastDate: payload.date,
       generationId: plan.generationId === null ? "" : String(plan.generationId),
       page: String(position),
+      mimeType: "image/png",
       sha256,
       expiresAt
     }
@@ -154,7 +152,7 @@ export async function renderInstagramV3Assets(
     return { version: "7L.1", status: "BLOCKED", renderedAt, assets: [], detail: "public_base_url_missing" };
   }
   if (!env.BROWSER || !env.INSTAGRAM_MEDIA) {
-    return { version: "7L.1", status: "BLOCKED", renderedAt, assets: [], detail: "browser_or_r2_binding_missing" };
+    return { version: "7L.1", status: "BLOCKED", renderedAt, assets: [], detail: "browser_or_kv_binding_missing" };
   }
 
   try {
@@ -180,23 +178,25 @@ export async function renderInstagramV3Assets(
 }
 
 export async function serveInstagramV3Asset(env: Env, pathname: string): Promise<Response> {
-  if (!env.INSTAGRAM_MEDIA) return Response.json({ error: "instagram_media_r2_binding_missing" }, { status: 503 });
+  if (!env.INSTAGRAM_MEDIA) return Response.json({ error: "instagram_media_kv_binding_missing" }, { status: 503 });
   const prefix = "/media/";
   if (!pathname.startsWith(`${prefix}instagram-v3/`)) return Response.json({ error: "not_found" }, { status: 404 });
   const objectKey = pathname.slice(prefix.length);
   if (!/^instagram-v3\/[a-z0-9-]+\/\d{4}-\d{2}-\d{2}\/[a-z0-9-]+\/page-[12]\.png$/.test(objectKey)) {
     return Response.json({ error: "invalid_media_key" }, { status: 400 });
   }
-  const object = await env.INSTAGRAM_MEDIA.get(objectKey);
-  if (!object) return Response.json({ error: "not_found" }, { status: 404 });
-  const expiresAt = object.customMetadata?.expiresAt;
+  const object = await env.INSTAGRAM_MEDIA.getWithMetadata(objectKey, "arrayBuffer");
+  if (!object.value) return Response.json({ error: "not_found" }, { status: 404 });
+  const expiresAt = object.metadata?.expiresAt;
   if (expiresAt && Date.parse(expiresAt) <= Date.now()) {
     return Response.json({ error: "media_expired" }, { status: 410, headers: { "cache-control": "no-store" } });
   }
-  const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set("etag", object.httpEtag);
-  headers.set("x-content-type-options", "nosniff");
-  if (!headers.has("cache-control")) headers.set("cache-control", "public, max-age=3600");
-  return new Response(object.body, { headers });
+  const headers = new Headers({
+    "content-type": object.metadata?.mimeType ?? "image/png",
+    "cache-control": "public, max-age=3600",
+    "x-content-type-options": "nosniff"
+  });
+  const sha256 = object.metadata?.sha256;
+  if (sha256) headers.set("etag", `"${sha256}"`);
+  return new Response(object.value, { headers });
 }

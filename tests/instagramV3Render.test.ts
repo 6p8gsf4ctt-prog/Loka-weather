@@ -4,7 +4,7 @@ import { buildConsensus } from "../src/engine/consensus";
 import { buildInstagramV3ShadowPlan, finalizeInstagramV3ShadowPlanWithRender } from "../src/engine/instagramV3Shadow";
 import { buildCandidateProduct } from "../src/engine/verdict";
 import { renderInstagramCarouselV3Preview } from "../src/ui/instagramCarouselV3Preview";
-import type { Env, HourPoint, ModelForecast, R2BucketLike, R2ObjectBodyLike, WeatherFamily } from "../src/types";
+import type { Env, HourPoint, KvAssetNamespaceLike, ModelForecast, WeatherFamily } from "../src/types";
 
 const date = "2026-08-27";
 const specs: Array<[string, WeatherFamily, number]> = [
@@ -36,18 +36,20 @@ function fakePng(width = 1080, height = 1350): Uint8Array {
   return b;
 }
 
-class MemoryR2 implements R2BucketLike {
-  objects = new Map<string, { bytes: ArrayBuffer; customMetadata?: Record<string,string>; contentType?: string; cacheControl?: string }>();
-  async put(key: string, value: ArrayBuffer, options?: { httpMetadata?: { contentType?: string; cacheControl?: string }; customMetadata?: Record<string, string> }): Promise<unknown> {
-    this.objects.set(key, { bytes: value.slice(0), customMetadata: options?.customMetadata, contentType: options?.httpMetadata?.contentType, cacheControl: options?.httpMetadata?.cacheControl });
-    return {};
+class MemoryKv implements KvAssetNamespaceLike {
+  objects = new Map<string, { bytes: ArrayBuffer; metadata: Record<string, string> | null; expirationTtl?: number }>();
+  async put(key: string, value: ArrayBuffer, options?: { expirationTtl?: number; metadata?: Record<string, string> }): Promise<void> {
+    this.objects.set(key, {
+      bytes: value.slice(0),
+      metadata: options?.metadata ?? null,
+      expirationTtl: options?.expirationTtl
+    });
   }
-  async get(key: string): Promise<R2ObjectBodyLike | null> {
-    const item = this.objects.get(key); if (!item) return null;
-    return {
-      body: new Blob([item.bytes]).stream(), customMetadata: item.customMetadata, httpEtag: '"mock"',
-      writeHttpMetadata(headers: Headers) { if (item.contentType) headers.set("content-type", item.contentType); if (item.cacheControl) headers.set("cache-control", item.cacheControl); }
-    };
+  async getWithMetadata(key: string, type: "arrayBuffer"): Promise<{ value: ArrayBuffer | null; metadata: Record<string, string> | null }> {
+    if (type !== "arrayBuffer") throw new Error("unexpected_kv_type");
+    const item = this.objects.get(key);
+    if (!item) return { value: null, metadata: null };
+    return { value: item.bytes.slice(0), metadata: item.metadata };
   }
 }
 
@@ -58,12 +60,12 @@ function ok(value: boolean, label: string): void { if (!value) throw new Error(`
   const forecasts = specs.map(([id, family, weight]) => forecast(id, family, weight));
   const payload = buildCandidateProduct(CITIES.tarnos, date, buildConsensus(forecasts), forecasts, {}, "TEST_7L");
   const plan = await buildInstagramV3ShadowPlan(payload, 77, "TEST", "2026-08-27T05:00:00.000Z");
-  const r2 = new MemoryR2();
+  const kv = new MemoryKv();
   let browserCalls = 0;
   const env = {
     DB: {} as any,
     PUBLIC_BASE_URL: "https://loka-weather.example.test",
-    INSTAGRAM_MEDIA: r2,
+    INSTAGRAM_MEDIA: kv,
     BROWSER: {
       async quickAction(action: "screenshot", options: any): Promise<Response> {
         browserCalls++;
@@ -77,15 +79,17 @@ function ok(value: boolean, label: string): void { if (!value) throw new Error(`
 
   const render = await renderInstagramV3Assets(env, payload, plan, "2026-08-27T05:01:00.000Z");
   ok(render.status === "RENDERED", "rendered");
-  ok(render.assets.length === 2 && browserCalls === 2 && r2.objects.size === 2, "two_real_assets");
+  ok(render.assets.length === 2 && browserCalls === 2 && kv.objects.size === 2, "two_real_assets");
   ok(render.assets.every((a) => a.width === 1080 && a.height === 1350 && a.mimeType === "image/png"), "dimensions");
   ok(render.assets.every((a) => a.byteLength === 25 && a.sha256.length === 64), "asset_integrity");
   ok(render.assets.every((a) => a.publicUrl.startsWith("https://loka-weather.example.test/media/instagram-v3/")), "temporary_https_urls");
   ok(render.assets.every((a) => Date.parse(a.expiresAt) > Date.parse(render.renderedAt)), "expiry_present");
+  ok([...kv.objects.values()].every((item) => item.expirationTtl === 172800), "kv_48h_ttl");
+  ok([...kv.objects.values()].every((item) => item.metadata?.mimeType === "image/png" && item.metadata?.sha256?.length === 64), "kv_metadata");
 
   const served = await serveInstagramV3Asset(env, new URL(render.assets[0].publicUrl).pathname);
-  ok(served.status === 200 && served.headers.get("content-type") === "image/png", "r2_public_route");
-  ok((await served.arrayBuffer()).byteLength === 25, "r2_public_route_bytes");
+  ok(served.status === 200 && served.headers.get("content-type") === "image/png", "kv_public_route");
+  ok((await served.arrayBuffer()).byteLength === 25, "kv_public_route_bytes");
 
   const finalized = await finalizeInstagramV3ShadowPlanWithRender(plan, render);
   ok(finalized.version === "7L.1" && finalized.status === "DRY_RUN_READY", "finalized_ready");
