@@ -13,6 +13,7 @@ import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStud
 import { enhanceInstagramWithEditorialPersistence } from "./ui/instagramEditorialPersistence";
 import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExport";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
+import { renderInstagramCarouselV3Preview } from "./ui/instagramCarouselV3Preview";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
 
@@ -278,6 +279,17 @@ export default {
     }
 
     if (url.pathname === "/admin") return new Response(renderAdmin(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+
+
+    if (url.pathname === "/instagram-v3-preview") {
+      const result = await safeToday(env, "tarnos");
+      if (!result) return unavailable("unknown_city");
+      if (result.surface.engine === "UNAVAILABLE") return unavailable(result.surface.reason);
+      if (!await masterAvailable(request, env, result.surface.payload.scene.masterUrl)) return unavailable("master_graphic_unavailable");
+      return new Response(renderInstagramCarouselV3Preview(result.surface.payload, result.city), {
+        headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
+      });
+    }
 
     if (url.pathname === "/instagram") {
       const result = await safeToday(env, "tarnos");
