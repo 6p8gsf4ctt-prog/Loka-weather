@@ -1,36 +1,48 @@
-LOKA V3 — ETAPE 7F — CERTIFICATION OPERATIONNELLE
+LOKA V3 — ETAPE 7G — BASCULE CONTROLEE DU STUDIO
+=================================================
 
-PREREQUIS
-- Les étapes jusqu'à 7E doivent déjà être installées.
+PRE-REQUIS
+- Les mises a jour jusqu'a l'Etape 7F doivent deja etre installees.
+
+OBJECTIF
+- Faire du carrousel V3 (Page 1 + Page 2) le format principal de travail et d'export manuel dans /instagram.
+- Conserver les Stories V2 actuelles sans modification.
+- Conserver la Publication V2 comme fallback manuel et comme reference de l'automatisation actuelle.
+- Ne modifier aucune automatisation Instagram ni aucun pipeline meteo.
 
 FICHIERS A REMPLACER
-1. src/engine/weatherConfidence.ts
-   - Aligne la détection MIXED de WeatherConfidence sur la doctrine DayClassification.
-   - Corrige le cas d'une journée très variable mais parfaitement convergente entre modèles qui pouvait être classée WATCH à tort.
+- src/index.ts
+- src/ui/instagramCarouselV3Preview.ts
+- src/ui/instagramV3ParallelStudio.ts
+- tests/run-all.ts
 
-2. tests/weatherConfidence.test.ts
-   - Ajoute le test de régression: météo variable identique sur les 5 modèles => STABLE.
-
-FICHIERS A AJOUTER
-- Aucun.
+FICHIER A AJOUTER
+- tests/instagramV3PrimaryStudio.test.ts
 
 FICHIERS A SUPPRIMER
 - Aucun.
 
-VALIDATION
-- Suite historique V2: PASS
-- Certification V3 15 scénarios: PASS
-- Stress scènes 1200/1200: PASS
-- Validation visuelle 15 scénarios: PASS
-- Studio parallèle: PASS
-- Test opérationnel mobile Chromium sur 5 scénarios: PASS
-- Exports PNG Page 1: 5/5 en 1080x1350
-- Export PNG Page 2: PASS en 1080x1350
-- Aucun débordement horizontal en viewport 390 px
-- Maximum 1 point KEY par chronologie
-
-IMPACT PRODUCTION
-- Aucun changement du rendu V2 officiel.
+GARANTIES DE CETTE ETAPE
+- Le carrousel V3 est affiche avant les Stories dans le Studio.
+- Les exports V3 restent exclusivement manuels.
+- Les Stories V2 restent presentes et fonctionnelles.
+- La Publication V2 reste presente avec son bouton d'export et est clairement identifiee comme fallback.
+- Si analysis V3 est absent, le Studio V2 d'origine est rendu sans promotion V3.
+- Aucune route de publication automatique n'est modifiee.
 - Aucun changement D1.
-- Aucun changement de publication automatique.
-- Correction limitée à la confiance météo V3.
+- Aucun changement de pipeline meteo.
+
+VALIDATION LOCALE
+- TypeScript: PASS
+- Suite historique V2: PASS
+- Scene Engine V2: 202/202 PASS
+- Stress scenes: 1200/1200 PASS
+- Certification V3: 15 scenarios / 143 checks PASS
+- Validation visuelle V3: 15 scenarios / 249 checks PASS
+- Studio parallele historique: 10 checks PASS
+- Studio V3 principal: 15 checks PASS
+- Publication V24: 10/10 PASS
+
+IMPORTANT
+Cette etape NE bascule PAS la publication automatique Instagram vers le V3.
+Le V3 devient seulement le format principal du Studio pour validation et exports manuels.

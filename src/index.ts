@@ -14,7 +14,7 @@ import { enhanceInstagramWithEditorialPersistence } from "./ui/instagramEditoria
 import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExport";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramCarouselV3Preview } from "./ui/instagramCarouselV3Preview";
-import { enhanceInstagramWithV3ParallelStudio } from "./ui/instagramV3ParallelStudio";
+import { enhanceInstagramWithV3PrimaryStudio } from "./ui/instagramV3ParallelStudio";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
 
@@ -287,7 +287,7 @@ export default {
       if (!result) return unavailable("unknown_city");
       if (result.surface.engine === "UNAVAILABLE") return unavailable(result.surface.reason);
       if (!await masterAvailable(request, env, result.surface.payload.scene.masterUrl)) return unavailable("master_graphic_unavailable");
-      return new Response(renderInstagramCarouselV3Preview(result.surface.payload, result.city, { embedded: url.searchParams.get("embed") === "1" }), {
+      return new Response(renderInstagramCarouselV3Preview(result.surface.payload, result.city, { embedded: url.searchParams.get("embed") === "1", studioPrimary: url.searchParams.get("studio") === "primary" }), {
         headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
       });
     }
@@ -302,8 +302,8 @@ export default {
       }
       if (!await masterAvailable(request, env, result.surface.payload.scene.masterUrl)) return unavailable("master_graphic_unavailable");
       const instagramHtml = renderInstagramOfficial24(result.surface.payload, result.city);
-      const parallelHtml = result.surface.payload.analysis ? enhanceInstagramWithV3ParallelStudio(instagramHtml) : instagramHtml;
-      const editorialHtml = enhanceInstagramWithEditorialStudio(parallelHtml);
+      const studioHtml = result.surface.payload.analysis ? enhanceInstagramWithV3PrimaryStudio(instagramHtml) : instagramHtml;
+      const editorialHtml = enhanceInstagramWithEditorialStudio(studioHtml);
       const persistentHtml = enhanceInstagramWithEditorialPersistence(editorialHtml, result.city.slug);
       const exportHtml = enhanceInstagramWithEditorialExport(persistentHtml, result.city.slug);
       return new Response(exportHtml, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
