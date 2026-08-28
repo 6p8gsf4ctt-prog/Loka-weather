@@ -8,7 +8,6 @@ import { editorialFeedbackForOfficial, saveEditorialFeedback } from "./storage/e
 import { buildEditorialLearningExport } from "./storage/editorialFeedbackExport";
 import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
-import { renderDashboard24 } from "./ui/dashboard24";
 import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
 import { enhanceInstagramWithEditorialPersistence } from "./ui/instagramEditorialPersistence";
 import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExport";
@@ -279,7 +278,14 @@ export default {
 
     if (url.pathname === "/admin") return new Response(renderAdmin(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 
-    if (url.pathname === "/instagram") {
+    if (url.pathname === "/instagram" || url.pathname === "/tarnos") {
+      const destination = new URL(request.url);
+      destination.pathname = "/";
+      destination.search = "";
+      return Response.redirect(destination.toString(), 308);
+    }
+
+    if (url.pathname === "/") {
       const result = await safeToday(env, "tarnos");
       if (!result) return unavailable("unknown_city");
       if (result.surface.engine === "UNAVAILABLE") {
@@ -293,12 +299,6 @@ export default {
       const persistentHtml = enhanceInstagramWithEditorialPersistence(editorialHtml, result.city.slug);
       const exportHtml = enhanceInstagramWithEditorialExport(persistentHtml, result.city.slug);
       return new Response(exportHtml, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
-    }
-
-    if (url.pathname === "/" || url.pathname === "/tarnos") {
-      const result = await safeToday(env, "tarnos");
-      if (!result || result.surface.engine === "UNAVAILABLE") return unavailable(result && result.surface.engine === "UNAVAILABLE" ? result.surface.reason : "unknown_city");
-      return new Response(renderDashboard24(result.surface.payload, result.city.timezone), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
     }
 
     return json({ error: "not_found" }, 404);
