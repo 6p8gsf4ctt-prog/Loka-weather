@@ -1,2 +1,0 @@
-548931dc2c507ef740f6788fd09ed39a011b81e63d4d5401e2a5c8aac8cffd16  src/ui/instagramDaily.ts
-d61252d549a56f304f94e7a9e298d614d82581d2a7a1b883aa0b19a7085e0890  src/ui/instagramOfficial24.ts
