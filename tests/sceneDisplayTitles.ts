@@ -3,7 +3,6 @@ import { scene24DisplayTitle, SCENE24_DISPLAY_TITLES } from "../src/engine/scene
 import { SCENES24 } from "../src/engine/scenes24/registry";
 import { buildCandidateProduct } from "../src/engine/verdict";
 import type { ModelForecast, OfficialPublicPayloadV24, Scene24Id } from "../src/types";
-import { renderDashboard24 } from "../src/ui/dashboard24";
 import { renderInstagramOfficial24 } from "../src/ui/instagramOfficial24";
 import { canonicalPoints } from "./scenes24/fixtures";
 
@@ -65,9 +64,8 @@ ok(instagram.includes('"canonicalTitle":"SOLEIL + PASSAGES NUAGEUX"'), "instagra
 const titleLayout = instagram.split("\n").find((line) => line.startsWith("function centeredTitleLayout(")) ?? "";
 ok(titleLayout.includes("lines:[label]") && !titleLayout.includes("fitLines"), "instagram_scene_title_is_forced_to_one_line");
 
-const dashboard = renderDashboard24(scene16, CITIES.tarnos.timezone);
-ok(dashboard.includes("SOLEIL &amp; NUAGES"), "public_dashboard_uses_display_title");
-ok(!dashboard.includes(">SOLEIL + PASSAGES NUAGEUX</h1>"), "public_dashboard_does_not_show_canonical_title_as_heading");
+ok(instagram.includes("centeredTitleLayout(m.scene.title"), "studio_draws_display_title");
+ok(instagram.includes("displayTitle:m.scene.title"), "studio_audit_tracks_display_title");
 
 if (passed !== 33) throw new Error(`scene_display_titles_count_mismatch:${passed}`);
 console.log(`SCENE_DISPLAY_TITLES ${passed}/33 PASS`);

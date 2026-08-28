@@ -34,3 +34,9 @@ Cloudflare Cron (05:45 Europe/Paris)
 - La V0.2 branchera les ensembles ECMWF/AIFS, ICON-EPS, GEFS et, selon l'accès retenu, PEAROME.
 - Radar et observations Météo-France arrivent ensuite pour le nowcasting.
 - Aucun conseil comportemental n'est généré : le moteur décrit clairement la situation et laisse l'utilisateur décider.
+
+## Nettoyage final de l’interface historique
+
+`src/ui/dashboard24.ts` a été retiré après migration de ses deux derniers contrôles vers `src/ui/instagramOfficial24.ts`.
+
+Le Studio LOKA est désormais l’interface publique de référence. Les migrations D1 et les masters V24 restent intégralement conservés.

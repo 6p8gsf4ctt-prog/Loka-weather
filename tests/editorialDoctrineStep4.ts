@@ -1,7 +1,7 @@
 import { CITIES } from "../src/config/cities";
 import { buildEditorialProductV2 } from "../src/engine/editorial24/index";
 import type { Scene24Id } from "../src/types";
-import { renderDashboard24 } from "../src/ui/dashboard24";
+import { renderInstagramOfficial24 } from "../src/ui/instagramOfficial24";
 import { buildCandidateProduct } from "../src/engine/verdict";
 import type { ModelForecast, OfficialPublicPayloadV24 } from "../src/types";
 import { canonicalPoints, classify } from "./scenes24/fixtures";
@@ -53,11 +53,11 @@ ok(editorial(21).visual.secondaryLine.startsWith("Temps sec"), "scene21_dry_cont
 ok(editorial(22).visual.secondaryLine.startsWith("Risque orageux"), "scene22_thunder_context");
 ok(editorial(24).visual.secondaryLine.includes("mm") && editorial(24).visual.secondaryLine.includes("km/h"), "scene24_rain_wind_context");
 
-const dashboardPayload = payloadFor(21);
-const dashboard = renderDashboard24(dashboardPayload, CITIES.tarnos.timezone);
-ok(count(dashboard, dashboardPayload.editorial.visual.primaryLine) === 1, "dashboard_primary_once");
-ok(count(dashboard, dashboardPayload.editorial.visual.secondaryLine) === 1, "dashboard_secondary_once");
-ok(!dashboard.includes('class="summary"'), "dashboard_duplicate_summary_removed");
+const studioPayload = payloadFor(21);
+const studio = renderInstagramOfficial24(studioPayload, CITIES.tarnos);
+ok(count(studio, studioPayload.editorial.visual.primaryLine) === 1, "studio_primary_once");
+ok(count(studio, studioPayload.editorial.visual.secondaryLine) === 1, "studio_secondary_once");
+ok(studio.includes("drawEditorialSummary(visual"), "studio_editorial_summary_renderer_present");
 
 if (passed !== 20) throw new Error(`editorial_doctrine_step4_count_mismatch:${passed}`);
 console.log(`EDITORIAL_DOCTRINE_STEP4 ${passed}/20 PASS`);
