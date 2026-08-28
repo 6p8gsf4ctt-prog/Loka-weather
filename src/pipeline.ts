@@ -2,13 +2,10 @@ import { CITIES } from "./config/cities";
 import { MODELS } from "./config/models";
 import { buildConsensus } from "./engine/consensus";
 import { buildPublicationManifest } from "./engine/publicationManifest";
-import { buildInstagramV3ShadowPlan, finalizeInstagramV3ShadowPlanWithRender, type InstagramV3ShadowStatus } from "./engine/instagramV3Shadow";
 import { evaluatePublicationGuard } from "./engine/publicationGuard";
-import { renderInstagramV3Assets } from "./automation/instagramV3Renderer";
 import { buildCandidateProduct } from "./engine/verdict";
 import { archiveGeneration, saveRun } from "./storage/db";
 import { ensureDailyTracking, hasOfficialScene, officializeFirstScheduledGeneration } from "./storage/dailySceneLedger";
-import { recordInstagramV3ShadowAudit } from "./storage/instagramV3Shadow";
 import type { CityConfig, Env, ModelForecast, OfficialPublicPayloadV24, PublicationManifestV24 } from "./types";
 import { fetchModelForecast } from "./weather/openMeteo";
 
@@ -73,7 +70,7 @@ export async function runScheduledCity(
   city: CityConfig,
   kind: "PRIMARY" | "RETRY",
   instant = new Date()
-): Promise<{ skipped: boolean; officialized: boolean; generationId?: number; instagramV3ShadowStatus?: InstagramV3ShadowStatus }> {
+): Promise<{ skipped: boolean; officialized: boolean; generationId?: number }> {
   const date = localDate(city.timezone, instant);
   await ensureDailyTracking(env.DB, city.slug, date, instant.toISOString());
   if (await hasOfficialScene(env.DB, city.slug, date)) return { skipped: true, officialized: false };
@@ -93,35 +90,7 @@ export async function runScheduledCity(
     publicPayload: generated.payload,
     manifestHash: generated.manifest.payloadSha256
   }, generated.manifest, kind === "PRIMARY" ? "OFFICIAL" : "RECOVERED");
-
-  let instagramV3ShadowStatus: InstagramV3ShadowStatus | undefined;
-  if (result.officialized) {
-    try {
-      const shadow = await buildInstagramV3ShadowPlan(
-        generated.payload,
-        generated.generationId,
-        kind === "PRIMARY" ? "CRON_PRIMARY" : "CRON_RETRY",
-        instant.toISOString()
-      );
-      const render = await renderInstagramV3Assets(env, generated.payload, shadow, instant.toISOString());
-      const finalizedShadow = await finalizeInstagramV3ShadowPlanWithRender(shadow, render);
-      instagramV3ShadowStatus = finalizedShadow.status;
-      await recordInstagramV3ShadowAudit(env.DB, finalizedShadow);
-      console.info(
-        "instagram_v3_shadow",
-        city.slug,
-        finalizedShadow.status,
-        render.status,
-        finalizedShadow.fingerprintSha256
-      );
-    } catch (error) {
-      // Shadow mode is observational only: it must never invalidate an otherwise
-      // healthy official weather generation or alter the V2 publication path.
-      console.error("instagram_v3_shadow_failed", city.slug, error instanceof Error ? error.message : String(error));
-    }
-  }
-
-  return { skipped: false, officialized: result.officialized, generationId: generated.generationId, instagramV3ShadowStatus };
+  return { skipped: false, officialized: result.officialized, generationId: generated.generationId };
 }
 
 export async function runScheduledAllCities(env: Env, kind: "PRIMARY" | "RETRY", instant: Date): Promise<void> {

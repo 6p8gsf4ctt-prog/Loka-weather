@@ -1,9 +1,3 @@
-import "./dayClassification.test";
-import "./weatherConfidence.test";
-import "./adaptiveTimeline.test";
-import "./editorialSignals.test";
-import "./analysisV3.integration.test";
-import "./v3Certification15.test";
 import "./scenes24/certify";
 import "./editorial24";
 import "./editorialDoctrineStep4";
@@ -21,16 +15,3 @@ import "./instagramBrandV3";
 import "./sceneDisplayTitles";
 
 import "./instagramLogoRuntimeV4";
-import "./instagramCarouselV3Preview.test";
-import "./instagramCarouselV3Scenarios.test";
-
-import "./instagramV3ParallelStudio.test";
-import "./instagramV3PrimaryStudio.test";
-
-import "./instagramV3OfficialStudio.test";
-import "./instagramV3MediaAccess.test";
-
-import "./instagramV3Shadow.test";
-
-import "./instagramV3Render.test";
-import "./instagramV3RenderSource.test";

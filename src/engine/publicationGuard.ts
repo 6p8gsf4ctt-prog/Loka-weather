@@ -18,17 +18,6 @@ export function evaluatePublicationGuard(payload: OfficialPublicPayloadV24, mast
     { name: "registry_identity", pass: !!def && def.key === payload.scene.key && def.label === payload.scene.label, detail: `${payload.scene.id}:${payload.scene.key}` },
     { name: "editorial_identity", pass: payload.editorial.scene.id === payload.scene.id && payload.editorial.scene.title === payload.scene.label, detail: payload.editorial.scene.title },
     { name: "hourly_payload", pass: payload.hourly.length >= 8 && payload.hourly.every((h) => Number.isFinite(h.temperatureC)), detail: `hours=${payload.hourly.length}` },
-    {
-      name: "analysis_v3",
-      pass: !payload.analysis || payload.analysis.version === "3.0",
-      detail: payload.analysis?.version ?? "legacy_preview"
-    },
-    {
-      name: "adaptive_timeline",
-      pass: !payload.analysis || (payload.analysis.timeline.points.length >= 5 && payload.analysis.timeline.points.length <= 9
-        && payload.analysis.timeline.points.every((h, i, a) => Number.isFinite(h.temperatureC) && (i === 0 || h.hour > a[i - 1].hour))),
-      detail: payload.analysis ? `hours=${payload.analysis.timeline.points.length}` : "legacy_preview"
-    },
     { name: "thunder_invariant", pass: payload.scene.id !== 22 || Number(payload.decision.profileSummary.thunderHours ?? 0) > 0, detail: `scene=${payload.scene.id}` },
     { name: "rain_wind_invariant", pass: payload.scene.id !== 24 || Number(payload.decision.profileSummary.rainWindOverlap ?? 0) > 0, detail: `scene=${payload.scene.id}` }
   ];
