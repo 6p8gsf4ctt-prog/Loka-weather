@@ -1,6 +1,7 @@
 import "./scenes24/certify";
 import "./editorial24";
 import "./editorialDoctrineStep4";
+import "./editorialLearningRegression";
 import "./stress";
 import "./publication";
 import "./architecture";

@@ -48,7 +48,7 @@ ok(editorial(12).visual.secondaryLine.includes("mm"), "scene12_rain_context");
 ok(editorial(13).visual.secondaryLine.includes("Averses intermittentes"), "scene13_showers_context");
 ok(editorial(15).visual.secondaryLine.includes("seconde partie de journée"), "scene15_improving_timing");
 ok(editorial(17).visual.secondaryLine.includes("Brouillard dense"), "scene17_fog_context");
-ok(editorial(18).visual.secondaryLine.includes("alternent"), "scene18_variable_context");
+ok(editorial(18).visual.secondaryLine.includes("sans pluie annoncée"), "scene18_dry_temperature_context");
 ok(editorial(21).visual.secondaryLine.startsWith("Temps sec"), "scene21_dry_context");
 ok(editorial(22).visual.secondaryLine.startsWith("Risque orageux"), "scene22_thunder_context");
 ok(editorial(24).visual.secondaryLine.includes("mm") && editorial(24).visual.secondaryLine.includes("km/h"), "scene24_rain_wind_context");
