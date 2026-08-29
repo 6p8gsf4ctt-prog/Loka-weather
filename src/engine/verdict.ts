@@ -39,11 +39,11 @@ export function buildCandidateProduct(
   const solarPoints = day.filter((p) => hourOf(p.time) >= profile.period.startHour && hourOf(p.time) <= profile.period.endHour);
   const tempMinC = Math.round(Math.min(...solarPoints.map((p) => p.temperatureC)));
   const tempMaxC = Math.round(Math.max(...solarPoints.map((p) => p.temperatureC)));
-  const editorial = buildEditorialProductV2(city, profile, decision, tempMinC, tempMaxC);
   const hourly: DisplayHour[] = city.displayHours.map((hour) => {
     const p = nearestHour(day, hour);
     return { hour, temperatureC: Math.round(p.temperatureC), condition: conditionForHour(p), precipitationMm: Math.round(p.precipitationMm * 100) / 100 };
   });
+  const editorial = buildEditorialProductV2(city, profile, decision, tempMinC, tempMaxC, hourly);
   const scene = scene24ById(decision.sceneId);
   return {
     version: "2.0",

@@ -1,4 +1,4 @@
-import type { CityConfig, DayProfileV2, EditorialProductV2, SceneDecisionV24 } from "../../types";
+import type { CityConfig, DayProfileV2, DisplayHour, EditorialProductV2, SceneDecisionV24 } from "../../types";
 import { scene24ById } from "../scenes24/registry";
 import { buildEditorialFacts } from "./facts";
 import { buildHashtags } from "./hashtags";
@@ -11,10 +11,11 @@ export function buildEditorialProductV2(
   profile: DayProfileV2,
   decision: SceneDecisionV24,
   tempMinC: number,
-  tempMaxC: number
+  tempMaxC: number,
+  hourly: DisplayHour[] = []
 ): EditorialProductV2 {
   const scene = scene24ById(decision.sceneId);
-  const facts = buildEditorialFacts(city, profile, decision, tempMinC, tempMaxC);
+  const facts = buildEditorialFacts(city, profile, decision, tempMinC, tempMaxC, hourly);
   const visual = buildVisualEditorial(facts);
   const hashtags = buildHashtags(city.slug, city.name, facts);
   const social = buildSocialEditorial(city.slug, city.name, facts, scene.emoji, hashtags);
