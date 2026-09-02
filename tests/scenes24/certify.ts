@@ -214,6 +214,19 @@ const aug25InstabilityTrap = () => {
   ok(pass,"instability_I09_property_scene19_requires_doctrine");
 }
 
+// Regression: an already bright day must not become an invalid luminous improvement.
+{
+  const sequence=[45,44,42,25,16,12,10,8,7,6,5,5,5,5,5];
+  const points=makeDay("2026-09-02",h=>({cloud:h>=7&&h<=21?sequence[h-7]:50}));
+  const profile=buildDayProfileV2(CITIES.tarnos,"2026-09-02",points); const decision=chooseScene24V2(profile);
+  ok(profile.evolution.cloudTrend<=-25 && profile.light.brightFraction===1 && decision.decisionFamily==="LIGHT" && decision.sceneId===1 && decision.validity==="VALID", "trend_T01_bright_day_stays_light");
+}
+{
+  const points=makeDay("2026-08-18",h=>({cloud:h<=11?60:h<=15?40:20}));
+  const profile=buildDayProfileV2(CITIES.tarnos,"2026-08-18",points); const decision=chooseScene24V2(profile);
+  ok(profile.evolution.earlyCloudPct<65 && decision.decisionFamily==="TREND" && decision.sceneId===11 && !decision.candidateSceneIds.includes(15) && decision.validity==="VALID", "trend_T02_scene15_requires_cloudy_start");
+}
+
 // 8 uncertainty/model coverage cases.
 for(const models of [5,4,3]){const d=classify(15,'2026-08-18',models).decision;ok(d.validity==='VALID'&&d.sceneId===15,`models_${models}`);}
 {const d=classify(15,'2026-08-18',2).decision;ok(d.validity==='INVALID',`models_2_invalid`);}
@@ -233,5 +246,5 @@ for(let i=0;i<hCases.length;i++){const [selected,prev,s1,s2,expect]=hCases[i];co
 // Determinism: same input 100 times -> exact same decision JSON.
 {const p=classify(15).profile;const first=JSON.stringify(chooseScene24V2(p));let same=true;for(let i=0;i<100;i++)same=same&&JSON.stringify(chooseScene24V2(p))===first;ok(same,'determinism_100');}
 
-if(passed!==202) throw new Error(`certification_count_mismatch:${passed}`);
-console.log(`SCENE_ENGINE_V2_CERTIFICATION ${passed}/202 PASS`);
+if(passed!==204) throw new Error(`certification_count_mismatch:${passed}`);
+console.log(`SCENE_ENGINE_V2_CERTIFICATION ${passed}/204 PASS`);

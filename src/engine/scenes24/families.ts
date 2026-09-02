@@ -24,10 +24,14 @@ export function determineFamily(p: DayProfileV2): FamilyDecision {
     return { family: "VISIBILITY", candidateSceneIds: [8, 17], reason: "dense_fog_structuring" };
   }
   const e = p.evolution;
+  const brightDominant = p.light.brightFraction >= 0.65 && p.light.clearFraction >= 0.45;
   const strongImprovement = e.cloudTrend <= -SCENE_THRESHOLDS.trend.moderateCloudDelta && e.reversals <= 1;
   const strongDegradation = e.cloudTrend >= SCENE_THRESHOLDS.trend.moderateCloudDelta && e.reversals <= 1;
-  if (strongImprovement || strongDegradation) {
-    return { family: "TREND", candidateSceneIds: [5, 11, 15], reason: strongImprovement ? "directional_improvement" : "directional_degradation" };
+  if ((strongImprovement || strongDegradation) && !brightDominant) {
+    const candidateSceneIds: Scene24Id[] = strongImprovement && e.earlyCloudPct < 65
+      ? [5, 11]
+      : [5, 11, 15];
+    return { family: "TREND", candidateSceneIds, reason: strongImprovement ? "directional_improvement" : "directional_degradation" };
   }
   if (isStructuringInstability(p)) {
     return { family: "INSTABILITY", candidateSceneIds: [19], reason: "structuring_multi_regime_instability" };
@@ -49,7 +53,7 @@ export function determineFamily(p: DayProfileV2): FamilyDecision {
   if (p.light.denseFraction >= 0.6 || (p.cloud.meanCoverPct >= 78 && p.light.cloudyFraction + p.light.denseFraction >= 0.7)) {
     return { family: "CLOUD", candidateSceneIds: [9, 23], reason: "cloud_dominant" };
   }
-  if (p.light.brightFraction >= 0.65 && p.light.clearFraction >= 0.45) {
+  if (brightDominant) {
     return { family: "LIGHT", candidateSceneIds: [1, 16], reason: "bright_dominant" };
   }
   if (p.structure.meaningfulTransitions >= 3 || p.light.mixedFraction >= 0.25 || (p.light.brightFraction >= 0.25 && p.light.brightFraction <= 0.75)) {

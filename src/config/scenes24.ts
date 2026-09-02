@@ -1,5 +1,5 @@
-export const SCENE_ENGINE_VERSION = "2.0.2";
-export const SCENE_DOCTRINE_VERSION = "2.0.2";
+export const SCENE_ENGINE_VERSION = "2.0.3";
+export const SCENE_DOCTRINE_VERSION = "2.0.3";
 
 export const SCENE_THRESHOLDS = {
   sky: {
