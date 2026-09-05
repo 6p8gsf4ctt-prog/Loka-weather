@@ -7,3 +7,5 @@ export { buildWeeklyProfiles, WEEKLY_PROFILE_VERSION } from "./profiles";
 export type { WeeklyDayProfile, WeeklyFullDayProfile, WeeklyProfileSet } from "./profiles";
 export { detectWeeklyEvents } from "./events";
 export type { WeeklyEvent, WeeklyEventEvidenceValue, WeeklyEventType } from "./events";
+export { selectWeeklyEvents, selectWeeklyEventsFromProfiles } from "./selection";
+export type { SelectedWeeklyEvent, WeeklySelection, WeeklySelectionConfidence, WeeklySelectionStatus } from "./selection";

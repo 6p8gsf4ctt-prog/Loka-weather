@@ -26,6 +26,8 @@ will be added in later numbered steps:
 - a daylight profile reused from the existing V2 scene engine;
 - full-day aggregates for temperature, precipitation, wind, thunder and fog;
 - raw event detectors (`detectWeeklyEvents`) for the initial authorized categories;
+- adaptive selection (`selectWeeklyEvents`) with episode merging, scoring,
+  confidence and an explicit calm-week state;
 - event detection and ranking;
 - activity interpretation;
 - weekly editorial output;
@@ -34,6 +36,7 @@ will be added in later numbered steps:
 
 This file records the boundary; it does not activate any of these responsibilities.
 
-The event detector only emits factual raw candidates. It does not assign a
-weekly rank, limit the number of candidates, merge neighboring days, generate
-copy or publish anything.
+The event detector only emits factual raw candidates. The selection layer may
+merge neighboring days carrying the same event, rank retained candidates and
+keep the best window, but it has no fixed maximum event count. Neither layer
+generates copy or publishes anything.

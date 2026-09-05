@@ -2,8 +2,8 @@
 # « La semaine à Tarnos »
 
 Dernière mise à jour : 5 septembre 2026  
-Dernière étape validée : 6 — Détecter les événements météo autorisés  
-Statut global : étapes 1 à 6 terminées
+Dernière étape validée : 7 — Sélectionner adaptativement les événements et gérer la semaine calme  
+Statut global : étapes 1 à 7 terminées
 
 ## Plan strict en 12 étapes
 
@@ -15,7 +15,7 @@ Statut global : étapes 1 à 6 terminées
 | 4 | Récupération météo sur sept jours | TERMINÉE |
 | 5 | Profils météo des sept journées | TERMINÉE |
 | 6 | Détecteurs des événements autorisés | TERMINÉE |
-| 7 | Sélection adaptative et semaine calme | À FAIRE |
+| 7 | Sélection adaptative et semaine calme | TERMINÉE |
 | 8 | Interprétation des activités | À FAIRE |
 | 9 | Textes hebdomadaires et scènes LOKA | À FAIRE |
 | 10 | Carrousel et relais Story | À FAIRE |
@@ -111,6 +111,35 @@ L’étape 6 est terminée. Les détecteurs isolés de `src/engine/weekly/events
 
 Les règles et leurs seuils sont regroupés dans `src/config/weeklyEvents.ts`. Les détecteurs renvoient uniquement des candidats factuels avec leur preuve et leur périmètre. Ils ne classent pas les événements, ne les fusionnent pas et ne produisent aucun texte. Le test dédié valide les huit catégories et leurs preuves en 13/13 assertions.
 
+### 5 septembre 2026 — sélection adaptative
+
+L’étape 7 est terminée. `src/engine/weekly/selection.ts` :
+
+- fusionne les journées consécutives portant le même phénomène ;
+- calcule un score et une confiance à partir de l’intensité, de la durée et de la nature du signal ;
+- conserve tous les événements distincts qui dépassent le seuil, sans plafond fixe ;
+- retient la meilleure fenêtre météo parmi les créneaux candidats ;
+- renvoie explicitement `CALM` et une raison lorsque rien n’est retenu ;
+- ne génère ni texte, ni visuel, ni stockage, ni publication.
+
+Le test dédié valide 13/13 assertions, dont la fusion d’un épisode, le choix de la meilleure fenêtre et la semaine calme.
+
+## Audit des étapes 1 à 6
+
+Audit réalisé avant l’étape 7 sur la copie synchronisée du dépôt et sur l’instance déployée :
+
+- étape 1 : documents de référence présents et décisions lundi-dimanche, carrousel adaptatif, semaine calme et automatisation interne cohérentes ;
+- étape 2 : référence quotidienne cohérente avec cinq modèles, 24 scènes, consensus, publication déterministe et défaut quotidien à deux jours ;
+- étape 3 : module hebdomadaire isolé, flag désactivé par défaut et absence d’import dans `src/index.ts` et `src/pipeline.ts` ;
+- étape 4 : récupérateur hebdomadaire à sept jours, minimum de trois modèles, erreurs individuelles conservées et comportement quotidien inchangé ;
+- étape 5 : sept profils consécutifs, consensus horaire, profil solaire V2 réutilisé et agrégats 24 heures disponibles ;
+- étape 6 : huit détecteurs autorisés, candidats factuels, seuils documentés et aucune hiérarchisation prématurée ;
+- les six ZIP précédents sont lisibles et sans erreur d’archive ;
+- compilation principale et compilation des tests réussies ;
+- instance : `/api/health` répond V24 avec cinq modèles et 24 scènes ; `/api/latest?city=tarnos` renvoie un payload quotidien valide avec cinq modèles.
+
+Une correction documentaire a été effectuée pendant l’audit : `forecast_days=2` est décrit comme la valeur par défaut, et non comme une valeur impossible à remplacer. Le dépôt de travail ne contient pas les métadonnées Git ; l’audit ne vérifie donc pas le hash du commit distant, mais vérifie les fichiers synchronisés, les ZIP livrés et le comportement de l’instance.
+
 ## État à la fin de l’étape 4
 
 - Le cadre de référence fonctionnel a été créé à l’étape 1.
@@ -121,7 +150,7 @@ Les règles et leurs seuils sont regroupés dans `src/config/weeklyEvents.ts`. L
 - Le test d’isolation du flag hebdomadaire a été ajouté.
 - Le test de récupération vérifie l’horizon de sept jours et la conservation du défaut quotidien à deux jours.
 - L’instance déployée a été vérifiée par ses endpoints de santé et de contenu quotidien.
-- Aucun fichier source du moteur quotidien n’a été modifié.
+- Aucun route, cron, pipeline ou contrat quotidien n’a été modifié. Le récupérateur partagé a reçu une option explicite, mais le chemin quotidien conserve son comportement par défaut à deux jours.
 - Aucun changement de configuration ou de base de données n’a été effectué.
 - Le format hebdomadaire n’est pas activé.
 
@@ -144,6 +173,15 @@ Les règles et leurs seuils sont regroupés dans `src/config/weeklyEvents.ts`. L
 - Les événements sont retournés sans score ni rang : la sélection adaptative est réservée à l’étape 7.
 - Aucun texte, visuel, stockage, route, cron ou déploiement n’a été ajouté.
 
+## État à la fin de l’étape 7
+
+- Les épisodes consécutifs identiques sont fusionnés pour éviter les doublons artificiels.
+- Le nombre final d’événements dépend uniquement des seuils et des données ; aucun top 3 ou top 5 n’est imposé.
+- Une seule meilleure fenêtre est conservée pour la catégorie correspondante.
+- Une semaine sans événement retenu produit un état `CALM` exploitable par l’étape éditoriale.
+- Chaque événement retenu conserve son score, sa confiance, sa période et ses preuves.
+- Le moteur quotidien reste isolé et le format hebdomadaire demeure inactif.
+
 ## Prochaine étape
 
-Étape 7 : sélectionner adaptativement les événements et gérer la semaine calme.
+Étape 8 : traduire certains événements en activités concrètes.

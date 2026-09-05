@@ -20,3 +20,4 @@ import "./weeklyIsolation";
 import "./weeklyForecast";
 import "./weeklyProfiles";
 import "./weeklyEvents";
+import "./weeklySelection";
