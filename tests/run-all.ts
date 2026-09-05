@@ -22,3 +22,4 @@ import "./weeklyProfiles";
 import "./weeklyEvents";
 import "./weeklySelection";
 import "./weeklyActivities";
+import "./weeklyEditorial";

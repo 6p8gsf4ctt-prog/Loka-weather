@@ -11,3 +11,5 @@ export { selectWeeklyEvents, selectWeeklyEventsFromProfiles } from "./selection"
 export type { SelectedWeeklyEvent, WeeklySelection, WeeklySelectionConfidence, WeeklySelectionStatus } from "./selection";
 export { translateWeeklyActivities } from "./activities";
 export type { WeeklyActivity, WeeklyActivityInsight, WeeklyActivityReasonCode, WeeklyActivitySet, WeeklyActivityStatus, WeeklyActivityWindow } from "./activities";
+export { buildWeeklyEditorial } from "./editorial";
+export type { WeeklyActivityText, WeeklyEditorial, WeeklyEditorialEvent, WeeklySceneReference } from "./editorial";

@@ -2,8 +2,8 @@
 # « La semaine à Tarnos »
 
 Dernière mise à jour : 5 septembre 2026  
-Dernière étape validée : 8 — Traduire certains événements en activités concrètes  
-Statut global : étapes 1 à 8 terminées
+Dernière étape validée : 9 — Générer les textes hebdomadaires et associer les scènes LOKA  
+Statut global : étapes 1 à 9 terminées
 
 ## Plan strict en 12 étapes
 
@@ -17,7 +17,7 @@ Statut global : étapes 1 à 8 terminées
 | 6 | Détecteurs des événements autorisés | TERMINÉE |
 | 7 | Sélection adaptative et semaine calme | TERMINÉE |
 | 8 | Interprétation des activités | TERMINÉE |
-| 9 | Textes hebdomadaires et scènes LOKA | À FAIRE |
+| 9 | Textes hebdomadaires et scènes LOKA | TERMINÉE |
 | 10 | Carrousel et relais Story | À FAIRE |
 | 11 | Stockage, routes et automatisation | À FAIRE |
 | 12 | Prévisualisation, validation et activation progressive | À FAIRE |
@@ -137,6 +137,19 @@ Chaque résultat conserve :
 
 Aucune phrase éditoriale, recommandation personnalisée, nouvelle activité ou décision de publication n’est générée. Une sélection `CALM` ne produit aucun conseil d’activité. Le test dédié valide 10/10 assertions.
 
+### 5 septembre 2026 — textes hebdomadaires et scènes LOKA
+
+L’étape 9 est terminée. `src/engine/weekly/editorial.ts` :
+
+- génère une synthèse de semaine ou une version courte `Une semaine calme à Tarnos` ;
+- produit des titres et textes événementiels déterministes, sans appel à un LLM ;
+- rattache les informations d’activité structurées aux textes correspondants ;
+- réutilise les scènes V24, leurs titres de présentation, pictogrammes, emojis et fonds maîtres ;
+- choisit une journée représentative pour les épisodes couvrant plusieurs jours ;
+- conserve une sortie structurée destinée au futur rendu, sans créer encore le carrousel.
+
+Le test dédié valide 14/14 assertions, dont la synthèse calme et l’intégrité des références aux 24 scènes.
+
 ## Audit des étapes 1 à 6
 
 Audit réalisé avant l’étape 7 sur la copie synchronisée du dépôt et sur l’instance déployée :
@@ -205,6 +218,16 @@ Une correction documentaire a été effectuée pendant l’audit : `forecast_day
 - Le résultat est structuré et non éditorial ; les textes restent réservés à l’étape 9.
 - Le moteur quotidien et la production restent inchangés.
 
+## État à la fin de l’étape 9
+
+- Chaque semaine retenue dispose d’une synthèse et d’un ou plusieurs contenus événementiels.
+- Une semaine calme dispose d’un texte court dédié et d’une scène V24 représentative.
+- Chaque événement conserve un titre, un texte, ses informations d’activité et une référence visuelle V24.
+- Les textes sont entièrement déterministes et intégrés au moteur.
+- Les scènes existantes ne sont ni redéfinies ni dupliquées.
+- Le rendu carrousel, le relais Story, le stockage et l’automatisation restent réservés aux étapes suivantes.
+- Le moteur quotidien reste inchangé et le module hebdomadaire demeure inactif.
+
 ## Prochaine étape
 
-Étape 9 : générer les textes hebdomadaires et associer les scènes LOKA.
+Étape 10 : construire le carrousel et le relais Story.

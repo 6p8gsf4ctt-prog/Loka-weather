@@ -30,6 +30,8 @@ will be added in later numbered steps:
   confidence and an explicit calm-week state;
 - structured activity interpretation (`translateWeeklyActivities`) for beach,
   outdoor walking and outdoor sport;
+- deterministic weekly editorial output (`buildWeeklyEditorial`) with a
+  representative V24 scene for the overview and each selected event;
 - event detection and ranking;
 - activity interpretation;
 - weekly editorial output;
