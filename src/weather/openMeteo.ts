@@ -14,12 +14,19 @@ export interface ForecastRequestOptions {
   forecastDays?: number;
   startDate?: string;
   endDate?: string;
+  timeoutMs?: number;
 }
 
 function normalizedForecastDays(value: number | undefined): number {
   const days = value ?? 2;
   if (!Number.isInteger(days) || days < 1 || days > 16) throw new Error(`invalid_forecast_days:${days}`);
   return days;
+}
+
+function normalizedTimeoutMs(value: number | undefined): number {
+  const timeoutMs = value ?? 10_000;
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1_000 || timeoutMs > 60_000) throw new Error(`invalid_forecast_timeout:${timeoutMs}`);
+  return timeoutMs;
 }
 
 function applyForecastRange(url: URL, startDate: string | undefined, endDate: string | undefined): void {
@@ -49,6 +56,7 @@ export async function fetchModelForecast(
   options: ForecastRequestOptions = {}
 ): Promise<ModelForecast> {
   const forecastDays = normalizedForecastDays(options.forecastDays);
+  const timeoutMs = normalizedTimeoutMs(options.timeoutMs);
   const base = env.OPEN_METEO_BASE_URL || "https://api.open-meteo.com/v1/forecast";
   const url = new URL(base);
   url.searchParams.set("latitude", String(city.latitude));
@@ -67,7 +75,7 @@ export async function fetchModelForecast(
   if (env.OPEN_METEO_API_KEY) url.searchParams.set("apikey", env.OPEN_METEO_API_KEY);
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let response: Response;
   try {
     response = await fetch(url, { signal: controller.signal, headers: { "User-Agent": "LOKA-Weather/2.0" } });

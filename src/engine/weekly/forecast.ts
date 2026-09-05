@@ -4,6 +4,7 @@ import { fetchModelForecast } from "../../weather/openMeteo";
 import type { WeeklyDateRange } from "./schedule";
 
 export const WEEKLY_FORECAST_DAYS = 7 as const;
+export const WEEKLY_FORECAST_TIMEOUT_MS = 30_000 as const;
 
 export interface WeeklyForecastBatch {
   forecastDays: typeof WEEKLY_FORECAST_DAYS;
@@ -24,8 +25,9 @@ export async function fetchWeeklyForecasts(
     MODELS.map((model) => fetchModelForecast(env, city, model, range ? {
       forecastDays: WEEKLY_FORECAST_DAYS,
       startDate: range.startDate,
-      endDate: range.endDate
-    } : { forecastDays: WEEKLY_FORECAST_DAYS }))
+      endDate: range.endDate,
+      timeoutMs: WEEKLY_FORECAST_TIMEOUT_MS
+    } : { forecastDays: WEEKLY_FORECAST_DAYS, timeoutMs: WEEKLY_FORECAST_TIMEOUT_MS }))
   );
   const forecasts: ModelForecast[] = [];
   const failures: Record<string, string> = {};

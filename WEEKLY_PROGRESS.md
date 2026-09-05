@@ -201,6 +201,7 @@ L’étape 12 est terminée. Le moteur possède désormais :
 - des contrôles sur la période lundi-dimanche, le nombre adaptatif de slides, la correspondance des événements, les fonds V24 et le relais Story ;
 - une route administrateur `/api/admin/weekly/preview` sans écriture D1, utilisable avant l’activation et avant lundi pour prévisualiser la prochaine semaine complète ;
 - une page protégée `/weekly-preview` qui rend le carrousel et le relais Story dans l’identité visuelle V24, avec téléchargement des images ;
+- un délai réseau hebdomadaire de 30 secondes, séparé du délai quotidien de 10 secondes, pour laisser les cinq modèles répondre sans modifier le moteur quotidien ;
 - une procédure Cloudflare documentée dans `docs/WEEKLY_ACTIVATION.md` ;
 - une activation publique qui reste volontairement manuelle via `WEEKLY_ENABLED=true`.
 
