@@ -53,6 +53,16 @@ lundi : par défaut, elle prévisualise la prochaine semaine complète du lundi
 au dimanche. Pour cibler explicitement un lundi, ajouter par exemple
 `&start=2026-09-07`.
 
+Pour vérifier le rendu visuel du carrousel et du relais Story, ouvrir ensuite :
+
+```text
+https://loka-weather.jpbm62n289.workers.dev/weekly-preview
+```
+
+Saisir le token dans le formulaire, laisser la date vide ou renseigner un lundi,
+puis télécharger les slides depuis la page. Cette page reste disponible même
+si `WEEKLY_ENABLED` est désactivé et ne stocke rien en D1.
+
 ### 4. Activer progressivement
 
 Après une prévisualisation satisfaisante, ajouter la variable Worker

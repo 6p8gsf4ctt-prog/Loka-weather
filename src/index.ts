@@ -17,6 +17,7 @@ import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExpo
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
+import { renderWeeklyPreviewGate } from "./ui/weeklyPreview";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: { "cache-control": "no-store", "access-control-allow-origin": "*" } });
@@ -343,6 +344,34 @@ export default {
       destination.pathname = "/";
       destination.search = "";
       return Response.redirect(destination.toString(), 308);
+    }
+
+    if (url.pathname === "/weekly-preview") {
+      if (request.method === "GET") {
+        return new Response(renderWeeklyPreviewGate(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+      }
+      if (request.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: { "allow": "GET, POST" } });
+      let form: FormData;
+      try { form = await request.formData(); }
+      catch { return new Response(renderWeeklyPreviewGate("Formulaire invalide."), { status: 400, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } }); }
+      const token = form.get("token");
+      if (typeof token !== "string" || !env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN) {
+        return new Response(renderWeeklyPreviewGate("Token administrateur invalide."), { status: 401, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+      }
+      const slugValue = form.get("city");
+      const slug = typeof slugValue === "string" && slugValue.trim() ? slugValue.trim() : "tarnos";
+      const city = getCity(slug);
+      if (!city) return new Response(renderWeeklyPreviewGate("Ville inconnue."), { status: 404, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+      const startValue = form.get("start");
+      const start = typeof startValue === "string" && startValue.trim() ? startValue.trim() : undefined;
+      try {
+        const generated = await generateWeeklyPreviewCity(env, city, new Date(), start);
+        return new Response(renderWeeklyCarousel(generated.editorial), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const status = message === "weekly_preview_start_requires_monday" ? 400 : message.startsWith("LOKA_WEEKLY_NEEDS_3_MODELS") ? 503 : 500;
+        return new Response(renderWeeklyPreviewGate(message), { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+      }
     }
 
     if (url.pathname === "/") {

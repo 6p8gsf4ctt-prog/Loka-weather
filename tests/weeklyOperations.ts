@@ -30,6 +30,14 @@ async function main(): Promise<void> {
   const disabledEnv = { DB: {}, ADMIN_TOKEN: "secret" } as unknown as Env;
   const publicDisabled = await worker.fetch(new Request("https://loka.test/api/weekly?city=tarnos"), disabledEnv);
   ok(publicDisabled.status === 404, "public_weekly_disabled_by_default");
+  const previewPage = await worker.fetch(new Request("https://loka.test/weekly-preview"), disabledEnv);
+  ok(previewPage.status === 200 && (await previewPage.text()).includes('name="token"'), "visual_preview_form_available");
+  const invalidPreview = await worker.fetch(new Request("https://loka.test/weekly-preview", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: "token=wrong"
+  }), disabledEnv);
+  ok(invalidPreview.status === 401, "visual_preview_requires_token");
   const unauthorized = await worker.fetch(new Request("https://loka.test/api/admin/weekly/run?city=tarnos", { method: "POST" }), disabledEnv);
   ok(unauthorized.status === 401, "manual_weekly_requires_authentication");
   const adminDisabled = await worker.fetch(new Request("https://loka.test/api/admin/weekly/run?city=tarnos", {
@@ -42,7 +50,7 @@ async function main(): Promise<void> {
     .then(() => { throw new Error("WEEKLY_OPERATIONS_FAIL:non_monday_generation_allowed"); })
     .catch((error: unknown) => ok(error instanceof Error && error.message === "weekly_generation_requires_monday", "manual_generation_requires_monday"));
 
-  console.log(`WEEKLY_OPERATIONS ${passed}/11 PASS`);
+  console.log(`WEEKLY_OPERATIONS ${passed}/13 PASS`);
 }
 
 main().catch((error: unknown) => { throw error; });
