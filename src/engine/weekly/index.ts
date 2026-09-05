@@ -9,3 +9,5 @@ export { detectWeeklyEvents } from "./events";
 export type { WeeklyEvent, WeeklyEventEvidenceValue, WeeklyEventType } from "./events";
 export { selectWeeklyEvents, selectWeeklyEventsFromProfiles } from "./selection";
 export type { SelectedWeeklyEvent, WeeklySelection, WeeklySelectionConfidence, WeeklySelectionStatus } from "./selection";
+export { translateWeeklyActivities } from "./activities";
+export type { WeeklyActivity, WeeklyActivityInsight, WeeklyActivityReasonCode, WeeklyActivitySet, WeeklyActivityStatus, WeeklyActivityWindow } from "./activities";

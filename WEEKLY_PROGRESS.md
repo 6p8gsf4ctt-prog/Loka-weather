@@ -2,8 +2,8 @@
 # « La semaine à Tarnos »
 
 Dernière mise à jour : 5 septembre 2026  
-Dernière étape validée : 7 — Sélectionner adaptativement les événements et gérer la semaine calme  
-Statut global : étapes 1 à 7 terminées
+Dernière étape validée : 8 — Traduire certains événements en activités concrètes  
+Statut global : étapes 1 à 8 terminées
 
 ## Plan strict en 12 étapes
 
@@ -16,7 +16,7 @@ Statut global : étapes 1 à 7 terminées
 | 5 | Profils météo des sept journées | TERMINÉE |
 | 6 | Détecteurs des événements autorisés | TERMINÉE |
 | 7 | Sélection adaptative et semaine calme | TERMINÉE |
-| 8 | Interprétation des activités | À FAIRE |
+| 8 | Interprétation des activités | TERMINÉE |
 | 9 | Textes hebdomadaires et scènes LOKA | À FAIRE |
 | 10 | Carrousel et relais Story | À FAIRE |
 | 11 | Stockage, routes et automatisation | À FAIRE |
@@ -124,6 +124,19 @@ L’étape 7 est terminée. `src/engine/weekly/selection.ts` :
 
 Le test dédié valide 13/13 assertions, dont la fusion d’un épisode, le choix de la meilleure fenêtre et la semaine calme.
 
+### 5 septembre 2026 — interprétation des activités
+
+L’étape 8 est terminée. `src/engine/weekly/activities.ts` interprète les conditions retenues pour trois catégories uniquement : plage, promenade/sortie extérieure et sport extérieur.
+
+Chaque résultat conserve :
+
+- un statut `FAVORABLE`, `MIXED` ou `UNFAVORABLE` ;
+- les heures évaluées et la meilleure fenêtre éventuelle ;
+- des codes météo explicatifs ;
+- des preuves numériques sur température, pluie, vent, nuages, brouillard et orage.
+
+Aucune phrase éditoriale, recommandation personnalisée, nouvelle activité ou décision de publication n’est générée. Une sélection `CALM` ne produit aucun conseil d’activité. Le test dédié valide 10/10 assertions.
+
 ## Audit des étapes 1 à 6
 
 Audit réalisé avant l’étape 7 sur la copie synchronisée du dépôt et sur l’instance déployée :
@@ -182,6 +195,16 @@ Une correction documentaire a été effectuée pendant l’audit : `forecast_day
 - Chaque événement retenu conserve son score, sa confiance, sa période et ses preuves.
 - Le moteur quotidien reste isolé et le format hebdomadaire demeure inactif.
 
+## État à la fin de l’étape 8
+
+- Les trois activités validées sont les seules catégories disponibles.
+- Les conditions sont évaluées sur la fenêtre solaire, adaptée aux activités extérieures.
+- Les statuts sont calculés par règles déterministes à partir de pluie, vent, température, couverture nuageuse, brouillard et orage.
+- Les créneaux favorables sont conservés lorsqu’ils durent au moins trois heures consécutives.
+- Chaque insight est relié à l’événement retenu et conserve ses preuves.
+- Le résultat est structuré et non éditorial ; les textes restent réservés à l’étape 9.
+- Le moteur quotidien et la production restent inchangés.
+
 ## Prochaine étape
 
-Étape 8 : traduire certains événements en activités concrètes.
+Étape 9 : générer les textes hebdomadaires et associer les scènes LOKA.

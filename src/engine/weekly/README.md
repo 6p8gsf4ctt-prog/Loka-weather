@@ -28,6 +28,8 @@ will be added in later numbered steps:
 - raw event detectors (`detectWeeklyEvents`) for the initial authorized categories;
 - adaptive selection (`selectWeeklyEvents`) with episode merging, scoring,
   confidence and an explicit calm-week state;
+- structured activity interpretation (`translateWeeklyActivities`) for beach,
+  outdoor walking and outdoor sport;
 - event detection and ranking;
 - activity interpretation;
 - weekly editorial output;
@@ -39,4 +41,6 @@ This file records the boundary; it does not activate any of these responsibiliti
 The event detector only emits factual raw candidates. The selection layer may
 merge neighboring days carrying the same event, rank retained candidates and
 keep the best window, but it has no fixed maximum event count. Neither layer
-generates copy or publishes anything.
+generates copy or publishes anything. Activity interpretation also returns
+statuses, windows, reason codes and numeric evidence only; editorial wording
+belongs to a later step.
