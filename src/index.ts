@@ -2,7 +2,7 @@ import { CITIES, getCity } from "./config/cities";
 import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
 import { isWeeklyEnabled, renderWeeklyCarousel } from "./engine/weekly";
-import { localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyRangeForDate } from "./weeklyPipeline";
+import { generateWeeklyCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyRangeForDate } from "./weeklyPipeline";
 import { localDate, runManualCity, runScheduledCity } from "./pipeline";
 import { generationHistory, officialForDate, officialHistory } from "./storage/db";
 import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySceneLedger";
@@ -194,6 +194,21 @@ export default {
         }
       } catch (error) {
         return json({ error: error instanceof Error ? error.message : String(error) }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/weekly/preview" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+      const slug = url.searchParams.get("city") || "tarnos";
+      const city = getCity(slug);
+      if (!city) return json({ error: "unknown_city" }, 404);
+      try {
+        const generated = await generateWeeklyCity(env, city, "admin_weekly_preview");
+        return json({ ok: true, previewOnly: true, activation: generated.activation, editorial: generated.editorial, carousel: generated.carousel });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const status = message === "weekly_generation_requires_monday" ? 409 : message.startsWith("LOKA_WEEKLY_NEEDS_3_MODELS") ? 503 : 500;
+        return json({ error: message }, status);
       }
     }
 

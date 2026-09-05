@@ -17,3 +17,5 @@ export { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_CAROUSEL_HEIGHT, 
 export type { WeeklyCarouselPlan, WeeklyCarouselSlide, WeeklyCarouselSlideKind, WeeklyStoryRelay } from "./carousel";
 export { localDateIsMonday, weeklyRangeForDate } from "./schedule";
 export type { WeeklyDateRange } from "./schedule";
+export { validateWeeklyActivation } from "./activation";
+export type { WeeklyActivationCheck, WeeklyActivationValidation } from "./activation";

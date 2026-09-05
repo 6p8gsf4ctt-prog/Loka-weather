@@ -1,4 +1,4 @@
-import { buildWeeklyCarouselPlan, buildWeeklyEditorial, buildWeeklyProfiles, detectWeeklyEvents, fetchWeeklyForecasts, selectWeeklyEvents, translateWeeklyActivities, WEEKLY_ENGINE_VERSION } from "./engine/weekly";
+import { buildWeeklyCarouselPlan, buildWeeklyEditorial, buildWeeklyProfiles, detectWeeklyEvents, fetchWeeklyForecasts, selectWeeklyEvents, translateWeeklyActivities, validateWeeklyActivation, WEEKLY_ENGINE_VERSION } from "./engine/weekly";
 import { isWeeklyEnabled } from "./engine/weekly/featureFlag";
 import { localDateIsMonday, weeklyRangeForDate } from "./engine/weekly/schedule";
 import { saveWeeklyPublication, weeklyPublicationForRange, type WeeklyPublicationRecord } from "./storage/weeklyPublications";
@@ -9,6 +9,7 @@ export interface GeneratedWeekly {
   source: string;
   editorial: ReturnType<typeof buildWeeklyEditorial>;
   carousel: ReturnType<typeof buildWeeklyCarouselPlan>;
+  activation: ReturnType<typeof validateWeeklyActivation>;
 }
 
 export interface WeeklyRunResult {
@@ -47,11 +48,15 @@ export async function generateWeeklyCity(
   const selection = selectWeeklyEvents(profiles, rawEvents, city);
   const activities = translateWeeklyActivities(profiles, selection, city);
   const editorial = buildWeeklyEditorial(profiles, selection, activities, city.name);
+  const carousel = buildWeeklyCarouselPlan(editorial);
+  const activation = validateWeeklyActivation(editorial, carousel);
+  if (!activation.ok) throw new Error(`weekly_activation_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);
   return {
     generatedAt: new Date().toISOString(),
     source,
     editorial,
-    carousel: buildWeeklyCarouselPlan(editorial)
+    carousel,
+    activation
   };
 }
 

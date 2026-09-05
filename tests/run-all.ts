@@ -25,3 +25,4 @@ import "./weeklyActivities";
 import "./weeklyEditorial";
 import "./weeklyCarousel";
 import "./weeklyOperations";
+import "./weeklyActivation";

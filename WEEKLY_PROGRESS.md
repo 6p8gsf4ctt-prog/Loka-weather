@@ -2,8 +2,8 @@
 # « La semaine à Tarnos »
 
 Dernière mise à jour : 5 septembre 2026  
-Dernière étape validée : 11 — Préparer le stockage, les routes et l’automatisation  
-Statut global : étapes 1 à 11 terminées
+Dernière étape validée : 12 — Prévisualiser, valider et activer progressivement  
+Statut global : étapes 1 à 12 terminées
 
 ## Plan strict en 12 étapes
 
@@ -20,7 +20,7 @@ Statut global : étapes 1 à 11 terminées
 | 9 | Textes hebdomadaires et scènes LOKA | TERMINÉE |
 | 10 | Carrousel et relais Story | TERMINÉE |
 | 11 | Stockage, routes et automatisation | TERMINÉE |
-| 12 | Prévisualisation, validation et activation progressive | À FAIRE |
+| 12 | Prévisualisation, validation et activation progressive | TERMINÉE |
 
 ## Règles de pilotage
 
@@ -193,6 +193,18 @@ La migration a été appliquée avec succès sur la base locale. Aucun `--remote
 
 Les contrôles de cette étape valident 9/9 tests hebdomadaires dédiés, 24/24 fichiers de tests non historiques, la compilation TypeScript et les dix archives précédentes.
 
+### 5 septembre 2026 — prévisualisation, validation et activation progressive
+
+L’étape 12 est terminée. Le moteur possède désormais :
+
+- une validation déterministe avant stockage ou exposition publique ;
+- des contrôles sur la période lundi-dimanche, le nombre adaptatif de slides, la correspondance des événements, les fonds V24 et le relais Story ;
+- une route administrateur `/api/admin/weekly/preview` sans écriture D1, utilisable avant l’activation ;
+- une procédure Cloudflare documentée dans `docs/WEEKLY_ACTIVATION.md` ;
+- une activation publique qui reste volontairement manuelle via `WEEKLY_ENABLED=true`.
+
+La validation locale confirme la migration D1, la compilation TypeScript, 10/10 tests d’activation, 10/10 tests d’opérations hebdomadaires et 25/25 fichiers de tests non historiques. Aucune commande distante, aucun déploiement et aucune activation de production n’ont été exécutés.
+
 ## Audit des étapes 1 à 6
 
 Audit réalisé avant l’étape 7 sur la copie synchronisée du dépôt et sur l’instance déployée :
@@ -292,6 +304,17 @@ Une correction documentaire a été effectuée pendant l’audit : `forecast_day
 - Le stockage distant n’a pas été migré et le flag n’a pas été activé : aucune modification de production n’est en cours.
 - L’étape 12 doit encore valider la prévisualisation, le déploiement contrôlé et l’activation progressive.
 
-## Prochaine étape
+## État à la fin de l’étape 12
 
-Étape 12 : prévisualiser, valider et activer progressivement.
+- Les sorties hebdomadaires sont bloquées automatiquement si leur contrat éditorial ou visuel est incohérent.
+- La prévisualisation administrateur permet de contrôler une semaine sans créer de snapshot D1.
+- La migration distante et la variable `WEEKLY_ENABLED` sont volontairement laissées à l’utilisateur.
+- La procédure d’activation vérifie d’abord le code déployé, la table D1, la prévisualisation puis les trois surfaces HTTP.
+- Le moteur quotidien reste la référence de sécurité et doit répondre après chaque vérification.
+- Les 12 étapes du plan sont terminées ; l’activation publique est une opération contrôlée séparée du développement.
+
+## Suite opérationnelle
+
+Le plan technique en 12 étapes est terminé. La seule suite consiste, lorsque
+la prévisualisation sera satisfaisante, à appliquer la migration distante puis
+à activer progressivement `WEEKLY_ENABLED=true` selon `docs/WEEKLY_ACTIVATION.md`.
