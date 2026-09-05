@@ -2,8 +2,8 @@
 # « La semaine à Tarnos »
 
 Dernière mise à jour : 5 septembre 2026  
-Dernière étape validée : 5 — Construire les profils météo des sept journées  
-Statut global : étapes 1 à 5 terminées
+Dernière étape validée : 6 — Détecter les événements météo autorisés  
+Statut global : étapes 1 à 6 terminées
 
 ## Plan strict en 12 étapes
 
@@ -14,7 +14,7 @@ Statut global : étapes 1 à 5 terminées
 | 3 | Espace isolé du moteur hebdomadaire | TERMINÉE |
 | 4 | Récupération météo sur sept jours | TERMINÉE |
 | 5 | Profils météo des sept journées | TERMINÉE |
-| 6 | Détecteurs des événements autorisés | À FAIRE |
+| 6 | Détecteurs des événements autorisés | TERMINÉE |
 | 7 | Sélection adaptative et semaine calme | À FAIRE |
 | 8 | Interprétation des activités | À FAIRE |
 | 9 | Textes hebdomadaires et scènes LOKA | À FAIRE |
@@ -96,6 +96,21 @@ L’étape 5 est terminée. Le livrable a été ajouté dans `src/engine/weekly/
 
 Les contrôles dédiés valident 15/15 assertions sur les profils. La suite globale reste à 18/19 suites, avec un seul test éditorial historique déjà connu sur le libellé « Averses intermittentes ».
 
+### 5 septembre 2026 — détection brute des événements
+
+L’étape 6 est terminée. Les détecteurs isolés de `src/engine/weekly/events.ts` couvrent les catégories autorisées :
+
+- chaleur marquée ;
+- fraîcheur/froid marqué ;
+- pluie significative ;
+- vent fort ;
+- amélioration nette ;
+- dégradation nette ;
+- fenêtres météo favorables ;
+- orage uniquement avec durée minimale et support multi-modèles suffisant.
+
+Les règles et leurs seuils sont regroupés dans `src/config/weeklyEvents.ts`. Les détecteurs renvoient uniquement des candidats factuels avec leur preuve et leur périmètre. Ils ne classent pas les événements, ne les fusionnent pas et ne produisent aucun texte. Le test dédié valide les huit catégories et leurs preuves en 13/13 assertions.
+
 ## État à la fin de l’étape 4
 
 - Le cadre de référence fonctionnel a été créé à l’étape 1.
@@ -120,6 +135,15 @@ Les contrôles dédiés valident 15/15 assertions sur les profils. La suite glob
 - Aucun événement n’est encore détecté ou classé.
 - Le quotidien et la production restent inchangés.
 
+## État à la fin de l’étape 6
+
+- Les huit catégories initiales disposent d’un détecteur automatisé.
+- Les seuils thermiques et de vent utilisent la configuration de Tarnos.
+- Les seuils de pluie, brouillard, orage et consensus restent alignés sur les règles V2 existantes.
+- Les fenêtres favorables sont détectées comme des créneaux horaires bruts, sans recommandation d’activité.
+- Les événements sont retournés sans score ni rang : la sélection adaptative est réservée à l’étape 7.
+- Aucun texte, visuel, stockage, route, cron ou déploiement n’a été ajouté.
+
 ## Prochaine étape
 
-Étape 6 : détecter les événements météo autorisés.
+Étape 7 : sélectionner adaptativement les événements et gérer la semaine calme.

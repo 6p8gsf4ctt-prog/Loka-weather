@@ -19,3 +19,4 @@ import "./instagramLogoRuntimeV4";
 import "./weeklyIsolation";
 import "./weeklyForecast";
 import "./weeklyProfiles";
+import "./weeklyEvents";

@@ -25,6 +25,7 @@ will be added in later numbered steps:
 - seven-day input (`fetchWeeklyForecasts`) and daily profiles (`buildWeeklyProfiles`);
 - a daylight profile reused from the existing V2 scene engine;
 - full-day aggregates for temperature, precipitation, wind, thunder and fog;
+- raw event detectors (`detectWeeklyEvents`) for the initial authorized categories;
 - event detection and ranking;
 - activity interpretation;
 - weekly editorial output;
@@ -32,3 +33,7 @@ will be added in later numbered steps:
 - weekly persistence and Monday scheduling.
 
 This file records the boundary; it does not activate any of these responsibilities.
+
+The event detector only emits factual raw candidates. It does not assign a
+weekly rank, limit the number of candidates, merge neighboring days, generate
+copy or publish anything.
