@@ -48,9 +48,10 @@ curl -X POST \
   -H "Authorization: Bearer VOTRE_ADMIN_TOKEN"
 ```
 
-Cette route ne stocke rien et ne publie rien. Elle exige un lundi local afin
-de respecter le format lundi-dimanche ; en dehors du lundi, le refus est
-volontaire.
+Cette route ne stocke rien et ne publie rien. Elle peut être utilisée avant
+lundi : par défaut, elle prévisualise la prochaine semaine complète du lundi
+au dimanche. Pour cibler explicitement un lundi, ajouter par exemple
+`&start=2026-09-07`.
 
 ### 4. Activer progressivement
 

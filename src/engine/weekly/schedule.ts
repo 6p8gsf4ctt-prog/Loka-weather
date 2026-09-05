@@ -22,6 +22,14 @@ export function weeklyRangeForDate(date: string): WeeklyDateRange {
   return { startDate, endDate: shiftDate(startDate, 6) };
 }
 
+/** Returns the given local date when it is Monday, otherwise the next Monday. */
+export function nextMondayOrSame(date: string): string {
+  if (!validDate(date)) throw new Error(`weekly_invalid_local_date:${date}`);
+  const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
+  const daysUntilMonday = (8 - (weekday || 7)) % 7;
+  return shiftDate(date, daysUntilMonday);
+}
+
 export function localDateIsMonday(timezone: string, instant: Date): boolean {
   return new Intl.DateTimeFormat("en-US", { timeZone: timezone, weekday: "short" }).format(instant) === "Mon";
 }

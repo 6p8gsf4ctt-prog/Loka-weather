@@ -45,6 +45,15 @@ function mockPayload(): Record<string, unknown> {
     ok(requestedUrls.every((value) => new URL(value).searchParams.get("timezone") === "Europe/Paris"), "city_timezone_preserved");
 
     requestedUrls.length = 0;
+    await fetchWeeklyForecasts({} as Env, CITIES.tarnos, { startDate: "2026-09-07", endDate: "2026-09-13" });
+    ok(requestedUrls.length === MODELS.length && requestedUrls.every((value) => {
+      const url = new URL(value);
+      return url.searchParams.get("start_date") === "2026-09-07"
+        && url.searchParams.get("end_date") === "2026-09-13"
+        && url.searchParams.get("forecast_days") === null;
+    }), "explicit_date_range_parameters");
+
+    requestedUrls.length = 0;
     await fetchModelForecast({} as Env, CITIES.tarnos, MODELS[0]);
     ok(requestedUrls.length === 1, "daily_request_available");
     ok(new URL(requestedUrls[0]).searchParams.get("forecast_days") === "2", "daily_default_preserved");
@@ -52,5 +61,5 @@ function mockPayload(): Record<string, unknown> {
     globalThis.fetch = originalFetch;
   }
 
-  console.log(`WEEKLY_FORECAST ${passed}/9 PASS`);
+  console.log(`WEEKLY_FORECAST ${passed}/10 PASS`);
 })().catch((error) => { throw error; });

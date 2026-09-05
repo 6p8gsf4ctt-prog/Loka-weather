@@ -1,5 +1,5 @@
 import worker from "../src/index";
-import { localDateIsMonday, weeklyRangeForDate } from "../src/engine/weekly";
+import { localDateIsMonday, nextMondayOrSame, weeklyRangeForDate } from "../src/engine/weekly";
 import { generateWeeklyCity } from "../src/weeklyPipeline";
 import { CITIES } from "../src/config/cities";
 import type { Env } from "../src/types";
@@ -24,6 +24,7 @@ ok(weeklyRangeForDate("2026-09-13").endDate === "2026-09-13", "sunday_closes_ran
 throws(() => weeklyRangeForDate("not-a-date"), "invalid_date_rejected");
 ok(localDateIsMonday("Europe/Paris", new Date("2026-09-07T03:00:00.000Z")), "monday_local_slot");
 ok(!localDateIsMonday("Europe/Paris", new Date("2026-09-08T03:00:00.000Z")), "tuesday_not_monday");
+ok(nextMondayOrSame("2026-09-05") === "2026-09-07", "preview_defaults_next_monday");
 
 async function main(): Promise<void> {
   const disabledEnv = { DB: {}, ADMIN_TOKEN: "secret" } as unknown as Env;
@@ -41,7 +42,7 @@ async function main(): Promise<void> {
     .then(() => { throw new Error("WEEKLY_OPERATIONS_FAIL:non_monday_generation_allowed"); })
     .catch((error: unknown) => ok(error instanceof Error && error.message === "weekly_generation_requires_monday", "manual_generation_requires_monday"));
 
-  console.log(`WEEKLY_OPERATIONS ${passed}/10 PASS`);
+  console.log(`WEEKLY_OPERATIONS ${passed}/11 PASS`);
 }
 
 main().catch((error: unknown) => { throw error; });

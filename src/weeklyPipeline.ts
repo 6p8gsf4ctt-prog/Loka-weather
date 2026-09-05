@@ -1,6 +1,6 @@
 import { buildWeeklyCarouselPlan, buildWeeklyEditorial, buildWeeklyProfiles, detectWeeklyEvents, fetchWeeklyForecasts, selectWeeklyEvents, translateWeeklyActivities, validateWeeklyActivation, WEEKLY_ENGINE_VERSION } from "./engine/weekly";
 import { isWeeklyEnabled } from "./engine/weekly/featureFlag";
-import { localDateIsMonday, weeklyRangeForDate } from "./engine/weekly/schedule";
+import { localDateIsMonday, nextMondayOrSame, weeklyRangeForDate, type WeeklyDateRange } from "./engine/weekly/schedule";
 import { saveWeeklyPublication, weeklyPublicationForRange, type WeeklyPublicationRecord } from "./storage/weeklyPublications";
 import type { CityConfig, Env } from "./types";
 
@@ -38,8 +38,16 @@ export async function generateWeeklyCity(
   instant = new Date()
 ): Promise<GeneratedWeekly> {
   const localDate = assertMonday(city, instant);
-  const expected = weeklyRangeForDate(localDate);
-  const batch = await fetchWeeklyForecasts(env, city);
+  return generateWeeklyForRange(env, city, source, weeklyRangeForDate(localDate));
+}
+
+async function generateWeeklyForRange(
+  env: Env,
+  city: CityConfig,
+  source: string,
+  expected: WeeklyDateRange
+): Promise<GeneratedWeekly> {
+  const batch = await fetchWeeklyForecasts(env, city, expected);
   const profiles = buildWeeklyProfiles(city, batch.forecasts);
   if (profiles.startDate !== expected.startDate || profiles.endDate !== expected.endDate) {
     throw new Error(`weekly_forecast_range_mismatch:${profiles.startDate}:${profiles.endDate}:${expected.startDate}:${expected.endDate}`);
@@ -58,6 +66,23 @@ export async function generateWeeklyCity(
     carousel,
     activation
   };
+}
+
+/**
+ * Preview-only generation. It may be called before Monday and never writes to
+ * D1; by default it previews the next Monday-to-Sunday window.
+ */
+export async function generateWeeklyPreviewCity(
+  env: Env,
+  city: CityConfig,
+  instant = new Date(),
+  requestedStartDate?: string
+): Promise<GeneratedWeekly> {
+  const localDate = localDateForCity(city, instant);
+  const startDate = requestedStartDate || nextMondayOrSame(localDate);
+  const expected = weeklyRangeForDate(startDate);
+  if (expected.startDate !== startDate) throw new Error("weekly_preview_start_requires_monday");
+  return generateWeeklyForRange(env, city, "admin_weekly_preview", expected);
 }
 
 export async function runManualWeeklyCity(env: Env, city: CityConfig, instant = new Date()): Promise<WeeklyPublicationRecord> {
@@ -101,4 +126,4 @@ export async function runScheduledWeeklyCity(
   return { skipped: false, saved: true, publication };
 }
 
-export { localDateIsMonday, weeklyRangeForDate } from "./engine/weekly/schedule";
+export { localDateIsMonday, nextMondayOrSame, weeklyRangeForDate } from "./engine/weekly/schedule";

@@ -1,6 +1,7 @@
 import { MODELS } from "../../config/models";
 import type { CityConfig, Env, ModelForecast } from "../../types";
 import { fetchModelForecast } from "../../weather/openMeteo";
+import type { WeeklyDateRange } from "./schedule";
 
 export const WEEKLY_FORECAST_DAYS = 7 as const;
 
@@ -14,9 +15,17 @@ export interface WeeklyForecastBatch {
  * Retrieves the seven-day input for the future weekly engine. This function is
  * deliberately not connected to the daily pipeline at this stage.
  */
-export async function fetchWeeklyForecasts(env: Env, city: CityConfig): Promise<WeeklyForecastBatch> {
+export async function fetchWeeklyForecasts(
+  env: Env,
+  city: CityConfig,
+  range?: WeeklyDateRange
+): Promise<WeeklyForecastBatch> {
   const settled = await Promise.allSettled(
-    MODELS.map((model) => fetchModelForecast(env, city, model, { forecastDays: WEEKLY_FORECAST_DAYS }))
+    MODELS.map((model) => fetchModelForecast(env, city, model, range ? {
+      forecastDays: WEEKLY_FORECAST_DAYS,
+      startDate: range.startDate,
+      endDate: range.endDate
+    } : { forecastDays: WEEKLY_FORECAST_DAYS }))
   );
   const forecasts: ModelForecast[] = [];
   const failures: Record<string, string> = {};

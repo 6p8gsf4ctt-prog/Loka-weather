@@ -2,7 +2,7 @@ import { CITIES, getCity } from "./config/cities";
 import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
 import { isWeeklyEnabled, renderWeeklyCarousel } from "./engine/weekly";
-import { generateWeeklyCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyRangeForDate } from "./weeklyPipeline";
+import { generateWeeklyCity, generateWeeklyPreviewCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyRangeForDate } from "./weeklyPipeline";
 import { localDate, runManualCity, runScheduledCity } from "./pipeline";
 import { generationHistory, officialForDate, officialHistory } from "./storage/db";
 import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySceneLedger";
@@ -203,11 +203,11 @@ export default {
       const city = getCity(slug);
       if (!city) return json({ error: "unknown_city" }, 404);
       try {
-        const generated = await generateWeeklyCity(env, city, "admin_weekly_preview");
+        const generated = await generateWeeklyPreviewCity(env, city, new Date(), url.searchParams.get("start") || undefined);
         return json({ ok: true, previewOnly: true, activation: generated.activation, editorial: generated.editorial, carousel: generated.carousel });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        const status = message === "weekly_generation_requires_monday" ? 409 : message.startsWith("LOKA_WEEKLY_NEEDS_3_MODELS") ? 503 : 500;
+        const status = message === "weekly_preview_start_requires_monday" ? 400 : message.startsWith("LOKA_WEEKLY_NEEDS_3_MODELS") ? 503 : 500;
         return json({ error: message }, status);
       }
     }

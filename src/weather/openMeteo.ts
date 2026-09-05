@@ -12,12 +12,29 @@ interface OpenMeteoPayload {
 
 export interface ForecastRequestOptions {
   forecastDays?: number;
+  startDate?: string;
+  endDate?: string;
 }
 
 function normalizedForecastDays(value: number | undefined): number {
   const days = value ?? 2;
   if (!Number.isInteger(days) || days < 1 || days > 16) throw new Error(`invalid_forecast_days:${days}`);
   return days;
+}
+
+function applyForecastRange(url: URL, startDate: string | undefined, endDate: string | undefined): void {
+  if (startDate === undefined && endDate === undefined) return;
+  if (startDate === undefined || endDate === undefined) throw new Error("forecast_range_requires_both_dates");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+    throw new Error(`invalid_forecast_range:${startDate}:${endDate}`);
+  }
+  const start = Date.parse(`${startDate}T00:00:00Z`);
+  const end = Date.parse(`${endDate}T00:00:00Z`);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+    throw new Error(`invalid_forecast_range:${startDate}:${endDate}`);
+  }
+  url.searchParams.set("start_date", startDate);
+  url.searchParams.set("end_date", endDate);
 }
 
 function numeric(values: Array<string | number | null> | undefined, i: number): number | null {
@@ -37,7 +54,11 @@ export async function fetchModelForecast(
   url.searchParams.set("latitude", String(city.latitude));
   url.searchParams.set("longitude", String(city.longitude));
   url.searchParams.set("timezone", city.timezone);
-  url.searchParams.set("forecast_days", String(forecastDays));
+  if (options.startDate !== undefined || options.endDate !== undefined) {
+    applyForecastRange(url, options.startDate, options.endDate);
+  } else {
+    url.searchParams.set("forecast_days", String(forecastDays));
+  }
   url.searchParams.set("hourly", HOURLY_VARIABLES.join(","));
   url.searchParams.set("models", model.apiModel);
   url.searchParams.set("temperature_unit", "celsius");

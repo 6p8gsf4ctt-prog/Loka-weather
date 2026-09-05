@@ -199,7 +199,7 @@ L’étape 12 est terminée. Le moteur possède désormais :
 
 - une validation déterministe avant stockage ou exposition publique ;
 - des contrôles sur la période lundi-dimanche, le nombre adaptatif de slides, la correspondance des événements, les fonds V24 et le relais Story ;
-- une route administrateur `/api/admin/weekly/preview` sans écriture D1, utilisable avant l’activation ;
+- une route administrateur `/api/admin/weekly/preview` sans écriture D1, utilisable avant l’activation et avant lundi pour prévisualiser la prochaine semaine complète ;
 - une procédure Cloudflare documentée dans `docs/WEEKLY_ACTIVATION.md` ;
 - une activation publique qui reste volontairement manuelle via `WEEKLY_ENABLED=true`.
 
