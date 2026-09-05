@@ -1,11 +1,14 @@
 import { CITIES, getCity } from "./config/cities";
 import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
+import { isWeeklyEnabled, renderWeeklyCarousel } from "./engine/weekly";
+import { localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyRangeForDate } from "./weeklyPipeline";
 import { localDate, runManualCity, runScheduledCity } from "./pipeline";
 import { generationHistory, officialForDate, officialHistory } from "./storage/db";
 import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySceneLedger";
 import { editorialFeedbackForOfficial, saveEditorialFeedback } from "./storage/editorialFeedback";
 import { buildEditorialLearningExport } from "./storage/editorialFeedbackExport";
+import { weeklyPublicationForRange } from "./storage/weeklyPublications";
 import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
 import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
@@ -39,6 +42,13 @@ async function safeToday(env: Env, citySlug: string) {
   const surface = await resolvePublicSurfaceSafely(stored?.payload ?? null, stored?.manifest ?? null);
   return { city, date, surface };
 }
+async function currentWeekly(env: Env, citySlug: string) {
+  const city = getCity(citySlug);
+  if (!city) return null;
+  const range = weeklyRangeForDate(localDate(city.timezone));
+  const publication = await weeklyPublicationForRange(env.DB, city.slug, range.startDate, range.endDate);
+  return { city, range, publication };
+}
 async function masterAvailable(request: Request, env: Env, path: string): Promise<boolean> {
   if (!env.ASSETS) return true;
   try {
@@ -59,6 +69,14 @@ export default {
       if (!result) return json({ error: "unknown_city" }, 404);
       if (result.surface.engine === "UNAVAILABLE") return json({ error: result.surface.reason }, 503);
       return json(result.surface.payload);
+    }
+    if (url.pathname === "/api/weekly" && request.method === "GET") {
+      if (!isWeeklyEnabled(env)) return json({ error: "weekly_disabled" }, 404);
+      const slug = url.searchParams.get("city") || "tarnos";
+      const result = await currentWeekly(env, slug);
+      if (!result) return json({ error: "unknown_city" }, 404);
+      if (!result.publication) return json({ error: "weekly_not_found", ...result.range }, 404);
+      return json(result.publication);
     }
     if (url.pathname === "/api/decision") {
       const slug = url.searchParams.get("city") || "tarnos";
@@ -176,6 +194,33 @@ export default {
         }
       } catch (error) {
         return json({ error: error instanceof Error ? error.message : String(error) }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/admin/weekly/run" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+      if (!isWeeklyEnabled(env)) return json({ error: "weekly_disabled" }, 404);
+      const slug = url.searchParams.get("city") || "tarnos";
+      const city = getCity(slug);
+      if (!city) return json({ error: "unknown_city" }, 404);
+      try {
+        const publication = await runManualWeeklyCity(env, city);
+        return json({
+          ok: true,
+          publication: {
+            id: publication.id,
+            citySlug: publication.citySlug,
+            startDate: publication.startDate,
+            endDate: publication.endDate,
+            generatedAt: publication.generatedAt,
+            status: publication.status,
+            carousel: publication.carousel
+          }
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const status = message === "weekly_generation_requires_monday" ? 409 : 500;
+        return json({ error: message }, status);
       }
     }
 
@@ -301,6 +346,18 @@ export default {
       return new Response(exportHtml, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
     }
 
+    if (url.pathname === "/weekly" && request.method === "GET") {
+      if (!isWeeklyEnabled(env)) return json({ error: "weekly_disabled" }, 404);
+      const slug = url.searchParams.get("city") || "tarnos";
+      const result = await currentWeekly(env, slug);
+      if (!result) return json({ error: "unknown_city" }, 404);
+      if (!result.publication) return json({ error: "weekly_not_found", ...result.range }, 404);
+      if (!await masterAvailable(request, env, result.publication.editorial.overview.scene.masterUrl)) return unavailable("weekly_master_graphic_unavailable");
+      return new Response(renderWeeklyCarousel(result.publication.editorial), {
+        headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
+      });
+    }
+
     return json({ error: "not_found" }, 404);
   },
 
@@ -311,6 +368,9 @@ export default {
       const hour = localHour(city.timezone, controller.scheduledTime);
       if (hour === 5) jobs.push(runScheduledCity(env, city, "PRIMARY", instant));
       else if (hour === 6) jobs.push(runScheduledCity(env, city, "RETRY", instant));
+      if (hour === 5 && isWeeklyEnabled(env) && localDateIsMonday(city.timezone, instant)) {
+        jobs.push(runScheduledWeeklyCity(env, city, instant));
+      }
     }
     if (jobs.length) ctx.waitUntil(Promise.allSettled(jobs).then(() => undefined));
   }

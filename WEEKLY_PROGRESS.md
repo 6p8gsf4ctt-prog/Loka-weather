@@ -2,8 +2,8 @@
 # « La semaine à Tarnos »
 
 Dernière mise à jour : 5 septembre 2026  
-Dernière étape validée : 10 — Construire le carrousel et le relais Story  
-Statut global : étapes 1 à 10 terminées
+Dernière étape validée : 11 — Préparer le stockage, les routes et l’automatisation  
+Statut global : étapes 1 à 11 terminées
 
 ## Plan strict en 12 étapes
 
@@ -19,7 +19,7 @@ Statut global : étapes 1 à 10 terminées
 | 8 | Interprétation des activités | TERMINÉE |
 | 9 | Textes hebdomadaires et scènes LOKA | TERMINÉE |
 | 10 | Carrousel et relais Story | TERMINÉE |
-| 11 | Stockage, routes et automatisation | À FAIRE |
+| 11 | Stockage, routes et automatisation | TERMINÉE |
 | 12 | Prévisualisation, validation et activation progressive | À FAIRE |
 
 ## Règles de pilotage
@@ -164,6 +164,35 @@ L’étape 10 est terminée. Le renderer isolé de `src/engine/weekly/carousel.t
 
 Le test dédié valide 15/15 assertions, dont l’adaptation du nombre de slides, la semaine calme, les dimensions 1080 × 1350 et 1080 × 1920, l’attachement des activités et le caractère relais de la Story.
 
+### 5 septembre 2026 — audit des étapes 1 à 10 et intégration opérationnelle
+
+Avant l’étape 11, un audit de la copie synchronisée du dépôt a confirmé :
+
+- la présence des livrables documentaires et techniques des étapes 1 à 10 ;
+- la validité des dix ZIP précédents (`unzip -t` sans erreur) ;
+- la compilation TypeScript principale et celle des tests ;
+- la présence des sept profils, huit détecteurs, sélection adaptative, activités, éditorial et renderer carrousel ;
+- l’absence d’import hebdomadaire dans le pipeline quotidien avant son intégration contrôlée à cette étape ;
+- la conservation des routes, du renderer Instagram quotidien, des cinq modèles et des 24 scènes.
+
+Le dépôt de travail ne contient pas les métadonnées Git : l’audit vérifie les fichiers synchronisés et les validations locales, mais ne peut pas confirmer le hash du commit distant.
+
+### 5 septembre 2026 — stockage, routes et automatisation
+
+L’étape 11 est terminée. Le moteur dispose désormais de :
+
+- la migration D1 `0018_weekly_publications.sql`, dans une table séparée des tables quotidiennes ;
+- la sauvegarde idempotente d’un snapshot éditorial et de son plan carrousel pour une semaine donnée ;
+- la route JSON publique `GET /api/weekly`, invisible lorsque `WEEKLY_ENABLED` n’est pas exactement activé ;
+- la route HTML `/weekly`, qui réutilise le renderer carrousel et les fonds V24 ;
+- la route administrateur `POST /api/admin/weekly/run`, protégée par `ADMIN_TOKEN` et limitée au lundi ;
+- l’exécution automatique le lundi à 5 h locale via le cron existant, sans modifier les tâches quotidiennes ;
+- une vérification d’existence avant génération pour éviter de recalculer une semaine déjà stockée.
+
+La migration a été appliquée avec succès sur la base locale. Aucun `--remote`, aucun changement de variable de production et aucun déploiement n’ont été exécutés. Le flag hebdomadaire reste désactivé par défaut.
+
+Les contrôles de cette étape valident 9/9 tests hebdomadaires dédiés, 24/24 fichiers de tests non historiques, la compilation TypeScript et les dix archives précédentes.
+
 ## Audit des étapes 1 à 6
 
 Audit réalisé avant l’étape 7 sur la copie synchronisée du dépôt et sur l’instance déployée :
@@ -253,6 +282,16 @@ Une correction documentaire a été effectuée pendant l’audit : `forecast_day
 - Aucun route, stockage, cron, pipeline quotidien ou déploiement n’a été ajouté.
 - Le format hebdomadaire reste inactif tant que l’étape 12 n’est pas validée.
 
+## État à la fin de l’étape 11
+
+- Le snapshot hebdomadaire est stocké dans une table D1 dédiée, sans modifier le contrat quotidien.
+- Les routes hebdomadaires sont toutes protégées par le flag explicite et les routes d’écriture par l’authentification administrateur.
+- Le lancement manuel refuse une date qui n’est pas un lundi afin de conserver le format lundi-dimanche.
+- Le cron du lundi réutilise les créneaux existants et n’altère pas le calcul ou la publication quotidienne.
+- La génération est idempotente pour une ville et une période données grâce à la contrainte unique D1 et à la lecture préalable.
+- Le stockage distant n’a pas été migré et le flag n’a pas été activé : aucune modification de production n’est en cours.
+- L’étape 12 doit encore valider la prévisualisation, le déploiement contrôlé et l’activation progressive.
+
 ## Prochaine étape
 
-Étape 11 : préparer le stockage, les routes et l’automatisation.
+Étape 12 : prévisualiser, valider et activer progressivement.

@@ -4,10 +4,10 @@ This directory is the isolated boundary for « La semaine à Tarnos ».
 
 ## Status
 
-The weekly engine is implemented through the editorial and carousel layers but
-remains inactive in production. Its seven-day retrieval, selection, editorial
-and rendering functions are isolated tests; no production route, cron handler
-or daily pipeline imports this directory yet.
+The weekly engine is implemented through the editorial, carousel, storage and
+scheduling layers but remains inactive in production by default. The worker
+knows how to expose and schedule it, but every weekly path is gated by
+`WEEKLY_ENABLED=true`.
 
 ## Boundary rules
 
@@ -16,7 +16,7 @@ or daily pipeline imports this directory yet.
 - Weekly code may consume existing weather, consensus, scene and editorial primitives when explicitly needed by a later step.
 - Weekly code must not write daily publication tables or alter the daily public payload contract.
 - Weekly code must remain disabled unless `WEEKLY_ENABLED=true` is explicitly configured.
-- Any future runtime integration must be added deliberately to the pipeline and routes, not through import-time side effects.
+- Runtime integration is deliberately gated in the worker and has no import-time side effects.
 
 ## Planned contents
 
@@ -35,9 +35,11 @@ will be added in later numbered steps:
   representative V24 scene for the overview and each selected event;
 - adaptive carousel planning and rendering (`buildWeeklyCarouselPlan`,
   `renderWeeklyCarousel`) with a relay-only Story;
-- weekly persistence and Monday scheduling.
+- D1 weekly publication snapshots and Monday morning scheduling, inactive until
+  the explicit feature flag is enabled.
 
-This file records the boundary; it does not activate any of these responsibilities.
+This file records the boundary; the feature flag and the final activation step
+remain separate from the implementation.
 
 The event detector only emits factual raw candidates. The selection layer may
 merge neighboring days carrying the same event, rank retained candidates and
