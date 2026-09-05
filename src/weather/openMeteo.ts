@@ -10,18 +10,34 @@ interface OpenMeteoPayload {
   reason?: string;
 }
 
+export interface ForecastRequestOptions {
+  forecastDays?: number;
+}
+
+function normalizedForecastDays(value: number | undefined): number {
+  const days = value ?? 2;
+  if (!Number.isInteger(days) || days < 1 || days > 16) throw new Error(`invalid_forecast_days:${days}`);
+  return days;
+}
+
 function numeric(values: Array<string | number | null> | undefined, i: number): number | null {
   const value = values?.[i];
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-export async function fetchModelForecast(env: Env, city: CityConfig, model: ModelConfig): Promise<ModelForecast> {
+export async function fetchModelForecast(
+  env: Env,
+  city: CityConfig,
+  model: ModelConfig,
+  options: ForecastRequestOptions = {}
+): Promise<ModelForecast> {
+  const forecastDays = normalizedForecastDays(options.forecastDays);
   const base = env.OPEN_METEO_BASE_URL || "https://api.open-meteo.com/v1/forecast";
   const url = new URL(base);
   url.searchParams.set("latitude", String(city.latitude));
   url.searchParams.set("longitude", String(city.longitude));
   url.searchParams.set("timezone", city.timezone);
-  url.searchParams.set("forecast_days", "2");
+  url.searchParams.set("forecast_days", String(forecastDays));
   url.searchParams.set("hourly", HOURLY_VARIABLES.join(","));
   url.searchParams.set("models", model.apiModel);
   url.searchParams.set("temperature_unit", "celsius");

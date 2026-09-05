@@ -2,8 +2,8 @@
 # « La semaine à Tarnos »
 
 Dernière mise à jour : 5 septembre 2026  
-Dernière étape validée : 3 — Créer l’espace isolé du moteur hebdomadaire  
-Statut global : étapes 1 à 3 terminées
+Dernière étape validée : 4 — Ajouter la récupération météo sur sept jours  
+Statut global : étapes 1 à 4 terminées
 
 ## Plan strict en 12 étapes
 
@@ -12,7 +12,7 @@ Statut global : étapes 1 à 3 terminées
 | 1 | Cadre de référence et règles de suivi | TERMINÉE |
 | 2 | Référence technique du moteur quotidien | TERMINÉE |
 | 3 | Espace isolé du moteur hebdomadaire | TERMINÉE |
-| 4 | Récupération météo sur sept jours | À FAIRE |
+| 4 | Récupération météo sur sept jours | TERMINÉE |
 | 5 | Profils météo des sept journées | À FAIRE |
 | 6 | Détecteurs des événements autorisés | À FAIRE |
 | 7 | Sélection adaptative et semaine calme | À FAIRE |
@@ -73,13 +73,26 @@ L’espace technique du moteur hebdomadaire a été créé dans `src/engine/week
 - aucune route, aucun cron et aucun pipeline quotidien n’utilise encore ce module ;
 - un test d’isolation vérifie que l’absence de flag ne peut pas activer la fonctionnalité.
 
-## État à la fin de l’étape 3
+### 5 septembre 2026 — récupération sur sept jours
+
+Le récupérateur hebdomadaire a été ajouté sans changer le défaut quotidien :
+
+- le chemin quotidien conserve `forecast_days=2` ;
+- le nouveau chemin utilise `forecast_days=7` pour les cinq modèles ;
+- les requêtes restent parallèles et tolèrent les échecs individuels ;
+- au moins trois modèles valides sont nécessaires ;
+- le résultat contient les prévisions, les erreurs éventuelles et l’horizon utilisé ;
+- aucune route, aucun cron et aucun pipeline de production n’utilise encore ce récupérateur.
+
+## État à la fin de l’étape 4
 
 - Le cadre de référence fonctionnel a été créé à l’étape 1.
 - La référence technique du moteur quotidien a été créée.
 - L’espace isolé du moteur hebdomadaire a été créé.
+- La récupération isolée sur sept jours a été ajoutée.
 - Les contrôles TypeScript, de scènes, d’éditorial, de publication et de stress ont été exécutés.
 - Le test d’isolation du flag hebdomadaire a été ajouté.
+- Le test de récupération vérifie l’horizon de sept jours et la conservation du défaut quotidien à deux jours.
 - L’instance déployée a été vérifiée par ses endpoints de santé et de contenu quotidien.
 - Aucun fichier source du moteur quotidien n’a été modifié.
 - Aucun changement de configuration ou de base de données n’a été effectué.
@@ -87,4 +100,4 @@ L’espace technique du moteur hebdomadaire a été créé dans `src/engine/week
 
 ## Prochaine étape
 
-Étape 4 : ajouter la récupération météo sur sept jours sans modifier la récupération quotidienne par défaut.
+Étape 5 : construire les profils météo des sept journées.

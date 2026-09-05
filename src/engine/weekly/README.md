@@ -4,7 +4,9 @@ This directory is the isolated boundary for « La semaine à Tarnos ».
 
 ## Status
 
-The weekly engine is scaffolded but inactive. No production route, cron handler or daily pipeline imports this directory yet.
+The weekly engine is scaffolded but inactive. Its seven-day retrieval function
+exists for isolated tests, but no production route, cron handler or daily
+pipeline imports this directory yet.
 
 ## Boundary rules
 
@@ -17,9 +19,10 @@ The weekly engine is scaffolded but inactive. No production route, cron handler 
 
 ## Planned contents
 
-The following responsibilities will be added in later numbered steps:
+The following responsibilities are either available for isolated development or
+will be added in later numbered steps:
 
-- seven-day input and daily projections;
+- seven-day input (`fetchWeeklyForecasts`) and daily projections;
 - event detection and ranking;
 - activity interpretation;
 - weekly editorial output;
