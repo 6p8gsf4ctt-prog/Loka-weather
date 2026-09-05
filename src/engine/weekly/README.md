@@ -22,7 +22,9 @@ pipeline imports this directory yet.
 The following responsibilities are either available for isolated development or
 will be added in later numbered steps:
 
-- seven-day input (`fetchWeeklyForecasts`) and daily projections;
+- seven-day input (`fetchWeeklyForecasts`) and daily profiles (`buildWeeklyProfiles`);
+- a daylight profile reused from the existing V2 scene engine;
+- full-day aggregates for temperature, precipitation, wind, thunder and fog;
 - event detection and ranking;
 - activity interpretation;
 - weekly editorial output;

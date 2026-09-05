@@ -2,8 +2,8 @@
 # « La semaine à Tarnos »
 
 Dernière mise à jour : 5 septembre 2026  
-Dernière étape validée : 4 — Ajouter la récupération météo sur sept jours  
-Statut global : étapes 1 à 4 terminées
+Dernière étape validée : 5 — Construire les profils météo des sept journées  
+Statut global : étapes 1 à 5 terminées
 
 ## Plan strict en 12 étapes
 
@@ -13,7 +13,7 @@ Statut global : étapes 1 à 4 terminées
 | 2 | Référence technique du moteur quotidien | TERMINÉE |
 | 3 | Espace isolé du moteur hebdomadaire | TERMINÉE |
 | 4 | Récupération météo sur sept jours | TERMINÉE |
-| 5 | Profils météo des sept journées | À FAIRE |
+| 5 | Profils météo des sept journées | TERMINÉE |
 | 6 | Détecteurs des événements autorisés | À FAIRE |
 | 7 | Sélection adaptative et semaine calme | À FAIRE |
 | 8 | Interprétation des activités | À FAIRE |
@@ -84,6 +84,18 @@ Le récupérateur hebdomadaire a été ajouté sans changer le défaut quotidien
 - le résultat contient les prévisions, les erreurs éventuelles et l’horizon utilisé ;
 - aucune route, aucun cron et aucun pipeline de production n’utilise encore ce récupérateur.
 
+### 5 septembre 2026 — profils journaliers hebdomadaires
+
+L’étape 5 est terminée. Le livrable a été ajouté dans `src/engine/weekly/profiles.ts` :
+
+- construction d’un consensus horaire sur les sept dates récupérées ;
+- validation de sept dates ISO consécutives ;
+- conservation du profil solaire V2 déjà utilisé par les 24 scènes ;
+- ajout d’agrégats sur les 24 heures pour températures, précipitations, vent, orage, brouillard et dispersion inter-modèles ;
+- aucune détection d’événement, hiérarchisation, génération de texte, route ou cron à ce stade.
+
+Les contrôles dédiés valident 15/15 assertions sur les profils. La suite globale reste à 18/19 suites, avec un seul test éditorial historique déjà connu sur le libellé « Averses intermittentes ».
+
 ## État à la fin de l’étape 4
 
 - Le cadre de référence fonctionnel a été créé à l’étape 1.
@@ -98,6 +110,16 @@ Le récupérateur hebdomadaire a été ajouté sans changer le défaut quotidien
 - Aucun changement de configuration ou de base de données n’a été effectué.
 - Le format hebdomadaire n’est pas activé.
 
+## État à la fin de l’étape 5
+
+- Chaque journée possède ses heures de consensus et son index dans la semaine.
+- Le profil solaire V2 existant est réutilisé sans modification.
+- Les agrégats 24 heures sont disponibles pour les futurs détecteurs météo.
+- Les sept dates sont obligatoirement ISO, consécutives et complètes.
+- La dispersion entre modèles est conservée pour mesurer l’incertitude plus tard.
+- Aucun événement n’est encore détecté ou classé.
+- Le quotidien et la production restent inchangés.
+
 ## Prochaine étape
 
-Étape 5 : construire les profils météo des sept journées.
+Étape 6 : détecter les événements météo autorisés.

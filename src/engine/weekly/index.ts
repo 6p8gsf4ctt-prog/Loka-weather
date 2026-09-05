@@ -3,3 +3,5 @@ export const WEEKLY_ENGINE_ENABLED_ENV = "WEEKLY_ENABLED" as const;
 export { isWeeklyEnabled } from "./featureFlag";
 export { fetchWeeklyForecasts, WEEKLY_FORECAST_DAYS } from "./forecast";
 export type { WeeklyForecastBatch } from "./forecast";
+export { buildWeeklyProfiles, WEEKLY_PROFILE_VERSION } from "./profiles";
+export type { WeeklyDayProfile, WeeklyFullDayProfile, WeeklyProfileSet } from "./profiles";
