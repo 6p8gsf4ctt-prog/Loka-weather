@@ -2,8 +2,8 @@
 # « La semaine à Tarnos »
 
 Dernière mise à jour : 5 septembre 2026  
-Dernière étape validée : 2 — Établir la référence technique du moteur quotidien  
-Statut global : étapes 1 et 2 terminées
+Dernière étape validée : 3 — Créer l’espace isolé du moteur hebdomadaire  
+Statut global : étapes 1 à 3 terminées
 
 ## Plan strict en 12 étapes
 
@@ -11,7 +11,7 @@ Statut global : étapes 1 et 2 terminées
 |---:|---|---|
 | 1 | Cadre de référence et règles de suivi | TERMINÉE |
 | 2 | Référence technique du moteur quotidien | TERMINÉE |
-| 3 | Espace isolé du moteur hebdomadaire | À FAIRE |
+| 3 | Espace isolé du moteur hebdomadaire | TERMINÉE |
 | 4 | Récupération météo sur sept jours | À FAIRE |
 | 5 | Profils météo des sept journées | À FAIRE |
 | 6 | Détecteurs des événements autorisés | À FAIRE |
@@ -63,11 +63,23 @@ La référence technique du moteur quotidien a été établie à partir du code 
 
 Les écarts de maintenance détectés sont enregistrés dans `docs/DAILY_ENGINE_REFERENCE.md` et ne sont pas corrigés dans cette étape.
 
-## État à la fin de l’étape 2
+### 5 septembre 2026 — isolation hebdomadaire
+
+L’espace technique du moteur hebdomadaire a été créé dans `src/engine/weekly/`.
+
+- le module est sans effet de bord à l’import ;
+- l’activation est explicitement désactivée par défaut ;
+- le flag accepté est uniquement `WEEKLY_ENABLED=true` ;
+- aucune route, aucun cron et aucun pipeline quotidien n’utilise encore ce module ;
+- un test d’isolation vérifie que l’absence de flag ne peut pas activer la fonctionnalité.
+
+## État à la fin de l’étape 3
 
 - Le cadre de référence fonctionnel a été créé à l’étape 1.
 - La référence technique du moteur quotidien a été créée.
+- L’espace isolé du moteur hebdomadaire a été créé.
 - Les contrôles TypeScript, de scènes, d’éditorial, de publication et de stress ont été exécutés.
+- Le test d’isolation du flag hebdomadaire a été ajouté.
 - L’instance déployée a été vérifiée par ses endpoints de santé et de contenu quotidien.
 - Aucun fichier source du moteur quotidien n’a été modifié.
 - Aucun changement de configuration ou de base de données n’a été effectué.
@@ -75,4 +87,4 @@ Les écarts de maintenance détectés sont enregistrés dans `docs/DAILY_ENGINE_
 
 ## Prochaine étape
 
-Étape 3 : créer l’espace isolé du moteur hebdomadaire.
+Étape 4 : ajouter la récupération météo sur sept jours sans modifier la récupération quotidienne par défaut.

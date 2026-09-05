@@ -4,6 +4,7 @@ export interface Env {
   OPEN_METEO_BASE_URL?: string;
   OPEN_METEO_API_KEY?: string;
   ADMIN_TOKEN?: string;
+  WEEKLY_ENABLED?: string;
 }
 
 export type WeatherFamily =
