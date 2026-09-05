@@ -2,8 +2,8 @@
 # « La semaine à Tarnos »
 
 Dernière mise à jour : 5 septembre 2026  
-Dernière étape validée : 9 — Générer les textes hebdomadaires et associer les scènes LOKA  
-Statut global : étapes 1 à 9 terminées
+Dernière étape validée : 10 — Construire le carrousel et le relais Story  
+Statut global : étapes 1 à 10 terminées
 
 ## Plan strict en 12 étapes
 
@@ -18,7 +18,7 @@ Statut global : étapes 1 à 9 terminées
 | 7 | Sélection adaptative et semaine calme | TERMINÉE |
 | 8 | Interprétation des activités | TERMINÉE |
 | 9 | Textes hebdomadaires et scènes LOKA | TERMINÉE |
-| 10 | Carrousel et relais Story | À FAIRE |
+| 10 | Carrousel et relais Story | TERMINÉE |
 | 11 | Stockage, routes et automatisation | À FAIRE |
 | 12 | Prévisualisation, validation et activation progressive | À FAIRE |
 
@@ -150,6 +150,20 @@ L’étape 9 est terminée. `src/engine/weekly/editorial.ts` :
 
 Le test dédié valide 14/14 assertions, dont la synthèse calme et l’intégrité des références aux 24 scènes.
 
+### 5 septembre 2026 — carrousel et relais Story
+
+L’étape 10 est terminée. Le renderer isolé de `src/engine/weekly/carousel.ts` :
+
+- construit toujours une slide de vue d’ensemble en première position ;
+- ajoute exactement une slide par événement retenu, sans plafond fixe ;
+- conserve une seule slide pour une semaine calme ;
+- affiche les dates, la scène V24, le texte explicatif et les conséquences d’activité sur les slides événementielles ;
+- génère une Story verticale explicitement conçue comme relais de la publication, sans prévision jour par jour autonome ;
+- réutilise les fonds maîtres `/masters24/` et les références visuelles produites à l’étape 9 ;
+- fournit un aperçu HTML et le téléchargement de chaque slide, sans route, stockage, cron ni activation publique.
+
+Le test dédié valide 15/15 assertions, dont l’adaptation du nombre de slides, la semaine calme, les dimensions 1080 × 1350 et 1080 × 1920, l’attachement des activités et le caractère relais de la Story.
+
 ## Audit des étapes 1 à 6
 
 Audit réalisé avant l’étape 7 sur la copie synchronisée du dépôt et sur l’instance déployée :
@@ -228,6 +242,17 @@ Une correction documentaire a été effectuée pendant l’audit : `forecast_day
 - Le rendu carrousel, le relais Story, le stockage et l’automatisation restent réservés aux étapes suivantes.
 - Le moteur quotidien reste inchangé et le module hebdomadaire demeure inactif.
 
+## État à la fin de l’étape 10
+
+- Le plan de publication est adaptatif : une synthèse, puis une slide par événement retenu.
+- Aucun nombre minimal ou maximal d’événements n’est imposé par le renderer.
+- Une semaine calme est publiée sous la forme d’une seule slide courte.
+- Les slides événementielles portent la scène V24, le texte du moteur et les indications d’activité disponibles.
+- La Story ne duplique pas un bulletin : elle relaie la publication et invite à consulter le carrousel.
+- Le renderer quotidien `src/ui/instagramOfficial24.ts` n’a pas été modifié.
+- Aucun route, stockage, cron, pipeline quotidien ou déploiement n’a été ajouté.
+- Le format hebdomadaire reste inactif tant que l’étape 12 n’est pas validée.
+
 ## Prochaine étape
 
-Étape 10 : construire le carrousel et le relais Story.
+Étape 11 : préparer le stockage, les routes et l’automatisation.

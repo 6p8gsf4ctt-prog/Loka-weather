@@ -4,9 +4,10 @@ This directory is the isolated boundary for « La semaine à Tarnos ».
 
 ## Status
 
-The weekly engine is scaffolded but inactive. Its seven-day retrieval function
-exists for isolated tests, but no production route, cron handler or daily
-pipeline imports this directory yet.
+The weekly engine is implemented through the editorial and carousel layers but
+remains inactive in production. Its seven-day retrieval, selection, editorial
+and rendering functions are isolated tests; no production route, cron handler
+or daily pipeline imports this directory yet.
 
 ## Boundary rules
 
@@ -32,10 +33,8 @@ will be added in later numbered steps:
   outdoor walking and outdoor sport;
 - deterministic weekly editorial output (`buildWeeklyEditorial`) with a
   representative V24 scene for the overview and each selected event;
-- event detection and ranking;
-- activity interpretation;
-- weekly editorial output;
-- carousel rendering and Story relay;
+- adaptive carousel planning and rendering (`buildWeeklyCarouselPlan`,
+  `renderWeeklyCarousel`) with a relay-only Story;
 - weekly persistence and Monday scheduling.
 
 This file records the boundary; it does not activate any of these responsibilities.
