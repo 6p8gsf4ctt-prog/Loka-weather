@@ -38,18 +38,33 @@ const windows = selection.events.filter((item) => item.type === "BEST_WINDOW");
 
 ok(selection.status === "EVENTS", "events_status");
 ok(selection.rawCandidateCount === 7, "raw_count");
-ok(selection.events.length === 5, "adaptive_count_without_fixed_cap");
+ok(selection.events.length === 3, "normal_publication_cap_is_applied");
+ok(selection.normalMaximum === 3 && selection.absoluteMaximum === 4, "selection_limits_are_exposed");
+ok(selection.episodeCount === 6, "episode_count_is_distinct_from_raw_count");
 ok(heat?.startDate === "2026-09-07" && heat.endDate === "2026-09-08", "merge_consecutive_heat");
 ok(heat?.evidence.durationDays === 2, "merged_duration_evidence");
-ok(windows.length === 1 && windows[0].startDate === "2026-09-13", "keep_best_window_only");
+ok(windows.length === 0, "best_window_can_be_dropped_when_less_relevant_than_top_three");
 ok(selection.events.every((item) => item.score >= 55), "minimum_score");
 ok(selection.events.every((item) => item.selectionReason.length > 0), "selection_reason");
 ok(selection.events.every((item) => ["HIGH", "MEDIUM", "LOW"].includes(item.confidence)), "confidence_assigned");
 ok(selection.events.every((item, index, all) => index === 0 || all[index - 1].score >= item.score), "ranked_output");
 ok(selection.calm === null, "not_calm_with_selected_events");
+ok(selection.rejected?.some((item) => item.reason === "CAP_REACHED") === true, "cap_rejection_is_traced");
+ok(selection.rejected?.some((item) => item.id.startsWith("best_window:2026-09-09") && item.reason === "LESS_RELEVANT") === true, "secondary_window_rejection_is_traced");
 
 const calm = selectWeeklyEvents(profiles, [], city);
 ok(calm.status === "CALM" && calm.events.length === 0, "calm_week_status");
 ok(calm.calm?.reason === "no_event_reached_selection_threshold", "calm_week_reason");
 
-console.log(`WEEKLY_SELECTION ${passed}/13 PASS`);
+const exceptional = selectWeeklyEvents(profiles, [
+  raw("THUNDER", 0, "2026-09-07", { thunderHours: 3, peakThunderSupport: 1, minPeakSupport: 0.55 }),
+  raw("HEAT", 1, "2026-09-08", { maxTemperatureC: 34, minTemperatureC: 20, thresholdC: 27 }),
+  raw("RAIN", 2, "2026-09-09", { totalMm: 15, wetHours: 10, wetBlockMaxHours: 6, maxHourlyMm: 3 }),
+  raw("COLD", 3, "2026-09-10", { maxTemperatureC: 10, minTemperatureC: 4, thresholdC: 15 }),
+  raw("WIND", 4, "2026-09-11", { maxGustKmh: 100, strongHours: 5, strongBlockMaxHours: 4 })
+], city);
+ok(exceptional.events.length === 4, "exceptional_fourth_event_is_allowed");
+ok(exceptional.exceptionalFourthEventId !== null, "exceptional_fourth_event_is_identified");
+ok(exceptional.events.some((item) => item.selectionReason.includes("exceptional_fourth_independent_high_confidence")), "exceptional_fourth_reason_is_explicit");
+
+console.log(`WEEKLY_SELECTION ${passed}/20 PASS`);

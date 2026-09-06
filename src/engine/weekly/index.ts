@@ -10,7 +10,7 @@ export type { WeeklyEvent, WeeklyEventEvidenceValue, WeeklyEventType } from "./e
 export { consolidateWeeklyEvents } from "./consolidation";
 export type { WeeklyStoryEpisode, WeeklyStoryFamily, WeeklyStoryDirection } from "./consolidation";
 export { selectWeeklyEvents, selectWeeklyEventsFromProfiles } from "./selection";
-export type { SelectedWeeklyEvent, WeeklySelection, WeeklySelectionConfidence, WeeklySelectionStatus } from "./selection";
+export type { SelectedWeeklyEvent, WeeklySelection, WeeklySelectionConfidence, WeeklySelectionRejection, WeeklySelectionRejectionReason, WeeklySelectionStatus } from "./selection";
 export { translateWeeklyActivities } from "./activities";
 export type { WeeklyActivity, WeeklyActivityInsight, WeeklyActivityReasonCode, WeeklyActivitySet, WeeklyActivityStatus, WeeklyActivityWindow } from "./activities";
 export { buildWeeklyEditorial } from "./editorial";

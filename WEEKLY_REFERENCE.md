@@ -22,7 +22,7 @@ LOKA ne doit pas devenir une application météo supplémentaire. Sa valeur est 
 | Format principal | Carrousel Instagram |
 | Première slide | Vue d’ensemble de la semaine |
 | Slides suivantes | Une slide par événement retenu |
-| Nombre d’événements | Adaptatif, déterminé par le moteur |
+| Nombre d’événements | Trois événements principaux maximum, exceptionnellement quatre |
 | Relais | Une Story renvoie vers le carrousel |
 | Story autonome | Exclue |
 | Semaine sans événement | Publication courte maintenue |
@@ -93,16 +93,18 @@ Les règles suivantes sont non négociables pendant cette évolution :
 5. Les données et publications hebdomadaires doivent être stockées séparément des données quotidiennes.
 6. La fonctionnalité hebdomadaire doit pouvoir rester désactivée par un interrupteur de configuration.
 7. Aucun événement retenu ne doit être dépourvu de données justificatives.
-8. Aucun contenu ne doit être généré par une analyse ponctuelle de ChatGPT.
-9. Aucun nouveau format social ou aucune nouvelle catégorie météo ne doit être ajouté sans validation explicite.
-10. Aucun déploiement public du format hebdomadaire ne doit intervenir avant sa validation complète.
+8. Le nombre publié ne doit jamais dépasser trois événements, sauf exception contrôlée à quatre.
+9. Aucun contenu ne doit être généré par une analyse ponctuelle de ChatGPT.
+10. Aucun nouveau format social ou aucune nouvelle catégorie météo ne doit être ajouté sans validation explicite.
+11. Aucun déploiement public du format hebdomadaire ne doit intervenir avant sa validation complète.
 
 ## 8. Critères de réussite
 
 L’évolution sera considérée comme réussie lorsque le moteur pourra :
 
 - analyser automatiquement une semaine complète du lundi au dimanche ;
-- produire zéro, un ou plusieurs événements selon les données ;
+- produire zéro, un, deux ou trois événements selon les données ;
+- produire un quatrième événement uniquement s’il est indépendant, très important et fiable ;
 - ne rien forcer lorsque la semaine est stable ;
 - hiérarchiser les événements avec un score et une confiance ;
 - rattacher chaque événement à une scène LOKA cohérente ;

@@ -6,6 +6,15 @@ import type { WeeklyProfileSet } from "./profiles";
 
 export type WeeklySelectionStatus = "EVENTS" | "CALM";
 export type WeeklySelectionConfidence = "HIGH" | "MEDIUM" | "LOW";
+export type WeeklySelectionRejectionReason = "LOW_SCORE" | "REDUNDANT" | "UNCERTAIN" | "LESS_RELEVANT" | "CAP_REACHED" | "CONFLICTING_STORY";
+
+export interface WeeklySelectionRejection {
+  id: string;
+  source: "EPISODE";
+  reason: WeeklySelectionRejectionReason;
+  score: number | null;
+  relatedSelectedEventId: string | null;
+}
 
 export interface SelectedWeeklyEvent extends WeeklyEvent {
   score: number;
@@ -26,6 +35,10 @@ export interface WeeklySelection {
   status: WeeklySelectionStatus;
   rawCandidateCount: number;
   episodeCount?: number;
+  normalMaximum?: number;
+  absoluteMaximum?: number;
+  exceptionalFourthEventId?: string | null;
+  rejected?: WeeklySelectionRejection[];
   events: SelectedWeeklyEvent[];
   calm: { reason: string } | null;
 }
@@ -86,16 +99,32 @@ function confidence(score: number): WeeklySelectionConfidence {
   return score >= 78 ? "HIGH" : score >= 63 ? "MEDIUM" : "LOW";
 }
 
-function bestWindow(events: WeeklyStoryEpisode[], city: CityConfig): SelectedWeeklyEvent | null {
-  const candidates = events
-    .filter((item) => item.type === "BEST_WINDOW")
-    .map((item) => {
-      const scored = scoreEvent(item, city);
-      return { ...item, score: scored.score, confidence: confidence(scored.score), selectionReason: scored.reason };
-    })
-    .filter((item) => item.score >= WEEKLY_SELECTION_RULES.bestWindowMinimumScore)
-    .sort((a, b) => b.score - a.score || a.startDate.localeCompare(b.startDate) || a.id.localeCompare(b.id));
-  return candidates[0] ?? null;
+function selectedEvent(episode: WeeklyStoryEpisode, city: CityConfig): SelectedWeeklyEvent {
+  const scored = scoreEvent(episode, city);
+  return {
+    ...episode,
+    score: scored.score,
+    confidence: confidence(scored.score),
+    selectionReason: scored.reason
+  };
+}
+
+function sortByImportance(a: SelectedWeeklyEvent, b: SelectedWeeklyEvent): number {
+  return b.score - a.score || a.startDate.localeCompare(b.startDate) || a.id.localeCompare(b.id);
+}
+
+function sameStoryFamily(a: SelectedWeeklyEvent, b: SelectedWeeklyEvent): boolean {
+  return (a.storyFamily ?? a.type) === (b.storyFamily ?? b.type);
+}
+
+function overlapsDays(a: SelectedWeeklyEvent, b: SelectedWeeklyEvent): boolean {
+  return a.dayIndexes.some((dayIndex) => b.dayIndexes.includes(dayIndex));
+}
+
+function isIndependentFourth(candidate: SelectedWeeklyEvent, selected: SelectedWeeklyEvent[]): boolean {
+  return candidate.score >= WEEKLY_SELECTION_RULES.exceptionalFourthMinimumScore
+    && candidate.confidence === WEEKLY_SELECTION_RULES.exceptionalFourthConfidence
+    && selected.every((item) => !sameStoryFamily(candidate, item) && !overlapsDays(candidate, item));
 }
 
 export function selectWeeklyEvents(
@@ -105,16 +134,41 @@ export function selectWeeklyEvents(
 ): WeeklySelection {
   if (profiles.citySlug !== city.slug) throw new Error(`weekly_selection_city_mismatch:${profiles.citySlug}:${city.slug}`);
   const merged = consolidateWeeklyEvents(rawEvents);
-  const selected: SelectedWeeklyEvent[] = merged
-    .filter((item) => item.type !== "BEST_WINDOW")
-    .map((item): SelectedWeeklyEvent => {
-      const scored = scoreEvent(item, city);
-      return { ...item, score: scored.score, confidence: confidence(scored.score), selectionReason: scored.reason };
+  const scored = merged.map((item) => selectedEvent(item, city));
+  const bestWindow = [...scored]
+    .filter((item) => item.type === "BEST_WINDOW" && item.score >= WEEKLY_SELECTION_RULES.bestWindowMinimumScore)
+    .sort(sortByImportance)[0] ?? null;
+  const eligible = scored
+    .filter((item) => item.score >= WEEKLY_SELECTION_RULES.minimumScore)
+    .filter((item) => item.type !== "BEST_WINDOW" || item.id === bestWindow?.id)
+    .sort(sortByImportance);
+  const selected = eligible.slice(0, WEEKLY_SELECTION_RULES.normalMaximum);
+  let exceptionalFourthEventId: string | null = null;
+  if (selected.length === WEEKLY_SELECTION_RULES.normalMaximum) {
+    const fourth = eligible.find((item) => !selected.some((chosen) => chosen.id === item.id)
+      && isIndependentFourth(item, selected));
+    if (fourth && selected.length < WEEKLY_SELECTION_RULES.absoluteMaximum) {
+      fourth.selectionReason += ";exceptional_fourth_independent_high_confidence";
+      selected.push(fourth);
+      exceptionalFourthEventId = fourth.id;
+    }
+  }
+
+  const selectedIds = new Set(selected.map((item) => item.id));
+  const rejected: WeeklySelectionRejection[] = scored
+    .filter((item) => !selectedIds.has(item.id))
+    .map((item): WeeklySelectionRejection => {
+      const related = selected.find((chosen) => sameStoryFamily(chosen, item) || overlapsDays(chosen, item))?.id ?? null;
+      const reason: WeeklySelectionRejectionReason = item.score < WEEKLY_SELECTION_RULES.minimumScore
+        ? "LOW_SCORE"
+        : item.type === "BEST_WINDOW" && item.id !== bestWindow?.id
+          ? "LESS_RELEVANT"
+          : selected.length >= WEEKLY_SELECTION_RULES.normalMaximum
+            ? "CAP_REACHED"
+            : "LESS_RELEVANT";
+      return { id: item.id, source: "EPISODE", reason, score: item.score, relatedSelectedEventId: related };
     })
-    .filter((item) => item.score >= WEEKLY_SELECTION_RULES.minimumScore);
-  const window = bestWindow(merged, city);
-  if (window) selected.push(window);
-  selected.sort((a, b) => b.score - a.score || a.startDate.localeCompare(b.startDate) || a.id.localeCompare(b.id));
+    .sort((a, b) => a.id.localeCompare(b.id));
 
   return {
     version: "0.1.0",
@@ -124,6 +178,10 @@ export function selectWeeklyEvents(
     status: selected.length ? "EVENTS" : "CALM",
     rawCandidateCount: rawEvents.length,
     episodeCount: merged.length,
+    normalMaximum: WEEKLY_SELECTION_RULES.normalMaximum,
+    absoluteMaximum: WEEKLY_SELECTION_RULES.absoluteMaximum,
+    exceptionalFourthEventId,
+    rejected,
     events: selected,
     calm: selected.length ? null : { reason: WEEKLY_SELECTION_RULES.calmReason }
   };

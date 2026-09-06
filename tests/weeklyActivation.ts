@@ -39,6 +39,24 @@ ok(calmPlan.slides.length === 1, "calm_plan_has_one_slide");
 const badCount = validateWeeklyActivation(base, { ...calmPlan, slides: [] });
 ok(!badCount.ok && badCount.status === "BLOCKED", "slide_count_blocks_activation");
 
+const tooManyEditorial: WeeklyEditorial = {
+  ...base,
+  status: "EVENTS",
+  overview: { ...base.overview, title: "La semaine à Tarnos" },
+  events: Array.from({ length: 5 }, (_, index): WeeklyEditorialEvent => ({
+    id: `event-${index + 1}`,
+    type: "WIND",
+    startDate: "2026-09-07",
+    endDate: "2026-09-07",
+    title: "Vent fort",
+    body: "Des rafales sont possibles.",
+    activities: [],
+    scene
+  }))
+};
+const tooManyValidation = validateWeeklyActivation(tooManyEditorial, buildWeeklyCarouselPlan(tooManyEditorial));
+ok(!tooManyValidation.checks.find((check) => check.id === "publication_limit")?.ok, "publication_limit_blocks_fifth_event");
+
 const badDate = validateWeeklyActivation({ ...base, endDate: "2026-09-12" }, calmPlan);
 ok(!badDate.checks.find((check) => check.id === "monday_to_sunday")?.ok, "monday_to_sunday_blocks_bad_range");
 
@@ -75,4 +93,4 @@ const badMapping = validateWeeklyActivation(eventEditorial, {
 });
 ok(!badMapping.checks.find((check) => check.id === "event_mapping")?.ok, "event_mapping_guard");
 
-console.log(`WEEKLY_ACTIVATION ${passed}/10 PASS`);
+console.log(`WEEKLY_ACTIVATION ${passed}/11 PASS`);

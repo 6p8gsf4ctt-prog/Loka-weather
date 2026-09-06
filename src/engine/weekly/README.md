@@ -28,7 +28,8 @@ will be added in later numbered steps:
 - full-day aggregates for temperature, precipitation, wind, thunder and fog;
 - raw event detectors (`detectWeeklyEvents`) for the initial authorized categories;
 - adaptive selection (`selectWeeklyEvents`) with episode merging, scoring,
-  confidence and an explicit calm-week state;
+  confidence, a strict three-story publication limit, a controlled fourth-story
+  exception and an explicit calm-week state;
 - structured activity interpretation (`translateWeeklyActivities`) for beach,
   outdoor walking and outdoor sport;
 - deterministic weekly editorial output (`buildWeeklyEditorial`) with a
@@ -41,9 +42,10 @@ will be added in later numbered steps:
 This file records the boundary; the feature flag and the final activation step
 remain separate from the implementation.
 
-The event detector only emits factual raw candidates. The selection layer may
-merge neighboring days carrying the same event, rank retained candidates and
-keep the best window, but it has no fixed maximum event count. Neither layer
-generates copy or publishes anything. Activity interpretation also returns
-statuses, windows, reason codes and numeric evidence only; editorial wording
-belongs to a later step.
+The event detector only emits factual raw candidates. The consolidation layer
+merges neighboring days carrying the same story and keeps source provenance.
+The selection layer scores episodes, keeps at most three stories and allows a
+fourth only when it is independent, high-confidence and very important. It
+also records rejected episodes. Neither layer generates copy or publishes
+anything. Activity interpretation returns statuses, windows, reason codes and
+numeric evidence only; editorial wording belongs to a later step.

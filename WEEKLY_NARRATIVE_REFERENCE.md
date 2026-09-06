@@ -3,7 +3,7 @@
 
 Version de référence : 1.0  
 Date : 6 septembre 2026  
-Statut : étape 4 terminée — consolidation implémentée, étape 5 suivante
+Statut : étape 5 terminée — hiérarchisation implémentée, étape 6 suivante
 
 ## 1. Objet du document
 
@@ -117,7 +117,7 @@ V24 quotidienne le permet.
 | 2 | Audit technique des chaînes existantes | TERMINÉE |
 | 3 | Contrat de données des histoires météo | TERMINÉE |
 | 4 | Consolidation des événements redondants | TERMINÉE |
-| 5 | Hiérarchisation et plafond de publication | À FAIRE |
+| 5 | Hiérarchisation et plafond de publication | TERMINÉE |
 | 6 | Construction de l’ordre narratif | À FAIRE |
 | 7 | Génération de la conclusion générale | À FAIRE |
 | 8 | Intégration des conséquences pratiques | À FAIRE |
@@ -215,3 +215,17 @@ publication, le classement éditorial et l’ordre narratif restent volontaireme
 réservés aux étapes 5 et 6.
 
 L’étape active suivante est l’étape 5 : hiérarchisation et plafond de publication.
+
+### 6 septembre 2026 — étape 5
+
+La sélection hebdomadaire applique désormais une hiérarchie éditoriale et un
+plafond de publication. Trois histoires sont retenues au maximum ; une
+quatrième n’est admise que si elle est indépendante, très importante et à
+confiance haute. La meilleure fenêtre compte comme une histoire ordinaire.
+
+Les épisodes non publiés sont conservés dans un audit avec leur score et une
+raison de rejet. Le classement par importance reste distinct de l’ordre
+narratif, qui sera traité à l’étape 6. La sélection conserve donc son ordre de
+score actuel jusqu’à cette prochaine étape.
+
+L’étape active suivante est l’étape 6 : construction de l’ordre narratif.

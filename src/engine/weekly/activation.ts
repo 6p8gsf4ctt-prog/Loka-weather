@@ -44,6 +44,7 @@ export function validateWeeklyActivation(
     expectedRange ? `${editorial.startDate}:${editorial.endDate}` : "invalid_week_range"
   ));
   checks.push(check("adaptive_slide_count", carousel.slides.length === editorial.events.length + 1, `${carousel.slides.length}_slides_for_${editorial.events.length}_events`));
+  checks.push(check("publication_limit", editorial.events.length <= 4, `${editorial.events.length}_event_slides_max_4`));
   checks.push(check("overview_first", carousel.slides[0]?.kind === "OVERVIEW" && carousel.slides[0]?.eventId === null, "overview_first"));
   checks.push(check(
     "event_mapping",
