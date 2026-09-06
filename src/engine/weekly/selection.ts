@@ -1,6 +1,7 @@
 import { WEEKLY_SELECTION_RULES } from "../../config/weeklySelection";
 import type { CityConfig } from "../../types";
-import { detectWeeklyEvents, type WeeklyEvent, type WeeklyEventEvidenceValue } from "./events";
+import { detectWeeklyEvents, type WeeklyEvent } from "./events";
+import { consolidateWeeklyEvents, type WeeklyStoryEpisode, type WeeklyStoryFamily, type WeeklyStoryDirection } from "./consolidation";
 import type { WeeklyProfileSet } from "./profiles";
 
 export type WeeklySelectionStatus = "EVENTS" | "CALM";
@@ -10,6 +11,11 @@ export interface SelectedWeeklyEvent extends WeeklyEvent {
   score: number;
   confidence: WeeklySelectionConfidence;
   selectionReason: string;
+  storyFamily?: WeeklyStoryFamily;
+  direction?: WeeklyStoryDirection;
+  sourceCandidateIds?: string[];
+  sourceCandidateTypes?: WeeklyEvent["type"][];
+  representativeDayIndex?: number;
 }
 
 export interface WeeklySelection {
@@ -19,6 +25,7 @@ export interface WeeklySelection {
   endDate: string;
   status: WeeklySelectionStatus;
   rawCandidateCount: number;
+  episodeCount?: number;
   events: SelectedWeeklyEvent[];
   calm: { reason: string } | null;
 }
@@ -79,82 +86,7 @@ function confidence(score: number): WeeklySelectionConfidence {
   return score >= 78 ? "HIGH" : score >= 63 ? "MEDIUM" : "LOW";
 }
 
-function mergeEvidence(type: WeeklyEvent["type"], events: WeeklyEvent[]): Record<string, WeeklyEventEvidenceValue> {
-  const first = events[0];
-  const last = events[events.length - 1];
-  const values = events.map((item) => item.evidence);
-  const evidence: Record<string, WeeklyEventEvidenceValue> = {
-    durationDays: events.length,
-    sourceEventCount: events.length
-  };
-
-  if (type === "HEAT") {
-    evidence.maxTemperatureC = Math.max(...values.map((item) => typeof item.maxTemperatureC === "number" ? item.maxTemperatureC : 0));
-    evidence.minTemperatureC = Math.min(...values.map((item) => typeof item.minTemperatureC === "number" ? item.minTemperatureC : 0));
-    evidence.thresholdC = first.evidence.thresholdC ?? null;
-  } else if (type === "COLD") {
-    evidence.maxTemperatureC = Math.min(...values.map((item) => typeof item.maxTemperatureC === "number" ? item.maxTemperatureC : 0));
-    evidence.minTemperatureC = Math.min(...values.map((item) => typeof item.minTemperatureC === "number" ? item.minTemperatureC : 0));
-    evidence.thresholdC = first.evidence.thresholdC ?? null;
-  } else if (type === "RAIN") {
-    evidence.totalMm = values.reduce((sum, item) => sum + (typeof item.totalMm === "number" ? item.totalMm : 0), 0);
-    evidence.wetHours = values.reduce((sum, item) => sum + (typeof item.wetHours === "number" ? item.wetHours : 0), 0);
-    evidence.wetBlockMaxHours = Math.max(...values.map((item) => typeof item.wetBlockMaxHours === "number" ? item.wetBlockMaxHours : 0));
-    evidence.maxHourlyMm = Math.max(...values.map((item) => typeof item.maxHourlyMm === "number" ? item.maxHourlyMm : 0));
-  } else if (type === "WIND") {
-    evidence.maxGustKmh = Math.max(...values.map((item) => typeof item.maxGustKmh === "number" ? item.maxGustKmh : 0));
-    evidence.strongHours = values.reduce((sum, item) => sum + (typeof item.strongHours === "number" ? item.strongHours : 0), 0);
-    evidence.strongBlockMaxHours = Math.max(...values.map((item) => typeof item.strongBlockMaxHours === "number" ? item.strongBlockMaxHours : 0));
-  } else if (type === "THUNDER") {
-    evidence.thunderHours = values.reduce((sum, item) => sum + (typeof item.thunderHours === "number" ? item.thunderHours : 0), 0);
-    evidence.peakThunderSupport = Math.max(...values.map((item) => typeof item.peakThunderSupport === "number" ? item.peakThunderSupport : 0));
-    evidence.minPeakSupport = first.evidence.minPeakSupport ?? null;
-  } else if (type === "IMPROVEMENT" || type === "DEGRADATION") {
-    const early = typeof first.evidence.earlyCloudPct === "number" ? first.evidence.earlyCloudPct : 0;
-    const late = typeof last.evidence.lateCloudPct === "number" ? last.evidence.lateCloudPct : 0;
-    evidence.earlyCloudPct = early;
-    evidence.lateCloudPct = late;
-    evidence.cloudTrend = late - early;
-    evidence.trendStrength = last.evidence.trendStrength ?? null;
-  }
-  return evidence;
-}
-
-function mergeConsecutive(events: WeeklyEvent[]): WeeklyEvent[] {
-  const mergeable = events.filter((item) => item.type !== "BEST_WINDOW");
-  const grouped = new Map<WeeklyEvent["type"], WeeklyEvent[]>();
-  for (const item of mergeable) grouped.set(item.type, [...(grouped.get(item.type) ?? []), item]);
-  const merged: WeeklyEvent[] = [];
-  for (const [type, items] of grouped) {
-    const ordered = [...items].sort((a, b) => a.dayIndexes[0] - b.dayIndexes[0] || a.id.localeCompare(b.id));
-    let current: WeeklyEvent[] = [];
-    const flush = () => {
-      if (!current.length) return;
-      const first = current[0];
-      const last = current[current.length - 1];
-      merged.push({
-        id: `${type.toLowerCase()}:${first.startDate}-${last.endDate}`,
-        type,
-        startDate: first.startDate,
-        endDate: last.endDate,
-        dayIndexes: current.flatMap((item) => item.dayIndexes),
-        rule: current.length > 1 ? "merged_consecutive_days" : first.rule,
-        evidence: current.length > 1 ? mergeEvidence(type, current) : first.evidence
-      });
-      current = [];
-    };
-    for (const item of ordered) {
-      const previous = current[current.length - 1];
-      const consecutive = previous ? item.dayIndexes[0] === previous.dayIndexes[previous.dayIndexes.length - 1] + 1 : true;
-      if (consecutive) current.push(item);
-      else { flush(); current = [item]; }
-    }
-    flush();
-  }
-  return [...merged, ...events.filter((item) => item.type === "BEST_WINDOW")];
-}
-
-function bestWindow(events: WeeklyEvent[], city: CityConfig): SelectedWeeklyEvent | null {
+function bestWindow(events: WeeklyStoryEpisode[], city: CityConfig): SelectedWeeklyEvent | null {
   const candidates = events
     .filter((item) => item.type === "BEST_WINDOW")
     .map((item) => {
@@ -172,10 +104,10 @@ export function selectWeeklyEvents(
   city: CityConfig
 ): WeeklySelection {
   if (profiles.citySlug !== city.slug) throw new Error(`weekly_selection_city_mismatch:${profiles.citySlug}:${city.slug}`);
-  const merged = mergeConsecutive(rawEvents);
-  const selected = merged
+  const merged = consolidateWeeklyEvents(rawEvents);
+  const selected: SelectedWeeklyEvent[] = merged
     .filter((item) => item.type !== "BEST_WINDOW")
-    .map((item) => {
+    .map((item): SelectedWeeklyEvent => {
       const scored = scoreEvent(item, city);
       return { ...item, score: scored.score, confidence: confidence(scored.score), selectionReason: scored.reason };
     })
@@ -191,6 +123,7 @@ export function selectWeeklyEvents(
     endDate: profiles.endDate,
     status: selected.length ? "EVENTS" : "CALM",
     rawCandidateCount: rawEvents.length,
+    episodeCount: merged.length,
     events: selected,
     calm: selected.length ? null : { reason: WEEKLY_SELECTION_RULES.calmReason }
   };

@@ -3,7 +3,7 @@
 
 Version de référence : 1.0  
 Date : 6 septembre 2026  
-Statut : étape 3 terminée — contrat de données défini, étape 4 suivante
+Statut : étape 4 terminée — consolidation implémentée, étape 5 suivante
 
 ## 1. Objet du document
 
@@ -116,7 +116,7 @@ V24 quotidienne le permet.
 | 1 | Cadre de référence et règles de suivi | TERMINÉE |
 | 2 | Audit technique des chaînes existantes | TERMINÉE |
 | 3 | Contrat de données des histoires météo | TERMINÉE |
-| 4 | Consolidation des événements redondants | À FAIRE |
+| 4 | Consolidation des événements redondants | TERMINÉE |
 | 5 | Hiérarchisation et plafond de publication | À FAIRE |
 | 6 | Construction de l’ordre narratif | À FAIRE |
 | 7 | Génération de la conclusion générale | À FAIRE |
@@ -199,3 +199,19 @@ contrôlée à quatre, la semaine calme sans histoire artificielle et le fait qu
 la meilleure fenêtre compte dans cette limite. Aucun code de production ni
 schéma D1 n’est modifié à cette étape ; l’étape 4 pourra maintenant implémenter
 la consolidation sur une base stable.
+
+### 6 septembre 2026 — étape 4
+
+La consolidation est implémentée dans `src/engine/weekly/consolidation.ts` et
+appelée par la sélection hebdomadaire. Les candidats consécutifs d’un même type
+sont regroupés en un épisode unique. Les tendances directionnelles peuvent
+également absorber une journée intermédiaire sans signal opposé. Les épisodes
+séparés, les fenêtres distinctes et les évolutions contradictoires restent
+séparés.
+
+Chaque épisode conserve les identifiants et types des candidats sources, les
+preuves agrégées, les dates couvertes et un jour représentatif. Le plafond de
+publication, le classement éditorial et l’ordre narratif restent volontairement
+réservés aux étapes 5 et 6.
+
+L’étape active suivante est l’étape 5 : hiérarchisation et plafond de publication.

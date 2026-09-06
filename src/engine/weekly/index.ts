@@ -7,6 +7,8 @@ export { buildWeeklyProfiles, WEEKLY_PROFILE_VERSION } from "./profiles";
 export type { WeeklyDayProfile, WeeklyFullDayProfile, WeeklyProfileSet } from "./profiles";
 export { detectWeeklyEvents } from "./events";
 export type { WeeklyEvent, WeeklyEventEvidenceValue, WeeklyEventType } from "./events";
+export { consolidateWeeklyEvents } from "./consolidation";
+export type { WeeklyStoryEpisode, WeeklyStoryFamily, WeeklyStoryDirection } from "./consolidation";
 export { selectWeeklyEvents, selectWeeklyEventsFromProfiles } from "./selection";
 export type { SelectedWeeklyEvent, WeeklySelection, WeeklySelectionConfidence, WeeklySelectionStatus } from "./selection";
 export { translateWeeklyActivities } from "./activities";

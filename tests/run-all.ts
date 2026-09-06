@@ -20,6 +20,7 @@ import "./weeklyIsolation";
 import "./weeklyForecast";
 import "./weeklyProfiles";
 import "./weeklyEvents";
+import "./weeklyConsolidation";
 import "./weeklySelection";
 import "./weeklyActivities";
 import "./weeklyEditorial";
