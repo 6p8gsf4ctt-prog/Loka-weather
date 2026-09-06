@@ -1,8 +1,7 @@
 import type { CityConfig, ConsensusHour, DisplayHour, HourlyCondition, ModelForecast, OfficialPublicPayloadV24, Scene24Id } from "../types";
 import { buildEditorialProductV2 } from "./editorial24/index";
 import { hourOf } from "./math";
-import { chooseScene24V2 } from "./scenes24/classifier";
-import { buildDayProfileV2 } from "./scenes24/profile";
+import { resolveDailySceneV24 } from "./scenes24/dailyDecision";
 import { masterUrlForScene, scene24ById } from "./scenes24/registry";
 
 function pointsForDate(consensus: Map<string, ConsensusHour>, date: string): ConsensusHour[] {
@@ -34,8 +33,7 @@ export function buildCandidateProduct(
 ): OfficialPublicPayloadV24 {
   const day = pointsForDate(consensus, date);
   if (!day.length) throw new Error(`no_consensus_for_date:${date}`);
-  const profile = buildDayProfileV2(city, date, day);
-  const decision = chooseScene24V2(profile, previousSceneId);
+  const { profile, decision } = resolveDailySceneV24(city, date, day, previousSceneId);
   const solarPoints = day.filter((p) => hourOf(p.time) >= profile.period.startHour && hourOf(p.time) <= profile.period.endHour);
   const tempMinC = Math.round(Math.min(...solarPoints.map((p) => p.temperatureC)));
   const tempMaxC = Math.round(Math.max(...solarPoints.map((p) => p.temperatureC)));

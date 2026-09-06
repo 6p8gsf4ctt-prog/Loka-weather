@@ -76,7 +76,7 @@ const selection: WeeklySelection = {
   rawCandidateCount: 2,
   events: [
     event("BEST_WINDOW", 0, "2026-09-07", { startHour: 10, endHour: 15, hours: 6, meanTemperatureC: 22, maxGustKmh: 20, meanCloudPct: 15 }),
-    event("RAIN", 1, "2026-09-08", { totalMm: 15, wetHours: 15, wetBlockMaxHours: 15, maxHourlyMm: 1 })
+    event("RAIN", 1, "2026-09-08", { totalMm: 15.4, wetHours: 15, wetBlockMaxHours: 15, maxHourlyMm: 1 })
   ],
   calm: null
 };
@@ -92,8 +92,11 @@ ok(editorial.events[1].title === "Épisode pluvieux", "rain_title");
 ok(editorial.events.every((item) => item.scene.id >= 1 && item.scene.id <= 24), "scene_ids_are_v24");
 ok(editorial.events.every((item) => item.scene.masterUrl.startsWith("/masters24/")), "scene_assets_are_v24");
 ok(editorial.events.every((item) => item.scene.displayTitle.length > 0), "display_titles_present");
+ok(editorial.events[0].scene.id === profiles.days[0].sceneDecision.sceneId, "editorial_reuses_daily_scene_for_first_event");
+ok(editorial.events[1].scene.id === profiles.days[1].sceneDecision.sceneId, "editorial_reuses_daily_scene_for_second_event");
 ok(editorial.events.every((item) => !/undefined|null|NaN/.test(`${item.title} ${item.body}`)), "no_invalid_text_values");
 ok(editorial.events.every((item) => item.activities.length === 3 && item.activities.every((activity) => activity.text.length > 0)), "activity_texts_attached");
+ok(editorial.events[1].body.includes("15,4 mm"), "french_decimal_format");
 ok(editorial.signature === "Ici, cette semaine.", "weekly_signature");
 
 const calmSelection: WeeklySelection = { ...selection, status: "CALM", events: [], rawCandidateCount: 0, calm: { reason: "no_event_reached_selection_threshold" } };
@@ -102,4 +105,4 @@ ok(calmEditorial.overview.title === "Une semaine calme à Tarnos", "calm_overvie
 ok(calmEditorial.events.length === 0, "calm_has_no_event_cards");
 ok(calmEditorial.overview.scene.id >= 1 && calmEditorial.overview.scene.id <= 24, "calm_has_v24_scene");
 
-console.log(`WEEKLY_EDITORIAL ${passed}/14 PASS`);
+console.log(`WEEKLY_EDITORIAL ${passed}/17 PASS`);

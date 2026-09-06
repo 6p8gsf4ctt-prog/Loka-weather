@@ -1,8 +1,8 @@
 import { SCENE_THRESHOLDS } from "../../config/scenes24";
-import type { CityConfig, ConsensusHour, DayProfileV2, ModelForecast } from "../../types";
+import type { CityConfig, ConsensusHour, DayProfileV2, ModelForecast, SceneDecisionV24 } from "../../types";
 import { buildConsensus } from "../consensus";
 import { countRuns, maxRun, mean } from "../math";
-import { buildDayProfileV2 } from "../scenes24/profile";
+import { resolveDailySceneV24 } from "../scenes24/dailyDecision";
 
 export const WEEKLY_PROFILE_VERSION = "0.1.0" as const;
 
@@ -45,6 +45,7 @@ export interface WeeklyDayProfile {
   dayIndex: number;
   hours: ConsensusHour[];
   daylight: DayProfileV2;
+  sceneDecision: SceneDecisionV24;
   fullDay: WeeklyFullDayProfile;
 }
 
@@ -136,13 +137,15 @@ export function buildWeeklyProfiles(city: CityConfig, forecasts: ModelForecast[]
     const points = [...consensus.values()]
       .filter((point) => dateOf(point.time) === date)
       .sort((a, b) => a.time.localeCompare(b.time));
+    const dailyScene = resolveDailySceneV24(city, date, points);
     return {
       version: WEEKLY_PROFILE_VERSION,
       citySlug: city.slug,
       date,
       dayIndex,
       hours: points,
-      daylight: buildDayProfileV2(city, date, points),
+      daylight: dailyScene.profile,
+      sceneDecision: dailyScene.decision,
       fullDay: fullDayProfile(city, points)
     };
   });

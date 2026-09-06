@@ -1,7 +1,6 @@
 import { scene24DisplayTitle } from "../scenes24/displayTitles";
-import { chooseScene24V2 } from "../scenes24/classifier";
 import { masterUrlForScene, scene24ById } from "../scenes24/registry";
-import type { Scene24Id } from "../../types";
+import type { Scene24Id, VisualIcon } from "../../types";
 import type { WeeklyActivity, WeeklyActivityInsight } from "./activities";
 import type { SelectedWeeklyEvent, WeeklySelection } from "./selection";
 import type { WeeklyDayProfile, WeeklyProfileSet } from "./profiles";
@@ -13,7 +12,7 @@ export interface WeeklySceneReference {
   displayTitle: string;
   family: string;
   masterUrl: string;
-  visualIcon: string;
+  visualIcon: VisualIcon;
   emoji: string;
 }
 
@@ -66,7 +65,9 @@ function formatCelsius(value: number | null): string {
 }
 
 function formatMm(value: number | null): string {
-  return value === null ? "—" : `${Math.round(value * 10) / 10} mm`;
+  if (value === null) return "—";
+  const rounded = Math.round(value * 10) / 10;
+  return `${String(rounded).replace(".", ",")} mm`;
 }
 
 function formatHour(value: number | null): string {
@@ -101,7 +102,7 @@ function dayForEvent(profiles: WeeklyProfileSet, event: SelectedWeeklyEvent): We
 }
 
 function sceneReference(day: WeeklyDayProfile): WeeklySceneReference {
-  const decision = chooseScene24V2(day.daylight);
+  const decision = day.sceneDecision;
   const scene = scene24ById(decision.sceneId);
   return {
     id: scene.id,
@@ -131,14 +132,19 @@ function eventTitle(event: SelectedWeeklyEvent): string {
 function eventBody(event: SelectedWeeklyEvent): string {
   const range = dateRange(event.startDate, event.endDate);
   switch (event.type) {
-    case "HEAT": return `La chaleur sera marquée ${range}, avec jusqu’à ${formatCelsius(numberValue(event, "maxTemperatureC"))}.`;
-    case "COLD": return `Les températures resteront basses ${range}, avec un maximum proche de ${formatCelsius(numberValue(event, "maxTemperatureC"))}.`;
-    case "RAIN": return `La pluie sera suffisamment présente ${range}, pour un cumul d’environ ${formatMm(numberValue(event, "totalMm"))}.`;
-    case "WIND": return `Les rafales pourront atteindre ${numberValue(event, "maxGustKmh") === null ? "des niveaux élevés" : `${Math.round(numberValue(event, "maxGustKmh") as number)} km/h`} ${range}.`;
-    case "IMPROVEMENT": return `Le ciel s’éclaircira progressivement ${range}, avec une baisse nette de la couverture nuageuse.`;
-    case "DEGRADATION": return `Le temps se chargera progressivement ${range}, avec une hausse nette de la couverture nuageuse.`;
-    case "BEST_WINDOW": return `Le créneau le plus favorable se situe ${formatDate(event.startDate)}, entre ${formatHour(numberValue(event, "startHour"))} et ${formatHour(numberValue(event, "endHour"))}.`;
-    case "THUNDER": return `Un signal orageux suffisamment partagé entre les modèles est détecté ${range}.`;
+    case "HEAT": return `Une chaleur marquée est attendue ${range}, avec des maximales jusqu’à ${formatCelsius(numberValue(event, "maxTemperatureC"))}.`;
+    case "COLD": return `Une fraîcheur marquée est attendue ${range}, avec un maximum proche de ${formatCelsius(numberValue(event, "maxTemperatureC"))}.`;
+    case "RAIN": return `Un épisode pluvieux est attendu ${range}, avec un cumul proche de ${formatMm(numberValue(event, "totalMm"))}.`;
+    case "WIND": {
+      const gust = numberValue(event, "maxGustKmh");
+      return gust === null
+        ? `Des rafales soutenues sont possibles ${range}.`
+        : `Des rafales jusqu’à ${Math.round(gust)} km/h sont possibles ${range}.`;
+    }
+    case "IMPROVEMENT": return `Le ciel s’éclaircira nettement ${range}, avec une baisse sensible de la couverture nuageuse.`;
+    case "DEGRADATION": return `Le temps se chargera nettement ${range}, avec une hausse sensible de la couverture nuageuse.`;
+    case "BEST_WINDOW": return `La meilleure fenêtre météo de la semaine se situe ${formatDate(event.startDate)}, entre ${formatHour(numberValue(event, "startHour"))} et ${formatHour(numberValue(event, "endHour"))}.`;
+    case "THUNDER": return `Un risque orageux est détecté ${range} ; le signal est partagé entre les modèles.`;
   }
 }
 
@@ -147,24 +153,45 @@ function reasonText(insight: WeeklyActivityInsight): string {
     DRY: "temps sec", RAIN: "pluie", WIND: "vent", THUNDER: "orage", FOG: "brouillard",
     COLD: "fraîcheur", HEAT: "chaleur", CLOUD: "ciel chargé", FAVORABLE_WINDOW: "créneau favorable"
   };
-  return insight.reasonCodes.map((code) => labels[code]).join(", ");
+  const reasons = insight.reasonCodes.map((code) => labels[code]).filter(Boolean);
+  if (!reasons.length) return "conditions changeantes";
+  if (reasons.length === 1) return reasons[0];
+  return `${reasons.slice(0, -1).join(", ")} et ${reasons[reasons.length - 1]}`;
 }
 
 function activityText(insight: WeeklyActivityInsight): string {
   const label = ACTIVITY_LABELS[insight.activity];
   if (insight.status === "FAVORABLE" && insight.bestWindow) {
-    return `${label} : créneau favorable entre ${formatHour(insight.bestWindow.startHour)} et ${formatHour(insight.bestWindow.endHour)}.`;
+    return `${label} : meilleur créneau entre ${formatHour(insight.bestWindow.startHour)} et ${formatHour(insight.bestWindow.endHour)}.`;
   }
   if (insight.status === "FAVORABLE") return `${label} : conditions favorables sur la période évaluée.`;
   if (insight.status === "UNFAVORABLE") return `${label} : conditions peu favorables en raison de ${reasonText(insight)}.`;
-  if (insight.bestWindow) return `${label} : conditions variables, avec une fenêtre plus favorable entre ${formatHour(insight.bestWindow.startHour)} et ${formatHour(insight.bestWindow.endHour)}.`;
+  if (insight.bestWindow) return `${label} : fenêtre plus favorable entre ${formatHour(insight.bestWindow.startHour)} et ${formatHour(insight.bestWindow.endHour)}.`;
   return `${label} : conditions variables en raison de ${reasonText(insight)}.`;
 }
 
+const ACTIVITY_ORDER: WeeklyActivity[] = ["BEACH", "OUTDOOR_WALK", "OUTDOOR_SPORT"];
+
+function activityInsightRank(insight: WeeklyActivityInsight): number {
+  const statusWeight = insight.status === "UNFAVORABLE" ? 300 : insight.status === "FAVORABLE" ? 200 : 100;
+  return statusWeight + (insight.bestWindow?.hours ?? 0);
+}
+
 function activityTexts(event: SelectedWeeklyEvent, insights: WeeklyActivityInsight[]): WeeklyActivityText[] {
-  return insights
-    .filter((insight) => insight.eventId === event.id)
-    .sort((a, b) => ["BEACH", "OUTDOOR_WALK", "OUTDOOR_SPORT"].indexOf(a.activity) - ["BEACH", "OUTDOOR_WALK", "OUTDOOR_SPORT"].indexOf(b.activity))
+  const bestByActivity = new Map<WeeklyActivity, WeeklyActivityInsight>();
+  for (const insight of insights.filter((item) => item.eventId === event.id)) {
+    // A mixed result without a usable window is not strong enough for the
+    // publication. This keeps the event slide focused on concrete advice.
+    if (insight.status === "MIXED" && !insight.bestWindow) continue;
+    const previous = bestByActivity.get(insight.activity);
+    if (!previous || activityInsightRank(insight) > activityInsightRank(previous)
+      || (activityInsightRank(insight) === activityInsightRank(previous) && insight.date < previous.date)) {
+      bestByActivity.set(insight.activity, insight);
+    }
+  }
+  return ACTIVITY_ORDER
+    .map((activity) => bestByActivity.get(activity))
+    .filter((insight): insight is WeeklyActivityInsight => !!insight)
     .map((insight) => ({ activity: insight.activity, status: insight.status, text: activityText(insight), bestWindow: insight.bestWindow }));
 }
 
@@ -201,12 +228,12 @@ export function buildWeeklyEditorial(
   const overview = selection.status === "CALM"
     ? {
       title: `Une semaine calme à ${cityName}`,
-      body: `Aucun changement météo suffisamment marqué n’est retenu pour cette semaine à ${cityName}.`,
+      body: `La semaine restera globalement stable à ${cityName}. Aucun changement météo suffisamment marqué n’est retenu.`,
       scene: overviewScene
     }
     : {
       title: `La semaine à ${cityName}`,
-      body: events.length === 1 ? "Un temps fort météo mérite d’être suivi cette semaine." : `${events.length} temps forts météo méritent d’être suivis cette semaine.`,
+      body: events.length === 1 ? "Un temps fort météo est retenu cette semaine." : `${events.length} temps forts météo sont retenus cette semaine.`,
       scene: overviewScene
     };
   return {

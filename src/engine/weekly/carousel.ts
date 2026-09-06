@@ -1,4 +1,6 @@
 import type { WeeklyEditorial, WeeklyEditorialEvent, WeeklySceneReference } from "./editorial";
+import { PICTOGRAM_LIBRARY_VERSION, PICTOGRAM_STYLE, visualIconToPictogram, weatherPictogramDataUrl } from "../../ui/pictogramLibrary";
+import { LOKA_BRAND_VERSION, LOKA_CANVAS_FONT, LOKA_LOGO_DATA_URL, LOKA_SLOGAN_WEEKLY } from "../../ui/lokaBrand";
 
 export const WEEKLY_CAROUSEL_VERSION = "0.1.0" as const;
 export const WEEKLY_CAROUSEL_WIDTH = 1080 as const;
@@ -90,7 +92,7 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
       height: WEEKLY_STORY_HEIGHT,
       relay: {
         kind: "RELAY",
-        title: `La semaine à ${editorial.citySlug === "tarnos" ? "Tarnos" : editorial.citySlug}`,
+        title: "La semaine à " + (editorial.citySlug === "tarnos" ? "Tarnos" : editorial.citySlug),
         body: "Le carrousel météo de la semaine est disponible.",
         cta: "Voir la publication",
         scene: editorial.overview.scene
@@ -123,8 +125,8 @@ function dateRangeLabel(startDate: string, endDate: string): string {
     weekday: "long",
     day: "numeric",
     month: "long"
-  }).format(new Date(`${date}T12:00:00Z`));
-  return startDate === endDate ? format(startDate) : `du ${format(startDate)} au ${format(endDate)}`;
+  }).format(new Date(date + "T12:00:00Z"));
+  return startDate === endDate ? format(startDate) : "du " + format(startDate) + " au " + format(endDate);
 }
 
 function activityStatusClass(status: WeeklyEditorialEvent["activities"][number]["status"]): string {
@@ -139,54 +141,98 @@ function eventDateLabel(event: WeeklyEditorialEvent): string {
 
 function renderSlideCard(slide: WeeklyCarouselSlide, position: number, total: number): string {
   const label = slide.kind === "OVERVIEW"
-    ? `Slide ${position} : vue d’ensemble`
-    : `Slide ${position} : ${slide.title}`;
-  const activities = slide.activities.map((activity) => `<span class="activity ${activityStatusClass(activity.status)}">${escapeHtml(activity.text)}</span>`).join("");
-  return `<article class="slide-card" data-slide-index="${position - 1}">
-  <div class="slide-head"><span>${escapeHtml(position === 1 ? "VUE D’ENSEMBLE" : `TEMPS FORT ${position - 1}`)}</span><span>${position}/${total}</span></div>
-  <div class="canvas-wrap"><canvas class="carousel-canvas" width="${WEEKLY_CAROUSEL_WIDTH}" height="${WEEKLY_CAROUSEL_HEIGHT}" aria-label="${escapeHtml(label)}"></canvas></div>
-  ${activities ? `<div class="activity-list">${activities}</div>` : ""}
-  <button class="secondary download-slide" type="button">Télécharger cette slide</button>
-</article>`;
+    ? "Slide " + position + " : vue d’ensemble"
+    : "Slide " + position + " : " + slide.title;
+  const activities = slide.activities.map((activity) => '<span class="activity ' + activityStatusClass(activity.status) + '">' + escapeHtml(activity.text) + "</span>").join("");
+  return '<article class="slide-card" data-slide-index="' + (position - 1) + '"><div class="slide-head"><span>' +
+    escapeHtml(position === 1 ? "VUE D’ENSEMBLE" : "TEMPS FORT " + (position - 1)) + "</span><span>" + position + "/" + total +
+    '</span></div><div class="canvas-wrap"><canvas class="carousel-canvas" width="' + WEEKLY_CAROUSEL_WIDTH + '" height="' + WEEKLY_CAROUSEL_HEIGHT +
+    '" aria-label="' + escapeHtml(label) + '"></canvas></div>' + (activities ? '<div class="activity-list">' + activities + "</div>" : "") +
+    '<button class="secondary download-slide" type="button">Télécharger cette slide</button></article>';
+}
+
+function sceneForBrowser(scene: WeeklySceneReference): WeeklySceneReference & { pictogramUrl: string } {
+  return {
+    ...scene,
+    pictogramUrl: weatherPictogramDataUrl(visualIconToPictogram(scene.visualIcon))
+  };
+}
+
+function browserModel(plan: WeeklyCarouselPlan): unknown {
+  return {
+    ...plan,
+    brand: {
+      version: LOKA_BRAND_VERSION,
+      logoUrl: LOKA_LOGO_DATA_URL,
+      canvasFont: LOKA_CANVAS_FONT,
+      slogan: LOKA_SLOGAN_WEEKLY,
+      pictogramLibraryVersion: PICTOGRAM_LIBRARY_VERSION,
+      ink: PICTOGRAM_STYLE.ink,
+      gold: PICTOGRAM_STYLE.gold
+    },
+    slides: plan.slides.map((slide) => ({ ...slide, scene: sceneForBrowser(slide.scene) })),
+    story: {
+      ...plan.story,
+      relay: { ...plan.story.relay, scene: sceneForBrowser(plan.story.relay.scene) }
+    }
+  };
 }
 
 /**
- * Render an isolated preview/export surface. It is intentionally not wired to
- * a route or cron yet; step 11 will decide how this output is exposed.
+ * Render an isolated preview/export surface. It is used by the protected
+ * preview route and remains independent from the daily renderer, routes and
+ * production activation flag.
  */
 export function renderWeeklyCarousel(editorial: WeeklyEditorial): string {
   const plan = buildWeeklyCarouselPlan(editorial);
+  const model = browserModel(plan);
   const range = dateRangeLabel(plan.startDate, plan.endDate);
   const cards = plan.slides.map((slide, index) => renderSlideCard(slide, index + 1, plan.slides.length)).join("\n");
-  const storyLabel = `Relais Story : ${plan.story.relay.title}`;
-  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(plan.story.relay.title)} · LOKA</title>
-<style>
-:root{--ink:#12264a;--gold:#c9a45a;--paper:#f3f1eb;--muted:#6f716f;--dark:#171715}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}.wrap{max-width:1180px;margin:0 auto;padding:24px 18px 48px}.toolbar{background:#fff;border-radius:24px;padding:20px 22px;margin-bottom:22px;box-shadow:0 12px 40px rgba(18,38,74,.08)}.topline{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-size:27px;font-weight:850;letter-spacing:.06em}.badge{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}.toolbar h1{font-size:28px;line-height:1.05;margin:20px 0 6px}.muted{font-size:13px;color:var(--muted)}.carousel{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}.slide-card,.story-card{background:#fff;border-radius:24px;padding:14px;box-shadow:0 14px 46px rgba(18,38,74,.1)}.slide-head{display:flex;justify-content:space-between;gap:8px;padding:3px 4px 11px;font-size:11px;font-weight:780;letter-spacing:.09em;color:var(--muted)}.canvas-wrap{overflow:hidden;border-radius:18px;background:#d6d4cf}.canvas-wrap canvas{display:block;width:100%;height:auto}.activity-list{display:flex;flex-direction:column;gap:7px;margin:12px 2px 0}.activity{border-radius:11px;padding:8px 10px;font-size:12px;line-height:1.35}.activity.favorable{background:#edf7ef;color:#21613b}.activity.mixed{background:#faf3e3;color:#7a5b16}.activity.unfavorable{background:#f9e9e7;color:#8c302b}.secondary{width:100%;margin-top:12px;border:0;border-radius:12px;padding:12px 10px;background:#f0f0ed;color:var(--dark);font:650 12px/1 -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer}.story-card{max-width:420px;margin:28px auto 0}.story-head{padding:3px 4px 11px;font-size:11px;font-weight:780;letter-spacing:.09em;color:var(--muted)}.note{text-align:center;color:var(--muted);font-size:11px;line-height:1.5;margin:22px auto 0;max-width:760px}
-</style></head><body><main class="wrap"><section class="toolbar"><div class="topline"><div class="brand">LOKA!</div><div class="badge">La semaine à Tarnos · V24</div></div><h1>${escapeHtml(plan.story.relay.title)}</h1><div class="muted">${escapeHtml(range)} · ${plan.slides.length} slide${plan.slides.length > 1 ? "s" : ""}</div></section><section class="carousel" aria-label="Carrousel hebdomadaire">${cards}</section><section class="story-card"><div class="story-head">STORY · RELAIS DE LA PUBLICATION</div><div class="canvas-wrap"><canvas id="story-relay" width="${WEEKLY_STORY_WIDTH}" height="${WEEKLY_STORY_HEIGHT}" aria-label="${escapeHtml(storyLabel)}"></canvas></div><button class="secondary" id="download-story" type="button">Télécharger le relais Story</button></section><p class="note">La Story relaie le carrousel ; elle ne constitue pas un bulletin météo autonome. Les fonds sont ceux des 24 scènes LOKA et les textes proviennent du moteur hebdomadaire.</p></main><script>
-const plan=${safeJson(plan)};
-const slideCanvases=[...document.querySelectorAll('.carousel-canvas')];
-const storyCanvas=document.getElementById('story-relay');
-const ink='#12264a';
-const gold='#c9a45a';
-const emojiFont='"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
-const fontFamily='-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif';
-function load(src,label){return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('weekly_image_load_failed:'+label));image.src=src;});}
-function cover(ctx,image,width,height){const iw=Math.max(1,image.naturalWidth||image.width||width),ih=Math.max(1,image.naturalHeight||image.height||height),scale=Math.max(width/iw,height/ih),dw=iw*scale,dh=ih*scale;ctx.drawImage(image,(width-dw)/2,(height-dh)/2,dw,dh);}
-function rounded(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
-function text(ctx,value,x,y,size,weight,color,align='left'){ctx.save();ctx.font=String(weight)+' '+String(size)+'px '+fontFamily;ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.fillText(String(value??''),x,y);ctx.restore();}
-function wrap(ctx,value,x,y,maxWidth,lineHeight,size,weight,color,maxLines=3){ctx.save();ctx.font=String(weight)+' '+String(size)+'px '+fontFamily;ctx.fillStyle=color;ctx.textAlign='left';ctx.textBaseline='alphabetic';const words=String(value??'').split(/\s+/).filter(Boolean);const lines=[];let line='';for(const word of words){const next=line?line+' '+word:word;if(line&&ctx.measureText(next).width>maxWidth){lines.push(line);line=word;if(lines.length===maxLines)break;}else line=next;}if(line&&lines.length<maxLines)lines.push(line);lines.forEach((item,index)=>ctx.fillText(item,x,y+index*lineHeight));ctx.restore();}
-function overlay(ctx,width,height){const gradient=ctx.createLinearGradient(0,0,0,height);gradient.addColorStop(0,'rgba(255,255,255,.10)');gradient.addColorStop(.43,'rgba(255,255,255,.14)');gradient.addColorStop(1,'rgba(7,21,48,.66)');ctx.fillStyle=gradient;ctx.fillRect(0,0,width,height);}
-function logo(ctx,x,y,scale=1){text(ctx,'LOKA!',x,y,42*scale,850,'#fff','left');ctx.fillStyle=gold;ctx.fillRect(x,y+12*scale,94*scale,3*scale);}
-function panel(ctx,x,y,w,h){ctx.save();rounded(ctx,x,y,w,h,34);ctx.fillStyle='rgba(255,255,255,.88)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.98)';ctx.lineWidth=2;ctx.stroke();ctx.restore();}
-function headline(ctx,value,x,y,maxWidth){let size=58;ctx.save();while(size>34){ctx.font='850 '+size+'px '+fontFamily;if(ctx.measureText(String(value)).width<=maxWidth)break;size-=2;}ctx.restore();wrap(ctx,value,x,y,maxWidth,Math.round(size*1.02),size,850,ink,2);}
-function activityStyle(status){if(status==='FAVORABLE')return{fill:'rgba(221,243,225,.96)',color:'#21613b'};if(status==='UNFAVORABLE')return{fill:'rgba(249,226,223,.96)',color:'#8c302b'};return{fill:'rgba(250,239,211,.96)',color:'#7a5b16'};}
-function activityLines(ctx,activities){activities.slice(0,3).forEach((activity,index)=>{const y=1142+index*42,style=activityStyle(activity.status);ctx.save();rounded(ctx,101,y,820,31,15);ctx.fillStyle=style.fill;ctx.fill();ctx.restore();text(ctx,activity.text,118,y+21,16,620,style.color,'left');});}
-function drawSlide(canvas,slide){return load(slide.scene.masterUrl,'scene_'+slide.scene.id).then(image=>{const ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(ctx,image,width,height);overlay(ctx,width,height);logo(ctx,58,92);text(ctx,slide.kind==='OVERVIEW'?'LA SEMAINE À TARNOS':'TEMPS FORT MÉTÉO',58,178,22,780,'#fff','left');text(ctx,(slide.index+1)+' / '+plan.slides.length,1022,178,22,650,'#fff','right');panel(ctx,58,715,964,595);text(ctx,slide.scene.emoji,101,797,60,500,ink,'left');text(ctx,slide.scene.displayTitle,180,789,18,780,ink,'left');text(ctx,slide.dateLabel,101,842,19,600,ink,'left');headline(ctx,slide.title,101,932,840);wrap(ctx,slide.body,101,1038,820,32,24,540,ink,3);if(slide.activities.length)activityLines(ctx,slide.activities);text(ctx,plan.signature,540,1280,20,520,ink,'center');});}
-function drawStory(canvas,relay){return load(relay.scene.masterUrl,'story_scene_'+relay.scene.id).then(image=>{const ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(ctx,image,width,height);overlay(ctx,width,height);logo(ctx,58,126,1.25);text(ctx,'RELAIS DE LA PUBLICATION',58,225,24,780,'#fff','left');panel(ctx,58,760,964,520);text(ctx,relay.scene.emoji,104,846,64,500,ink,'left');text(ctx,relay.scene.displayTitle,190,840,19,780,ink,'left');headline(ctx,relay.title,101,950,840);wrap(ctx,relay.body,101,1075,820,38,27,540,ink,2);ctx.save();rounded(ctx,101,1165,430,70,35);ctx.fillStyle=gold;ctx.fill();ctx.restore();text(ctx,relay.cta,316,1210,24,800,'#fff','center');text(ctx,'Faites défiler le carrousel',540,1785,22,600,'#fff','center');});}
-function download(canvas,name){canvas.toBlob(blob=>{if(!blob)return;const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);},'image/png');}
-Promise.all(plan.slides.map((slide,index)=>drawSlide(slideCanvases[index],slide))).catch(error=>console.error(error));
-drawStory(storyCanvas,plan.story.relay).catch(error=>console.error(error));
-document.querySelectorAll('.download-slide').forEach((button,index)=>button.addEventListener('click',()=>download(slideCanvases[index],'loka-semaine-'+String(index+1).padStart(2,'0')+'.png')));
-document.getElementById('download-story').addEventListener('click',()=>download(storyCanvas,'loka-semaine-story-relais.png'));
-</script></body></html>`;
+  const storyLabel = "Relais Story : " + plan.story.relay.title;
+  const shell =
+'<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + escapeHtml(plan.story.relay.title) + ' · LOKA</title>' +
+'<style>:root{--ink:#12264a;--gold:#fdb515;--paper:#f3f1eb;--muted:#6f716f;--dark:#171715}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}.wrap{max-width:1180px;margin:0 auto;padding:24px 18px 48px}.toolbar{background:#fff;border-radius:24px;padding:20px 22px;margin-bottom:22px;box-shadow:0 12px 40px rgba(18,38,74,.08)}.topline{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-size:27px;font-weight:850;letter-spacing:.06em}.badge{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}.toolbar h1{font-size:28px;line-height:1.05;margin:20px 0 6px}.muted{font-size:13px;color:var(--muted)}.carousel{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}.slide-card,.story-card{background:#fff;border-radius:24px;padding:14px;box-shadow:0 14px 46px rgba(18,38,74,.1)}.slide-head{display:flex;justify-content:space-between;gap:8px;padding:3px 4px 11px;font-size:11px;font-weight:780;letter-spacing:.09em;color:var(--muted)}.canvas-wrap{overflow:hidden;border-radius:18px;background:#d6d4cf}.canvas-wrap canvas{display:block;width:100%;height:auto}.activity-list{display:flex;flex-direction:column;gap:7px;margin:12px 2px 0}.activity{border-radius:11px;padding:8px 10px;font-size:12px;line-height:1.35}.activity.favorable{background:#edf7ef;color:#21613b}.activity.mixed{background:#faf3e3;color:#7a5b16}.activity.unfavorable{background:#f9e9e7;color:#8c302b}.secondary{width:100%;margin-top:12px;border:0;border-radius:12px;padding:12px 10px;background:#f0f0ed;color:var(--dark);font:650 12px/1 -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer}.story-card{max-width:420px;margin:28px auto 0}.story-head{padding:3px 4px 11px;font-size:11px;font-weight:780;letter-spacing:.09em;color:var(--muted)}.note{text-align:center;color:var(--muted);font-size:11px;line-height:1.5;margin:22px auto 0;max-width:760px}</style></head><body><main class="wrap"><section class="toolbar"><div class="topline"><div class="brand">LOKA!</div><div class="badge">La semaine à Tarnos · V24 · aperçu</div></div><h1>' + escapeHtml(plan.story.relay.title) + '</h1><div class="muted">' + escapeHtml(range) + ' · ' + String(plan.slides.length) + ' slide' + (plan.slides.length > 1 ? 's' : '') + '</div></section><section class="carousel" aria-label="Carrousel hebdomadaire">' + cards + '</section><section class="story-card"><div class="story-head">STORY · RELAIS DE LA PUBLICATION</div><div class="canvas-wrap"><canvas id="story-relay" width="' + String(WEEKLY_STORY_WIDTH) + '" height="' + String(WEEKLY_STORY_HEIGHT) + '" aria-label="' + escapeHtml(storyLabel) + '"></canvas></div><button class="secondary" id="download-story" type="button">Télécharger le relais Story</button></section><p class="note">Le rendu utilise le logo LOKA!, les box translucides, les pictogrammes redessinés et les fonds des 24 scènes. La Story reste un relais du carrousel ; elle ne constitue pas un bulletin autonome.</p></main><script>';
+
+  const script = [
+    "const model=" + safeJson(model) + ";",
+    "const plan=model;",
+    "const slideCanvases=[...document.querySelectorAll('.carousel-canvas')];",
+    "const storyCanvas=document.getElementById('story-relay');",
+    "let ctx=null;",
+    "const ink=model.brand.ink;",
+    "const gold=model.brand.gold;",
+    "const fontFamily=model.brand.canvasFont;",
+    "function load(src,label){return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('weekly_image_load_failed:'+label));image.src=src;});}",
+    "function normalizeText(value){return String(value??'').normalize('NFC').replace(/\\s+/g,' ').trim();}",
+    "function font(size,weight){ctx.font=String(weight)+' '+String(size)+'px '+fontFamily;if('fontKerning' in ctx)ctx.fontKerning='normal';}",
+    "function drawFullTextLine(label,x,y,color,align){ctx.fillStyle=color;ctx.strokeStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.lineJoin='round';ctx.miterLimit=2;ctx.lineWidth=.44;ctx.strokeText(label,x,y);ctx.fillText(label,x,y);}",
+    "function text(value,x,y,size,weight,color,align='left'){const label=normalizeText(value);ctx.save();font(size,weight);drawFullTextLine(label,x,y,color,align);ctx.restore();}",
+    "function measure(value,size,weight){ctx.save();font(size,weight);const width=ctx.measureText(normalizeText(value)).width;ctx.restore();return width;}",
+    "function fittedSize(value,maxWidth,maxSize,minSize,weight){const label=normalizeText(value);ctx.save();let size=maxSize;while(size>minSize){font(size,weight);if(ctx.measureText(label).width<=maxWidth)break;size-=1;}ctx.restore();return Math.max(minSize,size);}",
+    "function wrap(value,x,y,maxWidth,lineHeight,size,weight,color,align='left',maxLines=3){ctx.save();font(size,weight);const words=normalizeText(value).split(/\\s+/).filter(Boolean);let line='',yy=y,count=0;for(const word of words){const next=line?line+' '+word:word;if(line&&ctx.measureText(next).width>maxWidth){drawFullTextLine(line,x,yy,color,align);count++;if(count>=maxLines){ctx.restore();return;}line=word;yy+=lineHeight;}else line=next;}if(line&&count<maxLines)drawFullTextLine(line,x,yy,color,align);ctx.restore();}",
+    "function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}",
+    "function box(x,y,w,h){ctx.save();rr(x,y,w,h,36);const gradient=ctx.createLinearGradient(x,y,x,y+h);gradient.addColorStop(0,'rgba(255,255,255,0.19)');gradient.addColorStop(.48,'rgba(255,255,255,0.145)');gradient.addColorStop(1,'rgba(255,255,255,0.105)');ctx.fillStyle=gradient;ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.88)';ctx.lineWidth=1.45;ctx.stroke();ctx.save();rr(x+2,y+2,w-4,(h-4)*.43,34);ctx.clip();const sheen=ctx.createLinearGradient(x,y,x,y+h*.48);sheen.addColorStop(0,'rgba(255,255,255,0.20)');sheen.addColorStop(1,'rgba(255,255,255,0.02)');ctx.fillStyle=sheen;ctx.fillRect(x+2,y+2,w-4,h*.48);ctx.restore();ctx.restore();}",
+    "function cover(image,width,height){const iw=Math.max(1,image.naturalWidth||image.width||width),ih=Math.max(1,image.naturalHeight||image.height||height),scale=Math.max(width/iw,height/ih),dw=iw*scale,dh=ih*scale;ctx.drawImage(image,(width-dw)/2,(height-dh)/2,dw,dh);}",
+    "function overlay(width,height){const gradient=ctx.createLinearGradient(0,0,0,height);gradient.addColorStop(0,'rgba(255,255,255,.04)');gradient.addColorStop(.54,'rgba(255,255,255,.06)');gradient.addColorStop(1,'rgba(7,21,48,.38)');ctx.fillStyle=gradient;ctx.fillRect(0,0,width,height);}",
+    "function drawLokaLogo(logo,x,centerY,maxWidth,maxHeight){const iw=Math.max(1,logo.naturalWidth||logo.width||maxWidth),ih=Math.max(1,logo.naturalHeight||logo.height||maxHeight),scale=Math.min(maxWidth/iw,maxHeight/ih),dw=iw*scale,dh=ih*scale;ctx.drawImage(logo,x,centerY-dh/2,dw,dh);}",
+    "function drawImageCentered(image,cx,cy,w,h){const iw=Math.max(1,image.naturalWidth||image.width||w),ih=Math.max(1,image.naturalHeight||image.height||h),scale=Math.min(w/iw,h/ih),dw=iw*scale,dh=ih*scale;ctx.drawImage(image,cx-dw/2,cy-dh/2,dw,dh);}",
+    "function drawHeader(logo,label,width){drawLokaLogo(logo,50,80,174,58);text(String(plan.citySlug==='tarnos'?'TARNOS':plan.citySlug).toUpperCase(),540,94,22,680,ink,'center');text(String(label||'').toUpperCase(),width-50,94,18,540,ink,'right');}",
+    "function drawStoryHeader(logo,label){drawLokaLogo(logo,50,144,190,64);text(String(plan.citySlug==='tarnos'?'TARNOS':plan.citySlug).toUpperCase(),540,158,25,680,ink,'center');text(String(label||'').toUpperCase(),1030,158,20,540,ink,'right');}",
+    "function sceneBadge(icon,scene,x,y,w,h){box(x,y,w,h);drawImageCentered(icon,x+82,y+h/2+8,116,90);text('SCÈNE V24 DU JOUR',x+160,y+43,14,700,ink,'left');text(scene.displayTitle,x+160,y+83,19,780,ink,'left');}",
+    "function drawSignature(y,color){const signatureColor=color||ink;text(model.signature||model.brand.slogan,540,y,20,500,signatureColor,'center');ctx.save();ctx.strokeStyle=gold;ctx.lineWidth=1.4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(514,y+24);ctx.lineTo(566,y+24);ctx.stroke();ctx.restore();}",
+    "function drawOverview(canvas,slide,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,slide.dateLabel,width);text('VUE D’ENSEMBLE',58,174,22,780,ink,'left');box(58,205,964,1048);drawImageCentered(icon,132,316,126,96);text(slide.scene.displayTitle,220,311,19,780,ink,'left');text(slide.dateLabel,220,345,18,540,ink,'left');const titleSize=fittedSize(slide.title,820,52,34,820);wrap(slide.title,101,478,820,52,titleSize,820,ink,'left',2);wrap(slide.body,101,600,820,34,26,540,ink,'left',2);text('TEMPS FORTS RETENUS',101,712,18,780,ink,'left');const events=plan.slides.slice(1);if(!events.length){text('Une semaine stable est aussi une information.',101,780,23,620,ink,'left');}else{const columns=events.length>5?2:1;const rows=Math.ceil(events.length/columns);const rowHeight=Math.max(58,Math.min(98,Math.floor(446/rows)));events.forEach((event,index)=>{const column=Math.floor(index/rows),row=index%rows,x=101+column*450,y=754+row*rowHeight;ctx.save();ctx.fillStyle=gold;ctx.beginPath();ctx.arc(x+17,y+18,17,0,Math.PI*2);ctx.fill();ctx.restore();text(String(index+1),x+17,y+25,17,800,'#ffffff','center');const eventSize=events.length>6?18:21;text(event.title,x+50,y+16,eventSize,780,ink,'left');text(event.dateLabel,x+50,y+43,16,540,ink,'left');});}drawSignature(1294);}",
+    "function activityStyle(status){if(status==='FAVORABLE')return{fill:'rgba(221,243,225,.86)',color:'#21613b'};if(status==='UNFAVORABLE')return{fill:'rgba(249,226,223,.86)',color:'#8c302b'};return{fill:'rgba(250,239,211,.86)',color:'#7a5b16'};}",
+    "function drawActivityRows(activities,startY){const rows=activities.slice(0,3);if(!rows.length)return;const rowHeight=rows.length===3?62:rows.length===2?72:88;rows.forEach((activity,index)=>{const y=startY+index*rowHeight,style=activityStyle(activity.status);ctx.save();rr(101,y,820,rowHeight-10,18);ctx.fillStyle=style.fill;ctx.fill();ctx.restore();const size=fittedSize(activity.text,770,17,12,620);text(activity.text,124,y+27,size,620,style.color,'left');});}",
+    "function drawEvent(canvas,slide,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,slide.dateLabel,width);text('TEMPS FORT MÉTÉO',58,174,22,780,ink,'left');sceneBadge(icon,slide.scene,58,205,964,160);box(58,395,964,790);const titleSize=fittedSize(slide.title,820,58,36,820);wrap(slide.title,101,500,820,58,titleSize,820,ink,'left',2);text(slide.dateLabel,101,585,19,540,ink,'left');wrap(slide.body,101,648,820,34,26,540,ink,'left',3);if(slide.activities.length){text('POUR VOS ACTIVITÉS',101,780,18,780,ink,'left');drawActivityRows(slide.activities,812);}drawSignature(1294);}",
+    "function drawStory(canvas,relay,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawStoryHeader(logo,plan.startDate+' → '+plan.endDate);text('RELAIS DE LA PUBLICATION',58,225,24,780,ink,'left');box(58,470,964,820);drawImageCentered(icon,540,602,150,116);const titleSize=fittedSize(relay.title,820,58,36,820);wrap(relay.title,101,770,820,58,titleSize,820,ink,'left',2);wrap(relay.body,101,890,820,38,28,540,ink,'left',2);ctx.save();rr(101,1050,430,72,36);ctx.fillStyle=gold;ctx.fill();ctx.restore();text(relay.cta,316,1096,24,800,'#ffffff','center');text('Faites défiler le carrousel',540,1778,22,600,'#ffffff','center');drawSignature(1830,'#ffffff');}",
+    "function drawSlide(canvas,slide){return Promise.all([load(slide.scene.masterUrl,'scene_'+slide.scene.id),load(model.brand.logoUrl,'logo'),load(slide.scene.pictogramUrl,'pictogram_'+slide.scene.id)]).then(function(images){if(slide.kind==='OVERVIEW')drawOverview(canvas,slide,images[0],images[1],images[2]);else drawEvent(canvas,slide,images[0],images[1],images[2]);});}",
+    "function drawRelay(){const relay=plan.story.relay;return Promise.all([load(relay.scene.masterUrl,'story_scene_'+relay.scene.id),load(model.brand.logoUrl,'story_logo'),load(relay.scene.pictogramUrl,'story_pictogram_'+relay.scene.id)]).then(function(images){drawStory(storyCanvas,relay,images[0],images[1],images[2]);});}",
+    "function download(canvas,name){canvas.toBlob(function(blob){if(!blob)return;const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=name;link.click();setTimeout(function(){URL.revokeObjectURL(link.href);},1000);},'image/png');}",
+    "Promise.all(plan.slides.map(function(slide,index){return drawSlide(slideCanvases[index],slide);})).catch(function(error){console.error(error);});",
+    "drawRelay().catch(function(error){console.error(error);});",
+    "document.querySelectorAll('.download-slide').forEach(function(button,index){button.addEventListener('click',function(){download(slideCanvases[index],'loka-semaine-'+String(index+1).padStart(2,'0')+'.png');});});",
+    "document.getElementById('download-story').addEventListener('click',function(){download(storyCanvas,'loka-semaine-story-relais.png');});"
+  ].join("\n");
+
+  return shell + script + "</script></body></html>";
 }

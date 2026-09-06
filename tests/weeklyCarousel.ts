@@ -87,5 +87,15 @@ const html = renderWeeklyCarousel(editorial(events));
 ok(html.includes("carousel-canvas") && html.includes("story-relay"), "renderer_contains_carousel_and_story");
 ok(html.includes("data-slide-index=\"2\""), "renderer_keeps_adaptive_slide_count");
 ok(html.includes("RELAIS DE LA PUBLICATION"), "renderer_labels_story_as_relay");
+ok(html.includes("strokeText(label"), "renderer_uses_daily_full_text_draw");
+ok(html.includes("Helvetica Neue"), "renderer_reuses_daily_font_stack");
+ok(html.includes("replace(/\\s+/g"), "renderer_normalizes_canvas_whitespace");
+ok(html.includes("data:image/png;base64,"), "renderer_embeds_shared_loka_logo");
+ok(html.includes("pictogramUrl") && html.includes("LOKA_PREMIUM_1.2"), "renderer_reuses_brand_pictograms");
+ok(html.includes("SCÈNE V24 DU JOUR") && html.includes("Ici, cette semaine."), "renderer_explains_scene_context_and_signature");
+const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1] ?? "";
+let scriptValid = true;
+try { new Function(script); } catch { scriptValid = false; }
+ok(scriptValid, "renderer_browser_script_is_valid");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/15 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/22 PASS`);

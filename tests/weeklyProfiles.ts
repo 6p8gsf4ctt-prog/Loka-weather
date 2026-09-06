@@ -68,5 +68,7 @@ ok(profiles.days.every((day) => day.citySlug === city.slug && day.version === "0
 ok(profiles.days.every((day) => day.fullDay.pointCount === 24), "full_day_point_count");
 ok(profiles.days[0].fullDay.minTemperatureC < profiles.days[0].fullDay.maxTemperatureC, "thermal_range");
 ok(profiles.days.every((day) => day.fullDay.temperatureSpreadMaxC >= 0), "model_spread_available");
+ok(profiles.days.every((day) => day.sceneDecision.version.startsWith("2.0")), "daily_scene_decision_uses_v24");
+ok(profiles.days.every((day) => day.sceneDecision.sceneId >= 1 && day.sceneDecision.sceneId <= 24), "daily_scene_decision_scene_ids");
 
-console.log(`WEEKLY_PROFILES ${passed}/15 PASS`);
+console.log(`WEEKLY_PROFILES ${passed}/17 PASS`);
