@@ -3,7 +3,7 @@
 
 Version de référence : 1.0  
 Date : 6 septembre 2026  
-Statut : étape 2 terminée — audit technique réalisé, étape 3 suivante
+Statut : étape 3 terminée — contrat de données défini, étape 4 suivante
 
 ## 1. Objet du document
 
@@ -115,7 +115,7 @@ V24 quotidienne le permet.
 |---:|---|---|
 | 1 | Cadre de référence et règles de suivi | TERMINÉE |
 | 2 | Audit technique des chaînes existantes | TERMINÉE |
-| 3 | Contrat de données des histoires météo | À FAIRE |
+| 3 | Contrat de données des histoires météo | TERMINÉE |
 | 4 | Consolidation des événements redondants | À FAIRE |
 | 5 | Hiérarchisation et plafond de publication | À FAIRE |
 | 6 | Construction de l’ordre narratif | À FAIRE |
@@ -184,3 +184,18 @@ chemin quotidien.
 Le détail, les preuves et les points de raccord sont consignés dans
 `docs/WEEKLY_NARRATIVE_TECHNICAL_AUDIT.md`. L’étape active suivante est l’étape
 3 : contrat de données des histoires météo.
+
+### 6 septembre 2026 — étape 3
+
+Le contrat de données des histoires météo est défini dans
+`docs/WEEKLY_NARRATIVE_DATA_CONTRACT.md`. Il sépare désormais explicitement les
+candidats bruts, les épisodes consolidés, les histoires sélectionnées et le
+plan narratif publié. Il impose la conservation des preuves, des candidats
+fusionnés, du score, de la confiance, de la scène V24 source et des conséquences
+pratiques.
+
+Le contrat fixe également la limite de trois histoires publiées, l’exception
+contrôlée à quatre, la semaine calme sans histoire artificielle et le fait que
+la meilleure fenêtre compte dans cette limite. Aucun code de production ni
+schéma D1 n’est modifié à cette étape ; l’étape 4 pourra maintenant implémenter
+la consolidation sur une base stable.
