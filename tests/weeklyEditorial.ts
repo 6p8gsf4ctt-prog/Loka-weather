@@ -87,16 +87,16 @@ const editorial = buildWeeklyEditorial(profiles, selection, activities, city.nam
 ok(editorial.overview.title === "La semaine à Tarnos", "overview_title");
 ok(editorial.overview.body.includes("2 temps forts"), "overview_count");
 ok(editorial.events.length === 2, "event_cards_count");
-ok(editorial.events[0].title === "Meilleure fenêtre météo", "best_window_title");
-ok(editorial.events[1].title === "Épisode pluvieux", "rain_title");
+ok(editorial.events[0].title === "Épisode pluvieux", "chronological_event_first");
+ok(editorial.events[1].title === "Meilleure fenêtre météo", "best_window_is_narrative_conclusion");
 ok(editorial.events.every((item) => item.scene.id >= 1 && item.scene.id <= 24), "scene_ids_are_v24");
 ok(editorial.events.every((item) => item.scene.masterUrl.startsWith("/masters24/")), "scene_assets_are_v24");
 ok(editorial.events.every((item) => item.scene.displayTitle.length > 0), "display_titles_present");
-ok(editorial.events[0].scene.id === profiles.days[0].sceneDecision.sceneId, "editorial_reuses_daily_scene_for_first_event");
-ok(editorial.events[1].scene.id === profiles.days[1].sceneDecision.sceneId, "editorial_reuses_daily_scene_for_second_event");
+ok(editorial.events[0].scene.id === profiles.days[1].sceneDecision.sceneId, "editorial_reuses_daily_scene_for_first_event");
+ok(editorial.events[1].scene.id === profiles.days[0].sceneDecision.sceneId, "editorial_reuses_daily_scene_for_best_window");
 ok(editorial.events.every((item) => !/undefined|null|NaN/.test(`${item.title} ${item.body}`)), "no_invalid_text_values");
 ok(editorial.events.every((item) => item.activities.length === 3 && item.activities.every((activity) => activity.text.length > 0)), "activity_texts_attached");
-ok(editorial.events[1].body.includes("15,4 mm"), "french_decimal_format");
+ok(editorial.events.find((item) => item.type === "RAIN")?.body.includes("15,4 mm") === true, "french_decimal_format");
 ok(editorial.signature === "Ici, cette semaine.", "weekly_signature");
 
 const calmSelection: WeeklySelection = { ...selection, status: "CALM", events: [], rawCandidateCount: 0, calm: { reason: "no_event_reached_selection_threshold" } };

@@ -3,7 +3,7 @@
 
 Version de référence : 1.0  
 Date : 6 septembre 2026  
-Statut : étape 5 terminée — hiérarchisation implémentée, étape 6 suivante
+Statut : étape 6 terminée — ordre narratif implémenté, étape 7 suivante
 
 ## 1. Objet du document
 
@@ -118,7 +118,7 @@ V24 quotidienne le permet.
 | 3 | Contrat de données des histoires météo | TERMINÉE |
 | 4 | Consolidation des événements redondants | TERMINÉE |
 | 5 | Hiérarchisation et plafond de publication | TERMINÉE |
-| 6 | Construction de l’ordre narratif | À FAIRE |
+| 6 | Construction de l’ordre narratif | TERMINÉE |
 | 7 | Génération de la conclusion générale | À FAIRE |
 | 8 | Intégration des conséquences pratiques | À FAIRE |
 | 9 | Liaison entre histoires et scènes V24 | À FAIRE |
@@ -229,3 +229,16 @@ narratif, qui sera traité à l’étape 6. La sélection conserve donc son ordr
 score actuel jusqu’à cette prochaine étape.
 
 L’étape active suivante est l’étape 6 : construction de l’ordre narratif.
+
+### 6 septembre 2026 — étape 6
+
+L’ordre de publication est maintenant séparé du classement par importance. Les
+histoires retenues sont ordonnées chronologiquement, avec la meilleure fenêtre
+placée en dernière position lorsqu’elle existe afin de terminer le carrousel
+par une réponse pratique.
+
+La sélection conserve son ordre par score pour l’audit ; seul le passage vers
+l’éditorial applique l’ordre de lecture Instagram. La liste fournie au
+réordonnancement n’est pas mutée et une semaine calme conserve une seule slide.
+
+L’étape active suivante est l’étape 7 : génération de la conclusion générale.

@@ -4,6 +4,7 @@ import type { Scene24Id, VisualIcon } from "../../types";
 import type { WeeklyActivity, WeeklyActivityInsight } from "./activities";
 import type { SelectedWeeklyEvent, WeeklySelection } from "./selection";
 import type { WeeklyDayProfile, WeeklyProfileSet } from "./profiles";
+import { orderWeeklyEvents } from "./narrativeOrder";
 
 export interface WeeklySceneReference {
   id: Scene24Id;
@@ -211,7 +212,7 @@ export function buildWeeklyEditorial(
   cityName = "Tarnos"
 ): WeeklyEditorial {
   if (profiles.citySlug !== selection.citySlug) throw new Error(`weekly_editorial_city_mismatch:${profiles.citySlug}:${selection.citySlug}`);
-  const events = selection.events.map((event): WeeklyEditorialEvent => {
+  const events = orderWeeklyEvents(selection.events).map((event): WeeklyEditorialEvent => {
     const day = dayForEvent(profiles, event);
     return {
       id: event.id,
