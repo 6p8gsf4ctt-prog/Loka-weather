@@ -70,5 +70,7 @@ ok(profiles.days[0].fullDay.minTemperatureC < profiles.days[0].fullDay.maxTemper
 ok(profiles.days.every((day) => day.fullDay.temperatureSpreadMaxC >= 0), "model_spread_available");
 ok(profiles.days.every((day) => day.sceneDecision.version.startsWith("2.0")), "daily_scene_decision_uses_v24");
 ok(profiles.days.every((day) => day.sceneDecision.sceneId >= 1 && day.sceneDecision.sceneId <= 24), "daily_scene_decision_scene_ids");
+ok(profiles.days.every((day) => day.sceneDecision.validity === "VALID"), "daily_scene_decisions_are_valid");
+ok(profiles.days.every((day) => day.sceneDecision.doctrineVersion.startsWith("2.0") && ["DIRECT", "NEIGHBOR_RESOLUTION", "CONSERVATIVE", "HYSTERESIS"].includes(day.sceneDecision.resolutionMode)), "daily_scene_decision_metadata_is_available");
 
-console.log(`WEEKLY_PROFILES ${passed}/17 PASS`);
+console.log(`WEEKLY_PROFILES ${passed}/19 PASS`);

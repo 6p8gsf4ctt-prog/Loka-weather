@@ -1,6 +1,6 @@
 import { scene24DisplayTitle } from "../scenes24/displayTitles";
 import { masterUrlForScene, scene24ById } from "../scenes24/registry";
-import type { Scene24Id, VisualIcon } from "../../types";
+import type { Scene24Id, SceneDecisionV24, VisualIcon } from "../../types";
 import type { WeeklyActivity, WeeklyActivityInsight } from "./activities";
 import type { SelectedWeeklyEvent, WeeklySelection } from "./selection";
 import type { WeeklyDayProfile, WeeklyProfileSet } from "./profiles";
@@ -8,6 +8,9 @@ import { orderWeeklyEvents } from "./narrativeOrder";
 import { buildWeeklyConclusion } from "./conclusion";
 
 export interface WeeklySceneReference {
+  source: "DAILY_V24_DECISION";
+  date: string;
+  dayIndex: number;
   id: Scene24Id;
   key: string;
   title: string;
@@ -16,6 +19,11 @@ export interface WeeklySceneReference {
   masterUrl: string;
   visualIcon: VisualIcon;
   emoji: string;
+  decisionVersion: string;
+  doctrineVersion: string;
+  validity: SceneDecisionV24["validity"];
+  confidence: SceneDecisionV24["confidence"];
+  resolutionMode: SceneDecisionV24["resolutionMode"];
 }
 
 export interface WeeklyActivityText {
@@ -107,6 +115,9 @@ function sceneReference(day: WeeklyDayProfile): WeeklySceneReference {
   const decision = day.sceneDecision;
   const scene = scene24ById(decision.sceneId);
   return {
+    source: "DAILY_V24_DECISION",
+    date: day.date,
+    dayIndex: day.dayIndex,
     id: scene.id,
     key: scene.key,
     title: scene.label,
@@ -114,7 +125,12 @@ function sceneReference(day: WeeklyDayProfile): WeeklySceneReference {
     family: scene.family,
     masterUrl: masterUrlForScene(scene.id),
     visualIcon: scene.visualIcon,
-    emoji: scene.emoji
+    emoji: scene.emoji,
+    decisionVersion: decision.version,
+    doctrineVersion: decision.doctrineVersion,
+    validity: decision.validity,
+    confidence: decision.confidence,
+    resolutionMode: decision.resolutionMode
   };
 }
 

@@ -9,6 +9,9 @@ function ok(value: boolean, label: string): void {
 }
 
 const scene: WeeklySceneReference = {
+  source: "DAILY_V24_DECISION",
+  date: "2026-09-07",
+  dayIndex: 0,
   id: 1,
   key: "GRAND_SOLEIL",
   title: "GRAND SOLEIL",
@@ -16,7 +19,12 @@ const scene: WeeklySceneReference = {
   family: "LIGHT",
   masterUrl: "/masters24/01_GRAND_SOLEIL.png",
   visualIcon: "sun",
-  emoji: "☀️"
+  emoji: "☀️",
+  decisionVersion: "2.0.3",
+  doctrineVersion: "2.0.3",
+  validity: "VALID",
+  confidence: "HIGH",
+  resolutionMode: "DIRECT"
 };
 
 const base: WeeklyEditorial = {
@@ -65,6 +73,7 @@ const badScene = validateWeeklyActivation(base, {
   slides: [{ ...calmPlan.slides[0], scene: { ...scene, masterUrl: "/not-a-master.png" } }]
 });
 ok(!badScene.checks.find((check) => check.id === "scene_assets")?.ok, "scene_asset_guard");
+ok(badScene.checks.find((check) => check.id === "daily_v24_scene_provenance")?.ok === true, "valid_scene_provenance_is_preserved");
 
 const badStory = validateWeeklyActivation(base, {
   ...calmPlan,
@@ -80,7 +89,7 @@ const event: WeeklyEditorialEvent = {
   title: "Chaleur marquée",
   body: "La chaleur sera marquée jeudi.",
   activities: [],
-  scene
+  scene: { ...scene, date: "2026-09-10", dayIndex: 3 }
 };
 const eventEditorial: WeeklyEditorial = { ...base, status: "EVENTS", overview: { ...base.overview, title: "La semaine à Tarnos" }, events: [event] };
 const eventPlan = buildWeeklyCarouselPlan(eventEditorial);
@@ -93,4 +102,4 @@ const badMapping = validateWeeklyActivation(eventEditorial, {
 });
 ok(!badMapping.checks.find((check) => check.id === "event_mapping")?.ok, "event_mapping_guard");
 
-console.log(`WEEKLY_ACTIVATION ${passed}/11 PASS`);
+console.log(`WEEKLY_ACTIVATION ${passed}/12 PASS`);

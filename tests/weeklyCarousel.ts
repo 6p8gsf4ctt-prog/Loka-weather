@@ -9,6 +9,9 @@ function ok(value: boolean, label: string): void {
 }
 
 const scene: WeeklySceneReference = {
+  source: "DAILY_V24_DECISION",
+  date: "2026-09-09",
+  dayIndex: 2,
   id: 3,
   key: "ECLAIRCIES",
   title: "ÉCLAIRCIES",
@@ -16,7 +19,12 @@ const scene: WeeklySceneReference = {
   family: "MIXED_SKY",
   masterUrl: "/masters24/03_ECLAIRCIES.png",
   visualIcon: "partly",
-  emoji: "⛅"
+  emoji: "⛅",
+  decisionVersion: "2.0.3",
+  doctrineVersion: "2.0.3",
+  validity: "VALID",
+  confidence: "HIGH",
+  resolutionMode: "DIRECT"
 };
 
 function editorial(events: WeeklyEditorial["events"]): WeeklyEditorial {
@@ -77,6 +85,7 @@ ok(plan.story.width === 1080 && plan.story.height === 1920, "story_dimensions");
 ok(plan.story.relay.kind === "RELAY", "story_is_relay");
 ok(plan.story.relay.body.includes("carrousel") && !plan.story.relay.body.includes("jour"), "story_does_not_become_daily_bulletin");
 ok(plan.slides.every((slide) => slide.scene.masterUrl.startsWith("/masters24/")), "slides_reuse_v24_masters");
+ok(plan.slides.every((slide) => slide.scene.source === "DAILY_V24_DECISION" && slide.scene.validity === "VALID"), "slides_keep_daily_v24_provenance");
 ok(plan.slides[1].activities.length === 3, "activities_are_attached_to_event_slide");
 
 const calmPlan = buildWeeklyCarouselPlan(editorial([]));
@@ -98,4 +107,4 @@ let scriptValid = true;
 try { new Function(script); } catch { scriptValid = false; }
 ok(scriptValid, "renderer_browser_script_is_valid");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/22 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/23 PASS`);

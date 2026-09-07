@@ -24,6 +24,16 @@ function sameIds(actual: Array<string | null>, expected: string[]): boolean {
     && new Set(actual).size === expected.length;
 }
 
+function isValidDailyV24Scene(scene: WeeklyEditorial["overview"]["scene"]): boolean {
+  return scene.source === "DAILY_V24_DECISION"
+    && scene.validity === "VALID"
+    && /^\d{4}-\d{2}-\d{2}$/.test(scene.date)
+    && scene.dayIndex >= 0
+    && scene.dayIndex <= 6
+    && scene.decisionVersion.startsWith("2.0")
+    && scene.doctrineVersion.startsWith("2.0");
+}
+
 /**
  * Validates the complete weekly publication contract before it can be stored
  * or exposed publicly. This is a deterministic guard, not an editorial step.
@@ -59,6 +69,16 @@ export function validateWeeklyActivation(
     "scene_assets",
     [editorial.overview.scene, ...carousel.slides.map((slide) => slide.scene)].every((scene) => scene.masterUrl.startsWith("/masters24/")),
     "v24_master_assets"
+  ));
+  checks.push(check(
+    "daily_v24_scene_provenance",
+    [editorial.overview.scene, ...editorial.events.map((event) => event.scene), ...carousel.slides.map((slide) => slide.scene), carousel.story.relay.scene].every(isValidDailyV24Scene),
+    "scenes_must_reference_valid_daily_v24_decisions"
+  ));
+  checks.push(check(
+    "event_scene_alignment",
+    editorial.events.every((event) => event.scene.date >= event.startDate && event.scene.date <= event.endDate),
+    "event_scene_date_is_inside_event_range"
   ));
 
   const ok = checks.every((item) => item.ok);

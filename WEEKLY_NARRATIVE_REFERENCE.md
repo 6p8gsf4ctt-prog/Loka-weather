@@ -3,7 +3,7 @@
 
 Version de référence : 1.0  
 Date : 6 septembre 2026  
-Statut : étape 8 terminée — conséquences pratiques intégrées, étape 9 suivante
+Statut : étape 9 terminée — scènes V24 reliées, étape 10 suivante
 
 ## 1. Objet du document
 
@@ -121,7 +121,7 @@ V24 quotidienne le permet.
 | 6 | Construction de l’ordre narratif | TERMINÉE |
 | 7 | Génération de la conclusion générale | TERMINÉE |
 | 8 | Intégration des conséquences pratiques | TERMINÉE |
-| 9 | Liaison entre histoires et scènes V24 | À FAIRE |
+| 9 | Liaison entre histoires et scènes V24 | TERMINÉE |
 | 10 | Refonte du carrousel et du relais Story | À FAIRE |
 | 11 | Tests de non-régression et prévisualisation | À FAIRE |
 | 12 | Déploiement contrôlé et activation progressive | À FAIRE |
@@ -271,3 +271,18 @@ reçoit aucun conseil, afin d’éviter les recommandations génériques.
 
 L’étape active suivante est l’étape 9 : liaison entre les histoires et les
 scènes V24.
+
+### 7 septembre 2026 — étape 9
+
+La provenance des scènes hebdomadaires est désormais explicite. Chaque scène
+est marquée comme issue de `DAILY_V24_DECISION` et conserve la date, l’index du
+jour, les versions du moteur et de la doctrine, la validité, la confiance et le
+mode de résolution de la décision quotidienne.
+
+La validation d’activation bloque les scènes invalides, détachées d’une
+décision V24 ou temporellement incohérentes avec leur événement. Aucune
+correspondance directe entre une catégorie météo et une illustration n’a été
+ajoutée.
+
+L’étape active suivante est l’étape 10 : refonte du carrousel et du relais
+Story.
