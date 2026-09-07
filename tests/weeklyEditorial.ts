@@ -99,10 +99,18 @@ ok(editorial.events.every((item) => item.activities.length === 3 && item.activit
 ok(editorial.events.find((item) => item.type === "RAIN")?.body.includes("15,4 mm") === true, "french_decimal_format");
 ok(editorial.signature === "Ici, cette semaine.", "weekly_signature");
 
+const unrelatedEventSelection: WeeklySelection = {
+  ...selection,
+  events: [event("DEGRADATION", 0, startDate, { earlyCloudPct: 15, lateCloudPct: 15, cloudTrend: 0 })]
+};
+const unrelatedEventActivities = translateWeeklyActivities(profiles, unrelatedEventSelection, city);
+const unrelatedEditorial = buildWeeklyEditorial(profiles, unrelatedEventSelection, unrelatedEventActivities, city.name);
+ok(unrelatedEditorial.events[0].activities.length === 0, "activity_advice_requires_direct_weather_evidence");
+
 const calmSelection: WeeklySelection = { ...selection, status: "CALM", events: [], rawCandidateCount: 0, calm: { reason: "no_event_reached_selection_threshold" } };
 const calmEditorial = buildWeeklyEditorial(profiles, calmSelection, { insights: [] }, city.name);
 ok(calmEditorial.overview.title === "Une semaine calme à Tarnos", "calm_overview_title");
 ok(calmEditorial.events.length === 0, "calm_has_no_event_cards");
 ok(calmEditorial.overview.scene.id >= 1 && calmEditorial.overview.scene.id <= 24, "calm_has_v24_scene");
 
-console.log(`WEEKLY_EDITORIAL ${passed}/17 PASS`);
+console.log(`WEEKLY_EDITORIAL ${passed}/18 PASS`);

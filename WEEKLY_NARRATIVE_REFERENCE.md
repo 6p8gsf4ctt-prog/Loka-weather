@@ -3,7 +3,7 @@
 
 Version de référence : 1.0  
 Date : 6 septembre 2026  
-Statut : étape 7 terminée — conclusion générale implémentée, étape 8 suivante
+Statut : étape 8 terminée — conséquences pratiques intégrées, étape 9 suivante
 
 ## 1. Objet du document
 
@@ -120,7 +120,7 @@ V24 quotidienne le permet.
 | 5 | Hiérarchisation et plafond de publication | TERMINÉE |
 | 6 | Construction de l’ordre narratif | TERMINÉE |
 | 7 | Génération de la conclusion générale | TERMINÉE |
-| 8 | Intégration des conséquences pratiques | À FAIRE |
+| 8 | Intégration des conséquences pratiques | TERMINÉE |
 | 9 | Liaison entre histoires et scènes V24 | À FAIRE |
 | 10 | Refonte du carrousel et du relais Story | À FAIRE |
 | 11 | Tests de non-régression et prévisualisation | À FAIRE |
@@ -257,3 +257,17 @@ ordonnés à l’étape 6. Aucun changement n’est apporté au moteur quotidien
 
 L’étape active suivante est l’étape 8 : traduction des événements en
 conséquences pratiques.
+
+### 7 septembre 2026 — étape 8
+
+La couche d’activités structurée existante est désormais filtrée avant
+l’affichage. Un conseil n’est conservé que si ses codes de preuve correspondent
+directement à l’événement météo sélectionné. Les trois catégories validées
+restent la plage, la promenade/sortie extérieure et le sport extérieur.
+
+Les fenêtres horaires et les statuts restent calculés à partir des conditions
+horaires consensuelles. Un événement sans conséquence pratique démontrée ne
+reçoit aucun conseil, afin d’éviter les recommandations génériques.
+
+L’étape active suivante est l’étape 9 : liaison entre les histoires et les
+scènes V24.

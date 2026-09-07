@@ -179,9 +179,24 @@ function activityInsightRank(insight: WeeklyActivityInsight): number {
   return statusWeight + (insight.bestWindow?.hours ?? 0);
 }
 
+function activityIsDirectlyRelevant(event: SelectedWeeklyEvent, insight: WeeklyActivityInsight): boolean {
+  if (event.type === "BEST_WINDOW") return insight.bestWindow !== null;
+  const directCodes: Record<SelectedWeeklyEvent["type"], WeeklyActivityInsight["reasonCodes"][number][]> = {
+    HEAT: ["HEAT"],
+    COLD: ["COLD"],
+    RAIN: ["RAIN"],
+    WIND: ["WIND"],
+    IMPROVEMENT: ["CLOUD", "FAVORABLE_WINDOW"],
+    DEGRADATION: ["CLOUD"],
+    BEST_WINDOW: ["FAVORABLE_WINDOW"],
+    THUNDER: ["THUNDER"]
+  };
+  return directCodes[event.type].some((code) => insight.reasonCodes.includes(code));
+}
+
 function activityTexts(event: SelectedWeeklyEvent, insights: WeeklyActivityInsight[]): WeeklyActivityText[] {
   const bestByActivity = new Map<WeeklyActivity, WeeklyActivityInsight>();
-  for (const insight of insights.filter((item) => item.eventId === event.id)) {
+  for (const insight of insights.filter((item) => item.eventId === event.id && activityIsDirectlyRelevant(event, item))) {
     // A mixed result without a usable window is not strong enough for the
     // publication. This keeps the event slide focused on concrete advice.
     if (insight.status === "MIXED" && !insight.bestWindow) continue;
