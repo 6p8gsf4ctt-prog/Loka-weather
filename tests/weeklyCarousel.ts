@@ -82,19 +82,22 @@ ok(plan.slides.slice(1).every((slide) => slide.kind === "EVENT"), "event_slides_
 ok(plan.slides.slice(1).map((slide) => slide.eventId).join(",") === "wind:2026-09-09,best_window:2026-09-12", "one_slide_per_event");
 ok(plan.width === 1080 && plan.height === 1350, "carousel_dimensions");
 ok(plan.story.width === 1080 && plan.story.height === 1920, "story_dimensions");
-ok(plan.story.relay.kind === "RELAY", "story_is_relay");
+ok(plan.story.relay.kind === "RELAY" && plan.story.relay.source === "CAROUSEL", "story_is_relay");
 ok(plan.story.relay.body.includes("carrousel") && !plan.story.relay.body.includes("jour"), "story_does_not_become_daily_bulletin");
 ok(plan.slides.every((slide) => slide.scene.masterUrl.startsWith("/masters24/")), "slides_reuse_v24_masters");
 ok(plan.slides.every((slide) => slide.scene.source === "DAILY_V24_DECISION" && slide.scene.validity === "VALID"), "slides_keep_daily_v24_provenance");
+ok(plan.slides[1].eventId === "wind:2026-09-09", "event_identity_is_available_for_export");
 ok(plan.slides[1].activities.length === 3, "activities_are_attached_to_event_slide");
 
 const calmPlan = buildWeeklyCarouselPlan(editorial([]));
 ok(calmPlan.slides.length === 1, "calm_week_has_one_slide");
 ok(calmPlan.slides[0].kind === "OVERVIEW" && calmPlan.slides[0].title === "Une semaine calme à Tarnos", "calm_week_uses_short_overview");
+ok(calmPlan.story.relay.source === "CAROUSEL" && calmPlan.story.relay.body.includes("publication"), "calm_story_relays_publication");
 
 const html = renderWeeklyCarousel(editorial(events));
 ok(html.includes("carousel-canvas") && html.includes("story-relay"), "renderer_contains_carousel_and_story");
 ok(html.includes("data-slide-index=\"2\""), "renderer_keeps_adaptive_slide_count");
+ok(html.includes("data-event-id=\"wind:2026-09-09\""), "renderer_keeps_event_identity");
 ok(html.includes("RELAIS DE LA PUBLICATION"), "renderer_labels_story_as_relay");
 ok(html.includes("strokeText(label"), "renderer_uses_daily_full_text_draw");
 ok(html.includes("Helvetica Neue"), "renderer_reuses_daily_font_stack");
@@ -107,4 +110,4 @@ let scriptValid = true;
 try { new Function(script); } catch { scriptValid = false; }
 ok(scriptValid, "renderer_browser_script_is_valid");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/23 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/26 PASS`);

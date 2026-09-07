@@ -18,7 +18,7 @@ export { translateWeeklyActivities } from "./activities";
 export type { WeeklyActivity, WeeklyActivityInsight, WeeklyActivityReasonCode, WeeklyActivitySet, WeeklyActivityStatus, WeeklyActivityWindow } from "./activities";
 export { buildWeeklyEditorial } from "./editorial";
 export type { WeeklyActivityText, WeeklyEditorial, WeeklyEditorialEvent, WeeklySceneReference } from "./editorial";
-export { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_CAROUSEL_HEIGHT, WEEKLY_CAROUSEL_VERSION, WEEKLY_CAROUSEL_WIDTH, WEEKLY_STORY_HEIGHT, WEEKLY_STORY_WIDTH } from "./carousel";
+export { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_CAROUSEL_HEIGHT, WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, WEEKLY_CAROUSEL_VERSION, WEEKLY_CAROUSEL_WIDTH, WEEKLY_STORY_HEIGHT, WEEKLY_STORY_WIDTH } from "./carousel";
 export type { WeeklyCarouselPlan, WeeklyCarouselSlide, WeeklyCarouselSlideKind, WeeklyStoryRelay } from "./carousel";
 export { localDateIsMonday, nextMondayOrSame, weeklyRangeForDate } from "./schedule";
 export type { WeeklyDateRange } from "./schedule";

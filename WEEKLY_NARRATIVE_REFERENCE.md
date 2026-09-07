@@ -3,7 +3,7 @@
 
 Version de référence : 1.0  
 Date : 6 septembre 2026  
-Statut : étape 9 terminée — scènes V24 reliées, étape 10 suivante
+Statut : étape 10 terminée — carrousel et relais finalisés, étape 11 suivante
 
 ## 1. Objet du document
 
@@ -122,7 +122,7 @@ V24 quotidienne le permet.
 | 7 | Génération de la conclusion générale | TERMINÉE |
 | 8 | Intégration des conséquences pratiques | TERMINÉE |
 | 9 | Liaison entre histoires et scènes V24 | TERMINÉE |
-| 10 | Refonte du carrousel et du relais Story | À FAIRE |
+| 10 | Refonte du carrousel et du relais Story | TERMINÉE |
 | 11 | Tests de non-régression et prévisualisation | À FAIRE |
 | 12 | Déploiement contrôlé et activation progressive | À FAIRE |
 
@@ -286,3 +286,17 @@ ajoutée.
 
 L’étape active suivante est l’étape 10 : refonte du carrousel et du relais
 Story.
+
+### 7 septembre 2026 — étape 10
+
+Le carrousel est maintenant explicitement adaptatif : une vue d’ensemble suivie
+par une slide pour chaque histoire retenue, avec une seule slide en semaine
+calme. Le rendu conserve le logo, la signature, les box translucides, les
+pictogrammes et les fonds maîtres des 24 scènes.
+
+La Story porte désormais `kind=RELAY` et `source=CAROUSEL`. Elle renvoie vers la
+publication complète sans constituer un bulletin autonome. Les dimensions et
+les identifiants d’événements restent contrôlés avant activation.
+
+L’étape active suivante est l’étape 11 : tests de non-régression et
+prévisualisation complète.

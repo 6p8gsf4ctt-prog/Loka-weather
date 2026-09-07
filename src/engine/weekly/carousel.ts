@@ -3,6 +3,7 @@ import { PICTOGRAM_LIBRARY_VERSION, PICTOGRAM_STYLE, visualIconToPictogram, weat
 import { LOKA_BRAND_VERSION, LOKA_CANVAS_FONT, LOKA_LOGO_DATA_URL, LOKA_SLOGAN_WEEKLY } from "../../ui/lokaBrand";
 
 export const WEEKLY_CAROUSEL_VERSION = "0.1.0" as const;
+export const WEEKLY_CAROUSEL_MAX_EVENT_SLIDES = 4 as const;
 export const WEEKLY_CAROUSEL_WIDTH = 1080 as const;
 export const WEEKLY_CAROUSEL_HEIGHT = 1350 as const;
 export const WEEKLY_STORY_WIDTH = 1080 as const;
@@ -23,6 +24,7 @@ export interface WeeklyCarouselSlide {
 
 export interface WeeklyStoryRelay {
   kind: "RELAY";
+  source: "CAROUSEL";
   title: string;
   body: string;
   cta: string;
@@ -92,8 +94,11 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
       height: WEEKLY_STORY_HEIGHT,
       relay: {
         kind: "RELAY",
+        source: "CAROUSEL",
         title: "La semaine à " + (editorial.citySlug === "tarnos" ? "Tarnos" : editorial.citySlug),
-        body: "Le carrousel météo de la semaine est disponible.",
+        body: editorial.status === "CALM"
+          ? "La synthèse de la semaine est disponible dans la publication."
+          : "Les temps forts météo de la semaine sont disponibles dans le carrousel.",
         cta: "Voir la publication",
         scene: editorial.overview.scene
       }
@@ -144,7 +149,7 @@ function renderSlideCard(slide: WeeklyCarouselSlide, position: number, total: nu
     ? "Slide " + position + " : vue d’ensemble"
     : "Slide " + position + " : " + slide.title;
   const activities = slide.activities.map((activity) => '<span class="activity ' + activityStatusClass(activity.status) + '">' + escapeHtml(activity.text) + "</span>").join("");
-  return '<article class="slide-card" data-slide-index="' + (position - 1) + '"><div class="slide-head"><span>' +
+  return '<article class="slide-card" data-slide-index="' + (position - 1) + '"' + (slide.eventId ? ' data-event-id="' + escapeHtml(slide.eventId) + '"' : '') + '><div class="slide-head"><span>' +
     escapeHtml(position === 1 ? "VUE D’ENSEMBLE" : "TEMPS FORT " + (position - 1)) + "</span><span>" + position + "/" + total +
     '</span></div><div class="canvas-wrap"><canvas class="carousel-canvas" width="' + WEEKLY_CAROUSEL_WIDTH + '" height="' + WEEKLY_CAROUSEL_HEIGHT +
     '" aria-label="' + escapeHtml(label) + '"></canvas></div>' + (activities ? '<div class="activity-list">' + activities + "</div>" : "") +
@@ -220,7 +225,7 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial): string {
     "function drawStoryHeader(logo,label){drawLokaLogo(logo,50,144,190,64);text(String(plan.citySlug==='tarnos'?'TARNOS':plan.citySlug).toUpperCase(),540,158,25,680,ink,'center');text(String(label||'').toUpperCase(),1030,158,20,540,ink,'right');}",
     "function sceneBadge(icon,scene,x,y,w,h){box(x,y,w,h);drawImageCentered(icon,x+82,y+h/2+8,116,90);text('SCÈNE V24 DU JOUR',x+160,y+43,14,700,ink,'left');text(scene.displayTitle,x+160,y+83,19,780,ink,'left');}",
     "function drawSignature(y,color){const signatureColor=color||ink;text(model.signature||model.brand.slogan,540,y,20,500,signatureColor,'center');ctx.save();ctx.strokeStyle=gold;ctx.lineWidth=1.4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(514,y+24);ctx.lineTo(566,y+24);ctx.stroke();ctx.restore();}",
-    "function drawOverview(canvas,slide,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,slide.dateLabel,width);text('VUE D’ENSEMBLE',58,174,22,780,ink,'left');box(58,205,964,1048);drawImageCentered(icon,132,316,126,96);text(slide.scene.displayTitle,220,311,19,780,ink,'left');text(slide.dateLabel,220,345,18,540,ink,'left');const titleSize=fittedSize(slide.title,820,52,34,820);wrap(slide.title,101,478,820,52,titleSize,820,ink,'left',2);wrap(slide.body,101,600,820,34,26,540,ink,'left',2);text('TEMPS FORTS RETENUS',101,712,18,780,ink,'left');const events=plan.slides.slice(1);if(!events.length){text('Une semaine stable est aussi une information.',101,780,23,620,ink,'left');}else{const columns=events.length>5?2:1;const rows=Math.ceil(events.length/columns);const rowHeight=Math.max(58,Math.min(98,Math.floor(446/rows)));events.forEach((event,index)=>{const column=Math.floor(index/rows),row=index%rows,x=101+column*450,y=754+row*rowHeight;ctx.save();ctx.fillStyle=gold;ctx.beginPath();ctx.arc(x+17,y+18,17,0,Math.PI*2);ctx.fill();ctx.restore();text(String(index+1),x+17,y+25,17,800,'#ffffff','center');const eventSize=events.length>6?18:21;text(event.title,x+50,y+16,eventSize,780,ink,'left');text(event.dateLabel,x+50,y+43,16,540,ink,'left');});}drawSignature(1294);}",
+    "function drawOverview(canvas,slide,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,slide.dateLabel,width);text('VUE D’ENSEMBLE',58,174,22,780,ink,'left');box(58,205,964,1048);drawImageCentered(icon,132,316,126,96);text(slide.scene.displayTitle,220,311,19,780,ink,'left');text(slide.dateLabel,220,345,18,540,ink,'left');const titleSize=fittedSize(slide.title,820,52,34,820);wrap(slide.title,101,478,820,52,titleSize,820,ink,'left',2);wrap(slide.body,101,600,820,34,26,540,ink,'left',2);const events=plan.slides.slice(1);text(events.length?'TEMPS FORTS DE LA SEMAINE':'UNE SEMAINE CALME',101,712,18,780,ink,'left');if(!events.length){text('Une semaine stable est aussi une information.',101,780,23,620,ink,'left');}else{const rows=events.length;const rowHeight=Math.max(58,Math.min(98,Math.floor(446/rows)));events.forEach((event,index)=>{const x=101,y=754+index*rowHeight;ctx.save();ctx.fillStyle=gold;ctx.beginPath();ctx.arc(x+17,y+18,17,0,Math.PI*2);ctx.fill();ctx.restore();text(String(index+1),x+17,y+25,17,800,'#ffffff','center');const eventSize=events.length>3?19:21;text(event.title,x+50,y+16,eventSize,780,ink,'left');text(event.dateLabel,x+50,y+43,16,540,ink,'left');});}drawSignature(1294);}",
     "function activityStyle(status){if(status==='FAVORABLE')return{fill:'rgba(221,243,225,.86)',color:'#21613b'};if(status==='UNFAVORABLE')return{fill:'rgba(249,226,223,.86)',color:'#8c302b'};return{fill:'rgba(250,239,211,.86)',color:'#7a5b16'};}",
     "function drawActivityRows(activities,startY){const rows=activities.slice(0,3);if(!rows.length)return;const rowHeight=rows.length===3?62:rows.length===2?72:88;rows.forEach((activity,index)=>{const y=startY+index*rowHeight,style=activityStyle(activity.status);ctx.save();rr(101,y,820,rowHeight-10,18);ctx.fillStyle=style.fill;ctx.fill();ctx.restore();const size=fittedSize(activity.text,770,17,12,620);text(activity.text,124,y+27,size,620,style.color,'left');});}",
     "function drawEvent(canvas,slide,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,slide.dateLabel,width);text('TEMPS FORT MÉTÉO',58,174,22,780,ink,'left');sceneBadge(icon,slide.scene,58,205,964,160);box(58,395,964,790);const titleSize=fittedSize(slide.title,820,58,36,820);wrap(slide.title,101,500,820,58,titleSize,820,ink,'left',2);text(slide.dateLabel,101,585,19,540,ink,'left');wrap(slide.body,101,648,820,34,26,540,ink,'left',3);if(slide.activities.length){text('POUR VOS ACTIVITÉS',101,780,18,780,ink,'left');drawActivityRows(slide.activities,812);}drawSignature(1294);}",

@@ -1,5 +1,6 @@
 import { weeklyRangeForDate } from "./schedule";
 import type { WeeklyEditorial } from "./editorial";
+import { WEEKLY_CAROUSEL_MAX_EVENT_SLIDES } from "./carousel";
 import type { WeeklyCarouselPlan } from "./carousel";
 
 export interface WeeklyActivationCheck {
@@ -54,7 +55,7 @@ export function validateWeeklyActivation(
     expectedRange ? `${editorial.startDate}:${editorial.endDate}` : "invalid_week_range"
   ));
   checks.push(check("adaptive_slide_count", carousel.slides.length === editorial.events.length + 1, `${carousel.slides.length}_slides_for_${editorial.events.length}_events`));
-  checks.push(check("publication_limit", editorial.events.length <= 4, `${editorial.events.length}_event_slides_max_4`));
+  checks.push(check("publication_limit", editorial.events.length <= WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, `${editorial.events.length}_event_slides_max_${WEEKLY_CAROUSEL_MAX_EVENT_SLIDES}`));
   checks.push(check("overview_first", carousel.slides[0]?.kind === "OVERVIEW" && carousel.slides[0]?.eventId === null, "overview_first"));
   checks.push(check(
     "event_mapping",
@@ -64,7 +65,7 @@ export function validateWeeklyActivation(
   checks.push(check("calm_contract", editorial.status !== "CALM" || editorial.events.length === 0, "calm_week_has_no_event_slides"));
   checks.push(check("carousel_dimensions", carousel.width === 1080 && carousel.height === 1350, "1080x1350"));
   checks.push(check("story_dimensions", carousel.story.width === 1080 && carousel.story.height === 1920, "1080x1920"));
-  checks.push(check("story_relay", carousel.story.relay.kind === "RELAY" && carousel.story.relay.cta.length > 0, "relay_only_story"));
+  checks.push(check("story_relay", carousel.story.relay.kind === "RELAY" && carousel.story.relay.source === "CAROUSEL" && carousel.story.relay.cta.length > 0, "relay_only_story"));
   checks.push(check(
     "scene_assets",
     [editorial.overview.scene, ...carousel.slides.map((slide) => slide.scene)].every((scene) => scene.masterUrl.startsWith("/masters24/")),
