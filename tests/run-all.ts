@@ -23,6 +23,7 @@ import "./weeklyEvents";
 import "./weeklyConsolidation";
 import "./weeklySelection";
 import "./weeklyNarrativeOrder";
+import "./weeklyConclusion";
 import "./weeklyActivities";
 import "./weeklyEditorial";
 import "./weeklyCarousel";

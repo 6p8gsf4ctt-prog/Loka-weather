@@ -5,6 +5,7 @@ import type { WeeklyActivity, WeeklyActivityInsight } from "./activities";
 import type { SelectedWeeklyEvent, WeeklySelection } from "./selection";
 import type { WeeklyDayProfile, WeeklyProfileSet } from "./profiles";
 import { orderWeeklyEvents } from "./narrativeOrder";
+import { buildWeeklyConclusion } from "./conclusion";
 
 export interface WeeklySceneReference {
   id: Scene24Id;
@@ -212,7 +213,8 @@ export function buildWeeklyEditorial(
   cityName = "Tarnos"
 ): WeeklyEditorial {
   if (profiles.citySlug !== selection.citySlug) throw new Error(`weekly_editorial_city_mismatch:${profiles.citySlug}:${selection.citySlug}`);
-  const events = orderWeeklyEvents(selection.events).map((event): WeeklyEditorialEvent => {
+  const orderedEvents = orderWeeklyEvents(selection.events);
+  const events = orderedEvents.map((event): WeeklyEditorialEvent => {
     const day = dayForEvent(profiles, event);
     return {
       id: event.id,
@@ -226,17 +228,12 @@ export function buildWeeklyEditorial(
     };
   });
   const overviewScene = events[0]?.scene ?? calmOverview(profiles);
-  const overview = selection.status === "CALM"
-    ? {
-      title: `Une semaine calme à ${cityName}`,
-      body: `La semaine restera globalement stable à ${cityName}. Aucun changement météo suffisamment marqué n’est retenu.`,
-      scene: overviewScene
-    }
-    : {
-      title: `La semaine à ${cityName}`,
-      body: events.length === 1 ? "Un temps fort météo est retenu cette semaine." : `${events.length} temps forts météo sont retenus cette semaine.`,
-      scene: overviewScene
-    };
+  const conclusion = buildWeeklyConclusion(orderedEvents, cityName);
+  const overview = {
+    title: conclusion.title,
+    body: conclusion.body,
+    scene: overviewScene
+  };
   return {
     version: "0.1.0",
     citySlug: profiles.citySlug,

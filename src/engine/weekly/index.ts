@@ -12,6 +12,8 @@ export type { WeeklyStoryEpisode, WeeklyStoryFamily, WeeklyStoryDirection } from
 export { selectWeeklyEvents, selectWeeklyEventsFromProfiles } from "./selection";
 export type { SelectedWeeklyEvent, WeeklySelection, WeeklySelectionConfidence, WeeklySelectionRejection, WeeklySelectionRejectionReason, WeeklySelectionStatus } from "./selection";
 export { orderWeeklyEvents } from "./narrativeOrder";
+export { buildWeeklyConclusion } from "./conclusion";
+export type { WeeklyConclusion } from "./conclusion";
 export { translateWeeklyActivities } from "./activities";
 export type { WeeklyActivity, WeeklyActivityInsight, WeeklyActivityReasonCode, WeeklyActivitySet, WeeklyActivityStatus, WeeklyActivityWindow } from "./activities";
 export { buildWeeklyEditorial } from "./editorial";

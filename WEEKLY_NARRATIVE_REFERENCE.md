@@ -3,7 +3,7 @@
 
 Version de référence : 1.0  
 Date : 6 septembre 2026  
-Statut : étape 6 terminée — ordre narratif implémenté, étape 7 suivante
+Statut : étape 7 terminée — conclusion générale implémentée, étape 8 suivante
 
 ## 1. Objet du document
 
@@ -119,7 +119,7 @@ V24 quotidienne le permet.
 | 4 | Consolidation des événements redondants | TERMINÉE |
 | 5 | Hiérarchisation et plafond de publication | TERMINÉE |
 | 6 | Construction de l’ordre narratif | TERMINÉE |
-| 7 | Génération de la conclusion générale | À FAIRE |
+| 7 | Génération de la conclusion générale | TERMINÉE |
 | 8 | Intégration des conséquences pratiques | À FAIRE |
 | 9 | Liaison entre histoires et scènes V24 | À FAIRE |
 | 10 | Refonte du carrousel et du relais Story | À FAIRE |
@@ -242,3 +242,18 @@ l’éditorial applique l’ordre de lecture Instagram. La liste fournie au
 réordonnancement n’est pas mutée et une semaine calme conserve une seule slide.
 
 L’étape active suivante est l’étape 7 : génération de la conclusion générale.
+
+### 6 septembre 2026 — étape 7
+
+La première slide ne résume plus la sélection par un compteur. Le moteur
+génère désormais une conclusion déterministe selon la forme de la semaine :
+semaine calme, événement dominant, semaine contrastée, amélioration,
+dégradation ou retournement entre dégradation et amélioration. La meilleure
+fenêtre peut compléter cette conclusion sans créer de temps fort artificiel.
+
+L’éditorial conserve le titre LOKA attendu et réutilise les événements déjà
+ordonnés à l’étape 6. Aucun changement n’est apporté au moteur quotidien, aux
+24 scènes V24 ou aux contrats D1.
+
+L’étape active suivante est l’étape 8 : traduction des événements en
+conséquences pratiques.

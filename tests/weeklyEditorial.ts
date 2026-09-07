@@ -85,7 +85,7 @@ const activities = translateWeeklyActivities(profiles, selection, city);
 const editorial = buildWeeklyEditorial(profiles, selection, activities, city.name);
 
 ok(editorial.overview.title === "La semaine à Tarnos", "overview_title");
-ok(editorial.overview.body.includes("2 temps forts"), "overview_count");
+ok(editorial.overview.body.includes("épisode pluvieux") && editorial.overview.body.includes("lundi"), "overview_is_a_conclusion");
 ok(editorial.events.length === 2, "event_cards_count");
 ok(editorial.events[0].title === "Épisode pluvieux", "chronological_event_first");
 ok(editorial.events[1].title === "Meilleure fenêtre météo", "best_window_is_narrative_conclusion");
