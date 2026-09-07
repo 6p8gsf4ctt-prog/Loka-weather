@@ -29,3 +29,4 @@ import "./weeklyEditorial";
 import "./weeklyCarousel";
 import "./weeklyOperations";
 import "./weeklyActivation";
+import "./weeklyReleaseCandidate";

@@ -3,7 +3,7 @@
 
 Version de référence : 1.0  
 Date : 6 septembre 2026  
-Statut : étape 10 terminée — carrousel et relais finalisés, étape 11 suivante
+Statut : étape 11 terminée — validation et prévisualisation certifiées, étape 12 suivante
 
 ## 1. Objet du document
 
@@ -123,7 +123,7 @@ V24 quotidienne le permet.
 | 8 | Intégration des conséquences pratiques | TERMINÉE |
 | 9 | Liaison entre histoires et scènes V24 | TERMINÉE |
 | 10 | Refonte du carrousel et du relais Story | TERMINÉE |
-| 11 | Tests de non-régression et prévisualisation | À FAIRE |
+| 11 | Tests de non-régression et prévisualisation | TERMINÉE |
 | 12 | Déploiement contrôlé et activation progressive | À FAIRE |
 
 ## 8. Règle anti-déviation
@@ -300,3 +300,19 @@ les identifiants d’événements restent contrôlés avant activation.
 
 L’étape active suivante est l’étape 11 : tests de non-régression et
 prévisualisation complète.
+
+### 7 septembre 2026 — étape 11
+
+La chaîne hebdomadaire est certifiée sur zéro, un, deux, trois et quatre
+événements, ainsi que sur le blocage explicite d’un cinquième. La certification
+vérifie les slides adaptatives, les identifiants, le relais Story, les
+dimensions Instagram et la validation d’activation.
+
+Les suites hebdomadaires et les contrôles quotidiens/V24 ciblés passent. La
+prévisualisation protégée reste disponible avant le lundi de production,
+n’écrit pas dans D1 et reste indépendante de `WEEKLY_ENABLED`. L’ancien suivi
+`WEEKLY_PROGRESS.md` est maintenant marqué comme historique pour éviter toute
+confusion avec cette référence active.
+
+L’étape active suivante est l’étape 12 : déploiement contrôlé et activation
+progressive.

@@ -5,6 +5,11 @@ Dernière mise à jour : 5 septembre 2026
 Dernière étape validée : 12 — Prévisualiser, valider et activer progressivement  
 Statut global : étapes 1 à 12 terminées
 
+> Document historique issu de l’implémentation initiale. La référence active
+> du chantier narratif est désormais `docs/WEEKLY_NARRATIVE_REFERENCE.md`, qui
+> suit le plan strict actuel en 12 étapes. En cas de divergence, cette
+> référence active prévaut.
+
 ## Plan strict en 12 étapes
 
 | Étape | Livrable unique | Statut |
