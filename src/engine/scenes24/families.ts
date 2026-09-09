@@ -24,6 +24,14 @@ export function determineFamily(p: DayProfileV2): FamilyDecision {
     return { family: "VISIBILITY", candidateSceneIds: [8, 17], reason: "dense_fog_structuring" };
   }
   const e = p.evolution;
+  const rainyMorningImprovement = p.rain.rainHours >= 3
+    && p.periods.early.rainHours >= 3
+    && p.rain.rainBlockMaxHours >= 3
+    && e.cloudTrend <= -SCENE_THRESHOLDS.trend.moderateCloudDelta
+    && e.lateBrightFraction >= SCENE_THRESHOLDS.trend.luminousLateBrightMin;
+  if (rainyMorningImprovement) {
+    return { family: "TREND", candidateSceneIds: [11], reason: "rainy_morning_improving" };
+  }
   const brightDominant = p.light.brightFraction >= 0.65 && p.light.clearFraction >= 0.45;
   const strongImprovement = e.cloudTrend <= -SCENE_THRESHOLDS.trend.moderateCloudDelta && e.reversals <= 1;
   const strongDegradation = e.cloudTrend >= SCENE_THRESHOLDS.trend.moderateCloudDelta && e.reversals <= 1;

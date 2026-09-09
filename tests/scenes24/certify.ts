@@ -226,6 +226,18 @@ const aug25InstabilityTrap = () => {
   const profile=buildDayProfileV2(CITIES.tarnos,"2026-08-18",points); const decision=chooseScene24V2(profile);
   ok(profile.evolution.earlyCloudPct<65 && decision.decisionFamily==="TREND" && decision.sceneId===11 && !decision.candidateSceneIds.includes(15) && decision.validity==="VALID", "trend_T02_scene15_requires_cloudy_start");
 }
+// Regression: a real, continuous rainy morning followed by clearing must not be labelled "Plein soleil".
+{
+  const sequence=[65,58,55,50,45,30,25,15,8,5,10,10,10,10,10];
+  const points=makeDay("2026-09-09",h=>({
+    cloud:h>=7&&h<=21?sequence[h-7]:50,
+    rain:h>=7&&h<=11?.33:0,
+    precipSupport:h>=7&&h<=11?.8:.05,
+    shower:.05
+  }));
+  const profile=buildDayProfileV2(CITIES.tarnos,"2026-09-09",points); const decision=chooseScene24V2(profile);
+  ok(profile.rain.rainHours===5 && profile.periods.early.rainHours===5 && profile.rain.rainBlockMaxHours===5 && decision.decisionFamily==="TREND" && decision.sceneId===11 && decision.validity==="VALID", "rain_R15_morning_rain_improves_not_full_sun");
+}
 
 // 8 uncertainty/model coverage cases.
 for(const models of [5,4,3]){const d=classify(15,'2026-08-18',models).decision;ok(d.validity==='VALID'&&d.sceneId===15,`models_${models}`);}
@@ -246,5 +258,5 @@ for(let i=0;i<hCases.length;i++){const [selected,prev,s1,s2,expect]=hCases[i];co
 // Determinism: same input 100 times -> exact same decision JSON.
 {const p=classify(15).profile;const first=JSON.stringify(chooseScene24V2(p));let same=true;for(let i=0;i<100;i++)same=same&&JSON.stringify(chooseScene24V2(p))===first;ok(same,'determinism_100');}
 
-if(passed!==204) throw new Error(`certification_count_mismatch:${passed}`);
-console.log(`SCENE_ENGINE_V2_CERTIFICATION ${passed}/204 PASS`);
+if(passed!==205) throw new Error(`certification_count_mismatch:${passed}`);
+console.log(`SCENE_ENGINE_V2_CERTIFICATION ${passed}/205 PASS`);
