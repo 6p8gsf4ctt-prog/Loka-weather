@@ -124,4 +124,10 @@ let scriptValid = true;
 try { new Function(script); } catch { scriptValid = false; }
 ok(scriptValid, "renderer_browser_script_is_valid");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/34 PASS`);
+const overviewRenderer = script.split("\n").find((line) => line.startsWith("function drawOverview(")) ?? "";
+ok(overviewRenderer.includes("box(50,160,980,150);box(50,336,980,700);box(50,1060,980,190)"), "overview_uses_three_empty_daily_layout_boxes");
+ok(!overviewRenderer.includes("slide.scene.displayTitle") && !overviewRenderer.includes("plan.slides.slice(1)"), "overview_removes_old_scene_and_event_content");
+const drawSlideRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide(")) ?? "";
+ok(drawSlideRenderer.includes("if(slide.kind==='OVERVIEW')return Promise.all(base)"), "overview_does_not_load_old_pictogram_content");
+
+console.log(`WEEKLY_CAROUSEL ${passed}/37 PASS`);

@@ -163,7 +163,7 @@ L’étape 1 est validée lorsque :
 ### 10 septembre 2026 — maquette de la vue d’ensemble
 
 La vue d’ensemble hebdomadaire reçoit un fond maître dédié,
-`/masters24/weekly/SEMAINE_CONTRASTEE.png`. Il sert uniquement de support à la
+`/masters24/SEMAINE_CONTRASTEE.png`. Il sert uniquement de support à la
 lecture globale de la semaine : sa partie haute suggère un registre favorable,
 sa partie basse un registre moins favorable.
 
@@ -176,6 +176,12 @@ signature `Ici, cette semaine.`.
 Cette exception visuelle est limitée à la vue d’ensemble et au relais Story.
 Chaque slide événementielle conserve obligatoirement le fond maître V24 issu
 de sa décision quotidienne représentative. Le moteur quotidien reste inchangé.
+
+La structure de la slide d’ensemble est volontairement vide à cette étape :
+une box de titre aux mesures quotidiennes, une grande box principale réunissant
+les anciens espaces pictogrammes et commentaire, puis une troisième box au
+format de l’ancien panneau solaire. Aucun contenu ne doit être injecté avant
+validation explicite de cette grille.
 
 ### 6 septembre 2026
 
