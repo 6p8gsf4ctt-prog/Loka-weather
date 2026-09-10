@@ -1,4 +1,4 @@
-import { buildWeeklyCarouselPlan, renderWeeklyCarousel } from "../src/engine/weekly";
+import { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_OVERVIEW_MASTER_URL } from "../src/engine/weekly";
 import type { WeeklyEditorial, WeeklySceneReference } from "../src/engine/weekly";
 
 let passed = 0;
@@ -78,8 +78,11 @@ const events: WeeklyEditorial["events"] = [
 const plan = buildWeeklyCarouselPlan(editorial(events));
 ok(plan.slides.length === 3, "two_events_make_three_slides");
 ok(plan.slides[0].kind === "OVERVIEW" && plan.slides[0].eventId === null, "overview_is_first");
+ok(plan.headerDateLabel === "LUNDI 7 AU DIMANCHE 13 SEPTEMBRE", "weekly_header_date_uses_single_month_label");
+ok(plan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "overview_uses_dedicated_weekly_master");
 ok(plan.slides.slice(1).every((slide) => slide.kind === "EVENT"), "event_slides_follow_overview");
 ok(plan.slides.slice(1).map((slide) => slide.eventId).join(",") === "wind:2026-09-09,best_window:2026-09-12", "one_slide_per_event");
+ok(plan.slides.slice(1).every((slide) => slide.backgroundUrl === slide.scene.masterUrl), "event_slides_keep_daily_v24_backgrounds");
 ok(plan.width === 1080 && plan.height === 1350, "carousel_dimensions");
 ok(plan.story.width === 1080 && plan.story.height === 1920, "story_dimensions");
 ok(plan.story.relay.kind === "RELAY" && plan.story.relay.source === "CAROUSEL", "story_is_relay");
@@ -93,6 +96,14 @@ const calmPlan = buildWeeklyCarouselPlan(editorial([]));
 ok(calmPlan.slides.length === 1, "calm_week_has_one_slide");
 ok(calmPlan.slides[0].kind === "OVERVIEW" && calmPlan.slides[0].title === "Une semaine calme à Tarnos", "calm_week_uses_short_overview");
 ok(calmPlan.story.relay.source === "CAROUSEL" && calmPlan.story.relay.body.includes("publication"), "calm_story_relays_publication");
+ok(calmPlan.story.relay.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "story_relay_uses_weekly_overview_master");
+
+const crossMonthPlan = buildWeeklyCarouselPlan({
+  ...editorial([]),
+  startDate: "2026-09-28",
+  endDate: "2026-10-04"
+});
+ok(crossMonthPlan.headerDateLabel === "LUNDI 28 SEPTEMBRE AU DIMANCHE 4 OCTOBRE", "weekly_header_date_keeps_both_months_when_needed");
 
 const html = renderWeeklyCarousel(editorial(events));
 ok(html.includes("carousel-canvas") && html.includes("story-relay"), "renderer_contains_carousel_and_story");
@@ -101,13 +112,16 @@ ok(html.includes("data-event-id=\"wind:2026-09-09\""), "renderer_keeps_event_ide
 ok(html.includes("RELAIS DE LA PUBLICATION"), "renderer_labels_story_as_relay");
 ok(html.includes("strokeText(label"), "renderer_uses_daily_full_text_draw");
 ok(html.includes("Helvetica Neue"), "renderer_reuses_daily_font_stack");
+ok(html.includes("function trackedText(value,x,y,size,weight,color,tracking"), "renderer_reuses_daily_tracked_city_wordmark");
+ok(html.includes("plan.headerDateLabel"), "renderer_uses_week_range_in_existing_headers");
 ok(html.includes("replace(/\\s+/g"), "renderer_normalizes_canvas_whitespace");
 ok(html.includes("data:image/png;base64,"), "renderer_embeds_shared_loka_logo");
 ok(html.includes("pictogramUrl") && html.includes("LOKA_PREMIUM_1.2"), "renderer_reuses_brand_pictograms");
 ok(html.includes("SCÈNE V24 DU JOUR") && html.includes("Ici, cette semaine."), "renderer_explains_scene_context_and_signature");
+ok(html.includes(WEEKLY_OVERVIEW_MASTER_URL), "renderer_embeds_weekly_overview_master");
 const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1] ?? "";
 let scriptValid = true;
 try { new Function(script); } catch { scriptValid = false; }
 ok(scriptValid, "renderer_browser_script_is_valid");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/26 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/34 PASS`);

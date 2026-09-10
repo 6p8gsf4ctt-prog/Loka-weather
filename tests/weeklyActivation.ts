@@ -1,4 +1,4 @@
-import { buildWeeklyCarouselPlan, validateWeeklyActivation } from "../src/engine/weekly";
+import { buildWeeklyCarouselPlan, validateWeeklyActivation, WEEKLY_OVERVIEW_MASTER_URL } from "../src/engine/weekly";
 import type { WeeklyEditorial, WeeklyEditorialEvent, WeeklySceneReference } from "../src/engine/weekly";
 
 let passed = 0;
@@ -43,6 +43,7 @@ const calmValidation = validateWeeklyActivation(base, calmPlan);
 ok(calmValidation.ok && calmValidation.status === "READY", "valid_calm_publication_ready");
 ok(calmValidation.checks.every((check) => check.ok), "all_calm_checks_pass");
 ok(calmPlan.slides.length === 1, "calm_plan_has_one_slide");
+ok(calmPlan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "weekly_overview_background_is_bound");
 
 const badCount = validateWeeklyActivation(base, { ...calmPlan, slides: [] });
 ok(!badCount.ok && badCount.status === "BLOCKED", "slide_count_blocks_activation");
@@ -81,6 +82,18 @@ const badStory = validateWeeklyActivation(base, {
 });
 ok(!badStory.checks.find((check) => check.id === "story_relay")?.ok, "story_relay_guard");
 
+const badWeeklyBackground = validateWeeklyActivation(base, {
+  ...calmPlan,
+  slides: [{ ...calmPlan.slides[0], backgroundUrl: "/not-a-master.png" }]
+});
+ok(!badWeeklyBackground.checks.find((check) => check.id === "weekly_background_assets")?.ok, "weekly_background_asset_guard");
+
+const badOverviewBackground = validateWeeklyActivation(base, {
+  ...calmPlan,
+  story: { ...calmPlan.story, relay: { ...calmPlan.story.relay, backgroundUrl: scene.masterUrl } }
+});
+ok(!badOverviewBackground.checks.find((check) => check.id === "overview_background")?.ok, "weekly_overview_background_guard");
+
 const event: WeeklyEditorialEvent = {
   id: "heat:2026-09-10",
   type: "HEAT",
@@ -96,10 +109,11 @@ const eventPlan = buildWeeklyCarouselPlan(eventEditorial);
 const eventValidation = validateWeeklyActivation(eventEditorial, eventPlan);
 ok(eventValidation.ok, "event_publication_ready");
 ok(eventPlan.slides[1]?.eventId === event.id, "event_id_is_preserved");
+ok(eventPlan.slides[1]?.backgroundUrl === event.scene.masterUrl, "event_background_keeps_daily_v24_master");
 const badMapping = validateWeeklyActivation(eventEditorial, {
   ...eventPlan,
   slides: [eventPlan.slides[0], { ...eventPlan.slides[1], eventId: "other-event" }]
 });
 ok(!badMapping.checks.find((check) => check.id === "event_mapping")?.ok, "event_mapping_guard");
 
-console.log(`WEEKLY_ACTIVATION ${passed}/12 PASS`);
+console.log(`WEEKLY_ACTIVATION ${passed}/16 PASS`);

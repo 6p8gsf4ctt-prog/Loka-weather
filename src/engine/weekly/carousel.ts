@@ -8,6 +8,11 @@ export const WEEKLY_CAROUSEL_WIDTH = 1080 as const;
 export const WEEKLY_CAROUSEL_HEIGHT = 1350 as const;
 export const WEEKLY_STORY_WIDTH = 1080 as const;
 export const WEEKLY_STORY_HEIGHT = 1920 as const;
+/**
+ * Dedicated master for the weekly overview only. Event slides retain the
+ * actual V24 master selected from the representative daily decision.
+ */
+export const WEEKLY_OVERVIEW_MASTER_URL = "/masters24/weekly/SEMAINE_CONTRASTEE.png" as const;
 
 export type WeeklyCarouselSlideKind = "OVERVIEW" | "EVENT";
 
@@ -16,6 +21,7 @@ export interface WeeklyCarouselSlide {
   kind: WeeklyCarouselSlideKind;
   eventId: string | null;
   dateLabel: string;
+  backgroundUrl: string;
   title: string;
   body: string;
   scene: WeeklySceneReference;
@@ -28,6 +34,7 @@ export interface WeeklyStoryRelay {
   title: string;
   body: string;
   cta: string;
+  backgroundUrl: string;
   scene: WeeklySceneReference;
 }
 
@@ -36,6 +43,8 @@ export interface WeeklyCarouselPlan {
   citySlug: string;
   startDate: string;
   endDate: string;
+  /** Header copy produced from the Monday-Sunday range, not from a slide. */
+  headerDateLabel: string;
   signature: WeeklyEditorial["signature"];
   width: typeof WEEKLY_CAROUSEL_WIDTH;
   height: typeof WEEKLY_CAROUSEL_HEIGHT;
@@ -53,6 +62,7 @@ function overviewSlide(editorial: WeeklyEditorial): WeeklyCarouselSlide {
     kind: "OVERVIEW",
     eventId: null,
     dateLabel: dateRangeLabel(editorial.startDate, editorial.endDate),
+    backgroundUrl: WEEKLY_OVERVIEW_MASTER_URL,
     title: editorial.overview.title,
     body: editorial.overview.body,
     scene: editorial.overview.scene,
@@ -66,6 +76,7 @@ function eventSlide(event: WeeklyEditorialEvent, index: number): WeeklyCarouselS
     kind: "EVENT",
     eventId: event.id,
     dateLabel: eventDateLabel(event),
+    backgroundUrl: event.scene.masterUrl,
     title: event.title,
     body: event.body,
     scene: event.scene,
@@ -85,6 +96,7 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
     citySlug: editorial.citySlug,
     startDate: editorial.startDate,
     endDate: editorial.endDate,
+    headerDateLabel: weeklyHeaderDateLabel(editorial.startDate, editorial.endDate),
     signature: editorial.signature,
     width: WEEKLY_CAROUSEL_WIDTH,
     height: WEEKLY_CAROUSEL_HEIGHT,
@@ -100,6 +112,7 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
           ? "La synthèse de la semaine est disponible dans la publication."
           : "Les temps forts météo de la semaine sont disponibles dans le carrousel.",
         cta: "Voir la publication",
+        backgroundUrl: WEEKLY_OVERVIEW_MASTER_URL,
         scene: editorial.overview.scene
       }
     }
@@ -132,6 +145,31 @@ function dateRangeLabel(startDate: string, endDate: string): string {
     month: "long"
   }).format(new Date(date + "T12:00:00Z"));
   return startDate === endDate ? format(startDate) : "du " + format(startDate) + " au " + format(endDate);
+}
+
+/**
+ * The daily renderer owns the header treatment. The weekly layer supplies
+ * only the range-specific value that it has to draw there.
+ *
+ * Example: LUNDI 7 AU DIMANCHE 13 SEPTEMBRE
+ */
+function weeklyHeaderDateLabel(startDate: string, endDate: string): string {
+  const partsFor = (date: string): { weekday: string; day: string; month: string } => {
+    const parts = new Intl.DateTimeFormat("fr-FR", {
+      timeZone: "Europe/Paris",
+      weekday: "long",
+      day: "numeric",
+      month: "long"
+    }).formatToParts(new Date(date + "T12:00:00Z"));
+    const value = (type: string): string => parts.find((part) => part.type === type)?.value ?? "";
+    return { weekday: value("weekday"), day: value("day"), month: value("month") };
+  };
+  const start = partsFor(startDate);
+  const end = partsFor(endDate);
+  const label = start.month === end.month
+    ? `${start.weekday} ${start.day} au ${end.weekday} ${end.day} ${end.month}`
+    : `${start.weekday} ${start.day} ${start.month} au ${end.weekday} ${end.day} ${end.month}`;
+  return label.toUpperCase();
 }
 
 function activityStatusClass(status: WeeklyEditorialEvent["activities"][number]["status"]): string {
@@ -191,7 +229,7 @@ function browserModel(plan: WeeklyCarouselPlan): unknown {
 export function renderWeeklyCarousel(editorial: WeeklyEditorial): string {
   const plan = buildWeeklyCarouselPlan(editorial);
   const model = browserModel(plan);
-  const range = dateRangeLabel(plan.startDate, plan.endDate);
+  const range = plan.headerDateLabel;
   const cards = plan.slides.map((slide, index) => renderSlideCard(slide, index + 1, plan.slides.length)).join("\n");
   const storyLabel = "Relais Story : " + plan.story.relay.title;
   const shell =
@@ -212,6 +250,7 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial): string {
     "function font(size,weight){ctx.font=String(weight)+' '+String(size)+'px '+fontFamily;if('fontKerning' in ctx)ctx.fontKerning='normal';}",
     "function drawFullTextLine(label,x,y,color,align){ctx.fillStyle=color;ctx.strokeStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.lineJoin='round';ctx.miterLimit=2;ctx.lineWidth=.44;ctx.strokeText(label,x,y);ctx.fillText(label,x,y);}",
     "function text(value,x,y,size,weight,color,align='left'){const label=normalizeText(value);ctx.save();font(size,weight);drawFullTextLine(label,x,y,color,align);ctx.restore();}",
+    "function trackedText(value,x,y,size,weight,color,tracking,align='center'){const chars=normalizeText(value).split('');ctx.save();font(size,weight);const widths=chars.map(ch=>ctx.measureText(ch).width);const total=widths.reduce((a,b)=>a+b,0)+Math.max(0,chars.length-1)*tracking;let cursor=align==='center'?x-total/2:align==='right'?x-total:x;ctx.fillStyle=color;ctx.textBaseline='alphabetic';for(let i=0;i<chars.length;i++){ctx.fillText(chars[i],cursor,y);cursor+=widths[i]+tracking;}ctx.restore();}",
     "function measure(value,size,weight){ctx.save();font(size,weight);const width=ctx.measureText(normalizeText(value)).width;ctx.restore();return width;}",
     "function fittedSize(value,maxWidth,maxSize,minSize,weight){const label=normalizeText(value);ctx.save();let size=maxSize;while(size>minSize){font(size,weight);if(ctx.measureText(label).width<=maxWidth)break;size-=1;}ctx.restore();return Math.max(minSize,size);}",
     "function wrap(value,x,y,maxWidth,lineHeight,size,weight,color,align='left',maxLines=3){ctx.save();font(size,weight);const words=normalizeText(value).split(/\\s+/).filter(Boolean);let line='',yy=y,count=0;for(const word of words){const next=line?line+' '+word:word;if(line&&ctx.measureText(next).width>maxWidth){drawFullTextLine(line,x,yy,color,align);count++;if(count>=maxLines){ctx.restore();return;}line=word;yy+=lineHeight;}else line=next;}if(line&&count<maxLines)drawFullTextLine(line,x,yy,color,align);ctx.restore();}",
@@ -221,17 +260,17 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial): string {
     "function overlay(width,height){const gradient=ctx.createLinearGradient(0,0,0,height);gradient.addColorStop(0,'rgba(255,255,255,.04)');gradient.addColorStop(.54,'rgba(255,255,255,.06)');gradient.addColorStop(1,'rgba(7,21,48,.38)');ctx.fillStyle=gradient;ctx.fillRect(0,0,width,height);}",
     "function drawLokaLogo(logo,x,centerY,maxWidth,maxHeight){const iw=Math.max(1,logo.naturalWidth||logo.width||maxWidth),ih=Math.max(1,logo.naturalHeight||logo.height||maxHeight),scale=Math.min(maxWidth/iw,maxHeight/ih),dw=iw*scale,dh=ih*scale;ctx.drawImage(logo,x,centerY-dh/2,dw,dh);}",
     "function drawImageCentered(image,cx,cy,w,h){const iw=Math.max(1,image.naturalWidth||image.width||w),ih=Math.max(1,image.naturalHeight||image.height||h),scale=Math.min(w/iw,h/ih),dw=iw*scale,dh=ih*scale;ctx.drawImage(image,cx-dw/2,cy-dh/2,dw,dh);}",
-    "function drawHeader(logo,label,width){drawLokaLogo(logo,50,80,174,58);text(String(plan.citySlug==='tarnos'?'TARNOS':plan.citySlug).toUpperCase(),540,94,22,680,ink,'center');text(String(label||'').toUpperCase(),width-50,94,18,540,ink,'right');}",
-    "function drawStoryHeader(logo,label){drawLokaLogo(logo,50,144,190,64);text(String(plan.citySlug==='tarnos'?'TARNOS':plan.citySlug).toUpperCase(),540,158,25,680,ink,'center');text(String(label||'').toUpperCase(),1030,158,20,540,ink,'right');}",
+    "function drawHeader(logo,label,width){drawLokaLogo(logo,50,80,174,58);trackedText(String(plan.citySlug==='tarnos'?'TARNOS':plan.citySlug).toUpperCase(),540,94,22,680,ink,8,'center');text(String(label||'').toUpperCase(),width-50,94,18,540,ink,'right');}",
+    "function drawStoryHeader(logo,label){drawLokaLogo(logo,50,144,190,64);trackedText(String(plan.citySlug==='tarnos'?'TARNOS':plan.citySlug).toUpperCase(),540,158,25,680,ink,8,'center');text(String(label||'').toUpperCase(),1030,158,20,540,ink,'right');}",
     "function sceneBadge(icon,scene,x,y,w,h){box(x,y,w,h);drawImageCentered(icon,x+82,y+h/2+8,116,90);text('SCÈNE V24 DU JOUR',x+160,y+43,14,700,ink,'left');text(scene.displayTitle,x+160,y+83,19,780,ink,'left');}",
     "function drawSignature(y,color){const signatureColor=color||ink;text(model.signature||model.brand.slogan,540,y,20,500,signatureColor,'center');ctx.save();ctx.strokeStyle=gold;ctx.lineWidth=1.4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(514,y+24);ctx.lineTo(566,y+24);ctx.stroke();ctx.restore();}",
-    "function drawOverview(canvas,slide,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,slide.dateLabel,width);text('VUE D’ENSEMBLE',58,174,22,780,ink,'left');box(58,205,964,1048);drawImageCentered(icon,132,316,126,96);text(slide.scene.displayTitle,220,311,19,780,ink,'left');text(slide.dateLabel,220,345,18,540,ink,'left');const titleSize=fittedSize(slide.title,820,52,34,820);wrap(slide.title,101,478,820,52,titleSize,820,ink,'left',2);wrap(slide.body,101,600,820,34,26,540,ink,'left',2);const events=plan.slides.slice(1);text(events.length?'TEMPS FORTS DE LA SEMAINE':'UNE SEMAINE CALME',101,712,18,780,ink,'left');if(!events.length){text('Une semaine stable est aussi une information.',101,780,23,620,ink,'left');}else{const rows=events.length;const rowHeight=Math.max(58,Math.min(98,Math.floor(446/rows)));events.forEach((event,index)=>{const x=101,y=754+index*rowHeight;ctx.save();ctx.fillStyle=gold;ctx.beginPath();ctx.arc(x+17,y+18,17,0,Math.PI*2);ctx.fill();ctx.restore();text(String(index+1),x+17,y+25,17,800,'#ffffff','center');const eventSize=events.length>3?19:21;text(event.title,x+50,y+16,eventSize,780,ink,'left');text(event.dateLabel,x+50,y+43,16,540,ink,'left');});}drawSignature(1294);}",
+    "function drawOverview(canvas,slide,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,plan.headerDateLabel,width);text('VUE D’ENSEMBLE',58,174,22,780,ink,'left');box(58,205,964,1048);drawImageCentered(icon,132,316,126,96);text(slide.scene.displayTitle,220,311,19,780,ink,'left');text(slide.dateLabel,220,345,18,540,ink,'left');const titleSize=fittedSize(slide.title,820,52,34,820);wrap(slide.title,101,478,820,52,titleSize,820,ink,'left',2);wrap(slide.body,101,600,820,34,26,540,ink,'left',2);const events=plan.slides.slice(1);text(events.length?'TEMPS FORTS DE LA SEMAINE':'UNE SEMAINE CALME',101,712,18,780,ink,'left');if(!events.length){text('Une semaine stable est aussi une information.',101,780,23,620,ink,'left');}else{const rows=events.length;const rowHeight=Math.max(58,Math.min(98,Math.floor(446/rows)));events.forEach((event,index)=>{const x=101,y=754+index*rowHeight;ctx.save();ctx.fillStyle=gold;ctx.beginPath();ctx.arc(x+17,y+18,17,0,Math.PI*2);ctx.fill();ctx.restore();text(String(index+1),x+17,y+25,17,800,'#ffffff','center');const eventSize=events.length>3?19:21;text(event.title,x+50,y+16,eventSize,780,ink,'left');text(event.dateLabel,x+50,y+43,16,540,ink,'left');});}drawSignature(1294);}",
     "function activityStyle(status){if(status==='FAVORABLE')return{fill:'rgba(221,243,225,.86)',color:'#21613b'};if(status==='UNFAVORABLE')return{fill:'rgba(249,226,223,.86)',color:'#8c302b'};return{fill:'rgba(250,239,211,.86)',color:'#7a5b16'};}",
     "function drawActivityRows(activities,startY){const rows=activities.slice(0,3);if(!rows.length)return;const rowHeight=rows.length===3?62:rows.length===2?72:88;rows.forEach((activity,index)=>{const y=startY+index*rowHeight,style=activityStyle(activity.status);ctx.save();rr(101,y,820,rowHeight-10,18);ctx.fillStyle=style.fill;ctx.fill();ctx.restore();const size=fittedSize(activity.text,770,17,12,620);text(activity.text,124,y+27,size,620,style.color,'left');});}",
-    "function drawEvent(canvas,slide,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,slide.dateLabel,width);text('TEMPS FORT MÉTÉO',58,174,22,780,ink,'left');sceneBadge(icon,slide.scene,58,205,964,160);box(58,395,964,790);const titleSize=fittedSize(slide.title,820,58,36,820);wrap(slide.title,101,500,820,58,titleSize,820,ink,'left',2);text(slide.dateLabel,101,585,19,540,ink,'left');wrap(slide.body,101,648,820,34,26,540,ink,'left',3);if(slide.activities.length){text('POUR VOS ACTIVITÉS',101,780,18,780,ink,'left');drawActivityRows(slide.activities,812);}drawSignature(1294);}",
-    "function drawStory(canvas,relay,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawStoryHeader(logo,plan.startDate+' → '+plan.endDate);text('RELAIS DE LA PUBLICATION',58,225,24,780,ink,'left');box(58,470,964,820);drawImageCentered(icon,540,602,150,116);const titleSize=fittedSize(relay.title,820,58,36,820);wrap(relay.title,101,770,820,58,titleSize,820,ink,'left',2);wrap(relay.body,101,890,820,38,28,540,ink,'left',2);ctx.save();rr(101,1050,430,72,36);ctx.fillStyle=gold;ctx.fill();ctx.restore();text(relay.cta,316,1096,24,800,'#ffffff','center');text('Faites défiler le carrousel',540,1778,22,600,'#ffffff','center');drawSignature(1830,'#ffffff');}",
-    "function drawSlide(canvas,slide){return Promise.all([load(slide.scene.masterUrl,'scene_'+slide.scene.id),load(model.brand.logoUrl,'logo'),load(slide.scene.pictogramUrl,'pictogram_'+slide.scene.id)]).then(function(images){if(slide.kind==='OVERVIEW')drawOverview(canvas,slide,images[0],images[1],images[2]);else drawEvent(canvas,slide,images[0],images[1],images[2]);});}",
-    "function drawRelay(){const relay=plan.story.relay;return Promise.all([load(relay.scene.masterUrl,'story_scene_'+relay.scene.id),load(model.brand.logoUrl,'story_logo'),load(relay.scene.pictogramUrl,'story_pictogram_'+relay.scene.id)]).then(function(images){drawStory(storyCanvas,relay,images[0],images[1],images[2]);});}",
+    "function drawEvent(canvas,slide,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,plan.headerDateLabel,width);text('TEMPS FORT MÉTÉO',58,174,22,780,ink,'left');sceneBadge(icon,slide.scene,58,205,964,160);box(58,395,964,790);const titleSize=fittedSize(slide.title,820,58,36,820);wrap(slide.title,101,500,820,58,titleSize,820,ink,'left',2);text(slide.dateLabel,101,585,19,540,ink,'left');wrap(slide.body,101,648,820,34,26,540,ink,'left',3);if(slide.activities.length){text('POUR VOS ACTIVITÉS',101,780,18,780,ink,'left');drawActivityRows(slide.activities,812);}drawSignature(1294);}",
+    "function drawStory(canvas,relay,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawStoryHeader(logo,plan.headerDateLabel);text('RELAIS DE LA PUBLICATION',58,225,24,780,ink,'left');box(58,470,964,820);drawImageCentered(icon,540,602,150,116);const titleSize=fittedSize(relay.title,820,58,36,820);wrap(relay.title,101,770,820,58,titleSize,820,ink,'left',2);wrap(relay.body,101,890,820,38,28,540,ink,'left',2);ctx.save();rr(101,1050,430,72,36);ctx.fillStyle=gold;ctx.fill();ctx.restore();text(relay.cta,316,1096,24,800,'#ffffff','center');text('Faites défiler le carrousel',540,1778,22,600,'#ffffff','center');drawSignature(1830,'#ffffff');}",
+    "function drawSlide(canvas,slide){return Promise.all([load(slide.backgroundUrl,'background_'+slide.index),load(model.brand.logoUrl,'logo'),load(slide.scene.pictogramUrl,'pictogram_'+slide.scene.id)]).then(function(images){if(slide.kind==='OVERVIEW')drawOverview(canvas,slide,images[0],images[1],images[2]);else drawEvent(canvas,slide,images[0],images[1],images[2]);});}",
+    "function drawRelay(){const relay=plan.story.relay;return Promise.all([load(relay.backgroundUrl,'story_background'),load(model.brand.logoUrl,'story_logo'),load(relay.scene.pictogramUrl,'story_pictogram_'+relay.scene.id)]).then(function(images){drawStory(storyCanvas,relay,images[0],images[1],images[2]);});}",
     "function download(canvas,name){canvas.toBlob(function(blob){if(!blob)return;const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=name;link.click();setTimeout(function(){URL.revokeObjectURL(link.href);},1000);},'image/png');}",
     "Promise.all(plan.slides.map(function(slide,index){return drawSlide(slideCanvases[index],slide);})).catch(function(error){console.error(error);});",
     "drawRelay().catch(function(error){console.error(error);});",

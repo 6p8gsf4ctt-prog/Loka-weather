@@ -1,6 +1,6 @@
 import { weeklyRangeForDate } from "./schedule";
 import type { WeeklyEditorial } from "./editorial";
-import { WEEKLY_CAROUSEL_MAX_EVENT_SLIDES } from "./carousel";
+import { WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, WEEKLY_OVERVIEW_MASTER_URL } from "./carousel";
 import type { WeeklyCarouselPlan } from "./carousel";
 
 export interface WeeklyActivationCheck {
@@ -70,6 +70,23 @@ export function validateWeeklyActivation(
     "scene_assets",
     [editorial.overview.scene, ...carousel.slides.map((slide) => slide.scene)].every((scene) => scene.masterUrl.startsWith("/masters24/")),
     "v24_master_assets"
+  ));
+  checks.push(check(
+    "weekly_background_assets",
+    [...carousel.slides.map((slide) => slide.backgroundUrl), carousel.story.relay.backgroundUrl]
+      .every((url) => url.startsWith("/masters24/")),
+    "weekly_master_assets"
+  ));
+  checks.push(check(
+    "overview_background",
+    carousel.slides[0]?.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL
+      && carousel.story.relay.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL,
+    "dedicated_weekly_overview_master"
+  ));
+  checks.push(check(
+    "event_background_alignment",
+    carousel.slides.slice(1).every((slide) => slide.backgroundUrl === slide.scene.masterUrl),
+    "event_backgrounds_keep_daily_v24_master"
   ));
   checks.push(check(
     "daily_v24_scene_provenance",
