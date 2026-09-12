@@ -166,11 +166,13 @@ ok(scriptValid, "renderer_browser_script_is_valid");
 const overviewRenderer = script.split("\n").find((line) => line.startsWith("function drawOverview(")) ?? "";
 const overviewTitleRenderer = script.split("\n").find((line) => line.startsWith("function drawOverviewTitle(")) ?? "";
 const weeklyDayStripRenderer = script.split("\n").find((line) => line.startsWith("function drawWeeklyDayStrip(")) ?? "";
+const weeklyDayHighlightRenderer = script.split("\n").find((line) => line.startsWith("function drawWeeklyDayHighlight(")) ?? "";
 ok(overviewRenderer.includes("box(50,160,980,150);drawOverviewTitle(plan.overviewTitle);box(50,336,980,700);box(50,1060,980,190);drawWeeklyDayStrip(plan.dailySummaries,dailyIcons)"), "overview_keeps_three_daily_layout_boxes");
 ok(!overviewRenderer.includes("slide.scene.displayTitle") && !overviewRenderer.includes("plan.slides.slice(1)"), "overview_removes_old_scene_and_event_content");
 ok(overviewRenderer.includes("drawOverviewTitle(plan.overviewTitle)") && overviewTitleRenderer.includes("content.title") && overviewTitleRenderer.includes("content.subtitle") && overviewTitleRenderer.includes("ctx.strokeStyle=gold"), "overview_draws_automatic_title_box_content");
 ok(weeklyDayStripRenderer.includes("days.forEach") && weeklyDayStripRenderer.includes("drawImageCentered(icon") && weeklyDayStripRenderer.includes("Math.round(day.minTemperatureC)") && weeklyDayStripRenderer.includes("Math.round(day.maxTemperatureC)"), "overview_draws_seven_loka_daily_columns");
+ok(weeklyDayStripRenderer.includes("drawWeeklyDayHighlight(day.highlight") && weeklyDayHighlightRenderer.includes("kind==='PREFERRED'") && weeklyDayHighlightRenderer.includes("preferred?gold:ink"), "overview_draws_gold_and_ink_editorial_highlights_only_when_present");
 const drawSlideRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide(")) ?? "";
 ok(drawSlideRenderer.includes("weekly_pictogram_") && drawSlideRenderer.includes("day.pictogram.url") && drawSlideRenderer.includes("images.slice(2)"), "overview_loads_only_official_daily_loka_pictograms");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/53 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/54 PASS`);
