@@ -45,6 +45,15 @@ export interface WeeklyCarouselPlan {
   endDate: string;
   /** Header copy produced from the Monday-Sunday range, not from a slide. */
   headerDateLabel: string;
+  /**
+   * Copy for the first, overview-only box. It deliberately does not reuse the
+   * old overview narrative: the box is the stable entry point of the weekly
+   * format, while the following boxes will receive their own dedicated data.
+   */
+  overviewTitle: {
+    title: string;
+    subtitle: string;
+  };
   signature: WeeklyEditorial["signature"];
   width: typeof WEEKLY_CAROUSEL_WIDTH;
   height: typeof WEEKLY_CAROUSEL_HEIGHT;
@@ -97,6 +106,7 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
     startDate: editorial.startDate,
     endDate: editorial.endDate,
     headerDateLabel: weeklyHeaderDateLabel(editorial.startDate, editorial.endDate),
+    overviewTitle: overviewTitleContent(editorial),
     signature: editorial.signature,
     width: WEEKLY_CAROUSEL_WIDTH,
     height: WEEKLY_CAROUSEL_HEIGHT,
@@ -116,6 +126,25 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
         scene: editorial.overview.scene
       }
     }
+  };
+}
+
+function cityDisplayName(citySlug: string): string {
+  return citySlug
+    .trim()
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toLocaleUpperCase("fr-FR") + part.slice(1).toLocaleLowerCase("fr-FR"))
+    .join(" ") || "Tarnos";
+}
+
+function overviewTitleContent(editorial: WeeklyEditorial): WeeklyCarouselPlan["overviewTitle"] {
+  const city = cityDisplayName(editorial.citySlug).toLocaleUpperCase("fr-FR");
+  return {
+    title: `LA SEMAINE À ${city}`,
+    subtitle: editorial.status === "CALM"
+      ? "Une semaine calme · Les repères essentiels"
+      : "Le jour à privilégier · Le jour à surveiller"
   };
 }
 
@@ -264,7 +293,8 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial): string {
     "function drawStoryHeader(logo,label){drawLokaLogo(logo,50,144,190,64);trackedText(String(plan.citySlug==='tarnos'?'TARNOS':plan.citySlug).toUpperCase(),540,158,25,680,ink,8,'center');text(String(label||'').toUpperCase(),1030,158,20,540,ink,'right');}",
     "function sceneBadge(icon,scene,x,y,w,h){box(x,y,w,h);drawImageCentered(icon,x+82,y+h/2+8,116,90);text('SCÈNE V24 DU JOUR',x+160,y+43,14,700,ink,'left');text(scene.displayTitle,x+160,y+83,19,780,ink,'left');}",
     "function drawSignature(y,color){const signatureColor=color||ink;text(model.signature||model.brand.slogan,540,y,20,500,signatureColor,'center');ctx.save();ctx.strokeStyle=gold;ctx.lineWidth=1.4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(514,y+24);ctx.lineTo(566,y+24);ctx.stroke();ctx.restore();}",
-    "function drawOverview(canvas,slide,background,logo){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,plan.headerDateLabel,width);box(50,160,980,150);box(50,336,980,700);box(50,1060,980,190);drawSignature(1304);}",
+    "function drawOverviewTitle(content){const title=normalizeText(content.title),subtitle=normalizeText(content.subtitle);const titleSize=fittedSize(title,820,54,38,820),subtitleSize=fittedSize(subtitle,820,26,18,540);text(title,100,232,titleSize,820,ink,'left');ctx.save();ctx.strokeStyle=gold;ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(100,252);ctx.lineTo(150,252);ctx.stroke();ctx.restore();text(subtitle,100,287,subtitleSize,540,ink,'left');}",
+    "function drawOverview(canvas,slide,background,logo){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,plan.headerDateLabel,width);box(50,160,980,150);drawOverviewTitle(plan.overviewTitle);box(50,336,980,700);box(50,1060,980,190);drawSignature(1304);}",
     "function activityStyle(status){if(status==='FAVORABLE')return{fill:'rgba(221,243,225,.86)',color:'#21613b'};if(status==='UNFAVORABLE')return{fill:'rgba(249,226,223,.86)',color:'#8c302b'};return{fill:'rgba(250,239,211,.86)',color:'#7a5b16'};}",
     "function drawActivityRows(activities,startY){const rows=activities.slice(0,3);if(!rows.length)return;const rowHeight=rows.length===3?62:rows.length===2?72:88;rows.forEach((activity,index)=>{const y=startY+index*rowHeight,style=activityStyle(activity.status);ctx.save();rr(101,y,820,rowHeight-10,18);ctx.fillStyle=style.fill;ctx.fill();ctx.restore();const size=fittedSize(activity.text,770,17,12,620);text(activity.text,124,y+27,size,620,style.color,'left');});}",
     "function drawEvent(canvas,slide,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,plan.headerDateLabel,width);text('TEMPS FORT MÉTÉO',58,174,22,780,ink,'left');sceneBadge(icon,slide.scene,58,205,964,160);box(58,395,964,790);const titleSize=fittedSize(slide.title,820,58,36,820);wrap(slide.title,101,500,820,58,titleSize,820,ink,'left',2);text(slide.dateLabel,101,585,19,540,ink,'left');wrap(slide.body,101,648,820,34,26,540,ink,'left',3);if(slide.activities.length){text('POUR VOS ACTIVITÉS',101,780,18,780,ink,'left');drawActivityRows(slide.activities,812);}drawSignature(1294);}",
