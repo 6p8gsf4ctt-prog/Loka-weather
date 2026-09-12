@@ -48,6 +48,9 @@ export interface WeeklyDailyPictogramReference {
 export interface WeeklyCarouselDailySummary extends WeeklyDailySummary {
   /** Mapping fixed from the daily V24 visual icon; the renderer cannot reclassify it. */
   pictogram: WeeklyDailyPictogramReference;
+  /** French labels precomputed in the weekly engine, not in the browser. */
+  weekdayLabel: string;
+  dayLabel: string;
 }
 
 export interface WeeklyCarouselPlan {
@@ -128,7 +131,8 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
         source: "LOKA_OFFICIAL_PICTOGRAM_LIBRARY",
         libraryVersion: PICTOGRAM_LIBRARY_VERSION,
         kind: visualIconToPictogram(day.scene.visualIcon)
-      }
+      },
+      ...weeklyDayLabels(day.date)
     })),
     signature: editorial.signature,
     width: WEEKLY_CAROUSEL_WIDTH,
@@ -149,6 +153,19 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
         scene: editorial.overview.scene
       }
     }
+  };
+}
+
+function weeklyDayLabels(date: string): Pick<WeeklyCarouselDailySummary, "weekdayLabel" | "dayLabel"> {
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    weekday: "short",
+    day: "numeric"
+  }).formatToParts(new Date(`${date}T12:00:00Z`));
+  const value = (type: "weekday" | "day"): string => parts.find((part) => part.type === type)?.value ?? "";
+  return {
+    weekdayLabel: value("weekday").replace(/\.$/, "").toLocaleUpperCase("fr-FR"),
+    dayLabel: value("day")
   };
 }
 
@@ -321,12 +338,13 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial): string {
     "function sceneBadge(icon,scene,x,y,w,h){box(x,y,w,h);drawImageCentered(icon,x+82,y+h/2+8,116,90);text('SCÈNE V24 DU JOUR',x+160,y+43,14,700,ink,'left');text(scene.displayTitle,x+160,y+83,19,780,ink,'left');}",
     "function drawSignature(y,color){const signatureColor=color||ink;text(model.signature||model.brand.slogan,540,y,20,500,signatureColor,'center');ctx.save();ctx.strokeStyle=gold;ctx.lineWidth=1.4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(514,y+24);ctx.lineTo(566,y+24);ctx.stroke();ctx.restore();}",
     "function drawOverviewTitle(content){const title=normalizeText(content.title),subtitle=normalizeText(content.subtitle);const titleSize=fittedSize(title,820,54,38,820),subtitleSize=fittedSize(subtitle,820,26,18,540);text(title,100,232,titleSize,820,ink,'left');ctx.save();ctx.strokeStyle=gold;ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(100,252);ctx.lineTo(150,252);ctx.stroke();ctx.restore();text(subtitle,100,287,subtitleSize,540,ink,'left');}",
-    "function drawOverview(canvas,slide,background,logo){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,plan.headerDateLabel,width);box(50,160,980,150);drawOverviewTitle(plan.overviewTitle);box(50,336,980,700);box(50,1060,980,190);drawSignature(1304);}",
+    "function drawWeeklyDayStrip(days,dailyIcons){const x=50,y=1060,w=980,h=190,columnWidth=w/days.length;ctx.save();ctx.strokeStyle='rgba(18,38,74,.16)';ctx.lineWidth=1.15;for(let index=1;index<days.length;index++){const separatorX=x+columnWidth*index;ctx.beginPath();ctx.moveTo(separatorX,y+15);ctx.lineTo(separatorX,y+h-15);ctx.stroke();}ctx.restore();days.forEach(function(day,index){const centerX=x+columnWidth*(index+.5),icon=dailyIcons[index];text(day.weekdayLabel,centerX,y+32,15,780,ink,'center');text(day.dayLabel,centerX,y+55,18,760,ink,'center');drawImageCentered(icon,centerX,y+104,88,66);const minLabel=String(Math.round(day.minTemperatureC))+'°',maxLabel=String(Math.round(day.maxTemperatureC))+'°';text(minLabel,centerX-7,y+165,22,780,ink,'right');text('/',centerX,y+165,16,680,ink,'center');text(maxLabel,centerX+7,y+165,22,780,gold,'left');});}",
+    "function drawOverview(canvas,slide,background,logo,dailyIcons){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,plan.headerDateLabel,width);box(50,160,980,150);drawOverviewTitle(plan.overviewTitle);box(50,336,980,700);box(50,1060,980,190);drawWeeklyDayStrip(plan.dailySummaries,dailyIcons);drawSignature(1304);}",
     "function activityStyle(status){if(status==='FAVORABLE')return{fill:'rgba(221,243,225,.86)',color:'#21613b'};if(status==='UNFAVORABLE')return{fill:'rgba(249,226,223,.86)',color:'#8c302b'};return{fill:'rgba(250,239,211,.86)',color:'#7a5b16'};}",
     "function drawActivityRows(activities,startY){const rows=activities.slice(0,3);if(!rows.length)return;const rowHeight=rows.length===3?62:rows.length===2?72:88;rows.forEach((activity,index)=>{const y=startY+index*rowHeight,style=activityStyle(activity.status);ctx.save();rr(101,y,820,rowHeight-10,18);ctx.fillStyle=style.fill;ctx.fill();ctx.restore();const size=fittedSize(activity.text,770,17,12,620);text(activity.text,124,y+27,size,620,style.color,'left');});}",
     "function drawEvent(canvas,slide,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawHeader(logo,plan.headerDateLabel,width);text('TEMPS FORT MÉTÉO',58,174,22,780,ink,'left');sceneBadge(icon,slide.scene,58,205,964,160);box(58,395,964,790);const titleSize=fittedSize(slide.title,820,58,36,820);wrap(slide.title,101,500,820,58,titleSize,820,ink,'left',2);text(slide.dateLabel,101,585,19,540,ink,'left');wrap(slide.body,101,648,820,34,26,540,ink,'left',3);if(slide.activities.length){text('POUR VOS ACTIVITÉS',101,780,18,780,ink,'left');drawActivityRows(slide.activities,812);}drawSignature(1294);}",
     "function drawStory(canvas,relay,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawStoryHeader(logo,plan.headerDateLabel);text('RELAIS DE LA PUBLICATION',58,225,24,780,ink,'left');box(58,470,964,820);drawImageCentered(icon,540,602,150,116);const titleSize=fittedSize(relay.title,820,58,36,820);wrap(relay.title,101,770,820,58,titleSize,820,ink,'left',2);wrap(relay.body,101,890,820,38,28,540,ink,'left',2);ctx.save();rr(101,1050,430,72,36);ctx.fillStyle=gold;ctx.fill();ctx.restore();text(relay.cta,316,1096,24,800,'#ffffff','center');text('Faites défiler le carrousel',540,1778,22,600,'#ffffff','center');drawSignature(1830,'#ffffff');}",
-    "function drawSlide(canvas,slide){const base=[load(slide.backgroundUrl,'background_'+slide.index),load(model.brand.logoUrl,'logo')];if(slide.kind==='OVERVIEW')return Promise.all(base).then(function(images){drawOverview(canvas,slide,images[0],images[1]);});return Promise.all([...base,load(slide.scene.pictogramUrl,'pictogram_'+slide.scene.id)]).then(function(images){drawEvent(canvas,slide,images[0],images[1],images[2]);});}",
+    "function drawSlide(canvas,slide){const base=[load(slide.backgroundUrl,'background_'+slide.index),load(model.brand.logoUrl,'logo')];if(slide.kind==='OVERVIEW'){const dailyPictograms=plan.dailySummaries.map(function(day){return load(day.pictogram.url,'weekly_pictogram_'+day.dayIndex);});return Promise.all([...base,...dailyPictograms]).then(function(images){drawOverview(canvas,slide,images[0],images[1],images.slice(2));});}return Promise.all([...base,load(slide.scene.pictogramUrl,'pictogram_'+slide.scene.id)]).then(function(images){drawEvent(canvas,slide,images[0],images[1],images[2]);});}",
     "function drawRelay(){const relay=plan.story.relay;return Promise.all([load(relay.backgroundUrl,'story_background'),load(model.brand.logoUrl,'story_logo'),load(relay.scene.pictogramUrl,'story_pictogram_'+relay.scene.id)]).then(function(images){drawStory(storyCanvas,relay,images[0],images[1],images[2]);});}",
     "function download(canvas,name){canvas.toBlob(function(blob){if(!blob)return;const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=name;link.click();setTimeout(function(){URL.revokeObjectURL(link.href);},1000);},'image/png');}",
     "Promise.all(plan.slides.map(function(slide,index){return drawSlide(slideCanvases[index],slide);})).catch(function(error){console.error(error);});",

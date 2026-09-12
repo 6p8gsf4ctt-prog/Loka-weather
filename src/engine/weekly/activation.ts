@@ -72,7 +72,7 @@ export function validateWeeklyActivation(
     editorial.dailySummaries.length === 7
       && carousel.dailySummaries.length === 7
       && editorial.dailySummaries.every((day, index) => day.dayIndex === index && Number.isFinite(day.minTemperatureC) && Number.isFinite(day.maxTemperatureC) && isValidDailyV24Scene(day.scene))
-      && carousel.dailySummaries.every((day, index) => day.dayIndex === index && day.date === editorial.dailySummaries[index]?.date && day.scene.id === editorial.dailySummaries[index]?.scene.id),
+      && carousel.dailySummaries.every((day, index) => day.dayIndex === index && day.date === editorial.dailySummaries[index]?.date && day.scene.id === editorial.dailySummaries[index]?.scene.id && day.weekdayLabel.length >= 3 && /^\d{1,2}$/.test(day.dayLabel)),
     "seven_ordered_daily_v24_summaries"
   ));
   checks.push(check(

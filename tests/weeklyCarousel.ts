@@ -102,6 +102,7 @@ ok(plan.dailySummaries.length === 7 && plan.dailySummaries.every((day, index) =>
 ok(plan.dailySummaries.every((day, index) => day.scene.id === editorial(events).dailySummaries[index]?.scene.id), "carousel_plan_keeps_daily_v24_scene_identity");
 ok(plan.dailySummaries.every((day) => day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY" && day.pictogram.libraryVersion === "LOKA_PREMIUM_1.2"), "daily_summaries_use_official_loka_pictogram_library");
 ok(plan.dailySummaries.every((day) => day.scene.visualIcon === "partly" && day.pictogram.kind === "partly"), "daily_v24_visual_icon_drives_pictogram_kind");
+ok(plan.dailySummaries.map((day) => `${day.weekdayLabel} ${day.dayLabel}`).join(",") === "LUN 7,MAR 8,MER 9,JEU 10,VEN 11,SAM 12,DIM 13", "daily_strip_labels_are_monday_to_sunday_in_french");
 ok(plan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "overview_uses_dedicated_weekly_master");
 ok(plan.slides.slice(1).every((slide) => slide.kind === "EVENT"), "event_slides_follow_overview");
 ok(plan.slides.slice(1).map((slide) => slide.eventId).join(",") === "wind:2026-09-09,best_window:2026-09-12", "one_slide_per_event");
@@ -145,9 +146,10 @@ ok(html.includes("SCÈNE V24 DU JOUR") && html.includes("Ici, cette semaine."), 
 ok(html.includes(WEEKLY_OVERVIEW_MASTER_URL), "renderer_embeds_weekly_overview_master");
 ok(html.includes('"dailySummaries"') && html.includes('"source":"DAILY_V24_DECISION"'), "renderer_embeds_daily_summaries_with_v24_provenance");
 const browserModelLine = html.match(/const model=(.*);\nconst plan=model;/)?.[1] ?? "";
-const renderedModel = browserModelLine ? JSON.parse(browserModelLine) as { dailySummaries: Array<{ pictogram: { source: string; libraryVersion: string; kind: string; url: string } }> } : null;
+const renderedModel = browserModelLine ? JSON.parse(browserModelLine) as { dailySummaries: Array<{ weekdayLabel: string; dayLabel: string; pictogram: { source: string; libraryVersion: string; kind: string; url: string } }> } : null;
 ok(renderedModel?.dailySummaries.length === 7, "renderer_exposes_seven_daily_pictograms");
 ok(renderedModel?.dailySummaries.every((day) => day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY" && day.pictogram.libraryVersion === "LOKA_PREMIUM_1.2" && day.pictogram.kind === "partly" && day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")) === true, "renderer_uses_generated_official_loka_pictogram_urls");
+ok(renderedModel?.dailySummaries.map((day) => `${day.weekdayLabel} ${day.dayLabel}`).join(",") === "LUN 7,MAR 8,MER 9,JEU 10,VEN 11,SAM 12,DIM 13", "renderer_keeps_precomputed_french_day_labels");
 const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1] ?? "";
 let scriptValid = true;
 try { new Function(script); } catch { scriptValid = false; }
@@ -155,10 +157,12 @@ ok(scriptValid, "renderer_browser_script_is_valid");
 
 const overviewRenderer = script.split("\n").find((line) => line.startsWith("function drawOverview(")) ?? "";
 const overviewTitleRenderer = script.split("\n").find((line) => line.startsWith("function drawOverviewTitle(")) ?? "";
-ok(overviewRenderer.includes("box(50,160,980,150);drawOverviewTitle(plan.overviewTitle);box(50,336,980,700);box(50,1060,980,190)"), "overview_keeps_three_daily_layout_boxes");
+const weeklyDayStripRenderer = script.split("\n").find((line) => line.startsWith("function drawWeeklyDayStrip(")) ?? "";
+ok(overviewRenderer.includes("box(50,160,980,150);drawOverviewTitle(plan.overviewTitle);box(50,336,980,700);box(50,1060,980,190);drawWeeklyDayStrip(plan.dailySummaries,dailyIcons)"), "overview_keeps_three_daily_layout_boxes");
 ok(!overviewRenderer.includes("slide.scene.displayTitle") && !overviewRenderer.includes("plan.slides.slice(1)"), "overview_removes_old_scene_and_event_content");
 ok(overviewRenderer.includes("drawOverviewTitle(plan.overviewTitle)") && overviewTitleRenderer.includes("content.title") && overviewTitleRenderer.includes("content.subtitle") && overviewTitleRenderer.includes("ctx.strokeStyle=gold"), "overview_draws_automatic_title_box_content");
+ok(weeklyDayStripRenderer.includes("days.forEach") && weeklyDayStripRenderer.includes("drawImageCentered(icon") && weeklyDayStripRenderer.includes("Math.round(day.minTemperatureC)") && weeklyDayStripRenderer.includes("Math.round(day.maxTemperatureC)"), "overview_draws_seven_loka_daily_columns");
 const drawSlideRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide(")) ?? "";
-ok(drawSlideRenderer.includes("if(slide.kind==='OVERVIEW')return Promise.all(base)"), "overview_does_not_load_old_pictogram_content");
+ok(drawSlideRenderer.includes("weekly_pictogram_") && drawSlideRenderer.includes("day.pictogram.url") && drawSlideRenderer.includes("images.slice(2)"), "overview_loads_only_official_daily_loka_pictograms");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/48 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/51 PASS`);
