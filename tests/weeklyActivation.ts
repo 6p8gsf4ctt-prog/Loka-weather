@@ -50,6 +50,7 @@ const base: WeeklyEditorial = {
   overview: { title: "Une semaine calme à Tarnos", body: "Semaine stable.", scene },
   dailySummaries: dailySummaries(),
   dailyHighlights: [],
+  dailyCardDetails: [],
   events: [],
   signature: "Ici, cette semaine."
 };
@@ -140,6 +141,18 @@ const eventEditorial: WeeklyEditorial = {
   status: "EVENTS",
   overview: { ...base.overview, title: "La semaine à Tarnos" },
   dailyHighlights: [{ kind: "WATCH", dayIndex: 3, date: "2026-09-10", sourceEventId: event.id, sourceEventType: event.type }],
+  dailyCardDetails: [{
+    kind: "WATCH",
+    date: "2026-09-10",
+    dayIndex: 3,
+    sourceEventId: event.id,
+    sourceEventType: event.type,
+    weatherLabel: event.scene.displayTitle,
+    minTemperatureC: 15,
+    maxTemperatureC: 23,
+    scene: event.scene,
+    slots: ([8, 12, 16, 20] as const).map((hour) => ({ hour, sourceHour: hour, temperatureC: 18, condition: "soleil" }))
+  }],
   events: [event]
 };
 const eventPlan = buildWeeklyCarouselPlan(eventEditorial);
@@ -148,6 +161,7 @@ ok(eventValidation.ok, "event_publication_ready");
 ok(eventPlan.slides[1]?.eventId === event.id, "event_id_is_preserved");
 ok(eventPlan.slides[1]?.backgroundUrl === event.scene.masterUrl, "event_background_keeps_daily_v24_master");
 ok(eventPlan.dailySummaries[3]?.highlight === "WATCH", "event_watch_highlight_is_bound_to_daily_column");
+ok(eventPlan.dailyCardDetails[0]?.pictogram.kind === "sun" && eventPlan.dailyCardDetails[0]?.slots.every((slot) => slot.pictogram.kind === "sun"), "central_card_pictograms_follow_daily_rules");
 const badHighlightEditorial: WeeklyEditorial = {
   ...eventEditorial,
   dailyHighlights: [{ ...eventEditorial.dailyHighlights[0], kind: "PREFERRED" }]
@@ -160,4 +174,4 @@ const badMapping = validateWeeklyActivation(eventEditorial, {
 });
 ok(!badMapping.checks.find((check) => check.id === "event_mapping")?.ok, "event_mapping_guard");
 
-console.log(`WEEKLY_ACTIVATION ${passed}/23 PASS`);
+console.log(`WEEKLY_ACTIVATION ${passed}/24 PASS`);

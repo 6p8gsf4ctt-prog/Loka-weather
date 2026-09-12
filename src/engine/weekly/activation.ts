@@ -1,8 +1,9 @@
 import { weeklyRangeForDate } from "./schedule";
+import { WEEKLY_DAILY_CARD_HOURS } from "./editorial";
 import type { WeeklyEditorial } from "./editorial";
 import { WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, WEEKLY_OVERVIEW_MASTER_URL } from "./carousel";
 import type { WeeklyCarouselPlan } from "./carousel";
-import { PICTOGRAM_LIBRARY_VERSION, visualIconToPictogram } from "../../ui/pictogramLibrary";
+import { PICTOGRAM_LIBRARY_VERSION, hourlyConditionToPictogram, visualIconToPictogram } from "../../ui/pictogramLibrary";
 
 export interface WeeklyActivationCheck {
   id: string;
@@ -102,6 +103,60 @@ export function validateWeeklyActivation(
       && carousel.dailyHighlights.length === editorial.dailyHighlights.length
       && carousel.dailySummaries.every((day) => day.highlight === (highlightByDay.get(day.dayIndex)?.kind ?? null)),
     "optional_preferred_and_watch_markers_must_follow_selected_events"
+  ));
+  const editorialCardByKind = new Map(editorial.dailyCardDetails.map((card) => [card.kind, card]));
+  const carouselCardByKind = new Map(carousel.dailyCardDetails.map((card) => [card.kind, card]));
+  checks.push(check(
+    "weekly_daily_card_details",
+    editorial.dailyCardDetails.length === editorial.dailyHighlights.length
+      && carousel.dailyCardDetails.length === editorial.dailyCardDetails.length
+      && editorial.dailyCardDetails.every((card) => {
+        const summary = editorial.dailySummaries[card.dayIndex];
+        const highlight = highlightByDay.get(card.dayIndex);
+        return summary?.date === card.date
+          && card.scene.id === summary.scene.id
+          && card.weatherLabel === card.scene.displayTitle
+          && card.minTemperatureC === summary.minTemperatureC
+          && card.maxTemperatureC === summary.maxTemperatureC
+          && highlight?.kind === card.kind
+          && highlight.sourceEventId === card.sourceEventId
+          && highlight.sourceEventType === card.sourceEventType
+          && card.slots.length === WEEKLY_DAILY_CARD_HOURS.length
+          && card.slots.every((slot, index) =>
+            slot.hour === WEEKLY_DAILY_CARD_HOURS[index]
+            && Number.isInteger(slot.sourceHour)
+            && slot.sourceHour >= 0
+            && slot.sourceHour <= 23
+            && Number.isFinite(slot.temperatureC)
+          );
+      })
+      && editorial.dailyHighlights.every((highlight) => editorialCardByKind.get(highlight.kind)?.dayIndex === highlight.dayIndex)
+      && carousel.dailyCardDetails.every((card) => {
+        const editorialCard = editorialCardByKind.get(card.kind);
+        return editorialCard !== undefined
+          && card.dayIndex === editorialCard.dayIndex
+          && card.date === editorialCard.date
+          && card.sourceEventId === editorialCard.sourceEventId
+          && card.sourceEventType === editorialCard.sourceEventType
+          && card.weatherLabel === editorialCard.weatherLabel
+          && card.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY"
+          && card.pictogram.libraryVersion === PICTOGRAM_LIBRARY_VERSION
+          && card.pictogram.kind === visualIconToPictogram(card.scene.visualIcon)
+          && card.slots.length === editorialCard.slots.length
+          && card.slots.every((slot, index) => {
+            const source = editorialCard.slots[index];
+            return source !== undefined
+              && slot.hour === source.hour
+              && slot.sourceHour === source.sourceHour
+              && slot.temperatureC === source.temperatureC
+              && slot.condition === source.condition
+              && slot.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY"
+              && slot.pictogram.libraryVersion === PICTOGRAM_LIBRARY_VERSION
+              && slot.pictogram.kind === hourlyConditionToPictogram(slot.condition);
+          });
+      })
+      && carousel.dailyHighlights.every((highlight) => carouselCardByKind.get(highlight.kind)?.dayIndex === highlight.dayIndex),
+    "central_cards_must_reuse_daily_v24_and_hourly_pictogram_rules"
   ));
   checks.push(check(
     "scene_assets",

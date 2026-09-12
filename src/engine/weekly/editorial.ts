@@ -1,6 +1,8 @@
 import { scene24DisplayTitle } from "../scenes24/displayTitles";
 import { masterUrlForScene, scene24ById } from "../scenes24/registry";
-import type { Scene24Id, SceneDecisionV24, VisualIcon } from "../../types";
+import { conditionForHour } from "../verdict";
+import { hourOf } from "../math";
+import type { HourlyCondition, Scene24Id, SceneDecisionV24, VisualIcon } from "../../types";
 import type { WeeklyActivity, WeeklyActivityInsight } from "./activities";
 import type { SelectedWeeklyEvent, WeeklySelection } from "./selection";
 import type { WeeklyDayProfile, WeeklyProfileSet } from "./profiles";
@@ -71,6 +73,43 @@ export interface WeeklyDailyHighlight {
   sourceEventType: SelectedWeeklyEvent["type"];
 }
 
+/**
+ * The central weekly cards deliberately use the same four checkpoints as a
+ * compact daily reading. Their weather condition is produced by the daily
+ * engine's `conditionForHour` rule; the weekly layer never classifies sky
+ * conditions on its own.
+ */
+export const WEEKLY_DAILY_CARD_HOURS = [8, 12, 16, 20] as const;
+export type WeeklyDailyCardHour = typeof WEEKLY_DAILY_CARD_HOURS[number];
+
+export interface WeeklyDailyCardSlot {
+  /** Requested display checkpoint, in local forecast hours. */
+  hour: WeeklyDailyCardHour;
+  /** Actual consensus point selected with the daily renderer's nearest-hour rule. */
+  sourceHour: number;
+  temperatureC: number;
+  condition: HourlyCondition;
+}
+
+/**
+ * Read-only content for one future central card. It can only originate from
+ * a factual preferred/watch marker and the matching daily V24 decision.
+ * This step intentionally prepares data only: the overview renderer still
+ * leaves the central box empty until the card layout is introduced.
+ */
+export interface WeeklyDailyCardDetail {
+  kind: WeeklyDailyHighlightKind;
+  date: string;
+  dayIndex: number;
+  sourceEventId: string;
+  sourceEventType: SelectedWeeklyEvent["type"];
+  weatherLabel: string;
+  minTemperatureC: number;
+  maxTemperatureC: number;
+  scene: WeeklySceneReference;
+  slots: WeeklyDailyCardSlot[];
+}
+
 export interface WeeklyEditorial {
   version: "0.1.0";
   citySlug: string;
@@ -86,6 +125,8 @@ export interface WeeklyEditorial {
   dailySummaries: WeeklyDailySummary[];
   /** Zero, one or two factual markers derived from selected weekly events. */
   dailyHighlights: WeeklyDailyHighlight[];
+  /** Prepared central-card facts. They are not rendered during this data step. */
+  dailyCardDetails: WeeklyDailyCardDetail[];
   events: WeeklyEditorialEvent[];
   signature: "Ici, cette semaine.";
 }
@@ -335,6 +376,44 @@ function weeklyDailyHighlights(profiles: WeeklyProfileSet, selection: WeeklySele
   return highlights;
 }
 
+function nearestDisplayPoint(day: WeeklyDayProfile, hour: WeeklyDailyCardHour) {
+  const point = [...day.hours].sort((left, right) =>
+    Math.abs(hourOf(left.time) - hour) - Math.abs(hourOf(right.time) - hour)
+  )[0];
+  if (!point) throw new Error(`weekly_editorial_missing_daily_card_hour:${day.date}:${hour}`);
+  return point;
+}
+
+function weeklyDailyCardDetails(profiles: WeeklyProfileSet, highlights: WeeklyDailyHighlight[]): WeeklyDailyCardDetail[] {
+  return highlights.map((highlight) => {
+    const day = profiles.days.find((candidate) => candidate.dayIndex === highlight.dayIndex);
+    if (!day || day.date !== highlight.date) {
+      throw new Error(`weekly_editorial_unknown_daily_card_day:${highlight.kind}:${highlight.dayIndex}`);
+    }
+    const scene = sceneReference(day);
+    return {
+      kind: highlight.kind,
+      date: day.date,
+      dayIndex: day.dayIndex,
+      sourceEventId: highlight.sourceEventId,
+      sourceEventType: highlight.sourceEventType,
+      weatherLabel: scene.displayTitle,
+      minTemperatureC: day.fullDay.minTemperatureC,
+      maxTemperatureC: day.fullDay.maxTemperatureC,
+      scene,
+      slots: WEEKLY_DAILY_CARD_HOURS.map((hour) => {
+        const point = nearestDisplayPoint(day, hour);
+        return {
+          hour,
+          sourceHour: hourOf(point.time),
+          temperatureC: Math.round(point.temperatureC),
+          condition: conditionForHour(point)
+        };
+      })
+    };
+  });
+}
+
 export function buildWeeklyEditorial(
   profiles: WeeklyProfileSet,
   selection: WeeklySelection,
@@ -363,6 +442,7 @@ export function buildWeeklyEditorial(
     body: conclusion.body,
     scene: overviewScene
   };
+  const dailyHighlights = weeklyDailyHighlights(profiles, selection);
   return {
     version: "0.1.0",
     citySlug: profiles.citySlug,
@@ -371,7 +451,8 @@ export function buildWeeklyEditorial(
     status: selection.status,
     overview,
     dailySummaries: weeklyDailySummaries(profiles),
-    dailyHighlights: weeklyDailyHighlights(profiles, selection),
+    dailyHighlights,
+    dailyCardDetails: weeklyDailyCardDetails(profiles, dailyHighlights),
     events,
     signature: "Ici, cette semaine."
   };

@@ -1,5 +1,5 @@
-import type { WeeklyDailyHighlight, WeeklyDailyHighlightKind, WeeklyDailySummary, WeeklyEditorial, WeeklyEditorialEvent, WeeklySceneReference } from "./editorial";
-import { PICTOGRAM_LIBRARY_VERSION, PICTOGRAM_STYLE, visualIconToPictogram, weatherPictogramDataUrl } from "../../ui/pictogramLibrary";
+import type { WeeklyDailyCardDetail, WeeklyDailyCardSlot, WeeklyDailyHighlight, WeeklyDailyHighlightKind, WeeklyDailySummary, WeeklyEditorial, WeeklyEditorialEvent, WeeklySceneReference } from "./editorial";
+import { PICTOGRAM_LIBRARY_VERSION, PICTOGRAM_STYLE, hourlyConditionToPictogram, visualIconToPictogram, weatherPictogramDataUrl } from "../../ui/pictogramLibrary";
 import type { WeatherPictogramKind } from "../../ui/pictogramLibrary";
 import { LOKA_BRAND_VERSION, LOKA_CANVAS_FONT, LOKA_LOGO_DATA_URL, LOKA_SLOGAN_WEEKLY } from "../../ui/lokaBrand";
 
@@ -55,6 +55,18 @@ export interface WeeklyCarouselDailySummary extends WeeklyDailySummary {
   highlight: WeeklyDailyHighlightKind | null;
 }
 
+/** Official pictogram bindings for the central cards, prepared but not drawn yet. */
+export interface WeeklyCarouselDailyCardSlot extends WeeklyDailyCardSlot {
+  pictogram: WeeklyDailyPictogramReference;
+}
+
+export interface WeeklyCarouselDailyCardDetail extends Omit<WeeklyDailyCardDetail, "slots"> {
+  /** The main V24 pictogram uses the exact daily scene decision. */
+  pictogram: WeeklyDailyPictogramReference;
+  /** Each checkpoint reuses the daily hourly condition → pictogram mapping. */
+  slots: WeeklyCarouselDailyCardSlot[];
+}
+
 export interface WeeklyCarouselPlan {
   version: typeof WEEKLY_CAROUSEL_VERSION;
   citySlug: string;
@@ -75,6 +87,8 @@ export interface WeeklyCarouselPlan {
   dailySummaries: WeeklyCarouselDailySummary[];
   /** Editorial origins of the optional preferred/watch strip markers. */
   dailyHighlights: WeeklyDailyHighlight[];
+  /** Prepared content for the central preferred/watch cards; not rendered in this step. */
+  dailyCardDetails: WeeklyCarouselDailyCardDetail[];
   signature: WeeklyEditorial["signature"];
   width: typeof WEEKLY_CAROUSEL_WIDTH;
   height: typeof WEEKLY_CAROUSEL_HEIGHT;
@@ -141,6 +155,23 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
       highlight: highlightsByDay.get(day.dayIndex)?.kind ?? null
     })),
     dailyHighlights: editorial.dailyHighlights.map((highlight) => ({ ...highlight })),
+    dailyCardDetails: editorial.dailyCardDetails.map((card) => ({
+      ...card,
+      scene: { ...card.scene },
+      pictogram: {
+        source: "LOKA_OFFICIAL_PICTOGRAM_LIBRARY",
+        libraryVersion: PICTOGRAM_LIBRARY_VERSION,
+        kind: visualIconToPictogram(card.scene.visualIcon)
+      },
+      slots: card.slots.map((slot) => ({
+        ...slot,
+        pictogram: {
+          source: "LOKA_OFFICIAL_PICTOGRAM_LIBRARY",
+          libraryVersion: PICTOGRAM_LIBRARY_VERSION,
+          kind: hourlyConditionToPictogram(slot.condition)
+        }
+      }))
+    })),
     signature: editorial.signature,
     width: WEEKLY_CAROUSEL_WIDTH,
     height: WEEKLY_CAROUSEL_HEIGHT,
@@ -293,6 +324,15 @@ function browserModel(plan: WeeklyCarouselPlan): unknown {
     dailySummaries: plan.dailySummaries.map((day) => ({
       ...day,
       pictogram: { ...day.pictogram, url: weatherPictogramDataUrl(day.pictogram.kind) }
+    })),
+    dailyCardDetails: plan.dailyCardDetails.map((card) => ({
+      ...card,
+      scene: sceneForBrowser(card.scene),
+      pictogram: { ...card.pictogram, url: weatherPictogramDataUrl(card.pictogram.kind) },
+      slots: card.slots.map((slot) => ({
+        ...slot,
+        pictogram: { ...slot.pictogram, url: weatherPictogramDataUrl(slot.pictogram.kind) }
+      }))
     })),
     story: {
       ...plan.story,

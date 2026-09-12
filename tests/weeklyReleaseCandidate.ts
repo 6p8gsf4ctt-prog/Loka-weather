@@ -70,6 +70,7 @@ function editorial(count: number): WeeklyEditorial {
       scene: scene(nextDate(dayIndex), dayIndex)
     })),
     dailyHighlights: [],
+    dailyCardDetails: [],
     events,
     signature: "Ici, cette semaine."
   };

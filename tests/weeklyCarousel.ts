@@ -43,6 +43,38 @@ function dailySummaries(): WeeklyEditorial["dailySummaries"] {
   }));
 }
 
+function dailyCardDetails(
+  preferred: WeeklyEditorial["events"][number] | null,
+  watch: WeeklyEditorial["events"][number] | null
+): WeeklyEditorial["dailyCardDetails"] {
+  const card = (
+    kind: "PREFERRED" | "WATCH",
+    dayIndex: number,
+    sourceEvent: WeeklyEditorial["events"][number],
+    condition: "soleil" | "pluie"
+  ) => ({
+    kind,
+    date: dateAt(dayIndex),
+    dayIndex,
+    sourceEventId: sourceEvent.id,
+    sourceEventType: sourceEvent.type,
+    weatherLabel: scene.displayTitle,
+    minTemperatureC: 13 + dayIndex,
+    maxTemperatureC: 21 + dayIndex,
+    scene: { ...scene, date: dateAt(dayIndex), dayIndex },
+    slots: ([8, 12, 16, 20] as const).map((hour) => ({
+      hour,
+      sourceHour: hour,
+      temperatureC: 16 + dayIndex,
+      condition
+    }))
+  });
+  return [
+    ...(preferred ? [card("PREFERRED", 5, preferred, "soleil")] : []),
+    ...(watch ? [card("WATCH", 2, watch, "pluie")] : [])
+  ];
+}
+
 function editorial(events: WeeklyEditorial["events"]): WeeklyEditorial {
   const preferred = events.find((event) => event.type === "BEST_WINDOW") ?? null;
   const watch = events.find((event) => event.type === "WIND") ?? null;
@@ -62,6 +94,7 @@ function editorial(events: WeeklyEditorial["events"]): WeeklyEditorial {
       ...(preferred ? [{ kind: "PREFERRED" as const, dayIndex: 5, date: "2026-09-12", sourceEventId: preferred.id, sourceEventType: preferred.type }] : []),
       ...(watch ? [{ kind: "WATCH" as const, dayIndex: 2, date: "2026-09-09", sourceEventId: watch.id, sourceEventType: watch.type }] : [])
     ],
+    dailyCardDetails: dailyCardDetails(preferred, watch),
     events,
     signature: "Ici, cette semaine."
   };
@@ -111,6 +144,8 @@ ok(plan.dailySummaries.every((day) => day.scene.visualIcon === "partly" && day.p
 ok(plan.dailySummaries.map((day) => `${day.weekdayLabel} ${day.dayLabel}`).join(",") === "LUN 7,MAR 8,MER 9,JEU 10,VEN 11,SAM 12,DIM 13", "daily_strip_labels_are_monday_to_sunday_in_french");
 ok(plan.dailyHighlights.map((highlight) => `${highlight.kind}:${highlight.dayIndex}`).join(",") === "PREFERRED:5,WATCH:2", "carousel_plan_keeps_editorial_daily_highlights");
 ok(plan.dailySummaries.map((day) => day.highlight ?? "NONE").join(",") === "NONE,NONE,WATCH,NONE,NONE,PREFERRED,NONE", "carousel_plan_binds_highlights_to_their_days_only");
+ok(plan.dailyCardDetails.map((card) => `${card.kind}:${card.dayIndex}:${card.weatherLabel}`).join(",") === "PREFERRED:5:BELLES ÉCLAIRCIES,WATCH:2:BELLES ÉCLAIRCIES", "carousel_plan_prepares_preferred_and_watch_cards");
+ok(plan.dailyCardDetails.every((card) => card.pictogram.kind === "partly" && card.slots.map((slot) => slot.hour).join(",") === "8,12,16,20"), "central_cards_bind_v24_and_hourly_pictograms");
 ok(plan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "overview_uses_dedicated_weekly_master");
 ok(plan.slides.slice(1).every((slide) => slide.kind === "EVENT"), "event_slides_follow_overview");
 ok(plan.slides.slice(1).map((slide) => slide.eventId).join(",") === "wind:2026-09-09,best_window:2026-09-12", "one_slide_per_event");
@@ -154,10 +189,19 @@ ok(html.includes("SCÈNE V24 DU JOUR") && html.includes("Ici, cette semaine."), 
 ok(html.includes(WEEKLY_OVERVIEW_MASTER_URL), "renderer_embeds_weekly_overview_master");
 ok(html.includes('"dailySummaries"') && html.includes('"source":"DAILY_V24_DECISION"'), "renderer_embeds_daily_summaries_with_v24_provenance");
 const browserModelLine = html.match(/const model=(.*);\nconst plan=model;/)?.[1] ?? "";
-const renderedModel = browserModelLine ? JSON.parse(browserModelLine) as { dailySummaries: Array<{ weekdayLabel: string; dayLabel: string; pictogram: { source: string; libraryVersion: string; kind: string; url: string } }> } : null;
+const renderedModel = browserModelLine ? JSON.parse(browserModelLine) as {
+  dailySummaries: Array<{ weekdayLabel: string; dayLabel: string; pictogram: { source: string; libraryVersion: string; kind: string; url: string } }>;
+  dailyCardDetails: Array<{
+    kind: string;
+    pictogram: { kind: string; url: string };
+    slots: Array<{ hour: number; condition: string; pictogram: { kind: string; url: string } }>;
+  }>;
+} : null;
 ok(renderedModel?.dailySummaries.length === 7, "renderer_exposes_seven_daily_pictograms");
 ok(renderedModel?.dailySummaries.every((day) => day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY" && day.pictogram.libraryVersion === "LOKA_PREMIUM_1.2" && day.pictogram.kind === "partly" && day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")) === true, "renderer_uses_generated_official_loka_pictogram_urls");
 ok(renderedModel?.dailySummaries.map((day) => `${day.weekdayLabel} ${day.dayLabel}`).join(",") === "LUN 7,MAR 8,MER 9,JEU 10,VEN 11,SAM 12,DIM 13", "renderer_keeps_precomputed_french_day_labels");
+ok(renderedModel?.dailyCardDetails.map((card) => `${card.kind}:${card.pictogram.kind}:${card.slots.map((slot) => slot.hour).join("-")}`).join(",") === "PREFERRED:partly:8-12-16-20,WATCH:partly:8-12-16-20", "renderer_exposes_prepared_central_card_data_without_drawing_it");
+ok(renderedModel?.dailyCardDetails.every((card) => card.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,") && card.slots.every((slot) => slot.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,"))) === true, "renderer_embeds_official_loka_card_pictograms");
 const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1] ?? "";
 let scriptValid = true;
 try { new Function(script); } catch { scriptValid = false; }
@@ -176,4 +220,4 @@ ok(weeklyDayStripRenderer.includes("drawWeeklyDayHighlight(day.highlight") && we
 const drawSlideRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide(")) ?? "";
 ok(drawSlideRenderer.includes("weekly_pictogram_") && drawSlideRenderer.includes("day.pictogram.url") && drawSlideRenderer.includes("images.slice(2)"), "overview_loads_only_official_daily_loka_pictograms");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/55 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/59 PASS`);

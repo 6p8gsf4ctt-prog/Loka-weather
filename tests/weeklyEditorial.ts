@@ -102,6 +102,10 @@ ok(editorial.dailySummaries.length === 7 && editorial.dailySummaries.every((day,
 ok(editorial.dailySummaries.every((day, index) => day.date === profiles.days[index]?.date && day.minTemperatureC === profiles.days[index]?.fullDay.minTemperatureC && day.maxTemperatureC === profiles.days[index]?.fullDay.maxTemperatureC), "daily_summary_temperatures_reuse_profiles");
 ok(editorial.dailySummaries.every((day, index) => day.scene.id === profiles.days[index]?.sceneDecision.sceneId && day.scene.source === "DAILY_V24_DECISION"), "daily_summary_scenes_reuse_daily_v24_decisions");
 ok(editorial.dailyHighlights.map((highlight) => `${highlight.kind}:${highlight.dayIndex}:${highlight.sourceEventType}`).join(",") === "PREFERRED:0:BEST_WINDOW,WATCH:1:RAIN", "daily_highlights_follow_selected_best_and_rain_events");
+ok(editorial.dailyCardDetails.map((card) => `${card.kind}:${card.dayIndex}:${card.sourceEventType}`).join(",") === "PREFERRED:0:BEST_WINDOW,WATCH:1:RAIN", "daily_card_details_follow_factual_highlights");
+ok(editorial.dailyCardDetails.every((card) => card.weatherLabel === card.scene.displayTitle && card.minTemperatureC === profiles.days[card.dayIndex]?.fullDay.minTemperatureC && card.maxTemperatureC === profiles.days[card.dayIndex]?.fullDay.maxTemperatureC), "daily_card_temperatures_and_labels_reuse_daily_profile");
+ok(editorial.dailyCardDetails.every((card) => card.slots.map((slot) => slot.hour).join(",") === "8,12,16,20" && card.slots.every((slot) => slot.sourceHour === slot.hour)), "daily_card_uses_four_daily_engine_hourly_checkpoints");
+ok(editorial.dailyCardDetails[0]?.slots.every((slot) => slot.condition === "soleil") === true && editorial.dailyCardDetails[1]?.slots.every((slot) => slot.condition === "pluie") === true, "daily_card_conditions_reuse_daily_condition_rule");
 
 const unrelatedEventSelection: WeeklySelection = {
   ...selection,
@@ -117,5 +121,6 @@ ok(calmEditorial.overview.title === "Une semaine calme à Tarnos", "calm_overvie
 ok(calmEditorial.events.length === 0, "calm_has_no_event_cards");
 ok(calmEditorial.overview.scene.id >= 1 && calmEditorial.overview.scene.id <= 24, "calm_has_v24_scene");
 ok(calmEditorial.dailyHighlights.length === 0, "calm_week_has_no_artificial_daily_highlights");
+ok(calmEditorial.dailyCardDetails.length === 0, "calm_week_has_no_artificial_daily_cards");
 
-console.log(`WEEKLY_EDITORIAL ${passed}/23 PASS`);
+console.log(`WEEKLY_EDITORIAL ${passed}/28 PASS`);
