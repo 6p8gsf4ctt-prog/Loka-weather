@@ -146,6 +146,7 @@ ok(plan.dailyHighlights.map((highlight) => `${highlight.kind}:${highlight.dayInd
 ok(plan.dailySummaries.map((day) => day.highlight ?? "NONE").join(",") === "NONE,NONE,WATCH,NONE,NONE,PREFERRED,NONE", "carousel_plan_binds_highlights_to_their_days_only");
 ok(plan.dailyCardDetails.map((card) => `${card.kind}:${card.dayIndex}:${card.weatherLabel}`).join(",") === "PREFERRED:5:BELLES ÉCLAIRCIES,WATCH:2:BELLES ÉCLAIRCIES", "carousel_plan_prepares_preferred_and_watch_cards");
 ok(plan.dailyCardDetails.every((card) => card.pictogram.kind === "partly" && card.slots.map((slot) => slot.hour).join(",") === "8,12,16,20"), "central_cards_bind_v24_and_hourly_pictograms");
+ok(plan.dailyCardDetails.map((card) => `${card.weekdayLabel}. ${card.dayLabel}`).join(",") === "SAM. 12,MER. 9", "central_cards_receive_precomputed_french_date_labels");
 ok(plan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "overview_uses_dedicated_weekly_master");
 ok(plan.slides.slice(1).every((slide) => slide.kind === "EVENT"), "event_slides_follow_overview");
 ok(plan.slides.slice(1).map((slide) => slide.eventId).join(",") === "wind:2026-09-09,best_window:2026-09-12", "one_slide_per_event");
@@ -193,6 +194,8 @@ const renderedModel = browserModelLine ? JSON.parse(browserModelLine) as {
   dailySummaries: Array<{ weekdayLabel: string; dayLabel: string; pictogram: { source: string; libraryVersion: string; kind: string; url: string } }>;
   dailyCardDetails: Array<{
     kind: string;
+    weekdayLabel: string;
+    dayLabel: string;
     pictogram: { kind: string; url: string };
     slots: Array<{ hour: number; condition: string; pictogram: { kind: string; url: string } }>;
   }>;
@@ -200,7 +203,7 @@ const renderedModel = browserModelLine ? JSON.parse(browserModelLine) as {
 ok(renderedModel?.dailySummaries.length === 7, "renderer_exposes_seven_daily_pictograms");
 ok(renderedModel?.dailySummaries.every((day) => day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY" && day.pictogram.libraryVersion === "LOKA_PREMIUM_1.2" && day.pictogram.kind === "partly" && day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")) === true, "renderer_uses_generated_official_loka_pictogram_urls");
 ok(renderedModel?.dailySummaries.map((day) => `${day.weekdayLabel} ${day.dayLabel}`).join(",") === "LUN 7,MAR 8,MER 9,JEU 10,VEN 11,SAM 12,DIM 13", "renderer_keeps_precomputed_french_day_labels");
-ok(renderedModel?.dailyCardDetails.map((card) => `${card.kind}:${card.pictogram.kind}:${card.slots.map((slot) => slot.hour).join("-")}`).join(",") === "PREFERRED:partly:8-12-16-20,WATCH:partly:8-12-16-20", "renderer_exposes_prepared_central_card_data_without_drawing_it");
+ok(renderedModel?.dailyCardDetails.map((card) => `${card.kind}:${card.weekdayLabel}.${card.dayLabel}:${card.pictogram.kind}:${card.slots.map((slot) => slot.hour).join("-")}`).join(",") === "PREFERRED:SAM.12:partly:8-12-16-20,WATCH:MER.9:partly:8-12-16-20", "renderer_exposes_prepared_central_card_data");
 ok(renderedModel?.dailyCardDetails.every((card) => card.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,") && card.slots.every((slot) => slot.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,"))) === true, "renderer_embeds_official_loka_card_pictograms");
 const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1] ?? "";
 let scriptValid = true;
@@ -211,13 +214,16 @@ const overviewRenderer = script.split("\n").find((line) => line.startsWith("func
 const overviewTitleRenderer = script.split("\n").find((line) => line.startsWith("function drawOverviewTitle(")) ?? "";
 const weeklyDayStripRenderer = script.split("\n").find((line) => line.startsWith("function drawWeeklyDayStrip(")) ?? "";
 const weeklyDayHighlightRenderer = script.split("\n").find((line) => line.startsWith("function drawWeeklyDayHighlight(")) ?? "";
-ok(overviewRenderer.includes("box(50,160,980,150);drawOverviewTitle(plan.overviewTitle);box(50,336,980,700);box(50,1060,980,190);drawWeeklyDayStrip(plan.dailySummaries,dailyIcons)"), "overview_keeps_three_daily_layout_boxes");
+const preferredCardRenderer = script.split("\n").find((line) => line.startsWith("function drawPreferredCard(")) ?? "";
+ok(overviewRenderer.includes("box(50,160,980,150);drawOverviewTitle(plan.overviewTitle);box(50,336,980,700);if(preferredCard)drawPreferredCard") && overviewRenderer.includes("box(50,1060,980,190);drawWeeklyDayStrip(plan.dailySummaries,dailyIcons)"), "overview_keeps_three_daily_layout_boxes");
 ok(!overviewRenderer.includes("slide.scene.displayTitle") && !overviewRenderer.includes("plan.slides.slice(1)"), "overview_removes_old_scene_and_event_content");
 ok(overviewRenderer.includes("drawOverviewTitle(plan.overviewTitle)") && overviewTitleRenderer.includes("content.title") && overviewTitleRenderer.includes("content.subtitle") && overviewTitleRenderer.includes("ctx.strokeStyle=gold"), "overview_draws_automatic_title_box_content");
 ok(overviewRenderer.includes("drawSignature(1304,'rgba(255,255,255,.94)')"), "overview_signature_uses_soft_white_on_dark_lower_master");
 ok(weeklyDayStripRenderer.includes("days.forEach") && weeklyDayStripRenderer.includes("drawImageCentered(icon") && weeklyDayStripRenderer.includes("Math.round(day.minTemperatureC)") && weeklyDayStripRenderer.includes("Math.round(day.maxTemperatureC)"), "overview_draws_seven_loka_daily_columns");
 ok(weeklyDayStripRenderer.includes("drawWeeklyDayHighlight(day.highlight") && weeklyDayHighlightRenderer.includes("kind==='PREFERRED'") && weeklyDayHighlightRenderer.includes("preferred?gold:ink"), "overview_draws_gold_and_ink_editorial_highlights_only_when_present");
 const drawSlideRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide(")) ?? "";
-ok(drawSlideRenderer.includes("weekly_pictogram_") && drawSlideRenderer.includes("day.pictogram.url") && drawSlideRenderer.includes("images.slice(2)"), "overview_loads_only_official_daily_loka_pictograms");
+ok(preferredCardRenderer.includes("LE JOUR À PRIVILÉGIER") && preferredCardRenderer.includes("card.weatherLabel") && preferredCardRenderer.includes("card.minTemperatureC") && preferredCardRenderer.includes("card.maxTemperatureC") && preferredCardRenderer.includes("card.slots.forEach"), "overview_draws_preferred_card_with_daily_v24_facts");
+ok(preferredCardRenderer.includes("drawImageCentered(mainIcon") && preferredCardRenderer.includes("drawImageCentered(icon") && preferredCardRenderer.includes("card.weekdayLabel+'. '+card.dayLabel"), "overview_draws_official_loka_main_and_hourly_pictograms");
+ok(drawSlideRenderer.includes("weekly_pictogram_") && drawSlideRenderer.includes("central_preferred_main_") && drawSlideRenderer.includes("card.kind==='PREFERRED'") && drawSlideRenderer.includes("central_preferred_hour_") && drawSlideRenderer.includes("images.slice(2,iconOffset)"), "overview_loads_only_preferred_loka_card_pictograms_in_this_step");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/59 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/62 PASS`);
