@@ -67,6 +67,14 @@ export function validateWeeklyActivation(
   checks.push(check("story_dimensions", carousel.story.width === 1080 && carousel.story.height === 1920, "1080x1920"));
   checks.push(check("story_relay", carousel.story.relay.kind === "RELAY" && carousel.story.relay.source === "CAROUSEL" && carousel.story.relay.cta.length > 0, "relay_only_story"));
   checks.push(check(
+    "weekly_daily_summaries",
+    editorial.dailySummaries.length === 7
+      && carousel.dailySummaries.length === 7
+      && editorial.dailySummaries.every((day, index) => day.dayIndex === index && Number.isFinite(day.minTemperatureC) && Number.isFinite(day.maxTemperatureC) && isValidDailyV24Scene(day.scene))
+      && carousel.dailySummaries.every((day, index) => day.dayIndex === index && day.date === editorial.dailySummaries[index]?.date && day.scene.id === editorial.dailySummaries[index]?.scene.id),
+    "seven_ordered_daily_v24_summaries"
+  ));
+  checks.push(check(
     "scene_assets",
     [editorial.overview.scene, ...carousel.slides.map((slide) => slide.scene)].every((scene) => scene.masterUrl.startsWith("/masters24/")),
     "v24_master_assets"

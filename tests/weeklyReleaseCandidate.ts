@@ -62,6 +62,13 @@ function editorial(count: number): WeeklyEditorial {
       body: count ? "La semaine sera marquée par un épisode venteux." : "La semaine restera stable.",
       scene: scene("2026-09-07", 0)
     },
+    dailySummaries: Array.from({ length: 7 }, (_, dayIndex) => ({
+      date: nextDate(dayIndex),
+      dayIndex,
+      minTemperatureC: 12 + dayIndex,
+      maxTemperatureC: 20 + dayIndex,
+      scene: scene(nextDate(dayIndex), dayIndex)
+    })),
     events,
     signature: "Ici, cette semaine."
   };

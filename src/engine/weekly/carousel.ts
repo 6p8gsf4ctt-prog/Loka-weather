@@ -1,4 +1,4 @@
-import type { WeeklyEditorial, WeeklyEditorialEvent, WeeklySceneReference } from "./editorial";
+import type { WeeklyDailySummary, WeeklyEditorial, WeeklyEditorialEvent, WeeklySceneReference } from "./editorial";
 import { PICTOGRAM_LIBRARY_VERSION, PICTOGRAM_STYLE, visualIconToPictogram, weatherPictogramDataUrl } from "../../ui/pictogramLibrary";
 import { LOKA_BRAND_VERSION, LOKA_CANVAS_FONT, LOKA_LOGO_DATA_URL, LOKA_SLOGAN_WEEKLY } from "../../ui/lokaBrand";
 
@@ -54,6 +54,8 @@ export interface WeeklyCarouselPlan {
     title: string;
     subtitle: string;
   };
+  /** Seven daily V24 references reserved for the lower overview box. */
+  dailySummaries: WeeklyDailySummary[];
   signature: WeeklyEditorial["signature"];
   width: typeof WEEKLY_CAROUSEL_WIDTH;
   height: typeof WEEKLY_CAROUSEL_HEIGHT;
@@ -107,6 +109,7 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
     endDate: editorial.endDate,
     headerDateLabel: weeklyHeaderDateLabel(editorial.startDate, editorial.endDate),
     overviewTitle: overviewTitleContent(editorial),
+    dailySummaries: editorial.dailySummaries.map((day) => ({ ...day, scene: { ...day.scene } })),
     signature: editorial.signature,
     width: WEEKLY_CAROUSEL_WIDTH,
     height: WEEKLY_CAROUSEL_HEIGHT,
@@ -243,6 +246,7 @@ function browserModel(plan: WeeklyCarouselPlan): unknown {
       gold: PICTOGRAM_STYLE.gold
     },
     slides: plan.slides.map((slide) => ({ ...slide, scene: sceneForBrowser(slide.scene) })),
+    dailySummaries: plan.dailySummaries.map((day) => ({ ...day, scene: sceneForBrowser(day.scene) })),
     story: {
       ...plan.story,
       relay: { ...plan.story.relay, scene: sceneForBrowser(plan.story.relay.scene) }

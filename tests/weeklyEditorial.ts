@@ -98,6 +98,9 @@ ok(editorial.events.every((item) => !/undefined|null|NaN/.test(`${item.title} ${
 ok(editorial.events.every((item) => item.activities.length === 3 && item.activities.every((activity) => activity.text.length > 0)), "activity_texts_attached");
 ok(editorial.events.find((item) => item.type === "RAIN")?.body.includes("15,4 mm") === true, "french_decimal_format");
 ok(editorial.signature === "Ici, cette semaine.", "weekly_signature");
+ok(editorial.dailySummaries.length === 7 && editorial.dailySummaries.every((day, index) => day.dayIndex === index), "seven_ordered_daily_summaries");
+ok(editorial.dailySummaries.every((day, index) => day.date === profiles.days[index]?.date && day.minTemperatureC === profiles.days[index]?.fullDay.minTemperatureC && day.maxTemperatureC === profiles.days[index]?.fullDay.maxTemperatureC), "daily_summary_temperatures_reuse_profiles");
+ok(editorial.dailySummaries.every((day, index) => day.scene.id === profiles.days[index]?.sceneDecision.sceneId && day.scene.source === "DAILY_V24_DECISION"), "daily_summary_scenes_reuse_daily_v24_decisions");
 
 const unrelatedEventSelection: WeeklySelection = {
   ...selection,
@@ -113,4 +116,4 @@ ok(calmEditorial.overview.title === "Une semaine calme à Tarnos", "calm_overvie
 ok(calmEditorial.events.length === 0, "calm_has_no_event_cards");
 ok(calmEditorial.overview.scene.id >= 1 && calmEditorial.overview.scene.id <= 24, "calm_has_v24_scene");
 
-console.log(`WEEKLY_EDITORIAL ${passed}/18 PASS`);
+console.log(`WEEKLY_EDITORIAL ${passed}/21 PASS`);

@@ -27,6 +27,22 @@ const scene: WeeklySceneReference = {
   resolutionMode: "DIRECT"
 };
 
+function dateAt(dayIndex: number): string {
+  const date = new Date("2026-09-07T12:00:00Z");
+  date.setUTCDate(date.getUTCDate() + dayIndex);
+  return date.toISOString().slice(0, 10);
+}
+
+function dailySummaries(): WeeklyEditorial["dailySummaries"] {
+  return Array.from({ length: 7 }, (_, dayIndex) => ({
+    date: dateAt(dayIndex),
+    dayIndex,
+    minTemperatureC: 13 + dayIndex,
+    maxTemperatureC: 21 + dayIndex,
+    scene: { ...scene, date: dateAt(dayIndex), dayIndex }
+  }));
+}
+
 function editorial(events: WeeklyEditorial["events"]): WeeklyEditorial {
   return {
     version: "0.1.0",
@@ -39,6 +55,7 @@ function editorial(events: WeeklyEditorial["events"]): WeeklyEditorial {
       body: events.length ? `${events.length} temps forts météo méritent d’être suivis cette semaine.` : "Aucun changement météo suffisamment marqué n’est retenu pour cette semaine à Tarnos.",
       scene
     },
+    dailySummaries: dailySummaries(),
     events,
     signature: "Ici, cette semaine."
   };
@@ -79,6 +96,10 @@ const plan = buildWeeklyCarouselPlan(editorial(events));
 ok(plan.slides.length === 3, "two_events_make_three_slides");
 ok(plan.slides[0].kind === "OVERVIEW" && plan.slides[0].eventId === null, "overview_is_first");
 ok(plan.headerDateLabel === "LUNDI 7 AU DIMANCHE 13 SEPTEMBRE", "weekly_header_date_uses_single_month_label");
+ok(plan.overviewTitle.title === "LA SEMAINE À TARNOS", "overview_title_uses_city_name");
+ok(plan.overviewTitle.subtitle === "Le jour à privilégier · Le jour à surveiller", "overview_title_uses_weekly_editorial_guide");
+ok(plan.dailySummaries.length === 7 && plan.dailySummaries.every((day, index) => day.dayIndex === index), "carousel_plan_keeps_seven_daily_summaries");
+ok(plan.dailySummaries.every((day, index) => day.scene.id === editorial(events).dailySummaries[index]?.scene.id), "carousel_plan_keeps_daily_v24_scene_identity");
 ok(plan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "overview_uses_dedicated_weekly_master");
 ok(plan.slides.slice(1).every((slide) => slide.kind === "EVENT"), "event_slides_follow_overview");
 ok(plan.slides.slice(1).map((slide) => slide.eventId).join(",") === "wind:2026-09-09,best_window:2026-09-12", "one_slide_per_event");
@@ -95,6 +116,7 @@ ok(plan.slides[1].activities.length === 3, "activities_are_attached_to_event_sli
 const calmPlan = buildWeeklyCarouselPlan(editorial([]));
 ok(calmPlan.slides.length === 1, "calm_week_has_one_slide");
 ok(calmPlan.slides[0].kind === "OVERVIEW" && calmPlan.slides[0].title === "Une semaine calme à Tarnos", "calm_week_uses_short_overview");
+ok(calmPlan.overviewTitle.subtitle === "Une semaine calme · Les repères essentiels", "calm_week_title_stays_factually_calm");
 ok(calmPlan.story.relay.source === "CAROUSEL" && calmPlan.story.relay.body.includes("publication"), "calm_story_relays_publication");
 ok(calmPlan.story.relay.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "story_relay_uses_weekly_overview_master");
 
@@ -119,15 +141,18 @@ ok(html.includes("data:image/png;base64,"), "renderer_embeds_shared_loka_logo");
 ok(html.includes("pictogramUrl") && html.includes("LOKA_PREMIUM_1.2"), "renderer_reuses_brand_pictograms");
 ok(html.includes("SCÈNE V24 DU JOUR") && html.includes("Ici, cette semaine."), "renderer_explains_scene_context_and_signature");
 ok(html.includes(WEEKLY_OVERVIEW_MASTER_URL), "renderer_embeds_weekly_overview_master");
+ok(html.includes('"dailySummaries"') && html.includes('"source":"DAILY_V24_DECISION"'), "renderer_embeds_daily_summaries_with_v24_provenance");
 const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1] ?? "";
 let scriptValid = true;
 try { new Function(script); } catch { scriptValid = false; }
 ok(scriptValid, "renderer_browser_script_is_valid");
 
 const overviewRenderer = script.split("\n").find((line) => line.startsWith("function drawOverview(")) ?? "";
-ok(overviewRenderer.includes("box(50,160,980,150);box(50,336,980,700);box(50,1060,980,190)"), "overview_uses_three_empty_daily_layout_boxes");
+const overviewTitleRenderer = script.split("\n").find((line) => line.startsWith("function drawOverviewTitle(")) ?? "";
+ok(overviewRenderer.includes("box(50,160,980,150);drawOverviewTitle(plan.overviewTitle);box(50,336,980,700);box(50,1060,980,190)"), "overview_keeps_three_daily_layout_boxes");
 ok(!overviewRenderer.includes("slide.scene.displayTitle") && !overviewRenderer.includes("plan.slides.slice(1)"), "overview_removes_old_scene_and_event_content");
+ok(overviewRenderer.includes("drawOverviewTitle(plan.overviewTitle)") && overviewTitleRenderer.includes("content.title") && overviewTitleRenderer.includes("content.subtitle") && overviewTitleRenderer.includes("ctx.strokeStyle=gold"), "overview_draws_automatic_title_box_content");
 const drawSlideRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide(")) ?? "";
 ok(drawSlideRenderer.includes("if(slide.kind==='OVERVIEW')return Promise.all(base)"), "overview_does_not_load_old_pictogram_content");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/37 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/44 PASS`);

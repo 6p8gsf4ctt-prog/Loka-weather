@@ -44,6 +44,19 @@ export interface WeeklyEditorialEvent {
   scene: WeeklySceneReference;
 }
 
+/**
+ * A compact, read-only reference to one of the seven daily V24 decisions.
+ * It is the only source of data for the lower weekly strip; the renderer must
+ * never independently classify a day or choose another pictogram.
+ */
+export interface WeeklyDailySummary {
+  date: string;
+  dayIndex: number;
+  minTemperatureC: number;
+  maxTemperatureC: number;
+  scene: WeeklySceneReference;
+}
+
 export interface WeeklyEditorial {
   version: "0.1.0";
   citySlug: string;
@@ -55,6 +68,8 @@ export interface WeeklyEditorial {
     body: string;
     scene: WeeklySceneReference;
   };
+  /** Monday to Sunday, derived directly from the seven daily V24 profiles. */
+  dailySummaries: WeeklyDailySummary[];
   events: WeeklyEditorialEvent[];
   signature: "Ici, cette semaine.";
 }
@@ -237,6 +252,20 @@ function calmOverview(profiles: WeeklyProfileSet): WeeklySceneReference {
   return sceneReference(day);
 }
 
+function weeklyDailySummaries(profiles: WeeklyProfileSet): WeeklyDailySummary[] {
+  const days = [...profiles.days].sort((left, right) => left.dayIndex - right.dayIndex);
+  if (days.length !== 7 || days.some((day, index) => day.dayIndex !== index)) {
+    throw new Error(`weekly_editorial_requires_ordered_7_day_summaries:${days.length}`);
+  }
+  return days.map((day) => ({
+    date: day.date,
+    dayIndex: day.dayIndex,
+    minTemperatureC: day.fullDay.minTemperatureC,
+    maxTemperatureC: day.fullDay.maxTemperatureC,
+    scene: sceneReference(day)
+  }));
+}
+
 export function buildWeeklyEditorial(
   profiles: WeeklyProfileSet,
   selection: WeeklySelection,
@@ -272,6 +301,7 @@ export function buildWeeklyEditorial(
     endDate: profiles.endDate,
     status: selection.status,
     overview,
+    dailySummaries: weeklyDailySummaries(profiles),
     events,
     signature: "Ici, cette semaine."
   };

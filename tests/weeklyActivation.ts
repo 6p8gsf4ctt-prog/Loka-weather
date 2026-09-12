@@ -27,6 +27,20 @@ const scene: WeeklySceneReference = {
   resolutionMode: "DIRECT"
 };
 
+function dailySummaries(): WeeklyEditorial["dailySummaries"] {
+  return Array.from({ length: 7 }, (_, dayIndex) => {
+    const date = new Date("2026-09-07T12:00:00Z");
+    date.setUTCDate(date.getUTCDate() + dayIndex);
+    return {
+      date: date.toISOString().slice(0, 10),
+      dayIndex,
+      minTemperatureC: 12 + dayIndex,
+      maxTemperatureC: 20 + dayIndex,
+      scene: { ...scene, date: date.toISOString().slice(0, 10), dayIndex }
+    };
+  });
+}
+
 const base: WeeklyEditorial = {
   version: "0.1.0",
   citySlug: "tarnos",
@@ -34,6 +48,7 @@ const base: WeeklyEditorial = {
   endDate: "2026-09-13",
   status: "CALM",
   overview: { title: "Une semaine calme à Tarnos", body: "Semaine stable.", scene },
+  dailySummaries: dailySummaries(),
   events: [],
   signature: "Ici, cette semaine."
 };
@@ -44,6 +59,7 @@ ok(calmValidation.ok && calmValidation.status === "READY", "valid_calm_publicati
 ok(calmValidation.checks.every((check) => check.ok), "all_calm_checks_pass");
 ok(calmPlan.slides.length === 1, "calm_plan_has_one_slide");
 ok(calmPlan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "weekly_overview_background_is_bound");
+ok(calmValidation.checks.find((check) => check.id === "weekly_daily_summaries")?.ok === true, "daily_summaries_are_ready");
 
 const badCount = validateWeeklyActivation(base, { ...calmPlan, slides: [] });
 ok(!badCount.ok && badCount.status === "BLOCKED", "slide_count_blocks_activation");
@@ -68,6 +84,9 @@ ok(!tooManyValidation.checks.find((check) => check.id === "publication_limit")?.
 
 const badDate = validateWeeklyActivation({ ...base, endDate: "2026-09-12" }, calmPlan);
 ok(!badDate.checks.find((check) => check.id === "monday_to_sunday")?.ok, "monday_to_sunday_blocks_bad_range");
+
+const badDailySummaries = validateWeeklyActivation({ ...base, dailySummaries: base.dailySummaries.slice(0, 6) }, calmPlan);
+ok(!badDailySummaries.checks.find((check) => check.id === "weekly_daily_summaries")?.ok, "daily_summary_guard_requires_seven_days");
 
 const badScene = validateWeeklyActivation(base, {
   ...calmPlan,
@@ -116,4 +135,4 @@ const badMapping = validateWeeklyActivation(eventEditorial, {
 });
 ok(!badMapping.checks.find((check) => check.id === "event_mapping")?.ok, "event_mapping_guard");
 
-console.log(`WEEKLY_ACTIVATION ${passed}/16 PASS`);
+console.log(`WEEKLY_ACTIVATION ${passed}/18 PASS`);
