@@ -147,6 +147,8 @@ ok(plan.dailySummaries.map((day) => day.highlight ?? "NONE").join(",") === "NONE
 ok(plan.dailyCardDetails.map((card) => `${card.kind}:${card.dayIndex}:${card.weatherLabel}`).join(",") === "PREFERRED:5:BELLES ÉCLAIRCIES,WATCH:2:BELLES ÉCLAIRCIES", "carousel_plan_prepares_preferred_and_watch_cards");
 ok(plan.dailyCardDetails.every((card) => card.pictogram.kind === "partly" && card.slots.map((slot) => slot.hour).join(",") === "8,12,16,20"), "central_cards_bind_v24_and_hourly_pictograms");
 ok(plan.dailyCardDetails.map((card) => `${card.weekdayLabel}. ${card.dayLabel}`).join(",") === "SAM. 12,MER. 9", "central_cards_receive_precomputed_french_date_labels");
+ok(buildWeeklyCarouselPlan(editorial([events[1]])).overviewTitle.subtitle === "Le jour à privilégier", "single_preferred_card_uses_accurate_title_guide");
+ok(buildWeeklyCarouselPlan(editorial([events[0]])).overviewTitle.subtitle === "Le jour à surveiller", "single_watch_card_uses_accurate_title_guide");
 ok(plan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "overview_uses_dedicated_weekly_master");
 ok(plan.slides.slice(1).every((slide) => slide.kind === "EVENT"), "event_slides_follow_overview");
 ok(plan.slides.slice(1).map((slide) => slide.eventId).join(",") === "wind:2026-09-09,best_window:2026-09-12", "one_slide_per_event");
@@ -216,7 +218,9 @@ const weeklyDayStripRenderer = script.split("\n").find((line) => line.startsWith
 const weeklyDayHighlightRenderer = script.split("\n").find((line) => line.startsWith("function drawWeeklyDayHighlight(")) ?? "";
 const preferredCardRenderer = script.split("\n").find((line) => line.startsWith("function drawPreferredCard(")) ?? "";
 const watchCardRenderer = script.split("\n").find((line) => line.startsWith("function drawWatchCard(")) ?? "";
-ok(overviewRenderer.includes("box(50,160,980,150);drawOverviewTitle(plan.overviewTitle);box(50,336,980,700);if(preferredCard)drawPreferredCard") && overviewRenderer.includes("if(watchCard)drawWatchCard") && overviewRenderer.includes("box(50,1060,980,190);drawWeeklyDayStrip(plan.dailySummaries,dailyIcons)"), "overview_keeps_three_daily_layout_boxes");
+const featuredCardRenderer = script.split("\n").find((line) => line.startsWith("function drawFeaturedDayCard(")) ?? "";
+const summaryCardRenderer = script.split("\n").find((line) => line.startsWith("function drawSummaryCard(")) ?? "";
+ok(overviewRenderer.includes("box(50,160,980,150);drawOverviewTitle(plan.overviewTitle);box(50,336,980,700);if(preferredCard&&watchCard)") && overviewRenderer.includes("else if(preferredCard)drawFeaturedDayCard") && overviewRenderer.includes("else if(watchCard)drawFeaturedDayCard") && overviewRenderer.includes("else drawSummaryCard(slide)") && overviewRenderer.includes("box(50,1060,980,190);drawWeeklyDayStrip(plan.dailySummaries,dailyIcons)"), "overview_keeps_three_daily_layout_boxes");
 ok(!overviewRenderer.includes("slide.scene.displayTitle") && !overviewRenderer.includes("plan.slides.slice(1)"), "overview_removes_old_scene_and_event_content");
 ok(overviewRenderer.includes("drawOverviewTitle(plan.overviewTitle)") && overviewTitleRenderer.includes("content.title") && overviewTitleRenderer.includes("content.subtitle") && overviewTitleRenderer.includes("ctx.strokeStyle=gold"), "overview_draws_automatic_title_box_content");
 ok(overviewRenderer.includes("drawSignature(1304,'rgba(255,255,255,.94)')"), "overview_signature_uses_soft_white_on_dark_lower_master");
@@ -227,6 +231,8 @@ ok(preferredCardRenderer.includes("LE JOUR À PRIVILÉGIER") && preferredCardRen
 ok(preferredCardRenderer.includes("const slotsLeft=x+40,columnWidth=(w-80)/card.slots.length") && preferredCardRenderer.includes("centerX=slotsLeft+columnWidth*(index+.5)") && preferredCardRenderer.includes("drawImageCentered(icon,centerX-22") && preferredCardRenderer.includes("centerX+columnWidth/2") && preferredCardRenderer.includes("card.weekdayLabel+'. '+card.dayLabel"), "overview_centers_preferred_hourly_grid_and_groups");
 ok(watchCardRenderer.includes("LE JOUR À SURVEILLER") && watchCardRenderer.includes("ctx.fillStyle=ink") && watchCardRenderer.includes("'#FFFFFF'") && watchCardRenderer.includes("card.weatherLabel") && watchCardRenderer.includes("card.slots.forEach"), "overview_draws_watch_card_with_distinct_vigilance_badge");
 ok(watchCardRenderer.includes("const slotsLeft=x+40,columnWidth=(w-80)/card.slots.length") && watchCardRenderer.includes("centerX=slotsLeft+columnWidth*(index+.5)") && watchCardRenderer.includes("drawImageCentered(icon,centerX-22") && watchCardRenderer.includes("centerX+columnWidth/2") && watchCardRenderer.includes("const x=74,y=704") && watchCardRenderer.includes("card.weekdayLabel+'. '+card.dayLabel"), "overview_centers_watch_hourly_grid_and_groups");
+ok(featuredCardRenderer.includes("const x=74,y=360,w=932,h=664") && featuredCardRenderer.includes("kind==='PREFERRED'") && featuredCardRenderer.includes("LE JOUR À SURVEILLER") && featuredCardRenderer.includes("card.slots.forEach"), "overview_enlarges_the_only_factual_daily_card");
+ok(summaryCardRenderer.includes("plan.status==='CALM'") && summaryCardRenderer.includes("UNE SEMAINE CALME") && summaryCardRenderer.includes("wrap(slide.body"), "overview_uses_existing_editorial_copy_when_no_daily_card_exists");
 ok(drawSlideRenderer.includes("weekly_pictogram_") && drawSlideRenderer.includes("central_preferred_main_") && drawSlideRenderer.includes("card.kind==='PREFERRED'") && drawSlideRenderer.includes("central_preferred_hour_") && drawSlideRenderer.includes("central_watch_main_") && drawSlideRenderer.includes("card.kind==='WATCH'") && drawSlideRenderer.includes("central_watch_hour_") && drawSlideRenderer.includes("images.slice(dailyIconOffset,preferredIconOffset)"), "overview_loads_preferred_and_watch_loka_card_pictograms_conditionally");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/64 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/68 PASS`);
