@@ -1,6 +1,6 @@
 import worker from "../src/index";
 import { localDateIsMonday, nextMondayOrSame, weeklyRangeForDate } from "../src/engine/weekly";
-import { generateWeeklyCity } from "../src/weeklyPipeline";
+import { generateWeeklyCalmVisualPreview, generateWeeklyCity } from "../src/weeklyPipeline";
 import { CITIES } from "../src/config/cities";
 import type { Env } from "../src/types";
 
@@ -38,6 +38,14 @@ async function main(): Promise<void> {
     body: "token=wrong"
   }), disabledEnv);
   ok(invalidPreview.status === 401, "visual_preview_requires_token");
+  const calmPreview = generateWeeklyCalmVisualPreview(CITIES.tarnos, new Date("2026-09-05T08:00:00.000Z"));
+  ok(calmPreview.editorial.status === "CALM" && calmPreview.editorial.events.length === 0 && calmPreview.source === "admin_weekly_calm_visual_preview", "calm_visual_preview_uses_weekly_engine_without_live_data");
+  const calmPreviewPage = await worker.fetch(new Request("https://loka.test/weekly-preview", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: "token=secret&mode=CALM_DEMO&start=2026-09-07"
+  }), disabledEnv);
+  ok(calmPreviewPage.status === 200 && (await calmPreviewPage.text()).includes("UNE SEMAINE CALME"), "calm_visual_preview_renders_short_weekly_summary");
   const unauthorized = await worker.fetch(new Request("https://loka.test/api/admin/weekly/run?city=tarnos", { method: "POST" }), disabledEnv);
   ok(unauthorized.status === 401, "manual_weekly_requires_authentication");
   const adminDisabled = await worker.fetch(new Request("https://loka.test/api/admin/weekly/run?city=tarnos", {
@@ -50,7 +58,7 @@ async function main(): Promise<void> {
     .then(() => { throw new Error("WEEKLY_OPERATIONS_FAIL:non_monday_generation_allowed"); })
     .catch((error: unknown) => ok(error instanceof Error && error.message === "weekly_generation_requires_monday", "manual_generation_requires_monday"));
 
-  console.log(`WEEKLY_OPERATIONS ${passed}/13 PASS`);
+  console.log(`WEEKLY_OPERATIONS ${passed}/15 PASS`);
 }
 
 main().catch((error: unknown) => { throw error; });

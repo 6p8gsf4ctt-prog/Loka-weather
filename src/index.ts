@@ -2,7 +2,7 @@ import { CITIES, getCity } from "./config/cities";
 import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
 import { isWeeklyEnabled, renderWeeklyCarousel } from "./engine/weekly";
-import { generateWeeklyCity, generateWeeklyPreviewCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyRangeForDate } from "./weeklyPipeline";
+import { generateWeeklyCalmVisualPreview, generateWeeklyCity, generateWeeklyPreviewCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyRangeForDate } from "./weeklyPipeline";
 import { localDate, runManualCity, runScheduledCity } from "./pipeline";
 import { generationHistory, officialForDate, officialHistory } from "./storage/db";
 import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySceneLedger";
@@ -364,8 +364,12 @@ export default {
       if (!city) return new Response(renderWeeklyPreviewGate("Ville inconnue."), { status: 404, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
       const startValue = form.get("start");
       const start = typeof startValue === "string" && startValue.trim() ? startValue.trim() : undefined;
+      const modeValue = form.get("mode");
+      const mode = modeValue === "CALM_DEMO" ? "CALM_DEMO" : "LIVE";
       try {
-        const generated = await generateWeeklyPreviewCity(env, city, new Date(), start);
+        const generated = mode === "CALM_DEMO"
+          ? generateWeeklyCalmVisualPreview(city, new Date(), start)
+          : await generateWeeklyPreviewCity(env, city, new Date(), start);
         return new Response(renderWeeklyCarousel(generated.editorial), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
