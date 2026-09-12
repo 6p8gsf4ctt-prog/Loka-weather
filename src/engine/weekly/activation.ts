@@ -85,6 +85,24 @@ export function validateWeeklyActivation(
       ),
     "daily_v24_icons_bound_to_official_loka_library"
   ));
+  const highlightByDay = new Map(editorial.dailyHighlights.map((highlight) => [highlight.dayIndex, highlight]));
+  const watchTypes = new Set(["THUNDER", "RAIN", "WIND", "DEGRADATION", "HEAT", "COLD"]);
+  checks.push(check(
+    "weekly_daily_highlights",
+    editorial.dailyHighlights.length <= 2
+      && (editorial.status !== "CALM" || editorial.dailyHighlights.length === 0)
+      && new Set(editorial.dailyHighlights.map((highlight) => highlight.dayIndex)).size === editorial.dailyHighlights.length
+      && editorial.dailyHighlights.every((highlight) =>
+        highlight.dayIndex >= 0
+        && highlight.dayIndex <= 6
+        && editorial.dailySummaries[highlight.dayIndex]?.date === highlight.date
+        && editorial.events.some((event) => event.id === highlight.sourceEventId && event.type === highlight.sourceEventType)
+        && (highlight.kind === "PREFERRED" ? highlight.sourceEventType === "BEST_WINDOW" : watchTypes.has(highlight.sourceEventType))
+      )
+      && carousel.dailyHighlights.length === editorial.dailyHighlights.length
+      && carousel.dailySummaries.every((day) => day.highlight === (highlightByDay.get(day.dayIndex)?.kind ?? null)),
+    "optional_preferred_and_watch_markers_must_follow_selected_events"
+  ));
   checks.push(check(
     "scene_assets",
     [editorial.overview.scene, ...carousel.slides.map((slide) => slide.scene)].every((scene) => scene.masterUrl.startsWith("/masters24/")),

@@ -69,6 +69,7 @@ function editorial(count: number): WeeklyEditorial {
       maxTemperatureC: 20 + dayIndex,
       scene: scene(nextDate(dayIndex), dayIndex)
     })),
+    dailyHighlights: [],
     events,
     signature: "Ici, cette semaine."
   };

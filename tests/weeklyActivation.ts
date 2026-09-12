@@ -49,6 +49,7 @@ const base: WeeklyEditorial = {
   status: "CALM",
   overview: { title: "Une semaine calme à Tarnos", body: "Semaine stable.", scene },
   dailySummaries: dailySummaries(),
+  dailyHighlights: [],
   events: [],
   signature: "Ici, cette semaine."
 };
@@ -61,6 +62,7 @@ ok(calmPlan.slides.length === 1, "calm_plan_has_one_slide");
 ok(calmPlan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "weekly_overview_background_is_bound");
 ok(calmValidation.checks.find((check) => check.id === "weekly_daily_summaries")?.ok === true, "daily_summaries_are_ready");
 ok(calmValidation.checks.find((check) => check.id === "weekly_daily_pictograms")?.ok === true, "daily_pictograms_are_officially_bound");
+ok(calmValidation.checks.find((check) => check.id === "weekly_daily_highlights")?.ok === true, "calm_week_has_no_daily_highlights");
 
 const badCount = validateWeeklyActivation(base, { ...calmPlan, slides: [] });
 ok(!badCount.ok && badCount.status === "BLOCKED", "slide_count_blocks_activation");
@@ -133,16 +135,29 @@ const event: WeeklyEditorialEvent = {
   activities: [],
   scene: { ...scene, date: "2026-09-10", dayIndex: 3 }
 };
-const eventEditorial: WeeklyEditorial = { ...base, status: "EVENTS", overview: { ...base.overview, title: "La semaine à Tarnos" }, events: [event] };
+const eventEditorial: WeeklyEditorial = {
+  ...base,
+  status: "EVENTS",
+  overview: { ...base.overview, title: "La semaine à Tarnos" },
+  dailyHighlights: [{ kind: "WATCH", dayIndex: 3, date: "2026-09-10", sourceEventId: event.id, sourceEventType: event.type }],
+  events: [event]
+};
 const eventPlan = buildWeeklyCarouselPlan(eventEditorial);
 const eventValidation = validateWeeklyActivation(eventEditorial, eventPlan);
 ok(eventValidation.ok, "event_publication_ready");
 ok(eventPlan.slides[1]?.eventId === event.id, "event_id_is_preserved");
 ok(eventPlan.slides[1]?.backgroundUrl === event.scene.masterUrl, "event_background_keeps_daily_v24_master");
+ok(eventPlan.dailySummaries[3]?.highlight === "WATCH", "event_watch_highlight_is_bound_to_daily_column");
+const badHighlightEditorial: WeeklyEditorial = {
+  ...eventEditorial,
+  dailyHighlights: [{ ...eventEditorial.dailyHighlights[0], kind: "PREFERRED" }]
+};
+const badHighlightValidation = validateWeeklyActivation(badHighlightEditorial, eventPlan);
+ok(!badHighlightValidation.checks.find((check) => check.id === "weekly_daily_highlights")?.ok, "daily_highlight_guard_blocks_wrong_event_role");
 const badMapping = validateWeeklyActivation(eventEditorial, {
   ...eventPlan,
   slides: [eventPlan.slides[0], { ...eventPlan.slides[1], eventId: "other-event" }]
 });
 ok(!badMapping.checks.find((check) => check.id === "event_mapping")?.ok, "event_mapping_guard");
 
-console.log(`WEEKLY_ACTIVATION ${passed}/20 PASS`);
+console.log(`WEEKLY_ACTIVATION ${passed}/23 PASS`);

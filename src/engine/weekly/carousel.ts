@@ -1,4 +1,4 @@
-import type { WeeklyDailySummary, WeeklyEditorial, WeeklyEditorialEvent, WeeklySceneReference } from "./editorial";
+import type { WeeklyDailyHighlight, WeeklyDailyHighlightKind, WeeklyDailySummary, WeeklyEditorial, WeeklyEditorialEvent, WeeklySceneReference } from "./editorial";
 import { PICTOGRAM_LIBRARY_VERSION, PICTOGRAM_STYLE, visualIconToPictogram, weatherPictogramDataUrl } from "../../ui/pictogramLibrary";
 import type { WeatherPictogramKind } from "../../ui/pictogramLibrary";
 import { LOKA_BRAND_VERSION, LOKA_CANVAS_FONT, LOKA_LOGO_DATA_URL, LOKA_SLOGAN_WEEKLY } from "../../ui/lokaBrand";
@@ -51,6 +51,8 @@ export interface WeeklyCarouselDailySummary extends WeeklyDailySummary {
   /** French labels precomputed in the weekly engine, not in the browser. */
   weekdayLabel: string;
   dayLabel: string;
+  /** Prepared in the editorial layer; still not drawn at this stage. */
+  highlight: WeeklyDailyHighlightKind | null;
 }
 
 export interface WeeklyCarouselPlan {
@@ -71,6 +73,8 @@ export interface WeeklyCarouselPlan {
   };
   /** Seven daily V24 references and their official LOKA pictogram bindings. */
   dailySummaries: WeeklyCarouselDailySummary[];
+  /** Editorial origins of the optional preferred/watch strip markers. */
+  dailyHighlights: WeeklyDailyHighlight[];
   signature: WeeklyEditorial["signature"];
   width: typeof WEEKLY_CAROUSEL_WIDTH;
   height: typeof WEEKLY_CAROUSEL_HEIGHT;
@@ -117,6 +121,7 @@ function eventSlide(event: WeeklyEditorialEvent, index: number): WeeklyCarouselS
  */
 export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarouselPlan {
   const slides = [overviewSlide(editorial), ...editorial.events.map((event, index) => eventSlide(event, index + 1))];
+  const highlightsByDay = new Map(editorial.dailyHighlights.map((highlight) => [highlight.dayIndex, highlight]));
   return {
     version: WEEKLY_CAROUSEL_VERSION,
     citySlug: editorial.citySlug,
@@ -132,8 +137,10 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
         libraryVersion: PICTOGRAM_LIBRARY_VERSION,
         kind: visualIconToPictogram(day.scene.visualIcon)
       },
-      ...weeklyDayLabels(day.date)
+      ...weeklyDayLabels(day.date),
+      highlight: highlightsByDay.get(day.dayIndex)?.kind ?? null
     })),
+    dailyHighlights: editorial.dailyHighlights.map((highlight) => ({ ...highlight })),
     signature: editorial.signature,
     width: WEEKLY_CAROUSEL_WIDTH,
     height: WEEKLY_CAROUSEL_HEIGHT,

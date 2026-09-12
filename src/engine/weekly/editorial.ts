@@ -57,6 +57,20 @@ export interface WeeklyDailySummary {
   scene: WeeklySceneReference;
 }
 
+export type WeeklyDailyHighlightKind = "PREFERRED" | "WATCH";
+
+/**
+ * A factual weekly marker tied to a selected event. The weekly strip may use
+ * it visually later, but it never has permission to create a marker itself.
+ */
+export interface WeeklyDailyHighlight {
+  kind: WeeklyDailyHighlightKind;
+  dayIndex: number;
+  date: string;
+  sourceEventId: string;
+  sourceEventType: SelectedWeeklyEvent["type"];
+}
+
 export interface WeeklyEditorial {
   version: "0.1.0";
   citySlug: string;
@@ -70,6 +84,8 @@ export interface WeeklyEditorial {
   };
   /** Monday to Sunday, derived directly from the seven daily V24 profiles. */
   dailySummaries: WeeklyDailySummary[];
+  /** Zero, one or two factual markers derived from selected weekly events. */
+  dailyHighlights: WeeklyDailyHighlight[];
   events: WeeklyEditorialEvent[];
   signature: "Ici, cette semaine.";
 }
@@ -266,6 +282,59 @@ function weeklyDailySummaries(profiles: WeeklyProfileSet): WeeklyDailySummary[] 
   }));
 }
 
+const WATCH_EVENT_PRIORITY: Record<SelectedWeeklyEvent["type"], number> = {
+  THUNDER: 70,
+  RAIN: 60,
+  WIND: 50,
+  DEGRADATION: 40,
+  HEAT: 30,
+  COLD: 30,
+  BEST_WINDOW: 0,
+  IMPROVEMENT: 0
+};
+
+function selectedByImportance(events: SelectedWeeklyEvent[]): SelectedWeeklyEvent[] {
+  return [...events].sort((left, right) =>
+    right.score - left.score
+    || WATCH_EVENT_PRIORITY[right.type] - WATCH_EVENT_PRIORITY[left.type]
+    || left.startDate.localeCompare(right.startDate)
+    || left.id.localeCompare(right.id)
+  );
+}
+
+function weeklyDailyHighlights(profiles: WeeklyProfileSet, selection: WeeklySelection): WeeklyDailyHighlight[] {
+  if (selection.status === "CALM" || !selection.events.length) return [];
+
+  const preferredEvent = selectedByImportance(selection.events.filter((event) => event.type === "BEST_WINDOW"))[0] ?? null;
+  const preferred = preferredEvent ? dayForEvent(profiles, preferredEvent) : null;
+  const watchEvent = selectedByImportance(selection.events.filter((event) => WATCH_EVENT_PRIORITY[event.type] > 0))[0] ?? null;
+  const watch = watchEvent ? dayForEvent(profiles, watchEvent) : null;
+  const highlights: WeeklyDailyHighlight[] = [];
+
+  if (preferred && preferredEvent) {
+    highlights.push({
+      kind: "PREFERRED",
+      dayIndex: preferred.dayIndex,
+      date: preferred.date,
+      sourceEventId: preferredEvent.id,
+      sourceEventType: preferredEvent.type
+    });
+  }
+  // A single column cannot carry two contradictory frames. When both events
+  // resolve to the same day, retaining the practical best-window marker is
+  // more honest than inventing a second watched day.
+  if (watch && watchEvent && watch.dayIndex !== preferred?.dayIndex) {
+    highlights.push({
+      kind: "WATCH",
+      dayIndex: watch.dayIndex,
+      date: watch.date,
+      sourceEventId: watchEvent.id,
+      sourceEventType: watchEvent.type
+    });
+  }
+  return highlights;
+}
+
 export function buildWeeklyEditorial(
   profiles: WeeklyProfileSet,
   selection: WeeklySelection,
@@ -302,6 +371,7 @@ export function buildWeeklyEditorial(
     status: selection.status,
     overview,
     dailySummaries: weeklyDailySummaries(profiles),
+    dailyHighlights: weeklyDailyHighlights(profiles, selection),
     events,
     signature: "Ici, cette semaine."
   };

@@ -44,6 +44,8 @@ function dailySummaries(): WeeklyEditorial["dailySummaries"] {
 }
 
 function editorial(events: WeeklyEditorial["events"]): WeeklyEditorial {
+  const preferred = events.find((event) => event.type === "BEST_WINDOW") ?? null;
+  const watch = events.find((event) => event.type === "WIND") ?? null;
   return {
     version: "0.1.0",
     citySlug: "tarnos",
@@ -56,6 +58,10 @@ function editorial(events: WeeklyEditorial["events"]): WeeklyEditorial {
       scene
     },
     dailySummaries: dailySummaries(),
+    dailyHighlights: [
+      ...(preferred ? [{ kind: "PREFERRED" as const, dayIndex: 5, date: "2026-09-12", sourceEventId: preferred.id, sourceEventType: preferred.type }] : []),
+      ...(watch ? [{ kind: "WATCH" as const, dayIndex: 2, date: "2026-09-09", sourceEventId: watch.id, sourceEventType: watch.type }] : [])
+    ],
     events,
     signature: "Ici, cette semaine."
   };
@@ -103,6 +109,8 @@ ok(plan.dailySummaries.every((day, index) => day.scene.id === editorial(events).
 ok(plan.dailySummaries.every((day) => day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY" && day.pictogram.libraryVersion === "LOKA_PREMIUM_1.2"), "daily_summaries_use_official_loka_pictogram_library");
 ok(plan.dailySummaries.every((day) => day.scene.visualIcon === "partly" && day.pictogram.kind === "partly"), "daily_v24_visual_icon_drives_pictogram_kind");
 ok(plan.dailySummaries.map((day) => `${day.weekdayLabel} ${day.dayLabel}`).join(",") === "LUN 7,MAR 8,MER 9,JEU 10,VEN 11,SAM 12,DIM 13", "daily_strip_labels_are_monday_to_sunday_in_french");
+ok(plan.dailyHighlights.map((highlight) => `${highlight.kind}:${highlight.dayIndex}`).join(",") === "PREFERRED:5,WATCH:2", "carousel_plan_keeps_editorial_daily_highlights");
+ok(plan.dailySummaries.map((day) => day.highlight ?? "NONE").join(",") === "NONE,NONE,WATCH,NONE,NONE,PREFERRED,NONE", "carousel_plan_binds_highlights_to_their_days_only");
 ok(plan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "overview_uses_dedicated_weekly_master");
 ok(plan.slides.slice(1).every((slide) => slide.kind === "EVENT"), "event_slides_follow_overview");
 ok(plan.slides.slice(1).map((slide) => slide.eventId).join(",") === "wind:2026-09-09,best_window:2026-09-12", "one_slide_per_event");
@@ -165,4 +173,4 @@ ok(weeklyDayStripRenderer.includes("days.forEach") && weeklyDayStripRenderer.inc
 const drawSlideRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide(")) ?? "";
 ok(drawSlideRenderer.includes("weekly_pictogram_") && drawSlideRenderer.includes("day.pictogram.url") && drawSlideRenderer.includes("images.slice(2)"), "overview_loads_only_official_daily_loka_pictograms");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/51 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/53 PASS`);
