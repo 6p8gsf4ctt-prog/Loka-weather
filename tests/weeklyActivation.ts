@@ -60,6 +60,7 @@ ok(calmValidation.checks.every((check) => check.ok), "all_calm_checks_pass");
 ok(calmPlan.slides.length === 1, "calm_plan_has_one_slide");
 ok(calmPlan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "weekly_overview_background_is_bound");
 ok(calmValidation.checks.find((check) => check.id === "weekly_daily_summaries")?.ok === true, "daily_summaries_are_ready");
+ok(calmValidation.checks.find((check) => check.id === "weekly_daily_pictograms")?.ok === true, "daily_pictograms_are_officially_bound");
 
 const badCount = validateWeeklyActivation(base, { ...calmPlan, slides: [] });
 ok(!badCount.ok && badCount.status === "BLOCKED", "slide_count_blocks_activation");
@@ -87,6 +88,15 @@ ok(!badDate.checks.find((check) => check.id === "monday_to_sunday")?.ok, "monday
 
 const badDailySummaries = validateWeeklyActivation({ ...base, dailySummaries: base.dailySummaries.slice(0, 6) }, calmPlan);
 ok(!badDailySummaries.checks.find((check) => check.id === "weekly_daily_summaries")?.ok, "daily_summary_guard_requires_seven_days");
+
+const badDailyPictogramPlan = {
+  ...calmPlan,
+  dailySummaries: calmPlan.dailySummaries.map((day, index) => index === 0
+    ? { ...day, pictogram: { ...day.pictogram, kind: "rain" as const } }
+    : day)
+};
+const badDailyPictogram = validateWeeklyActivation(base, badDailyPictogramPlan);
+ok(!badDailyPictogram.checks.find((check) => check.id === "weekly_daily_pictograms")?.ok, "daily_pictogram_guard_blocks_non_v24_mapping");
 
 const badScene = validateWeeklyActivation(base, {
   ...calmPlan,
@@ -135,4 +145,4 @@ const badMapping = validateWeeklyActivation(eventEditorial, {
 });
 ok(!badMapping.checks.find((check) => check.id === "event_mapping")?.ok, "event_mapping_guard");
 
-console.log(`WEEKLY_ACTIVATION ${passed}/18 PASS`);
+console.log(`WEEKLY_ACTIVATION ${passed}/20 PASS`);

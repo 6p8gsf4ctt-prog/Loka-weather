@@ -2,6 +2,7 @@ import { weeklyRangeForDate } from "./schedule";
 import type { WeeklyEditorial } from "./editorial";
 import { WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, WEEKLY_OVERVIEW_MASTER_URL } from "./carousel";
 import type { WeeklyCarouselPlan } from "./carousel";
+import { PICTOGRAM_LIBRARY_VERSION, visualIconToPictogram } from "../../ui/pictogramLibrary";
 
 export interface WeeklyActivationCheck {
   id: string;
@@ -73,6 +74,16 @@ export function validateWeeklyActivation(
       && editorial.dailySummaries.every((day, index) => day.dayIndex === index && Number.isFinite(day.minTemperatureC) && Number.isFinite(day.maxTemperatureC) && isValidDailyV24Scene(day.scene))
       && carousel.dailySummaries.every((day, index) => day.dayIndex === index && day.date === editorial.dailySummaries[index]?.date && day.scene.id === editorial.dailySummaries[index]?.scene.id),
     "seven_ordered_daily_v24_summaries"
+  ));
+  checks.push(check(
+    "weekly_daily_pictograms",
+    carousel.dailySummaries.length === 7
+      && carousel.dailySummaries.every((day) =>
+        day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY"
+        && day.pictogram.libraryVersion === PICTOGRAM_LIBRARY_VERSION
+        && day.pictogram.kind === visualIconToPictogram(day.scene.visualIcon)
+      ),
+    "daily_v24_icons_bound_to_official_loka_library"
   ));
   checks.push(check(
     "scene_assets",
