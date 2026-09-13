@@ -1,7 +1,7 @@
 # LOKA - Périmètre de publication
 # Première slide « La semaine à Tarnos »
 
-Version : 1.2  
+Version : 1.3  
 Date : 13 septembre 2026  
 Statut : étape 1 validée - périmètre verrouillé  
 Référence éditoriale : `LOKA_Cahier_des_charges_Rendez_vous_hebdomadaire(1).pdf`
@@ -119,7 +119,7 @@ première publication. Une seule étape du plan est active à la fois.
 | 1 | Périmètre et critères de publication | VALIDÉE |
 | 2 | Calculs des trois repères fixes | VALIDÉE |
 | 3 | Contrat de contenu de la slide | VALIDÉE |
-| 4 | Rendu Publication 4:5 | À FAIRE |
+| 4 | Rendu Publication 4:5 | VALIDÉE |
 | 5 | Rendu Story 9:16 | À FAIRE |
 | 6 | Exports dans la prévisualisation | À FAIRE |
 | 7 | Vérification sur données réelles | À FAIRE |
@@ -152,3 +152,17 @@ Le contrat conserve la preuve brute de chaque repère, puis diffuse uniquement
 des données calculées par le moteur : dates, heures sources, températures,
 lever, coucher et différence de durée du jour. Le navigateur reçoit les
 pictogrammes officiels liés aux décisions V24 ; il ne recalcule aucune météo.
+
+### 13 septembre 2026 - étape 4
+
+Le rendu Publication 1080 × 1350 affiche désormais les trois repères fixes
+dans la box centrale : matin le plus frais, journée la plus chaude et lumière
+de la semaine. Les pictogrammes météo sont ceux de la décision V24 du jour
+concerné ; les pictogrammes de lever et coucher sont issus de la même
+bibliothèque LOKA.
+
+La première slide ne rend plus visuellement les anciennes cartes « Jour à
+privilégier » et « Jour à surveiller ». La bande inférieure conserve les sept
+jours et distingue uniquement le matin le plus frais (liseré bleu) et la
+journée la plus chaude (liseré doré). Le rendu Story reste volontairement
+hors de cette étape.

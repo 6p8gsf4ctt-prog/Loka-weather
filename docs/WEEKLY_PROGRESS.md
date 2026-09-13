@@ -13,7 +13,7 @@
 | 1 | Périmètre et critères de publication | VALIDÉE |
 | 2 | Calculs des trois repères fixes | VALIDÉE |
 | 3 | Contrat de contenu de la slide | VALIDÉE |
-| 4 | Rendu Publication 4:5 | À FAIRE |
+| 4 | Rendu Publication 4:5 | VALIDÉE |
 | 5 | Rendu Story 9:16 | À FAIRE |
 | 6 | Exports dans la prévisualisation | À FAIRE |
 | 7 | Vérification sur données réelles | À FAIRE |
