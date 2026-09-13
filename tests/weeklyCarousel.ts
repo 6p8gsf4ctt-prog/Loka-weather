@@ -50,8 +50,8 @@ function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial
     title: "LA SEMAINE À TARNOS",
     subtitle: "L’essentiel de la semaine",
     synthesis: { text: "Une semaine contrastée, plus lumineuse ensuite.", maximumLines: 2 },
-    coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "13°", timeLabel: "07 H" },
-    hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "27°", timeLabel: "15 H" },
+    coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "13°C", timeLabel: "07 H" },
+    hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "27°C", timeLabel: "15 H" },
     daylight: {
       label: "LUMIÈRE DE LA SEMAINE", direction: "SHORTER", deltaMinutes: -18, deltaLabel: "18 min de jour en moins",
       start: { date: dateAt(0), weekdayLabel: "LUN.", sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780, sunriseLabel: "07:20", sunsetLabel: "20:20" },
@@ -259,19 +259,19 @@ const slide1DayMarkerRenderer = script.split("\n").find((line) => line.startsWit
 const slide1StripBoxRenderer = script.split("\n").find((line) => line.startsWith("function slide1StripBox(")) ?? "";
 const publicationSlideRenderer = script.split("\n").find((line) => line.startsWith("function drawPublicationSlide(")) ?? "";
 const publicationLaunch = script.split("\n").find((line) => line.startsWith("Promise.all(plan.slides.map")) ?? "";
-ok(slide1OverviewRenderer.includes("box(50,180,980,170);drawOverviewTitle(plan.overviewTitle);drawSlide1Facts(plan.slide1") && slide1OverviewRenderer.includes("drawSlide1Summary(plan.slide1);slide1StripBox(50,870,980,250);drawSlide1DayStrip(plan.slide1.dailyStrip"), "slide1_uses_separate_title_facts_summary_and_daily_strip_boxes");
+ok(slide1OverviewRenderer.includes("box(45,185,990,210);drawOverviewTitle(plan.overviewTitle);drawSlide1Facts(plan.slide1") && slide1OverviewRenderer.includes("drawSlide1Summary(plan.slide1);slide1StripBox(45,945,990,250);drawSlide1DayStrip(plan.slide1.dailyStrip"), "slide1_uses_reference_aligned_title_facts_summary_and_daily_strip_boxes");
 ok(!slide1OverviewRenderer.includes("slide.scene.displayTitle") && !slide1OverviewRenderer.includes("dailyCardDetails"), "slide1_does_not_render_the_previous_daily_cards");
 ok(slide1OverviewRenderer.includes("drawOverviewTitle(plan.overviewTitle)") && overviewTitleRenderer.includes("content.title") && overviewTitleRenderer.includes("content.subtitle") && overviewTitleRenderer.includes("ctx.strokeStyle=gold"), "slide1_draws_automatic_title_box_content");
 ok(slide1OverviewRenderer.includes("drawSignature(1274,'rgba(255,255,255,.94)')"), "slide1_signature_uses_soft_white_on_dark_lower_master");
 ok(slide1FactsRenderer.includes("content.coldestMorning") && slide1FactsRenderer.includes("content.hottestDay") && slide1FactsRenderer.includes("content.daylight"), "slide1_draws_the_three_fixed_weekly_facts");
 ok(slide1TemperatureRenderer.includes("fact.label") && slide1TemperatureRenderer.includes("fact.dateLabel") && slide1TemperatureRenderer.includes("fact.temperatureLabel") && !slide1TemperatureRenderer.includes("fact.timeLabel"), "slide1_temperature_fact_keeps_only_the_essential_day_and_temperature");
 ok(slide1FactsRenderer.includes("thermometerIcon") && slide1FactsRenderer.includes("hotIcon=dailyIcons[content.hottestDay.dayIndex]") && slide1TemperatureRenderer.includes("drawImageCentered(icon"), "slide1_temperature_facts_use_loka_thermometer_and_daily_v24_sun_icon");
-ok(slide1DaylightRenderer.includes("content.deltaLabel") && slide1DaylightRenderer.includes("daylightIcon") && !slide1DaylightRenderer.includes("solarIcons") && slide1DaylightRenderer.includes("content.start.weekdayLabel") && slide1DaylightRenderer.includes("content.end.weekdayLabel") && slide1DaylightRenderer.includes("content.start.sunriseLabel") && slide1DaylightRenderer.includes("content.end.sunsetLabel"), "slide1_daylight_fact_shows_the_full_monday_to_sunday_astronomical_range");
-ok(slide1SummaryRenderer.includes("box(50,705,980,135)") && slide1SummaryRenderer.includes("content.synthesis.text") && slide1SummaryRenderer.includes("content.synthesis.maximumLines") && !slide1SummaryRenderer.includes("EN BREF"), "slide1_renders_a_dedicated_summary_box_without_redundant_label");
+ok(slide1DaylightRenderer.includes("content.deltaLabel") && slide1DaylightRenderer.includes("daylightIcon") && !slide1DaylightRenderer.includes("solarIcons") && !slide1DaylightRenderer.includes("weekdayLabel") && slide1DaylightRenderer.includes("content.start.sunriseLabel") && slide1DaylightRenderer.includes("content.end.sunsetLabel"), "slide1_daylight_fact_prioritizes_delta_and_keeps_one_compact_astronomical_range");
+ok(slide1SummaryRenderer.includes("slide1SummaryBox(45,820,990,105)") && slide1SummaryRenderer.includes("content.synthesis.text") && slide1SummaryRenderer.includes("content.synthesis.maximumLines") && !slide1SummaryRenderer.includes("EN BREF"), "slide1_renders_a_compact_reference_aligned_summary_box_without_redundant_label");
 ok(completeWrapRenderer.includes("lines.length<=maxLines") && completeWrapRenderer.includes("weekly_slide1_synthesis_does_not_fit"), "slide1_never_cuts_a_summary_mid_sentence");
 ok(slide1DayStripRenderer.includes("days.forEach") && slide1DayStripRenderer.includes("drawImageCentered(icon") && slide1DayStripRenderer.includes("Math.round(day.minTemperatureC)") && slide1DayStripRenderer.includes("Math.round(day.maxTemperatureC)"), "slide1_draws_seven_loka_daily_columns");
 ok(slide1DayStripRenderer.includes("content.coldestMorning.dayIndex") && slide1DayStripRenderer.includes("content.hottestDay.dayIndex") && slide1DayMarkerRenderer.includes("kind==='HOT'") && slide1DayMarkerRenderer.includes("'#4b8fc5'"), "slide1_marks_only_the_coldest_morning_and_hottest_day");
-ok(slide1StripBoxRenderer.includes("rgba(255,255,255,.48)") && slide1DayStripRenderer.includes("const x=50,y=870,w=980,h=250"), "slide1_daily_strip_has_a_brighter_readable_surface");
+ok(slide1StripBoxRenderer.includes("rgba(255,255,255,.64)") && slide1DayStripRenderer.includes("const x=45,y=945,w=990,h=250") && slide1DayMarkerRenderer.includes("ctx.lineWidth=3"), "slide1_daily_strip_matches_the_brighter_reference_surface_and_stronger_markers");
 ok(publicationSlideRenderer.includes("plan.slide1.dailyStrip.map") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.daylight") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.thermometer") && publicationSlideRenderer.includes("drawSlide1Overview"), "slide1_loads_its_official_daily_and_utility_loka_pictograms");
 ok(publicationLaunch.includes("drawPublicationSlide(slideCanvases[index],slide)"), "publication_renderer_uses_the_new_slide1_visual_path");
 

@@ -395,7 +395,7 @@ function temperatureFact(
     ...fact,
     label,
     dateLabel: shortDateLabel(fact.date),
-    temperatureLabel: `${Math.round(fact.temperatureC)}°`,
+    temperatureLabel: `${Math.round(fact.temperatureC)}°C`,
     timeLabel: `${String(fact.sourceHour).padStart(2, "0")} H`
   };
 }
@@ -411,7 +411,7 @@ function daylightEndpointContent(endpoint: WeeklyDaylightEndpoint): WeeklySlide1
 
 function daylightDeltaLabel(deltaMinutes: number): { direction: WeeklySlide1Content["daylight"]["direction"]; label: string } {
   if (deltaMinutes > 0) return { direction: "LONGER", label: `+${deltaMinutes} min de jour` };
-  if (deltaMinutes < 0) return { direction: "SHORTER", label: `${Math.abs(deltaMinutes)} min de jour en moins` };
+  if (deltaMinutes < 0) return { direction: "SHORTER", label: `−${Math.abs(deltaMinutes)} min de jour` };
   return { direction: "STABLE", label: "Durée du jour stable" };
 }
 

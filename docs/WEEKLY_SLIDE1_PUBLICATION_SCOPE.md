@@ -1,7 +1,7 @@
 # LOKA - Périmètre de publication
 # Première slide « La semaine à Tarnos »
 
-Version : 1.5  
+Version : 1.6  
 Date : 13 septembre 2026  
 Statut : étape 1 validée - périmètre verrouillé  
 Référence éditoriale : `LOKA_Cahier_des_charges_Rendez_vous_hebdomadaire(1).pdf`
@@ -82,6 +82,8 @@ d'heures d'ensoleillement.
   tape-à-l'oeil n'est ajouté.
 - La lisibilité sur écran de téléphone est prioritaire : une information se
   lit sans zoom et sans faire défiler la Story.
+- La géométrie, les tailles et la hiérarchie du rendu Publication sont
+  verrouillées dans `docs/WEEKLY_SLIDE1_VISUAL_REFERENCE.md`.
 
 ## 7. Hors périmètre explicite
 

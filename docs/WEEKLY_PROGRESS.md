@@ -19,14 +19,13 @@
 | 7 | Vérification sur données réelles | À FAIRE |
 | 8 | Livraison prête à publier | À FAIRE |
 
-Correction active de l’étape 4 : la slide Publication reprend la hiérarchie de
-la maquette de référence, avec trois repères aérés, une synthèse complète dans
-sa propre box et une bande des sept jours plus lisible. Cette correction reste
-isolée du moteur quotidien et du rendu Story.
-
-Dernier ajustement : titre plus respirant, carte du matin le plus frais avec
-thermomètre LOKA, lumière simplifiée et contraste renforcé de la bande des sept
-jours.
+Correction active de l’étape 4 : la géométrie de la slide Publication est
+désormais mesurée contre la maquette dans
+`docs/WEEKLY_SLIDE1_VISUAL_REFERENCE.md`. Les trois repères passent à 380 px,
+leurs pictogrammes et valeurs deviennent dominants, la lumière est condensée,
+la synthèse retrouve une graisse modérée et la frise est remontée de 75 px.
+Les liserés chaud/frais sont renforcés sur toute la hauteur des cellules.
+Cette correction reste isolée du moteur quotidien et du rendu Story.
 
 Dernière mise à jour : 5 septembre 2026  
 Dernière étape validée : 12 — Prévisualiser, valider et activer progressivement  

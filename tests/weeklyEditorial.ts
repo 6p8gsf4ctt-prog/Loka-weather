@@ -88,6 +88,7 @@ ok(editorial.overview.title === "La semaine à Tarnos", "overview_title");
 ok(editorial.overview.body.includes("épisode pluvieux") && editorial.overview.body.includes("lundi"), "overview_is_a_conclusion");
 ok(editorial.events.length === 2, "event_cards_count");
 ok(editorial.events[0].title === "Épisode pluvieux", "chronological_event_first");
+ok(editorial.slide1.coldestMorning.temperatureLabel.endsWith("°C") && editorial.slide1.hottestDay.temperatureLabel.endsWith("°C"), "slide1_temperature_labels_include_unit");
 ok(editorial.events[1].title === "Meilleure fenêtre météo", "best_window_is_narrative_conclusion");
 ok(editorial.events.every((item) => item.scene.id >= 1 && item.scene.id <= 24), "scene_ids_are_v24");
 ok(editorial.events.every((item) => item.scene.masterUrl.startsWith("/masters24/")), "scene_assets_are_v24");
@@ -129,4 +130,4 @@ ok(calmEditorial.overview.scene.id >= 1 && calmEditorial.overview.scene.id <= 24
 ok(calmEditorial.dailyHighlights.length === 0, "calm_week_has_no_artificial_daily_highlights");
 ok(calmEditorial.dailyCardDetails.length === 0, "calm_week_has_no_artificial_daily_cards");
 
-console.log(`WEEKLY_EDITORIAL ${passed}/34 PASS`);
+console.log(`WEEKLY_EDITORIAL ${passed}/35 PASS`);

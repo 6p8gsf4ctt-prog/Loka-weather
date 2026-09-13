@@ -228,10 +228,13 @@ export function solarPictogramDataUrl(kind: SolarPictogramKind): string {
  */
 export function temperaturePictogramSvg(kind: TemperaturePictogramKind): string {
   if (kind !== "thermometer") throw new Error(`unknown_temperature_pictogram:${kind}`);
-  const outline = `<rect x="36" y="13" width="20" height="54" rx="10"/><circle cx="46" cy="68" r="18"/><path d="M 46 28 V 68"/><path d="M 68 25 H 82 M 68 41 H 78 M 68 57 H 82"/>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="90" viewBox="0 0 120 90" fill="none">
-    <g transform="translate(0 2.5)" stroke="${PICTOGRAM_STYLE.shadow}" stroke-opacity="0.14" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round">${outline}</g>
-    <g stroke="${PICTOGRAM_STYLE.ink}" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"><rect x="36" y="13" width="20" height="54" rx="10" fill="${PICTOGRAM_STYLE.softWhite}" fill-opacity="0.08"/><circle cx="46" cy="68" r="18" fill="${PICTOGRAM_STYLE.softWhite}" fill-opacity="0.08"/><path d="M 46 28 V 68" stroke="#4B8FC5" stroke-width="5.4"/><circle cx="46" cy="68" r="10" fill="#4B8FC5" stroke="#4B8FC5"/><path d="M 68 25 H 82 M 68 41 H 78 M 68 57 H 82"/></g>
+  const body = `M 46 10 C 38.3 10 32 16.3 32 24 L 32 57 C 25.1 61.7 21 69.5 22.2 77.8 C 23.8 88.8 33.1 97 44.2 97.8 C 57.6 98.8 68.7 88.2 68.7 75 C 68.7 67.5 65.1 60.8 59.5 56.7 L 59.5 24 C 59.5 16.3 53.7 10 46 10 Z`;
+  const ticks = `<path d="M 75 25 H 92 M 75 43 H 87 M 75 61 H 92"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="108" viewBox="0 0 120 108" fill="none">
+    <g transform="translate(0 2.5)" fill="none" stroke="${PICTOGRAM_STYLE.shadow}" stroke-opacity="0.14" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round"><path d="${body}"/>${ticks}</g>
+    <g fill="${PICTOGRAM_STYLE.softWhite}" fill-opacity="0.08" stroke="${PICTOGRAM_STYLE.ink}" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"><path d="${body}"/>${ticks}</g>
+    <path d="M 46 33 V 75" stroke="#4B8FC5" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="46" cy="75" r="12" fill="#4B8FC5" stroke="#4B8FC5" stroke-width="3"/>
   </svg>`;
 }
 
