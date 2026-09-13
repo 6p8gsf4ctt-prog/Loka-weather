@@ -27,6 +27,11 @@ la synthèse retrouve une graisse modérée et la frise est remontée de 75 px.
 Les liserés chaud/frais sont renforcés sur toute la hauteur des cellules.
 Cette correction reste isolée du moteur quotidien et du rendu Story.
 
+Passe V5 : palette éditoriale marine/doré harmonisée, données principales
+uniformisées en bleu marine, textes secondaires allégés sans contour,
+pictogrammes calibrés selon leur empreinte visible, surfaces rendues plus
+laiteuses et cadres chaud/frais recalculés avec un retrait identique de 8 px.
+
 Dernière mise à jour : 5 septembre 2026  
 Dernière étape validée : 12 — Prévisualiser, valider et activer progressivement  
 Statut global : étapes 1 à 12 terminées
