@@ -69,6 +69,7 @@ export interface WeeklySlide1TemperatureFact extends WeeklyTemperatureReference 
 }
 
 export interface WeeklySlide1DaylightEndpoint extends WeeklyDaylightEndpoint {
+  weekdayLabel: string;
   sunriseLabel: string;
   sunsetLabel: string;
 }
@@ -373,6 +374,13 @@ function shortDateLabel(date: string): string {
   return `${weekday}. ${day}`;
 }
 
+function shortWeekdayLabel(date: string): string {
+  const weekday = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris", weekday: "short"
+  }).format(new Date(`${date}T12:00:00Z`)).replace(/\.$/, "");
+  return `${weekday.toLocaleUpperCase("fr-FR")}.`;
+}
+
 function clockLabel(totalMinutes: number): string {
   const hour = Math.floor(totalMinutes / 60);
   const minute = Math.abs(totalMinutes % 60);
@@ -395,6 +403,7 @@ function temperatureFact(
 function daylightEndpointContent(endpoint: WeeklyDaylightEndpoint): WeeklySlide1DaylightEndpoint {
   return {
     ...endpoint,
+    weekdayLabel: shortWeekdayLabel(endpoint.date),
     sunriseLabel: clockLabel(endpoint.sunriseMinutes),
     sunsetLabel: clockLabel(endpoint.sunsetMinutes)
   };
@@ -402,21 +411,43 @@ function daylightEndpointContent(endpoint: WeeklyDaylightEndpoint): WeeklySlide1
 
 function daylightDeltaLabel(deltaMinutes: number): { direction: WeeklySlide1Content["daylight"]["direction"]; label: string } {
   if (deltaMinutes > 0) return { direction: "LONGER", label: `+${deltaMinutes} min de jour` };
-  if (deltaMinutes < 0) return { direction: "SHORTER", label: `-${Math.abs(deltaMinutes)} min de jour` };
+  if (deltaMinutes < 0) return { direction: "SHORTER", label: `${Math.abs(deltaMinutes)} min de jour en moins` };
   return { direction: "STABLE", label: "Durée du jour stable" };
+}
+
+const SLIDE1_SYNTHESIS_MAXIMUM_CHARACTERS = 100;
+
+/**
+ * The overview conclusion can be longer because it feeds the future event
+ * slides too. Slide 1 needs one complete sentence that always fits its
+ * dedicated box: it must never be cut mid-sentence by the canvas renderer.
+ */
+function boundedSlide1Synthesis(events: WeeklyEditorialEvent[], conclusion: string): string {
+  const normalized = conclusion.replace(/\s+/g, " ").trim();
+  if (normalized.length <= SLIDE1_SYNTHESIS_MAXIMUM_CHARACTERS) return normalized;
+
+  const mainEvents = events.filter((event) => event.type !== "BEST_WINDOW").slice(0, 2);
+  if (mainEvents.length === 2) {
+    return `Une semaine contrastée, entre ${mainEvents[0].title.toLocaleLowerCase("fr-FR")} et ${mainEvents[1].title.toLocaleLowerCase("fr-FR")}.`;
+  }
+  if (mainEvents.length === 1) {
+    return `Une semaine marquée par ${mainEvents[0].title.toLocaleLowerCase("fr-FR")}.`;
+  }
+  return "Une semaine globalement stable, avec une fenêtre météo plus favorable.";
 }
 
 function weeklySlide1Content(
   city: CityConfig,
   facts: WeeklyFixedFacts,
   dailySummaries: WeeklyDailySummary[],
-  synthesis: string
+  events: WeeklyEditorialEvent[],
+  conclusion: string
 ): WeeklySlide1Content {
   const daylight = daylightDeltaLabel(facts.daylight.deltaMinutes);
   return {
     title: `LA SEMAINE À ${city.name.toLocaleUpperCase("fr-FR")}`,
     subtitle: "L’essentiel de la semaine",
-    synthesis: { text: synthesis, maximumLines: 2 },
+    synthesis: { text: boundedSlide1Synthesis(events, conclusion), maximumLines: 2 },
     coldestMorning: temperatureFact("MATIN LE PLUS FRAIS", facts.coldestMorning),
     hottestDay: temperatureFact("JOURNÉE LA PLUS CHAUDE", facts.hottestDay),
     daylight: {
@@ -562,7 +593,7 @@ export function buildWeeklyEditorial(
     endDate: profiles.endDate,
     status: selection.status,
     overview,
-    slide1: weeklySlide1Content(city, facts, dailySummaries, conclusion.body),
+    slide1: weeklySlide1Content(city, facts, dailySummaries, events, conclusion.body),
     dailySummaries,
     dailyHighlights,
     dailyCardDetails: weeklyDailyCardDetails(profiles, dailyHighlights),

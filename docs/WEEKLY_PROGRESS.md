@@ -19,6 +19,11 @@
 | 7 | Vérification sur données réelles | À FAIRE |
 | 8 | Livraison prête à publier | À FAIRE |
 
+Correction active de l’étape 4 : la slide Publication reprend la hiérarchie de
+la maquette de référence, avec trois repères aérés, une synthèse complète dans
+sa propre box et une bande des sept jours plus lisible. Cette correction reste
+isolée du moteur quotidien et du rendu Story.
+
 Dernière mise à jour : 5 septembre 2026  
 Dernière étape validée : 12 — Prévisualiser, valider et activer progressivement  
 Statut global : étapes 1 à 12 terminées
