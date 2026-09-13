@@ -1,6 +1,6 @@
 # LOKA — Référence visuelle de la slide 1
 
-Version : 1.1  
+Version : 1.2  
 Date : 13 septembre 2026  
 Format : Publication Instagram 1080 × 1350
 
@@ -12,7 +12,7 @@ le moteur quotidien ou les 24 scènes.
 
 | Zone | X | Y | Largeur | Hauteur | Rôle |
 |---|---:|---:|---:|---:|---|
-| En-tête | 45 | 58 | 990 | 55 | Logo, ville, période |
+| En-tête | 45 | 58 | 990 | 55 | Logo, ville, période sur deux lignes |
 | Box titre | 45 | 185 | 990 | 210 | Titre et sous-titre |
 | Trois repères | 45 | 420 | 990 | 380 | Trois cartes, espacées de 10 px |
 | Synthèse | 45 | 820 | 990 | 105 | Une phrase centrée |
@@ -33,7 +33,7 @@ la signature, contre plus de 150 px dans la version précédente.
 | Température principale | 70 px maximum | 700 | centrée, bleu marine |
 | Variation de lumière | 38 px maximum | 700 | centrée, bleu marine |
 | Détail lever/coucher | 14 px maximum | 450 | une seule ligne centrée |
-| Synthèse | 32 px maximum | 400 | centrée, sans contour, deux lignes maximum |
+| Synthèse | 32 px maximum | 560 | centrée, sans contour, deux lignes maximum |
 | Jour de la frise | 17 px | 700 | centré |
 | Date de la frise | 19 px | 560 | centrée |
 | Températures de la frise | 24 px | 600 | centrées, entièrement bleu marine |
@@ -53,8 +53,10 @@ de 100 à 110 px pour chacun des trois pictogrammes.
 ## Règles de lisibilité
 
 - Les valeurs principales dominent toujours les libellés et les détails.
+- La période de l’en-tête est alignée à droite sur deux lignes : la première
+  se termine par `AU`, la seconde porte le dimanche et le mois.
 - La lumière affiche une seule donnée forte : `−N min de jour`, puis une seule
-  ligne compacte de lever et coucher.
+  ligne de lever et une ligne de coucher, chacune à 16 px maximum.
 - La synthèse est informative mais non dominante ; elle n’utilise pas une
   graisse de titre.
 - Le bleu marine éditorial de la slide est `#061F4C`. Les températures froides,

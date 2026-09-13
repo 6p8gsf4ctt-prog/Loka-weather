@@ -32,6 +32,10 @@ uniformisées en bleu marine, textes secondaires allégés sans contour,
 pictogrammes calibrés selon leur empreinte visible, surfaces rendues plus
 laiteuses et cadres chaud/frais recalculés avec un retrait identique de 8 px.
 
+Passe V6 : période de l’en-tête répartie sur deux lignes, lever et coucher
+répartis sur deux lignes plus lisibles, synthèse portée à une graisse intermédiaire
+cohérente avec les dates et températures de la frise.
+
 Dernière mise à jour : 5 septembre 2026  
 Dernière étape validée : 12 — Prévisualiser, valider et activer progressivement  
 Statut global : étapes 1 à 12 terminées
