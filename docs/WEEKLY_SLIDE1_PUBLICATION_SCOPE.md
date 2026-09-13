@@ -1,7 +1,7 @@
 # LOKA - Périmètre de publication
 # Première slide « La semaine à Tarnos »
 
-Version : 1.4  
+Version : 1.5  
 Date : 13 septembre 2026  
 Statut : étape 1 validée - périmètre verrouillé  
 Référence éditoriale : `LOKA_Cahier_des_charges_Rendez_vous_hebdomadaire(1).pdf`
@@ -180,3 +180,15 @@ complètes, du lundi au dimanche : lever et coucher. La synthèse est placée da
 sa propre box et le moteur la borne à une phrase complète ; le canvas refuse
 de la couper au milieu. La bande des sept jours reçoit un fond plus lumineux
 pour conserver sa lisibilité sur la partie sombre de la scène.
+
+### 13 septembre 2026 - ajustement final de la hiérarchie visuelle
+
+La box de titre gagne en respiration. Les trois repères sont resserrés pour
+laisser davantage de place à la synthèse et à la bande hebdomadaire. Le matin
+le plus frais s’appuie sur un thermomètre utilitaire LOKA, généré avec le même
+trait, la même palette et la même ombre que les pictogrammes officiels ; la
+journée la plus chaude conserve le pictogramme V24 de sa journée.
+
+La lumière de la semaine n’utilise plus deux pictogrammes concurrents : un
+seul symbole solaire LOKA accompagne les deux évolutions horaires. Enfin, la
+box des sept jours est renforcée pour rester lisible sur le fond contrasté.

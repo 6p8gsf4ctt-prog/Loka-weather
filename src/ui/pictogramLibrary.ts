@@ -15,6 +15,7 @@ export type WeatherPictogramKind =
   | "rain-wind";
 
 export type SolarPictogramKind = "dawn" | "sunrise" | "noon" | "sunset" | "dusk";
+export type TemperaturePictogramKind = "thermometer";
 
 export const PICTOGRAM_LIBRARY_VERSION = "LOKA_PREMIUM_1.2" as const;
 
@@ -218,4 +219,22 @@ export function weatherPictogramDataUrl(kind: WeatherPictogramKind): string {
 
 export function solarPictogramDataUrl(kind: SolarPictogramKind): string {
   return toDataUrl(solarPictogramSvg(kind));
+}
+
+/**
+ * Utility pictogram reserved for factual temperature anchors. It follows the
+ * same outline, shadow and palette as the weather and solar LOKA library,
+ * without adding a new weather classification.
+ */
+export function temperaturePictogramSvg(kind: TemperaturePictogramKind): string {
+  if (kind !== "thermometer") throw new Error(`unknown_temperature_pictogram:${kind}`);
+  const outline = `<rect x="36" y="13" width="20" height="54" rx="10"/><circle cx="46" cy="68" r="18"/><path d="M 46 28 V 68"/><path d="M 68 25 H 82 M 68 41 H 78 M 68 57 H 82"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="90" viewBox="0 0 120 90" fill="none">
+    <g transform="translate(0 2.5)" stroke="${PICTOGRAM_STYLE.shadow}" stroke-opacity="0.14" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round">${outline}</g>
+    <g stroke="${PICTOGRAM_STYLE.ink}" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"><rect x="36" y="13" width="20" height="54" rx="10" fill="${PICTOGRAM_STYLE.softWhite}" fill-opacity="0.08"/><circle cx="46" cy="68" r="18" fill="${PICTOGRAM_STYLE.softWhite}" fill-opacity="0.08"/><path d="M 46 28 V 68" stroke="#4B8FC5" stroke-width="5.4"/><circle cx="46" cy="68" r="10" fill="#4B8FC5" stroke="#4B8FC5"/><path d="M 68 25 H 82 M 68 41 H 78 M 68 57 H 82"/></g>
+  </svg>`;
+}
+
+export function temperaturePictogramDataUrl(kind: TemperaturePictogramKind): string {
+  return toDataUrl(temperaturePictogramSvg(kind));
 }

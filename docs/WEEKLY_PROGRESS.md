@@ -24,6 +24,10 @@ la maquette de référence, avec trois repères aérés, une synthèse complète
 sa propre box et une bande des sept jours plus lisible. Cette correction reste
 isolée du moteur quotidien et du rendu Story.
 
+Dernier ajustement : titre plus respirant, carte du matin le plus frais avec
+thermomètre LOKA, lumière simplifiée et contraste renforcé de la bande des sept
+jours.
+
 Dernière mise à jour : 5 septembre 2026  
 Dernière étape validée : 12 — Prévisualiser, valider et activer progressivement  
 Statut global : étapes 1 à 12 terminées
