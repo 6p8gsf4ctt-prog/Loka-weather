@@ -11,7 +11,7 @@
 | Étape | Livrable | Statut |
 |---:|---|---|
 | 1 | Périmètre et critères de publication | VALIDÉE |
-| 2 | Calculs des trois repères fixes | À FAIRE |
+| 2 | Calculs des trois repères fixes | VALIDÉE |
 | 3 | Contrat de contenu de la slide | À FAIRE |
 | 4 | Rendu Publication 4:5 | À FAIRE |
 | 5 | Rendu Story 9:16 | À FAIRE |

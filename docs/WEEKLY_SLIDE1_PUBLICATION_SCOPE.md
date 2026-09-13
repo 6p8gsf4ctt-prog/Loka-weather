@@ -1,7 +1,7 @@
 # LOKA - Périmètre de publication
 # Première slide « La semaine à Tarnos »
 
-Version : 1.0  
+Version : 1.1  
 Date : 13 septembre 2026  
 Statut : étape 1 validée - périmètre verrouillé  
 Référence éditoriale : `LOKA_Cahier_des_charges_Rendez_vous_hebdomadaire(1).pdf`
@@ -117,7 +117,7 @@ première publication. Une seule étape du plan est active à la fois.
 | Étape | Livrable | Statut |
 |---:|---|---|
 | 1 | Périmètre et critères de publication | VALIDÉE |
-| 2 | Calculs des trois repères fixes | À FAIRE |
+| 2 | Calculs des trois repères fixes | VALIDÉE |
 | 3 | Contrat de contenu de la slide | À FAIRE |
 | 4 | Rendu Publication 4:5 | À FAIRE |
 | 5 | Rendu Story 9:16 | À FAIRE |
@@ -127,3 +127,16 @@ première publication. Une seule étape du plan est active à la fois.
 
 Toute idée qui ne sert pas directement la publication de cette première slide
 est reportée après l'étape 8.
+
+## 10. Journal de validation
+
+### 13 septembre 2026 - étape 2
+
+Les trois repères fixes sont calculés dans le module isolé
+`src/engine/weekly/fixedFacts.ts`. Il lit uniquement le consensus hebdomadaire
+à sept jours et le calculateur astronomique déjà utilisé par LOKA.
+
+Chaque température conserve son jour, son index, son heure source et sa valeur.
+La lumière de la semaine conserve les levers, couchers et durées de lundi et
+dimanche, puis calcule leur différence en minutes. Le module ne construit ni
+texte, ni visuel, ni écriture D1 et n'importe pas le pipeline quotidien.
