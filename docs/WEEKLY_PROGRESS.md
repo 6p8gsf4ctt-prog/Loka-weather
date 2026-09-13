@@ -1,9 +1,32 @@
 # LOKA — Suivi du projet
 # « La semaine à Tarnos »
 
+> **Référence active pour la publication de la première slide (13 septembre
+> 2026)** : `docs/WEEKLY_SLIDE1_PUBLICATION_SCOPE.md`. Elle prévaut, pour ce
+> périmètre limité, sur les scénarios adaptatifs historiques ci-dessous. Le
+> moteur quotidien reste inchangé.
+
+## Sprint de publication - première slide
+
+| Étape | Livrable | Statut |
+|---:|---|---|
+| 1 | Périmètre et critères de publication | VALIDÉE |
+| 2 | Calculs des trois repères fixes | À FAIRE |
+| 3 | Contrat de contenu de la slide | À FAIRE |
+| 4 | Rendu Publication 4:5 | À FAIRE |
+| 5 | Rendu Story 9:16 | À FAIRE |
+| 6 | Exports dans la prévisualisation | À FAIRE |
+| 7 | Vérification sur données réelles | À FAIRE |
+| 8 | Livraison prête à publier | À FAIRE |
+
 Dernière mise à jour : 5 septembre 2026  
 Dernière étape validée : 12 — Prévisualiser, valider et activer progressivement  
 Statut global : étapes 1 à 12 terminées
+
+> Document historique issu de l’implémentation initiale. La référence active
+> du chantier narratif est désormais `docs/WEEKLY_NARRATIVE_REFERENCE.md`, qui
+> suit le plan strict actuel en 12 étapes. En cas de divergence, cette
+> référence active prévaut.
 
 ## Plan strict en 12 étapes
 
