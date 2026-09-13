@@ -41,6 +41,34 @@ function dailySummaries(): WeeklyEditorial["dailySummaries"] {
   });
 }
 
+function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial["slide1"] {
+  const coldestMorning = { date: "2026-09-07", dayIndex: 0, temperatureC: 12, sourceHour: 7 };
+  const hottestDay = { date: "2026-09-13", dayIndex: 6, temperatureC: 26, sourceHour: 15 };
+  return {
+    title: "LA SEMAINE À TARNOS",
+    subtitle: "L’essentiel de la semaine",
+    synthesis: { text: "Semaine stable.", maximumLines: 2 },
+    coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "12°", timeLabel: "07 H" },
+    hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "26°", timeLabel: "15 H" },
+    daylight: {
+      label: "LUMIÈRE DE LA SEMAINE", direction: "SHORTER", deltaMinutes: -18, deltaLabel: "-18 min de jour",
+      start: { date: "2026-09-07", sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780, sunriseLabel: "07:20", sunsetLabel: "20:20" },
+      end: { date: "2026-09-13", sunriseMinutes: 449, sunsetMinutes: 1211, durationMinutes: 762, sunriseLabel: "07:29", sunsetLabel: "20:11" }
+    },
+    dailyStrip: days,
+    facts: {
+      version: "1.0.0", citySlug: "tarnos", startDate: "2026-09-07", endDate: "2026-09-13", coldestMorning, hottestDay,
+      daylight: {
+        start: { date: "2026-09-07", sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780 },
+        end: { date: "2026-09-13", sunriseMinutes: 449, sunsetMinutes: 1211, durationMinutes: 762 },
+        deltaMinutes: -18
+      }
+    }
+  };
+}
+
+const baseDailySummaries = dailySummaries();
+
 const base: WeeklyEditorial = {
   version: "0.1.0",
   citySlug: "tarnos",
@@ -48,7 +76,8 @@ const base: WeeklyEditorial = {
   endDate: "2026-09-13",
   status: "CALM",
   overview: { title: "Une semaine calme à Tarnos", body: "Semaine stable.", scene },
-  dailySummaries: dailySummaries(),
+  slide1: slide1Content(baseDailySummaries),
+  dailySummaries: baseDailySummaries,
   dailyHighlights: [],
   dailyCardDetails: [],
   events: [],
@@ -64,6 +93,7 @@ ok(calmPlan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "weekly_over
 ok(calmValidation.checks.find((check) => check.id === "weekly_daily_summaries")?.ok === true, "daily_summaries_are_ready");
 ok(calmValidation.checks.find((check) => check.id === "weekly_daily_pictograms")?.ok === true, "daily_pictograms_are_officially_bound");
 ok(calmValidation.checks.find((check) => check.id === "weekly_daily_highlights")?.ok === true, "calm_week_has_no_daily_highlights");
+ok(calmValidation.checks.find((check) => check.id === "weekly_slide1_content")?.ok === true, "stable_first_slide_content_is_ready");
 
 const badCount = validateWeeklyActivation(base, { ...calmPlan, slides: [] });
 ok(!badCount.ok && badCount.status === "BLOCKED", "slide_count_blocks_activation");
@@ -174,4 +204,4 @@ const badMapping = validateWeeklyActivation(eventEditorial, {
 });
 ok(!badMapping.checks.find((check) => check.id === "event_mapping")?.ok, "event_mapping_guard");
 
-console.log(`WEEKLY_ACTIVATION ${passed}/24 PASS`);
+console.log(`WEEKLY_ACTIVATION ${passed}/25 PASS`);

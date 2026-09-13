@@ -2,12 +2,14 @@ import { scene24DisplayTitle } from "../scenes24/displayTitles";
 import { masterUrlForScene, scene24ById } from "../scenes24/registry";
 import { conditionForHour } from "../verdict";
 import { hourOf } from "../math";
-import type { HourlyCondition, Scene24Id, SceneDecisionV24, VisualIcon } from "../../types";
+import type { CityConfig, HourlyCondition, Scene24Id, SceneDecisionV24, VisualIcon } from "../../types";
 import type { WeeklyActivity, WeeklyActivityInsight } from "./activities";
 import type { SelectedWeeklyEvent, WeeklySelection } from "./selection";
 import type { WeeklyDayProfile, WeeklyProfileSet } from "./profiles";
 import { orderWeeklyEvents } from "./narrativeOrder";
 import { buildWeeklyConclusion } from "./conclusion";
+import { buildWeeklyFixedFacts } from "./fixedFacts";
+import type { WeeklyDaylightEndpoint, WeeklyFixedFacts, WeeklyTemperatureReference } from "./fixedFacts";
 
 export interface WeeklySceneReference {
   source: "DAILY_V24_DECISION";
@@ -57,6 +59,43 @@ export interface WeeklyDailySummary {
   minTemperatureC: number;
   maxTemperatureC: number;
   scene: WeeklySceneReference;
+}
+
+export interface WeeklySlide1TemperatureFact extends WeeklyTemperatureReference {
+  label: "MATIN LE PLUS FRAIS" | "JOURNÉE LA PLUS CHAUDE";
+  dateLabel: string;
+  temperatureLabel: string;
+  timeLabel: string;
+}
+
+export interface WeeklySlide1DaylightEndpoint extends WeeklyDaylightEndpoint {
+  sunriseLabel: string;
+  sunsetLabel: string;
+}
+
+/**
+ * Content contract for the permanent first slide. It is intentionally built
+ * before the renderer so every value remains traceable to the weekly engine.
+ */
+export interface WeeklySlide1Content {
+  title: string;
+  subtitle: "L’essentiel de la semaine";
+  synthesis: {
+    text: string;
+    maximumLines: 2;
+  };
+  coldestMorning: WeeklySlide1TemperatureFact;
+  hottestDay: WeeklySlide1TemperatureFact;
+  daylight: {
+    label: "LUMIÈRE DE LA SEMAINE";
+    direction: "LONGER" | "SHORTER" | "STABLE";
+    deltaMinutes: number;
+    deltaLabel: string;
+    start: WeeklySlide1DaylightEndpoint;
+    end: WeeklySlide1DaylightEndpoint;
+  };
+  dailyStrip: WeeklyDailySummary[];
+  facts: WeeklyFixedFacts;
 }
 
 export type WeeklyDailyHighlightKind = "PREFERRED" | "WATCH";
@@ -121,6 +160,8 @@ export interface WeeklyEditorial {
     body: string;
     scene: WeeklySceneReference;
   };
+  /** Stable factual content for « La semaine à Tarnos », before visual rendering. */
+  slide1: WeeklySlide1Content;
   /** Monday to Sunday, derived directly from the seven daily V24 profiles. */
   dailySummaries: WeeklyDailySummary[];
   /** Zero, one or two factual markers derived from selected weekly events. */
@@ -323,6 +364,74 @@ function weeklyDailySummaries(profiles: WeeklyProfileSet): WeeklyDailySummary[] 
   }));
 }
 
+function shortDateLabel(date: string): string {
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris", weekday: "short", day: "numeric"
+  }).formatToParts(new Date(`${date}T12:00:00Z`));
+  const weekday = parts.find((part) => part.type === "weekday")?.value.replace(/\.$/, "").toLocaleUpperCase("fr-FR") ?? "";
+  const day = parts.find((part) => part.type === "day")?.value ?? "";
+  return `${weekday}. ${day}`;
+}
+
+function clockLabel(totalMinutes: number): string {
+  const hour = Math.floor(totalMinutes / 60);
+  const minute = Math.abs(totalMinutes % 60);
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function temperatureFact(
+  label: WeeklySlide1TemperatureFact["label"],
+  fact: WeeklyTemperatureReference
+): WeeklySlide1TemperatureFact {
+  return {
+    ...fact,
+    label,
+    dateLabel: shortDateLabel(fact.date),
+    temperatureLabel: `${Math.round(fact.temperatureC)}°`,
+    timeLabel: `${String(fact.sourceHour).padStart(2, "0")} H`
+  };
+}
+
+function daylightEndpointContent(endpoint: WeeklyDaylightEndpoint): WeeklySlide1DaylightEndpoint {
+  return {
+    ...endpoint,
+    sunriseLabel: clockLabel(endpoint.sunriseMinutes),
+    sunsetLabel: clockLabel(endpoint.sunsetMinutes)
+  };
+}
+
+function daylightDeltaLabel(deltaMinutes: number): { direction: WeeklySlide1Content["daylight"]["direction"]; label: string } {
+  if (deltaMinutes > 0) return { direction: "LONGER", label: `+${deltaMinutes} min de jour` };
+  if (deltaMinutes < 0) return { direction: "SHORTER", label: `-${Math.abs(deltaMinutes)} min de jour` };
+  return { direction: "STABLE", label: "Durée du jour stable" };
+}
+
+function weeklySlide1Content(
+  city: CityConfig,
+  facts: WeeklyFixedFacts,
+  dailySummaries: WeeklyDailySummary[],
+  synthesis: string
+): WeeklySlide1Content {
+  const daylight = daylightDeltaLabel(facts.daylight.deltaMinutes);
+  return {
+    title: `LA SEMAINE À ${city.name.toLocaleUpperCase("fr-FR")}`,
+    subtitle: "L’essentiel de la semaine",
+    synthesis: { text: synthesis, maximumLines: 2 },
+    coldestMorning: temperatureFact("MATIN LE PLUS FRAIS", facts.coldestMorning),
+    hottestDay: temperatureFact("JOURNÉE LA PLUS CHAUDE", facts.hottestDay),
+    daylight: {
+      label: "LUMIÈRE DE LA SEMAINE",
+      direction: daylight.direction,
+      deltaMinutes: facts.daylight.deltaMinutes,
+      deltaLabel: daylight.label,
+      start: daylightEndpointContent(facts.daylight.start),
+      end: daylightEndpointContent(facts.daylight.end)
+    },
+    dailyStrip: dailySummaries.map((day) => ({ ...day, scene: { ...day.scene } })),
+    facts
+  };
+}
+
 const WATCH_EVENT_PRIORITY: Record<SelectedWeeklyEvent["type"], number> = {
   THUNDER: 70,
   RAIN: 60,
@@ -418,9 +527,10 @@ export function buildWeeklyEditorial(
   profiles: WeeklyProfileSet,
   selection: WeeklySelection,
   activities: { insights: WeeklyActivityInsight[] },
-  cityName = "Tarnos"
+  city: CityConfig
 ): WeeklyEditorial {
   if (profiles.citySlug !== selection.citySlug) throw new Error(`weekly_editorial_city_mismatch:${profiles.citySlug}:${selection.citySlug}`);
+  if (profiles.citySlug !== city.slug) throw new Error(`weekly_editorial_city_config_mismatch:${profiles.citySlug}:${city.slug}`);
   const orderedEvents = orderWeeklyEvents(selection.events);
   const events = orderedEvents.map((event): WeeklyEditorialEvent => {
     const day = dayForEvent(profiles, event);
@@ -436,13 +546,15 @@ export function buildWeeklyEditorial(
     };
   });
   const overviewScene = events[0]?.scene ?? calmOverview(profiles);
-  const conclusion = buildWeeklyConclusion(orderedEvents, cityName);
+  const conclusion = buildWeeklyConclusion(orderedEvents, city.name);
   const overview = {
     title: conclusion.title,
     body: conclusion.body,
     scene: overviewScene
   };
   const dailyHighlights = weeklyDailyHighlights(profiles, selection);
+  const dailySummaries = weeklyDailySummaries(profiles);
+  const facts = buildWeeklyFixedFacts(city, profiles);
   return {
     version: "0.1.0",
     citySlug: profiles.citySlug,
@@ -450,7 +562,8 @@ export function buildWeeklyEditorial(
     endDate: profiles.endDate,
     status: selection.status,
     overview,
-    dailySummaries: weeklyDailySummaries(profiles),
+    slide1: weeklySlide1Content(city, facts, dailySummaries, conclusion.body),
+    dailySummaries,
     dailyHighlights,
     dailyCardDetails: weeklyDailyCardDetails(profiles, dailyHighlights),
     events,

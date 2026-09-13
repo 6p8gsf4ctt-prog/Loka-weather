@@ -1,4 +1,4 @@
-import type { WeeklyDailyCardDetail, WeeklyDailyCardSlot, WeeklyDailyHighlight, WeeklyDailyHighlightKind, WeeklyDailySummary, WeeklyEditorial, WeeklyEditorialEvent, WeeklySceneReference } from "./editorial";
+import type { WeeklyDailyCardDetail, WeeklyDailyCardSlot, WeeklyDailyHighlight, WeeklyDailyHighlightKind, WeeklyDailySummary, WeeklyEditorial, WeeklyEditorialEvent, WeeklySceneReference, WeeklySlide1Content } from "./editorial";
 import { PICTOGRAM_LIBRARY_VERSION, PICTOGRAM_STYLE, hourlyConditionToPictogram, visualIconToPictogram, weatherPictogramDataUrl } from "../../ui/pictogramLibrary";
 import type { WeatherPictogramKind } from "../../ui/pictogramLibrary";
 import { LOKA_BRAND_VERSION, LOKA_CANVAS_FONT, LOKA_LOGO_DATA_URL, LOKA_SLOGAN_WEEKLY } from "../../ui/lokaBrand";
@@ -70,6 +70,11 @@ export interface WeeklyCarouselDailyCardDetail extends Omit<WeeklyDailyCardDetai
   slots: WeeklyCarouselDailyCardSlot[];
 }
 
+/** Render-ready copy of the permanent first-slide contract. */
+export interface WeeklyCarouselSlide1Content extends Omit<WeeklySlide1Content, "dailyStrip"> {
+  dailyStrip: WeeklyCarouselDailySummary[];
+}
+
 export interface WeeklyCarouselPlan {
   version: typeof WEEKLY_CAROUSEL_VERSION;
   citySlug: string;
@@ -86,6 +91,8 @@ export interface WeeklyCarouselPlan {
     title: string;
     subtitle: string;
   };
+  /** Stable slide-1 copy, including the three factual anchors and daily strip. */
+  slide1: WeeklyCarouselSlide1Content;
   /** Seven daily V24 references and their official LOKA pictogram bindings. */
   dailySummaries: WeeklyCarouselDailySummary[];
   /** Editorial origins of the optional preferred/watch strip markers. */
@@ -139,6 +146,17 @@ function eventSlide(event: WeeklyEditorialEvent, index: number): WeeklyCarouselS
 export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarouselPlan {
   const slides = [overviewSlide(editorial), ...editorial.events.map((event, index) => eventSlide(event, index + 1))];
   const highlightsByDay = new Map(editorial.dailyHighlights.map((highlight) => [highlight.dayIndex, highlight]));
+  const dailySummaries: WeeklyCarouselDailySummary[] = editorial.dailySummaries.map((day) => ({
+    ...day,
+    scene: { ...day.scene },
+    pictogram: {
+      source: "LOKA_OFFICIAL_PICTOGRAM_LIBRARY",
+      libraryVersion: PICTOGRAM_LIBRARY_VERSION,
+      kind: visualIconToPictogram(day.scene.visualIcon)
+    },
+    ...weeklyDayLabels(day.date),
+    highlight: highlightsByDay.get(day.dayIndex)?.kind ?? null
+  }));
   return {
     version: WEEKLY_CAROUSEL_VERSION,
     citySlug: editorial.citySlug,
@@ -146,17 +164,11 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
     endDate: editorial.endDate,
     headerDateLabel: weeklyHeaderDateLabel(editorial.startDate, editorial.endDate),
     overviewTitle: overviewTitleContent(editorial),
-    dailySummaries: editorial.dailySummaries.map((day) => ({
-      ...day,
-      scene: { ...day.scene },
-      pictogram: {
-        source: "LOKA_OFFICIAL_PICTOGRAM_LIBRARY",
-        libraryVersion: PICTOGRAM_LIBRARY_VERSION,
-        kind: visualIconToPictogram(day.scene.visualIcon)
-      },
-      ...weeklyDayLabels(day.date),
-      highlight: highlightsByDay.get(day.dayIndex)?.kind ?? null
-    })),
+    slide1: {
+      ...editorial.slide1,
+      dailyStrip: dailySummaries.map((day) => ({ ...day, scene: { ...day.scene }, pictogram: { ...day.pictogram } }))
+    },
+    dailySummaries,
     dailyHighlights: editorial.dailyHighlights.map((highlight) => ({ ...highlight })),
     dailyCardDetails: editorial.dailyCardDetails.map((card) => ({
       ...card,
@@ -221,20 +233,9 @@ function cityDisplayName(citySlug: string): string {
 }
 
 function overviewTitleContent(editorial: WeeklyEditorial): WeeklyCarouselPlan["overviewTitle"] {
-  const city = cityDisplayName(editorial.citySlug).toLocaleUpperCase("fr-FR");
-  const kinds = new Set(editorial.dailyHighlights.map((highlight) => highlight.kind));
-  const subtitle = kinds.has("PREFERRED") && kinds.has("WATCH")
-    ? "Le jour à privilégier · Le jour à surveiller"
-    : kinds.has("PREFERRED")
-      ? "Le jour à privilégier"
-      : kinds.has("WATCH")
-        ? "Le jour à surveiller"
-        : editorial.status === "CALM"
-          ? "Une semaine calme · Les repères essentiels"
-          : "Le point météo de la semaine";
   return {
-    title: `LA SEMAINE À ${city}`,
-    subtitle
+    title: editorial.slide1.title,
+    subtitle: editorial.slide1.subtitle
   };
 }
 
@@ -346,6 +347,13 @@ function browserModel(plan: WeeklyCarouselPlan): unknown {
         pictogram: { ...slot.pictogram, url: weatherPictogramDataUrl(slot.pictogram.kind) }
       }))
     })),
+    slide1: {
+      ...plan.slide1,
+      dailyStrip: plan.slide1.dailyStrip.map((day) => ({
+        ...day,
+        pictogram: { ...day.pictogram, url: weatherPictogramDataUrl(day.pictogram.kind) }
+      }))
+    },
     story: {
       ...plan.story,
       relay: { ...plan.story.relay, scene: sceneForBrowser(plan.story.relay.scene) }

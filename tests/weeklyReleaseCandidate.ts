@@ -49,8 +49,41 @@ function event(index: number): WeeklyEditorialEvent {
   };
 }
 
+function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial["slide1"] {
+  const coldestMorning = { date: nextDate(0), dayIndex: 0, temperatureC: 12, sourceHour: 7 };
+  const hottestDay = { date: nextDate(6), dayIndex: 6, temperatureC: 26, sourceHour: 15 };
+  return {
+    title: "LA SEMAINE À TARNOS",
+    subtitle: "L’essentiel de la semaine",
+    synthesis: { text: "La semaine reste lisible en un coup d’œil.", maximumLines: 2 },
+    coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "12°", timeLabel: "07 H" },
+    hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "26°", timeLabel: "15 H" },
+    daylight: {
+      label: "LUMIÈRE DE LA SEMAINE", direction: "SHORTER", deltaMinutes: -18, deltaLabel: "-18 min de jour",
+      start: { date: nextDate(0), sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780, sunriseLabel: "07:20", sunsetLabel: "20:20" },
+      end: { date: nextDate(6), sunriseMinutes: 449, sunsetMinutes: 1211, durationMinutes: 762, sunriseLabel: "07:29", sunsetLabel: "20:11" }
+    },
+    dailyStrip: days,
+    facts: {
+      version: "1.0.0", citySlug: "tarnos", startDate: nextDate(0), endDate: nextDate(6), coldestMorning, hottestDay,
+      daylight: {
+        start: { date: nextDate(0), sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780 },
+        end: { date: nextDate(6), sunriseMinutes: 449, sunsetMinutes: 1211, durationMinutes: 762 },
+        deltaMinutes: -18
+      }
+    }
+  };
+}
+
 function editorial(count: number): WeeklyEditorial {
   const events = Array.from({ length: count }, (_, index) => event(index));
+  const days = Array.from({ length: 7 }, (_, dayIndex) => ({
+    date: nextDate(dayIndex),
+    dayIndex,
+    minTemperatureC: 12 + dayIndex,
+    maxTemperatureC: 20 + dayIndex,
+    scene: scene(nextDate(dayIndex), dayIndex)
+  }));
   return {
     version: "0.1.0",
     citySlug: "tarnos",
@@ -62,13 +95,8 @@ function editorial(count: number): WeeklyEditorial {
       body: count ? "La semaine sera marquée par un épisode venteux." : "La semaine restera stable.",
       scene: scene("2026-09-07", 0)
     },
-    dailySummaries: Array.from({ length: 7 }, (_, dayIndex) => ({
-      date: nextDate(dayIndex),
-      dayIndex,
-      minTemperatureC: 12 + dayIndex,
-      maxTemperatureC: 20 + dayIndex,
-      scene: scene(nextDate(dayIndex), dayIndex)
-    })),
+    slide1: slide1Content(days),
+    dailySummaries: days,
     dailyHighlights: [],
     dailyCardDetails: [],
     events,

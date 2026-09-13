@@ -43,6 +43,32 @@ function dailySummaries(): WeeklyEditorial["dailySummaries"] {
   }));
 }
 
+function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial["slide1"] {
+  const coldestMorning = { date: dateAt(0), dayIndex: 0, temperatureC: 13, sourceHour: 7 };
+  const hottestDay = { date: dateAt(6), dayIndex: 6, temperatureC: 27, sourceHour: 15 };
+  return {
+    title: "LA SEMAINE À TARNOS",
+    subtitle: "L’essentiel de la semaine",
+    synthesis: { text: "Une semaine contrastée, plus lumineuse ensuite.", maximumLines: 2 },
+    coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "13°", timeLabel: "07 H" },
+    hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "27°", timeLabel: "15 H" },
+    daylight: {
+      label: "LUMIÈRE DE LA SEMAINE", direction: "SHORTER", deltaMinutes: -18, deltaLabel: "-18 min de jour",
+      start: { date: dateAt(0), sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780, sunriseLabel: "07:20", sunsetLabel: "20:20" },
+      end: { date: dateAt(6), sunriseMinutes: 449, sunsetMinutes: 1211, durationMinutes: 762, sunriseLabel: "07:29", sunsetLabel: "20:11" }
+    },
+    dailyStrip: days,
+    facts: {
+      version: "1.0.0", citySlug: "tarnos", startDate: dateAt(0), endDate: dateAt(6), coldestMorning, hottestDay,
+      daylight: {
+        start: { date: dateAt(0), sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780 },
+        end: { date: dateAt(6), sunriseMinutes: 449, sunsetMinutes: 1211, durationMinutes: 762 },
+        deltaMinutes: -18
+      }
+    }
+  };
+}
+
 function dailyCardDetails(
   preferred: WeeklyEditorial["events"][number] | null,
   watch: WeeklyEditorial["events"][number] | null
@@ -89,6 +115,7 @@ function editorial(events: WeeklyEditorial["events"]): WeeklyEditorial {
       body: events.length ? `${events.length} temps forts météo méritent d’être suivis cette semaine.` : "Aucun changement météo suffisamment marqué n’est retenu pour cette semaine à Tarnos.",
       scene
     },
+    slide1: slide1Content(dailySummaries()),
     dailySummaries: dailySummaries(),
     dailyHighlights: [
       ...(preferred ? [{ kind: "PREFERRED" as const, dayIndex: 5, date: "2026-09-12", sourceEventId: preferred.id, sourceEventType: preferred.type }] : []),
@@ -136,7 +163,8 @@ ok(plan.slides.length === 3, "two_events_make_three_slides");
 ok(plan.slides[0].kind === "OVERVIEW" && plan.slides[0].eventId === null, "overview_is_first");
 ok(plan.headerDateLabel === "LUNDI 7 AU DIMANCHE 13 SEPTEMBRE", "weekly_header_date_uses_single_month_label");
 ok(plan.overviewTitle.title === "LA SEMAINE À TARNOS", "overview_title_uses_city_name");
-ok(plan.overviewTitle.subtitle === "Le jour à privilégier · Le jour à surveiller", "overview_title_uses_weekly_editorial_guide");
+ok(plan.overviewTitle.subtitle === "L’essentiel de la semaine", "overview_title_uses_stable_slide1_guide");
+ok(plan.slide1.coldestMorning.label === "MATIN LE PLUS FRAIS" && plan.slide1.hottestDay.label === "JOURNÉE LA PLUS CHAUDE" && plan.slide1.dailyStrip.length === 7, "carousel_plan_exposes_first_slide_content_contract");
 ok(plan.dailySummaries.length === 7 && plan.dailySummaries.every((day, index) => day.dayIndex === index), "carousel_plan_keeps_seven_daily_summaries");
 ok(plan.dailySummaries.every((day, index) => day.scene.id === editorial(events).dailySummaries[index]?.scene.id), "carousel_plan_keeps_daily_v24_scene_identity");
 ok(plan.dailySummaries.every((day) => day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY" && day.pictogram.libraryVersion === "LOKA_PREMIUM_1.2"), "daily_summaries_use_official_loka_pictogram_library");
@@ -147,8 +175,8 @@ ok(plan.dailySummaries.map((day) => day.highlight ?? "NONE").join(",") === "NONE
 ok(plan.dailyCardDetails.map((card) => `${card.kind}:${card.dayIndex}:${card.weatherLabel}`).join(",") === "PREFERRED:5:BELLES ÉCLAIRCIES,WATCH:2:BELLES ÉCLAIRCIES", "carousel_plan_prepares_preferred_and_watch_cards");
 ok(plan.dailyCardDetails.every((card) => card.pictogram.kind === "partly" && card.slots.map((slot) => slot.hour).join(",") === "8,12,16,20"), "central_cards_bind_v24_and_hourly_pictograms");
 ok(plan.dailyCardDetails.map((card) => `${card.weekdayLabel}. ${card.dayLabel}`).join(",") === "SAM. 12,MER. 9", "central_cards_receive_precomputed_french_date_labels");
-ok(buildWeeklyCarouselPlan(editorial([events[1]])).overviewTitle.subtitle === "Le jour à privilégier", "single_preferred_card_uses_accurate_title_guide");
-ok(buildWeeklyCarouselPlan(editorial([events[0]])).overviewTitle.subtitle === "Le jour à surveiller", "single_watch_card_uses_accurate_title_guide");
+ok(buildWeeklyCarouselPlan(editorial([events[1]])).overviewTitle.subtitle === "L’essentiel de la semaine", "single_preferred_card_keeps_stable_slide1_guide");
+ok(buildWeeklyCarouselPlan(editorial([events[0]])).overviewTitle.subtitle === "L’essentiel de la semaine", "single_watch_card_keeps_stable_slide1_guide");
 ok(plan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "overview_uses_dedicated_weekly_master");
 ok(plan.slides.slice(1).every((slide) => slide.kind === "EVENT"), "event_slides_follow_overview");
 ok(plan.slides.slice(1).map((slide) => slide.eventId).join(",") === "wind:2026-09-09,best_window:2026-09-12", "one_slide_per_event");
@@ -165,7 +193,7 @@ ok(plan.slides[1].activities.length === 3, "activities_are_attached_to_event_sli
 const calmPlan = buildWeeklyCarouselPlan(editorial([]));
 ok(calmPlan.slides.length === 1, "calm_week_has_one_slide");
 ok(calmPlan.slides[0].kind === "OVERVIEW" && calmPlan.slides[0].title === "Une semaine calme à Tarnos", "calm_week_uses_short_overview");
-ok(calmPlan.overviewTitle.subtitle === "Une semaine calme · Les repères essentiels", "calm_week_title_stays_factually_calm");
+ok(calmPlan.overviewTitle.subtitle === "L’essentiel de la semaine", "calm_week_keeps_stable_slide1_guide");
 ok(calmPlan.story.relay.source === "CAROUSEL" && calmPlan.story.relay.body.includes("publication"), "calm_story_relays_publication");
 ok(calmPlan.story.relay.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "story_relay_uses_weekly_overview_master");
 
@@ -193,6 +221,12 @@ ok(html.includes(WEEKLY_OVERVIEW_MASTER_URL), "renderer_embeds_weekly_overview_m
 ok(html.includes('"dailySummaries"') && html.includes('"source":"DAILY_V24_DECISION"'), "renderer_embeds_daily_summaries_with_v24_provenance");
 const browserModelLine = html.match(/const model=(.*);\nconst plan=model;/)?.[1] ?? "";
 const renderedModel = browserModelLine ? JSON.parse(browserModelLine) as {
+  slide1: {
+    title: string;
+    subtitle: string;
+    daylight: { deltaLabel: string };
+    dailyStrip: Array<{ pictogram: { kind: string; url: string } }>;
+  };
   dailySummaries: Array<{ weekdayLabel: string; dayLabel: string; pictogram: { source: string; libraryVersion: string; kind: string; url: string } }>;
   dailyCardDetails: Array<{
     kind: string;
@@ -205,6 +239,7 @@ const renderedModel = browserModelLine ? JSON.parse(browserModelLine) as {
 ok(renderedModel?.dailySummaries.length === 7, "renderer_exposes_seven_daily_pictograms");
 ok(renderedModel?.dailySummaries.every((day) => day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY" && day.pictogram.libraryVersion === "LOKA_PREMIUM_1.2" && day.pictogram.kind === "partly" && day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")) === true, "renderer_uses_generated_official_loka_pictogram_urls");
 ok(renderedModel?.dailySummaries.map((day) => `${day.weekdayLabel} ${day.dayLabel}`).join(",") === "LUN 7,MAR 8,MER 9,JEU 10,VEN 11,SAM 12,DIM 13", "renderer_keeps_precomputed_french_day_labels");
+ok(renderedModel?.slide1.title === "LA SEMAINE À TARNOS" && renderedModel.slide1.subtitle === "L’essentiel de la semaine" && renderedModel.slide1.dailyStrip.length === 7 && renderedModel.slide1.dailyStrip.every((day) => day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")), "renderer_exposes_first_slide_content_with_official_daily_pictograms");
 ok(renderedModel?.dailyCardDetails.map((card) => `${card.kind}:${card.weekdayLabel}.${card.dayLabel}:${card.pictogram.kind}:${card.slots.map((slot) => slot.hour).join("-")}`).join(",") === "PREFERRED:SAM.12:partly:8-12-16-20,WATCH:MER.9:partly:8-12-16-20", "renderer_exposes_prepared_central_card_data");
 ok(renderedModel?.dailyCardDetails.every((card) => card.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,") && card.slots.every((slot) => slot.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,"))) === true, "renderer_embeds_official_loka_card_pictograms");
 const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1] ?? "";
@@ -235,4 +270,4 @@ ok(featuredCardRenderer.includes("const x=74,y=360,w=932,h=664") && featuredCard
 ok(summaryCardRenderer.includes("plan.status==='CALM'") && summaryCardRenderer.includes("UNE SEMAINE CALME") && summaryCardRenderer.includes("wrap(slide.body"), "overview_uses_existing_editorial_copy_when_no_daily_card_exists");
 ok(drawSlideRenderer.includes("weekly_pictogram_") && drawSlideRenderer.includes("central_preferred_main_") && drawSlideRenderer.includes("card.kind==='PREFERRED'") && drawSlideRenderer.includes("central_preferred_hour_") && drawSlideRenderer.includes("central_watch_main_") && drawSlideRenderer.includes("card.kind==='WATCH'") && drawSlideRenderer.includes("central_watch_hour_") && drawSlideRenderer.includes("images.slice(dailyIconOffset,preferredIconOffset)"), "overview_loads_preferred_and_watch_loka_card_pictograms_conditionally");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/68 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/70 PASS`);

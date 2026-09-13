@@ -56,7 +56,7 @@ async function generateWeeklyForRange(
   const rawEvents = detectWeeklyEvents(profiles, city);
   const selection = selectWeeklyEvents(profiles, rawEvents, city);
   const activities = translateWeeklyActivities(profiles, selection, city);
-  const editorial = buildWeeklyEditorial(profiles, selection, activities, city.name);
+  const editorial = buildWeeklyEditorial(profiles, selection, activities, city);
   const carousel = buildWeeklyCarouselPlan(editorial);
   const activation = validateWeeklyActivation(editorial, carousel);
   if (!activation.ok) throw new Error(`weekly_activation_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);
@@ -146,7 +146,7 @@ export function generateWeeklyCalmVisualPreview(
   const selection = selectWeeklyEvents(profiles, rawEvents, city);
   if (selection.status !== "CALM") throw new Error("weekly_calm_preview_scenario_not_calm");
   const activities = translateWeeklyActivities(profiles, selection, city);
-  const editorial = buildWeeklyEditorial(profiles, selection, activities, city.name);
+  const editorial = buildWeeklyEditorial(profiles, selection, activities, city);
   const carousel = buildWeeklyCarouselPlan(editorial);
   const activation = validateWeeklyActivation(editorial, carousel);
   if (!activation.ok) throw new Error(`weekly_activation_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);

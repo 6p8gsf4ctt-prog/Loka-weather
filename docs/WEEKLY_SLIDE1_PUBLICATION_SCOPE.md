@@ -1,7 +1,7 @@
 # LOKA - Périmètre de publication
 # Première slide « La semaine à Tarnos »
 
-Version : 1.1  
+Version : 1.2  
 Date : 13 septembre 2026  
 Statut : étape 1 validée - périmètre verrouillé  
 Référence éditoriale : `LOKA_Cahier_des_charges_Rendez_vous_hebdomadaire(1).pdf`
@@ -118,7 +118,7 @@ première publication. Une seule étape du plan est active à la fois.
 |---:|---|---|
 | 1 | Périmètre et critères de publication | VALIDÉE |
 | 2 | Calculs des trois repères fixes | VALIDÉE |
-| 3 | Contrat de contenu de la slide | À FAIRE |
+| 3 | Contrat de contenu de la slide | VALIDÉE |
 | 4 | Rendu Publication 4:5 | À FAIRE |
 | 5 | Rendu Story 9:16 | À FAIRE |
 | 6 | Exports dans la prévisualisation | À FAIRE |
@@ -140,3 +140,15 @@ Chaque température conserve son jour, son index, son heure source et sa valeur.
 La lumière de la semaine conserve les levers, couchers et durées de lundi et
 dimanche, puis calcule leur différence en minutes. Le module ne construit ni
 texte, ni visuel, ni écriture D1 et n'importe pas le pipeline quotidien.
+
+### 13 septembre 2026 - étape 3
+
+Le contrat `slide1` est désormais joint à la sortie éditoriale hebdomadaire
+et au plan de carrousel. Il fournit des libellés et formats prêts à afficher :
+titre, sous-titre, synthèse bornée à deux lignes, matin le plus frais, journée
+la plus chaude, lumière de la semaine et bande des sept jours.
+
+Le contrat conserve la preuve brute de chaque repère, puis diffuse uniquement
+des données calculées par le moteur : dates, heures sources, températures,
+lever, coucher et différence de durée du jour. Le navigateur reçoit les
+pictogrammes officiels liés aux décisions V24 ; il ne recalcule aucune météo.
