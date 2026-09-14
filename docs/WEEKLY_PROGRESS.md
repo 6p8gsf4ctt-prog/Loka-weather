@@ -368,3 +368,16 @@ Une correction documentaire a été effectuée pendant l’audit : `forecast_day
 Le plan technique en 12 étapes est terminé. La seule suite consiste, lorsque
 la prévisualisation sera satisfaisante, à appliquer la migration distante puis
 à activer progressivement `WEEKLY_ENABLED=true` selon `docs/WEEKLY_ACTIVATION.md`.
+
+## Correctif V7 — 14 septembre 2026
+
+- La première slide utilise la période compacte validée dans l’en-tête :
+  `14 — 20` / `SEPTEMBRE`, avec un traitement automatique lorsqu’elle traverse
+  deux mois.
+- La box de titre ne contient plus que `LA SEMAINE À TARNOS` et son trait doré.
+- La synthèse dispose d’une box plus grande et est générée comme une narration
+  météorologique en deux phrases : observation au début de la semaine, puis
+  évolution vers le week-end. Elle ne contient ni conseil ni formulation
+  générique de type « en pratique ».
+- Ces retouches ne modifient ni les décisions V24 quotidiennes, ni les scènes,
+  ni les sorties du moteur journalier.

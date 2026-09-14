@@ -46,8 +46,7 @@ function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial
   const hottestDay = { date: "2026-09-13", dayIndex: 6, temperatureC: 26, sourceHour: 15 };
   return {
     title: "LA SEMAINE À TARNOS",
-    subtitle: "L’essentiel de la semaine",
-    synthesis: { text: "Semaine stable.", maximumLines: 2 },
+    synthesis: { text: "La semaine débute dans une ambiance modérée. Les conditions restent lisibles jusqu’au week-end.", maximumLines: 3 },
     coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "12°", timeLabel: "07 H" },
     hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "26°", timeLabel: "15 H" },
     daylight: {

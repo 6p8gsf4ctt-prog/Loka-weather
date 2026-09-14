@@ -1,8 +1,8 @@
 # LOKA - Périmètre de publication
 # Première slide « La semaine à Tarnos »
 
-Version : 1.8  
-Date : 13 septembre 2026  
+Version : 1.9  
+Date : 14 septembre 2026  
 Statut : étape 1 validée - périmètre verrouillé  
 Référence éditoriale : `LOKA_Cahier_des_charges_Rendez_vous_hebdomadaire(1).pdf`
 
@@ -46,14 +46,14 @@ ville, période, boxes translucides arrondies, typographies, pictogrammes LOKA,
 fond atmosphérique et signature.
 
 1. En-tête : logo LOKA!, `TARNOS` et période dynamique.
-2. Box de titre : `LA SEMAINE À TARNOS`, trait doré et sous-titre
-   `L'essentiel de la semaine`.
+2. Box de titre : `LA SEMAINE À TARNOS` et trait doré. Aucun sous-titre.
 3. Trois repères fixes :
    - **Matin le plus frais** : jour, date et température ;
    - **Journée la plus chaude** : jour, date et température maximale ;
    - **Lumière de la semaine** : différence de durée du jour entre lundi et
      dimanche, avec lever/coucher lorsque l'espace le permet.
-4. Une phrase de synthèse, factuelle, sur deux lignes maximum.
+4. Une synthèse factuelle en deux phrases : situation de départ, puis
+   évolution jusqu’au week-end. Trois lignes maximum.
 5. Bande des sept jours : libellé, date, pictogramme officiel LOKA, Tmin et
    Tmax pour chaque journée. Le matin le plus frais peut recevoir un liseré
    bleu discret ; la journée la plus chaude un liseré doré discret.

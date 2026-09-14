@@ -1,7 +1,7 @@
 # LOKA — Référence visuelle de la slide 1
 
-Version : 1.2  
-Date : 13 septembre 2026  
+Version : 1.3  
+Date : 14 septembre 2026  
 Format : Publication Instagram 1080 × 1350
 
 Ce document verrouille la composition mesurée à partir de la maquette validée.
@@ -12,10 +12,10 @@ le moteur quotidien ou les 24 scènes.
 
 | Zone | X | Y | Largeur | Hauteur | Rôle |
 |---|---:|---:|---:|---:|---|
-| En-tête | 45 | 58 | 990 | 55 | Logo, ville, période sur deux lignes |
-| Box titre | 45 | 185 | 990 | 210 | Titre et sous-titre |
-| Trois repères | 45 | 420 | 990 | 380 | Trois cartes, espacées de 10 px |
-| Synthèse | 45 | 820 | 990 | 105 | Une phrase centrée |
+| En-tête | 45 | 58 | 990 | 55 | Logo, ville, période compacte sur deux lignes |
+| Box titre | 45 | 185 | 990 | 135 | Titre seul et trait doré |
+| Trois repères | 45 | 345 | 990 | 380 | Trois cartes, espacées de 10 px |
+| Synthèse | 45 | 750 | 990 | 170 | Deux phrases chronologiques centrées |
 | Frise sept jours | 45 | 945 | 990 | 250 | Sept colonnes égales |
 | Signature | centré | 1274 | — | — | `Ici, cette semaine.` |
 
@@ -27,13 +27,12 @@ la signature, contre plus de 150 px dans la version précédente.
 | Élément | Taille cible | Graisse | Alignement |
 |---|---:|---:|---|
 | Titre principal | 68 px maximum | 820 | gauche |
-| Sous-titre | 36 px maximum | 400 | gauche, sans contour |
 | Libellé d’un repère | 19 px | 700 | centré, légèrement espacé |
 | Jour du repère | 30 px | 560 | centré, sans contour |
 | Température principale | 70 px maximum | 700 | centrée, bleu marine |
 | Variation de lumière | 38 px maximum | 700 | centrée, bleu marine |
 | Détail lever/coucher | 14 px maximum | 450 | une seule ligne centrée |
-| Synthèse | 32 px maximum | 560 | centrée, sans contour, deux lignes maximum |
+| Synthèse | 35 px maximum | 600 | centrée, sans contour, trois lignes maximum |
 | Jour de la frise | 17 px | 700 | centré |
 | Date de la frise | 19 px | 560 | centrée |
 | Températures de la frise | 24 px | 600 | centrées, entièrement bleu marine |
@@ -53,12 +52,14 @@ de 100 à 110 px pour chacun des trois pictogrammes.
 ## Règles de lisibilité
 
 - Les valeurs principales dominent toujours les libellés et les détails.
-- La période de l’en-tête est alignée à droite sur deux lignes : la première
-  se termine par `AU`, la seconde porte le dimanche et le mois.
+- La période de l’en-tête suit le format compact validé : `14 — 20` puis
+  `SEPTEMBRE`. Pour une semaine à cheval sur deux mois : `28 SEPT. —` puis
+  `4 OCTOBRE`.
 - La lumière affiche une seule donnée forte : `−N min de jour`, puis une seule
   ligne de lever et une ligne de coucher, chacune à 16 px maximum.
-- La synthèse est informative mais non dominante ; elle n’utilise pas une
-  graisse de titre.
+- La synthèse est une lecture éditoriale en deux phrases : fait de début de
+  semaine, puis évolution jusqu’au week-end. Elle reste descriptive, sans
+  recommandation ni intertitre.
 - Le bleu marine éditorial de la slide est `#061F4C`. Les températures froides,
   chaudes et celles de la frise utilisent toutes cette même couleur.
 - Le jaune météo `#FDB515` est réservé aux pictogrammes et au cadre chaud. Le

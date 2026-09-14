@@ -80,10 +80,9 @@ export interface WeeklySlide1DaylightEndpoint extends WeeklyDaylightEndpoint {
  */
 export interface WeeklySlide1Content {
   title: string;
-  subtitle: "L’essentiel de la semaine";
   synthesis: {
     text: string;
-    maximumLines: 2;
+    maximumLines: 3;
   };
   coldestMorning: WeeklySlide1TemperatureFact;
   hottestDay: WeeklySlide1TemperatureFact;
@@ -415,25 +414,75 @@ function daylightDeltaLabel(deltaMinutes: number): { direction: WeeklySlide1Cont
   return { direction: "STABLE", label: "Durée du jour stable" };
 }
 
-const SLIDE1_SYNTHESIS_MAXIMUM_CHARACTERS = 100;
+const SLIDE1_SYNTHESIS_MAXIMUM_CHARACTERS = 190;
+
+function weekdayName(date: string): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
+    weekday: "long"
+  }).format(new Date(`${date}T12:00:00Z`));
+}
+
+function isBrightDay(day: WeeklyDailySummary): boolean {
+  return ["sun", "partly", "veil", "mixed", "sun-wind"].includes(day.scene.visualIcon);
+}
+
+function isWetDay(day: WeeklyDailySummary): boolean {
+  return ["rain", "shower", "thunder", "rain-wind"].includes(day.scene.visualIcon);
+}
 
 /**
- * The overview conclusion can be longer because it feeds the future event
- * slides too. Slide 1 needs one complete sentence that always fits its
- * dedicated box: it must never be cut mid-sentence by the canvas renderer.
+ * Slide 1 is not a shortened event list. It turns the seven daily profiles
+ * into a chronological reading: an opening fact, then the way the week ends.
+ * The renderer only receives this finished, complete two-sentence copy.
  */
-function boundedSlide1Synthesis(events: WeeklyEditorialEvent[], conclusion: string): string {
-  const normalized = conclusion.replace(/\s+/g, " ").trim();
-  if (normalized.length <= SLIDE1_SYNTHESIS_MAXIMUM_CHARACTERS) return normalized;
+function boundedSlide1Synthesis(days: WeeklyDailySummary[], events: WeeklyEditorialEvent[], conclusion: string): string {
+  const first = days[0];
+  const second = days[1];
+  const weekend = days.slice(-2);
+  const earlyEvents = events.filter((event) => event.startDate <= (days[1]?.date ?? ""));
+  const earlyRainEvent = earlyEvents.find((event) => event.type === "RAIN" || event.type === "THUNDER") ?? null;
+  const lateDegradation = events.some((event) => event.type === "DEGRADATION" && event.startDate >= (days[4]?.date ?? "9999-12-31"));
+  const temperatureDrop = first && second ? Math.round(first.maxTemperatureC - second.maxTemperatureC) : 0;
+  const weekendBright = weekend.length === 2 && weekend.every(isBrightDay);
+  const weekendWet = weekend.some(isWetDay);
 
-  const mainEvents = events.filter((event) => event.type !== "BEST_WINDOW").slice(0, 2);
-  if (mainEvents.length === 2) {
-    return `Une semaine contrastée, entre ${mainEvents[0].title.toLocaleLowerCase("fr-FR")} et ${mainEvents[1].title.toLocaleLowerCase("fr-FR")}.`;
+  let opening: string;
+  if (first && second && first.maxTemperatureC >= 28 && temperatureDrop >= 4) {
+    opening = `Après un ${weekdayName(first.date)} très chaud, les températures baissent nettement dès ${weekdayName(second.date)}.`;
+  } else if (earlyRainEvent) {
+    opening = earlyRainEvent.startDate === first?.date
+      ? `La semaine débute avec un épisode pluvieux ${weekdayName(earlyRainEvent.startDate)}.`
+      : `Un épisode pluvieux marque ${weekdayName(earlyRainEvent.startDate)}.`;
+  } else if (first && second && temperatureDrop >= 4) {
+    opening = `Les températures baissent nettement dès ${weekdayName(second.date)}, après un début de semaine plus doux.`;
+  } else if (first && second && temperatureDrop <= -4) {
+    opening = `Les températures remontent sensiblement dès ${weekdayName(second.date)}, après un début de semaine plus frais.`;
+  } else if (first && first.maxTemperatureC >= 28) {
+    opening = `Un ${weekdayName(first.date)} très chaud ouvre la semaine.`;
+  } else {
+    opening = "La semaine débute dans une ambiance globalement modérée.";
   }
-  if (mainEvents.length === 1) {
-    return `Une semaine marquée par ${mainEvents[0].title.toLocaleLowerCase("fr-FR")}.`;
+
+  let outcome: string;
+  if (lateDegradation || weekendWet) {
+    outcome = "Le temps devient ensuite plus instable à l’approche du week-end.";
+  } else if (weekendBright && temperatureDrop >= 3) {
+    outcome = "La semaine devient ensuite plus douce, avec un temps plus lumineux à l’approche du week-end.";
+  } else if (weekendBright) {
+    outcome = "Le temps devient progressivement plus lumineux à l’approche du week-end.";
+  } else if (earlyRainEvent) {
+    outcome = "Le temps devient ensuite plus sec et plus lumineux en seconde partie de semaine.";
+  } else {
+    const normalized = conclusion.replace(/\s+/g, " ").trim();
+    outcome = normalized.length <= 92
+      ? normalized
+      : "Les conditions évoluent peu à peu au fil de la semaine.";
   }
-  return "Une semaine globalement stable, avec une fenêtre météo plus favorable.";
+
+  const narrative = `${opening} ${outcome}`.replace(/\s+/g, " ").trim();
+  if (narrative.length <= SLIDE1_SYNTHESIS_MAXIMUM_CHARACTERS) return narrative;
+  return "La semaine évolue progressivement, avec des conditions plus lisibles à l’approche du week-end.";
 }
 
 function weeklySlide1Content(
@@ -446,8 +495,7 @@ function weeklySlide1Content(
   const daylight = daylightDeltaLabel(facts.daylight.deltaMinutes);
   return {
     title: `LA SEMAINE À ${city.name.toLocaleUpperCase("fr-FR")}`,
-    subtitle: "L’essentiel de la semaine",
-    synthesis: { text: boundedSlide1Synthesis(events, conclusion), maximumLines: 2 },
+    synthesis: { text: boundedSlide1Synthesis(dailySummaries, events, conclusion), maximumLines: 3 },
     coldestMorning: temperatureFact("MATIN LE PLUS FRAIS", facts.coldestMorning),
     hottestDay: temperatureFact("JOURNÉE LA PLUS CHAUDE", facts.hottestDay),
     daylight: {

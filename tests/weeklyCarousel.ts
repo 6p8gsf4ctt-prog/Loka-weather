@@ -48,8 +48,7 @@ function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial
   const hottestDay = { date: dateAt(6), dayIndex: 6, temperatureC: 27, sourceHour: 15 };
   return {
     title: "LA SEMAINE À TARNOS",
-    subtitle: "L’essentiel de la semaine",
-    synthesis: { text: "Une semaine contrastée, plus lumineuse ensuite.", maximumLines: 2 },
+    synthesis: { text: "La semaine commence sous le soleil. Le temps reste ensuite lumineux jusqu’au week-end.", maximumLines: 3 },
     coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "13°C", timeLabel: "07 H" },
     hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "27°C", timeLabel: "15 H" },
     daylight: {
@@ -161,9 +160,10 @@ const events: WeeklyEditorial["events"] = [
 const plan = buildWeeklyCarouselPlan(editorial(events));
 ok(plan.slides.length === 3, "two_events_make_three_slides");
 ok(plan.slides[0].kind === "OVERVIEW" && plan.slides[0].eventId === null, "overview_is_first");
-ok(plan.headerDateLabel === "LUNDI 7 AU DIMANCHE 13 SEPTEMBRE", "weekly_header_date_uses_single_month_label");
+ok(plan.headerDateLabel === "LUNDI 7 AU DIMANCHE 13 SEPTEMBRE", "weekly_header_date_keeps_full_range_for_existing_surfaces");
+ok(plan.headerDateCompact.line1 === "7 — 13" && plan.headerDateCompact.line2 === "SEPTEMBRE", "slide1_header_uses_the_compact_two_line_date_option");
 ok(plan.overviewTitle.title === "LA SEMAINE À TARNOS", "overview_title_uses_city_name");
-ok(plan.overviewTitle.subtitle === "L’essentiel de la semaine", "overview_title_uses_stable_slide1_guide");
+ok(Object.keys(plan.overviewTitle).join(",") === "title", "overview_title_keeps_only_the_week_name");
 ok(plan.slide1.coldestMorning.label === "MATIN LE PLUS FRAIS" && plan.slide1.hottestDay.label === "JOURNÉE LA PLUS CHAUDE" && plan.slide1.dailyStrip.length === 7, "carousel_plan_exposes_first_slide_content_contract");
 ok(plan.dailySummaries.length === 7 && plan.dailySummaries.every((day, index) => day.dayIndex === index), "carousel_plan_keeps_seven_daily_summaries");
 ok(plan.dailySummaries.every((day, index) => day.scene.id === editorial(events).dailySummaries[index]?.scene.id), "carousel_plan_keeps_daily_v24_scene_identity");
@@ -175,8 +175,8 @@ ok(plan.dailySummaries.map((day) => day.highlight ?? "NONE").join(",") === "NONE
 ok(plan.dailyCardDetails.map((card) => `${card.kind}:${card.dayIndex}:${card.weatherLabel}`).join(",") === "PREFERRED:5:BELLES ÉCLAIRCIES,WATCH:2:BELLES ÉCLAIRCIES", "carousel_plan_prepares_preferred_and_watch_cards");
 ok(plan.dailyCardDetails.every((card) => card.pictogram.kind === "partly" && card.slots.map((slot) => slot.hour).join(",") === "8,12,16,20"), "central_cards_bind_v24_and_hourly_pictograms");
 ok(plan.dailyCardDetails.map((card) => `${card.weekdayLabel}. ${card.dayLabel}`).join(",") === "SAM. 12,MER. 9", "central_cards_receive_precomputed_french_date_labels");
-ok(buildWeeklyCarouselPlan(editorial([events[1]])).overviewTitle.subtitle === "L’essentiel de la semaine", "single_preferred_card_keeps_stable_slide1_guide");
-ok(buildWeeklyCarouselPlan(editorial([events[0]])).overviewTitle.subtitle === "L’essentiel de la semaine", "single_watch_card_keeps_stable_slide1_guide");
+ok(buildWeeklyCarouselPlan(editorial([events[1]])).overviewTitle.title === "LA SEMAINE À TARNOS", "single_preferred_card_keeps_the_week_name");
+ok(buildWeeklyCarouselPlan(editorial([events[0]])).overviewTitle.title === "LA SEMAINE À TARNOS", "single_watch_card_keeps_the_week_name");
 ok(plan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "overview_uses_dedicated_weekly_master");
 ok(plan.slides.slice(1).every((slide) => slide.kind === "EVENT"), "event_slides_follow_overview");
 ok(plan.slides.slice(1).map((slide) => slide.eventId).join(",") === "wind:2026-09-09,best_window:2026-09-12", "one_slide_per_event");
@@ -193,7 +193,7 @@ ok(plan.slides[1].activities.length === 3, "activities_are_attached_to_event_sli
 const calmPlan = buildWeeklyCarouselPlan(editorial([]));
 ok(calmPlan.slides.length === 1, "calm_week_has_one_slide");
 ok(calmPlan.slides[0].kind === "OVERVIEW" && calmPlan.slides[0].title === "Une semaine calme à Tarnos", "calm_week_uses_short_overview");
-ok(calmPlan.overviewTitle.subtitle === "L’essentiel de la semaine", "calm_week_keeps_stable_slide1_guide");
+ok(calmPlan.overviewTitle.title === "LA SEMAINE À TARNOS", "calm_week_keeps_the_permanent_week_name");
 ok(calmPlan.story.relay.source === "CAROUSEL" && calmPlan.story.relay.body.includes("publication"), "calm_story_relays_publication");
 ok(calmPlan.story.relay.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "story_relay_uses_weekly_overview_master");
 
@@ -203,6 +203,7 @@ const crossMonthPlan = buildWeeklyCarouselPlan({
   endDate: "2026-10-04"
 });
 ok(crossMonthPlan.headerDateLabel === "LUNDI 28 SEPTEMBRE AU DIMANCHE 4 OCTOBRE", "weekly_header_date_keeps_both_months_when_needed");
+ok(crossMonthPlan.headerDateCompact.line1 === "28 SEPT. —" && crossMonthPlan.headerDateCompact.line2 === "4 OCTOBRE", "slide1_header_keeps_a_compact_cross_month_date");
 
 const html = renderWeeklyCarousel(editorial(events));
 ok(html.includes("carousel-canvas") && html.includes("story-relay"), "renderer_contains_carousel_and_story");
@@ -223,7 +224,6 @@ const browserModelLine = html.match(/const model=(.*);\nconst plan=model;/)?.[1]
 const renderedModel = browserModelLine ? JSON.parse(browserModelLine) as {
   slide1: {
     title: string;
-    subtitle: string;
     daylight: { deltaLabel: string };
     dailyStrip: Array<{ pictogram: { kind: string; url: string } }>;
   };
@@ -239,7 +239,7 @@ const renderedModel = browserModelLine ? JSON.parse(browserModelLine) as {
 ok(renderedModel?.dailySummaries.length === 7, "renderer_exposes_seven_daily_pictograms");
 ok(renderedModel?.dailySummaries.every((day) => day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY" && day.pictogram.libraryVersion === "LOKA_PREMIUM_1.2" && day.pictogram.kind === "partly" && day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")) === true, "renderer_uses_generated_official_loka_pictogram_urls");
 ok(renderedModel?.dailySummaries.map((day) => `${day.weekdayLabel} ${day.dayLabel}`).join(",") === "LUN 7,MAR 8,MER 9,JEU 10,VEN 11,SAM 12,DIM 13", "renderer_keeps_precomputed_french_day_labels");
-ok(renderedModel?.slide1.title === "LA SEMAINE À TARNOS" && renderedModel.slide1.subtitle === "L’essentiel de la semaine" && renderedModel.slide1.dailyStrip.length === 7 && renderedModel.slide1.dailyStrip.every((day) => day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")), "renderer_exposes_first_slide_content_with_official_daily_pictograms");
+ok(renderedModel?.slide1.title === "LA SEMAINE À TARNOS" && renderedModel.slide1.dailyStrip.length === 7 && renderedModel.slide1.dailyStrip.every((day) => day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")), "renderer_exposes_first_slide_content_with_official_daily_pictograms");
 ok(renderedModel?.dailyCardDetails.map((card) => `${card.kind}:${card.weekdayLabel}.${card.dayLabel}:${card.pictogram.kind}:${card.slots.map((slot) => slot.hour).join("-")}`).join(",") === "PREFERRED:SAM.12:partly:8-12-16-20,WATCH:MER.9:partly:8-12-16-20", "renderer_exposes_prepared_central_card_data");
 ok(renderedModel?.dailyCardDetails.every((card) => card.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,") && card.slots.every((slot) => slot.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,"))) === true, "renderer_embeds_official_loka_card_pictograms");
 const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1] ?? "";
@@ -260,16 +260,16 @@ const slide1DayMarkerRenderer = script.split("\n").find((line) => line.startsWit
 const slide1StripBoxRenderer = script.split("\n").find((line) => line.startsWith("function slide1StripBox(")) ?? "";
 const publicationSlideRenderer = script.split("\n").find((line) => line.startsWith("function drawPublicationSlide(")) ?? "";
 const publicationLaunch = script.split("\n").find((line) => line.startsWith("Promise.all(plan.slides.map")) ?? "";
-ok(slide1OverviewRenderer.includes("box(45,185,990,210);drawOverviewTitle(plan.overviewTitle);drawSlide1Facts(plan.slide1") && slide1OverviewRenderer.includes("drawSlide1Summary(plan.slide1);slide1StripBox(45,945,990,250);drawSlide1DayStrip(plan.slide1.dailyStrip"), "slide1_uses_reference_aligned_title_facts_summary_and_daily_strip_boxes");
+ok(slide1OverviewRenderer.includes("box(45,185,990,135);drawOverviewTitle(plan.overviewTitle);drawSlide1Facts(plan.slide1") && slide1OverviewRenderer.includes("drawSlide1Summary(plan.slide1);slide1StripBox(45,945,990,250);drawSlide1DayStrip(plan.slide1.dailyStrip"), "slide1_uses_the_v7_title_facts_summary_and_daily_strip_boxes");
 ok(!slide1OverviewRenderer.includes("slide.scene.displayTitle") && !slide1OverviewRenderer.includes("dailyCardDetails"), "slide1_does_not_render_the_previous_daily_cards");
-ok(slide1OverviewRenderer.includes("drawOverviewTitle(plan.overviewTitle)") && overviewTitleRenderer.includes("content.title") && overviewTitleRenderer.includes("plainText(subtitle") && overviewTitleRenderer.includes("ctx.strokeStyle=slide1EditorialGold"), "slide1_draws_automatic_title_content_with_reference_palette_and_lighter_subtitle");
-ok(slide1OverviewRenderer.includes("drawSlide1Header(logo,plan.headerDateLabel,width)") && slide1HeaderRenderer.includes("weeklyHeaderDateLines") && slide1HeaderRenderer.includes("lines[0],width-50,81,16") && slide1HeaderRenderer.includes("lines[1],width-50,104,16"), "slide1_header_keeps_logo_city_and_a_two_line_date_range");
+ok(slide1OverviewRenderer.includes("drawOverviewTitle(plan.overviewTitle)") && overviewTitleRenderer.includes("content.title") && !overviewTitleRenderer.includes("subtitle") && overviewTitleRenderer.includes("ctx.strokeStyle=slide1EditorialGold"), "slide1_draws_the_single_week_title_with_reference_palette");
+ok(slide1OverviewRenderer.includes("drawSlide1Header(logo,plan.headerDateCompact,width)") && slide1HeaderRenderer.includes("date.line1") && slide1HeaderRenderer.includes("date.line2") && slide1HeaderRenderer.includes("width-50,81,17") && slide1HeaderRenderer.includes("width-50,104,17"), "slide1_header_keeps_logo_city_and_the_compact_two_line_date");
 ok(slide1OverviewRenderer.includes("drawSignature(1274,'rgba(255,255,255,.94)')"), "slide1_signature_uses_soft_white_on_dark_lower_master");
 ok(slide1FactsRenderer.includes("content.coldestMorning") && slide1FactsRenderer.includes("content.hottestDay") && slide1FactsRenderer.includes("content.daylight"), "slide1_draws_the_three_fixed_weekly_facts");
 ok(slide1TemperatureRenderer.includes("fact.label") && slide1TemperatureRenderer.includes("fact.dateLabel") && slide1TemperatureRenderer.includes("fact.temperatureLabel") && !slide1TemperatureRenderer.includes("fact.timeLabel"), "slide1_temperature_fact_keeps_only_the_essential_day_and_temperature");
 ok(slide1FactsRenderer.includes("thermometerIcon") && slide1FactsRenderer.includes("hotIcon=dailyIcons[content.hottestDay.dayIndex]") && slide1FactsRenderer.includes("cardWidth,148,132") && slide1FactsRenderer.includes("cardWidth,170,145") && slide1TemperatureRenderer.includes("plainText(fact.temperatureLabel"), "slide1_temperature_facts_use_optically_balanced_loka_icons_and_navy_values");
 ok(script.includes("function drawSlide1DaylightFact") && script.includes("const sunrise='Lever '") && script.includes("sunset='Coucher '") && script.includes("y+321") && script.includes("y+351"), "slide1_daylight_fact_uses_two_larger_astronomical_lines");
-ok(slide1SummaryRenderer.includes("slide1SummaryBox(45,820,990,105)") && slide1SummaryRenderer.includes("completePlainWrap") && slide1SummaryRenderer.includes("560,slide1Ink") && !slide1SummaryRenderer.includes("EN BREF"), "slide1_renders_a_medium_weight_reference_aligned_summary");
+ok(slide1SummaryRenderer.includes("slide1SummaryBox(45,750,990,170)") && slide1SummaryRenderer.includes("completePlainWrap") && slide1SummaryRenderer.includes("600,slide1Ink") && !slide1SummaryRenderer.includes("EN BREF"), "slide1_renders_the_larger_v7_chronological_summary");
 ok(completeWrapRenderer.includes("lines.length<=maxLines") && completeWrapRenderer.includes("weekly_slide1_synthesis_does_not_fit"), "slide1_never_cuts_a_summary_mid_sentence");
 ok(slide1DayStripRenderer.includes("days.forEach") && slide1DayStripRenderer.includes("drawImageCentered(icon") && slide1DayStripRenderer.includes("plainText(minLabel") && slide1DayStripRenderer.includes("plainText(maxLabel") && !slide1DayStripRenderer.includes("plainText(maxLabel,centerX+7,y+220,24,600,gold"), "slide1_draws_seven_loka_columns_with_uniform_navy_temperatures");
 ok(slide1DayStripRenderer.includes("content.coldestMorning.dayIndex") && slide1DayStripRenderer.includes("content.hottestDay.dayIndex") && slide1DayMarkerRenderer.includes("kind==='HOT'") && slide1DayMarkerRenderer.includes("slide1ColdBlue") && slide1DayMarkerRenderer.includes("Math.round(x+8)"), "slide1_marks_only_the_extreme_days_with_identical_pixel_rounded_insets");
@@ -277,4 +277,4 @@ ok(slide1StripBoxRenderer.includes("rgba(255,255,255,.80)") && slide1DayStripRen
 ok(publicationSlideRenderer.includes("plan.slide1.dailyStrip.map") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.daylight") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.thermometer") && publicationSlideRenderer.includes("drawSlide1Overview"), "slide1_loads_its_official_daily_and_utility_loka_pictograms");
 ok(publicationLaunch.includes("drawPublicationSlide(slideCanvases[index],slide)"), "publication_renderer_uses_the_new_slide1_visual_path");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/73 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/75 PASS`);

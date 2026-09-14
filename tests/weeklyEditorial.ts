@@ -102,12 +102,13 @@ ok(editorial.signature === "Ici, cette semaine.", "weekly_signature");
 ok(editorial.dailySummaries.length === 7 && editorial.dailySummaries.every((day, index) => day.dayIndex === index), "seven_ordered_daily_summaries");
 ok(editorial.dailySummaries.every((day, index) => day.date === profiles.days[index]?.date && day.minTemperatureC === profiles.days[index]?.fullDay.minTemperatureC && day.maxTemperatureC === profiles.days[index]?.fullDay.maxTemperatureC), "daily_summary_temperatures_reuse_profiles");
 ok(editorial.dailySummaries.every((day, index) => day.scene.id === profiles.days[index]?.sceneDecision.sceneId && day.scene.source === "DAILY_V24_DECISION"), "daily_summary_scenes_reuse_daily_v24_decisions");
-ok(editorial.slide1.title === "LA SEMAINE À TARNOS" && editorial.slide1.subtitle === "L’essentiel de la semaine", "slide1_has_stable_title_content");
+ok(editorial.slide1.title === "LA SEMAINE À TARNOS", "slide1_has_the_single_permanent_title");
 ok(editorial.slide1.coldestMorning.label === "MATIN LE PLUS FRAIS" && editorial.slide1.coldestMorning.date === editorial.slide1.facts.coldestMorning.date && editorial.slide1.coldestMorning.temperatureC === editorial.slide1.facts.coldestMorning.temperatureC && editorial.slide1.coldestMorning.sourceHour >= 5 && editorial.slide1.coldestMorning.sourceHour <= 10, "slide1_coldest_morning_is_traceable");
 ok(editorial.slide1.hottestDay.label === "JOURNÉE LA PLUS CHAUDE" && editorial.slide1.hottestDay.date === editorial.slide1.facts.hottestDay.date && editorial.slide1.hottestDay.temperatureC === editorial.slide1.facts.hottestDay.temperatureC && editorial.slide1.hottestDay.sourceHour >= 0 && editorial.slide1.hottestDay.sourceHour <= 23, "slide1_hottest_day_is_traceable");
 ok(editorial.slide1.daylight.label === "LUMIÈRE DE LA SEMAINE" && editorial.slide1.daylight.deltaMinutes === editorial.slide1.facts.daylight.deltaMinutes && editorial.slide1.daylight.start.sunriseLabel.includes(":") && editorial.slide1.daylight.start.weekdayLabel === "LUN." && editorial.slide1.daylight.end.weekdayLabel === "DIM.", "slide1_daylight_is_astronomical_and_formatted");
 ok(editorial.slide1.dailyStrip.length === 7 && editorial.slide1.dailyStrip.every((day, index) => day.scene.id === editorial.dailySummaries[index]?.scene.id), "slide1_daily_strip_reuses_v24_daily_summaries");
-ok(editorial.slide1.synthesis.text.endsWith(".") && editorial.slide1.synthesis.text.length <= 100 && editorial.slide1.synthesis.maximumLines === 2, "slide1_synthesis_is_complete_and_bounded_for_its_box");
+ok(editorial.slide1.synthesis.text.split(".").filter(Boolean).length >= 2 && editorial.slide1.synthesis.text.length <= 190 && editorial.slide1.synthesis.maximumLines === 3, "slide1_synthesis_is_a_bounded_two_sentence_weekly_narrative");
+ok(editorial.slide1.synthesis.text.includes("mardi") && !/conseil|privilégier|surveiller/i.test(editorial.slide1.synthesis.text), "slide1_synthesis_describes_the_week_chronologically_without_advice");
 ok(editorial.dailyHighlights.map((highlight) => `${highlight.kind}:${highlight.dayIndex}:${highlight.sourceEventType}`).join(",") === "PREFERRED:0:BEST_WINDOW,WATCH:1:RAIN", "daily_highlights_follow_selected_best_and_rain_events");
 ok(editorial.dailyCardDetails.map((card) => `${card.kind}:${card.dayIndex}:${card.sourceEventType}`).join(",") === "PREFERRED:0:BEST_WINDOW,WATCH:1:RAIN", "daily_card_details_follow_factual_highlights");
 ok(editorial.dailyCardDetails.every((card) => card.weatherLabel === card.scene.displayTitle && card.minTemperatureC === profiles.days[card.dayIndex]?.fullDay.minTemperatureC && card.maxTemperatureC === profiles.days[card.dayIndex]?.fullDay.maxTemperatureC), "daily_card_temperatures_and_labels_reuse_daily_profile");
@@ -130,4 +131,4 @@ ok(calmEditorial.overview.scene.id >= 1 && calmEditorial.overview.scene.id <= 24
 ok(calmEditorial.dailyHighlights.length === 0, "calm_week_has_no_artificial_daily_highlights");
 ok(calmEditorial.dailyCardDetails.length === 0, "calm_week_has_no_artificial_daily_cards");
 
-console.log(`WEEKLY_EDITORIAL ${passed}/35 PASS`);
+console.log(`WEEKLY_EDITORIAL ${passed}/36 PASS`);

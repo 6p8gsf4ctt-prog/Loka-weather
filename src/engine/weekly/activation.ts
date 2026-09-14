@@ -69,6 +69,25 @@ export function validateWeeklyActivation(
   checks.push(check("story_dimensions", carousel.story.width === 1080 && carousel.story.height === 1920, "1080x1920"));
   checks.push(check("story_relay", carousel.story.relay.kind === "RELAY" && carousel.story.relay.source === "CAROUSEL" && carousel.story.relay.cta.length > 0, "relay_only_story"));
   checks.push(check(
+    "weekly_slide1_content",
+    editorial.slide1.title.length > 0
+      && editorial.slide1.synthesis.text.length > 0
+      && editorial.slide1.synthesis.maximumLines === 3
+      && editorial.slide1.coldestMorning.sourceHour >= 5
+      && editorial.slide1.coldestMorning.sourceHour <= 10
+      && Number.isFinite(editorial.slide1.coldestMorning.temperatureC)
+      && Number.isFinite(editorial.slide1.hottestDay.temperatureC)
+      && editorial.slide1.daylight.deltaMinutes === editorial.slide1.facts.daylight.deltaMinutes
+      && editorial.slide1.daylight.start.date === editorial.startDate
+      && editorial.slide1.daylight.end.date === editorial.endDate
+      && editorial.slide1.dailyStrip.length === 7
+      && editorial.slide1.dailyStrip.every((day, index) => day.date === editorial.dailySummaries[index]?.date && day.scene.id === editorial.dailySummaries[index]?.scene.id)
+      && carousel.slide1.title === editorial.slide1.title
+      && carousel.slide1.dailyStrip.length === 7
+      && carousel.slide1.dailyStrip.every((day, index) => day.date === editorial.slide1.dailyStrip[index]?.date && day.pictogram.kind === visualIconToPictogram(day.scene.visualIcon)),
+    "permanent_first_slide_facts_are_complete_and_v24_bound"
+  ));
+  checks.push(check(
     "weekly_daily_summaries",
     editorial.dailySummaries.length === 7
       && carousel.dailySummaries.length === 7

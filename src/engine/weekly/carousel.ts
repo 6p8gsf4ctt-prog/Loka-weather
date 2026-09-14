@@ -82,6 +82,11 @@ export interface WeeklyCarouselPlan {
   endDate: string;
   /** Header copy produced from the Monday-Sunday range, not from a slide. */
   headerDateLabel: string;
+  /** Compact two-line period treatment dedicated to the permanent first slide. */
+  headerDateCompact: {
+    line1: string;
+    line2: string;
+  };
   /**
    * Copy for the first, overview-only box. It deliberately does not reuse the
    * old overview narrative: the box is the stable entry point of the weekly
@@ -89,7 +94,6 @@ export interface WeeklyCarouselPlan {
    */
   overviewTitle: {
     title: string;
-    subtitle: string;
   };
   /** Stable slide-1 copy, including the three factual anchors and daily strip. */
   slide1: WeeklyCarouselSlide1Content;
@@ -163,6 +167,7 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
     startDate: editorial.startDate,
     endDate: editorial.endDate,
     headerDateLabel: weeklyHeaderDateLabel(editorial.startDate, editorial.endDate),
+    headerDateCompact: weeklyHeaderDateCompact(editorial.startDate, editorial.endDate),
     overviewTitle: overviewTitleContent(editorial),
     slide1: {
       ...editorial.slide1,
@@ -234,8 +239,7 @@ function cityDisplayName(citySlug: string): string {
 
 function overviewTitleContent(editorial: WeeklyEditorial): WeeklyCarouselPlan["overviewTitle"] {
   return {
-    title: editorial.slide1.title,
-    subtitle: editorial.slide1.subtitle
+    title: editorial.slide1.title
   };
 }
 
@@ -290,6 +294,25 @@ function weeklyHeaderDateLabel(startDate: string, endDate: string): string {
     ? `${start.weekday} ${start.day} au ${end.weekday} ${end.day} ${end.month}`
     : `${start.weekday} ${start.day} ${start.month} au ${end.weekday} ${end.day} ${end.month}`;
   return label.toUpperCase();
+}
+
+function weeklyHeaderDateCompact(startDate: string, endDate: string): WeeklyCarouselPlan["headerDateCompact"] {
+  const partsFor = (date: string): { day: string; month: string; shortMonth: string } => {
+    const dateValue = new Date(date + "T12:00:00Z");
+    const part = (options: Intl.DateTimeFormatOptions, type: Intl.DateTimeFormatPartTypes): string =>
+      new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", ...options })
+        .formatToParts(dateValue)
+        .find((item) => item.type === type)?.value ?? "";
+    return {
+      day: part({ day: "numeric" }, "day"),
+      month: part({ month: "long" }, "month").toLocaleUpperCase("fr-FR"),
+      shortMonth: part({ month: "short" }, "month").replace(/\.$/, "").toLocaleUpperCase("fr-FR") + "."
+    };
+  };
+  const start = partsFor(startDate);
+  const end = partsFor(endDate);
+  if (start.month === end.month) return { line1: `${start.day} — ${end.day}`, line2: end.month };
+  return { line1: `${start.day} ${start.shortMonth} —`, line2: `${end.day} ${end.month}` };
 }
 
 function activityStatusClass(status: WeeklyEditorialEvent["activities"][number]["status"]): string {
@@ -410,12 +433,11 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial): string {
     "function drawLokaLogo(logo,x,centerY,maxWidth,maxHeight){const iw=Math.max(1,logo.naturalWidth||logo.width||maxWidth),ih=Math.max(1,logo.naturalHeight||logo.height||maxHeight),scale=Math.min(maxWidth/iw,maxHeight/ih),dw=iw*scale,dh=ih*scale;ctx.drawImage(logo,x,centerY-dh/2,dw,dh);}",
     "function drawImageCentered(image,cx,cy,w,h){const iw=Math.max(1,image.naturalWidth||image.width||w),ih=Math.max(1,image.naturalHeight||image.height||h),scale=Math.min(w/iw,h/ih),dw=iw*scale,dh=ih*scale;ctx.drawImage(image,cx-dw/2,cy-dh/2,dw,dh);}",
     "function drawHeader(logo,label,width){drawLokaLogo(logo,50,80,174,58);trackedText(String(plan.citySlug==='tarnos'?'TARNOS':plan.citySlug).toUpperCase(),540,94,22,680,ink,8,'center');text(String(label||'').toUpperCase(),width-50,94,18,540,ink,'right');}",
-    "function weeklyHeaderDateLines(label){const normalized=String(label||'').toUpperCase(),separator=' AU ',index=normalized.indexOf(separator);if(index<0)return[normalized,''];return[normalized.slice(0,index+separator.length).trim(),normalized.slice(index+separator.length).trim()];}",
-    "function drawSlide1Header(logo,label,width){const lines=weeklyHeaderDateLines(label);drawLokaLogo(logo,50,80,174,58);trackedText(String(plan.citySlug==='tarnos'?'TARNOS':plan.citySlug).toUpperCase(),540,94,22,680,slide1Ink,8,'center');plainText(lines[0],width-50,81,16,540,slide1Ink,'right');plainText(lines[1],width-50,104,16,540,slide1Ink,'right');}",
+    "function drawSlide1Header(logo,date,width){drawLokaLogo(logo,50,80,174,58);trackedText(String(plan.citySlug==='tarnos'?'TARNOS':plan.citySlug).toUpperCase(),540,94,22,680,slide1Ink,8,'center');plainText(normalizeText(date.line1),width-50,81,17,600,slide1Ink,'right');plainText(normalizeText(date.line2),width-50,104,17,600,slide1Ink,'right');}",
     "function drawStoryHeader(logo,label){drawLokaLogo(logo,50,144,190,64);trackedText(String(plan.citySlug==='tarnos'?'TARNOS':plan.citySlug).toUpperCase(),540,158,25,680,ink,8,'center');text(String(label||'').toUpperCase(),1030,158,20,540,ink,'right');}",
     "function sceneBadge(icon,scene,x,y,w,h){box(x,y,w,h);drawImageCentered(icon,x+82,y+h/2+8,116,90);text('SCÈNE V24 DU JOUR',x+160,y+43,14,700,ink,'left');text(scene.displayTitle,x+160,y+83,19,780,ink,'left');}",
     "function drawSignature(y,color){const signatureColor=color||ink;text(model.signature||model.brand.slogan,540,y,20,500,signatureColor,'center');ctx.save();ctx.strokeStyle=gold;ctx.lineWidth=1.4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(514,y+24);ctx.lineTo(566,y+24);ctx.stroke();ctx.restore();}",
-    "function drawOverviewTitle(content){const title=normalizeText(content.title),subtitle=normalizeText(content.subtitle);const titleSize=fittedSize(title,870,68,46,820),subtitleSize=fittedSize(subtitle,870,36,24,400);text(title,105,286,titleSize,820,slide1Ink,'left');ctx.save();ctx.strokeStyle=slide1EditorialGold;ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(108,310);ctx.lineTo(188,310);ctx.stroke();ctx.restore();plainText(subtitle,108,356,subtitleSize,400,slide1Ink,'left');}",
+    "function drawOverviewTitle(content){const title=normalizeText(content.title),titleSize=fittedSize(title,870,68,46,820);text(title,105,271,titleSize,820,slide1Ink,'left');ctx.save();ctx.strokeStyle=slide1EditorialGold;ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(108,293);ctx.lineTo(188,293);ctx.stroke();ctx.restore();}",
     "function slide1MetricBox(x,y,w,h){ctx.save();rr(x,y,w,h,24);ctx.fillStyle='rgba(255,255,255,.48)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.90)';ctx.lineWidth=1.2;ctx.stroke();ctx.restore();}",
     "function slide1StripBox(x,y,w,h){ctx.save();rr(x,y,w,h,26);ctx.fillStyle='rgba(255,255,255,.80)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.98)';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();}",
     "function slide1SummaryBox(x,y,w,h){ctx.save();rr(x,y,w,h,26);ctx.fillStyle='rgba(255,255,255,.66)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.96)';ctx.lineWidth=1.45;ctx.stroke();ctx.restore();}",
@@ -426,11 +448,11 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial): string {
     "function drawPlainWrappedLines(lines,x,y,lineHeight,size,weight,color,align){const firstY=y-(lines.length-1)*lineHeight/2;ctx.save();font(size,weight);for(let index=0;index<lines.length;index++)drawPlainTextLine(lines[index],x,firstY+index*lineHeight,color,align);ctx.restore();}",
     "function completeWrap(value,x,y,maxWidth,lineHeight,maxSize,minSize,weight,color,align,maxLines){for(let size=maxSize;size>=minSize;size--){const lines=wrappedLines(value,maxWidth,size,weight);if(lines.length===1){drawWrappedLines(lines,x,y,lineHeight,size,weight,color,align);return;}}for(let size=maxSize;size>=minSize;size--){const lines=wrappedLines(value,maxWidth,size,weight);if(lines.length<=maxLines){drawWrappedLines(lines,x,y,lineHeight,size,weight,color,align);return;}}throw new Error('weekly_slide1_synthesis_does_not_fit');}",
     "function completePlainWrap(value,x,y,maxWidth,lineHeight,maxSize,minSize,weight,color,align,maxLines){for(let size=maxSize;size>=minSize;size--){const lines=wrappedLines(value,maxWidth,size,weight);if(lines.length===1){drawPlainWrappedLines(lines,x,y,lineHeight,size,weight,color,align);return;}}for(let size=maxSize;size>=minSize;size--){const lines=wrappedLines(value,maxWidth,size,weight);if(lines.length<=maxLines){drawPlainWrappedLines(lines,x,y,lineHeight,size,weight,color,align);return;}}throw new Error('weekly_slide1_synthesis_does_not_fit');}",
-    "function drawSlide1Facts(content,dailyIcons,daylightIcon,thermometerIcon){const x=45,y=420,w=990,gap=10,cardWidth=(w-gap*2)/3,hotIcon=dailyIcons[content.hottestDay.dayIndex];drawSlide1TemperatureFact(content.coldestMorning,thermometerIcon,x,y,cardWidth,148,132);drawSlide1TemperatureFact(content.hottestDay,hotIcon,x+cardWidth+gap,y,cardWidth,170,145);drawSlide1DaylightFact(content.daylight,daylightIcon,x+(cardWidth+gap)*2,y,cardWidth);}",
-    "function drawSlide1Summary(content){slide1SummaryBox(45,820,990,105);completePlainWrap(content.synthesis.text,540,883,900,37,32,21,560,slide1Ink,'center',content.synthesis.maximumLines);}",
+    "function drawSlide1Facts(content,dailyIcons,daylightIcon,thermometerIcon){const x=45,y=345,w=990,gap=10,cardWidth=(w-gap*2)/3,hotIcon=dailyIcons[content.hottestDay.dayIndex];drawSlide1TemperatureFact(content.coldestMorning,thermometerIcon,x,y,cardWidth,148,132);drawSlide1TemperatureFact(content.hottestDay,hotIcon,x+cardWidth+gap,y,cardWidth,170,145);drawSlide1DaylightFact(content.daylight,daylightIcon,x+(cardWidth+gap)*2,y,cardWidth);}",
+    "function drawSlide1Summary(content){slide1SummaryBox(45,750,990,170);completePlainWrap(content.synthesis.text,540,806,880,39,35,25,600,slide1Ink,'center',content.synthesis.maximumLines);}",
     "function drawSlide1DayMarker(kind,x,y,w,h){const accent=kind==='HOT'?gold:slide1ColdBlue,left=Math.round(x+8),top=Math.round(y+8),markerWidth=Math.round(w-16),markerHeight=Math.round(h-16);ctx.save();rr(left,top,markerWidth,markerHeight,12);ctx.fillStyle=kind==='HOT'?'rgba(253,181,21,.08)':'rgba(95,167,231,.08)';ctx.fill();ctx.strokeStyle=accent;ctx.lineWidth=2;ctx.stroke();ctx.restore();}",
     "function drawSlide1DayStrip(days,dailyIcons,content){const x=45,y=945,w=990,h=250,columnWidth=w/days.length;ctx.save();ctx.strokeStyle='rgba(6,31,76,.14)';ctx.lineWidth=1;for(let index=1;index<days.length;index++){const separatorX=Math.round(x+columnWidth*index)+.5;ctx.beginPath();ctx.moveTo(separatorX,y+18);ctx.lineTo(separatorX,y+h-18);ctx.stroke();}ctx.restore();days.forEach(function(day,index){if(day.dayIndex===content.coldestMorning.dayIndex)drawSlide1DayMarker('COLD',x+columnWidth*index,y,columnWidth,h);if(day.dayIndex===content.hottestDay.dayIndex)drawSlide1DayMarker('HOT',x+columnWidth*index,y,columnWidth,h);});days.forEach(function(day,index){const centerX=x+columnWidth*(index+.5),icon=dailyIcons[index];plainText(day.weekdayLabel,centerX,y+43,17,700,slide1Ink,'center');plainText(day.dayLabel,centerX,y+71,19,560,slide1Ink,'center');drawImageCentered(icon,centerX,y+143,106,82);const minLabel=String(Math.round(day.minTemperatureC))+'°',maxLabel=String(Math.round(day.maxTemperatureC))+'°';plainText(minLabel,centerX-7,y+220,24,600,slide1Ink,'right');plainText('/',centerX,y+220,17,450,slide1Ink,'center');plainText(maxLabel,centerX+7,y+220,24,600,slide1Ink,'left');});}",
-    "function drawSlide1Overview(canvas,slide,background,logo,dailyIcons,daylightIcon,thermometerIcon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawSlide1Header(logo,plan.headerDateLabel,width);box(45,185,990,210);drawOverviewTitle(plan.overviewTitle);drawSlide1Facts(plan.slide1,dailyIcons,daylightIcon,thermometerIcon);drawSlide1Summary(plan.slide1);slide1StripBox(45,945,990,250);drawSlide1DayStrip(plan.slide1.dailyStrip,dailyIcons,plan.slide1);drawSignature(1274,'rgba(255,255,255,.94)');}",
+    "function drawSlide1Overview(canvas,slide,background,logo,dailyIcons,daylightIcon,thermometerIcon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawSlide1Header(logo,plan.headerDateCompact,width);box(45,185,990,135);drawOverviewTitle(plan.overviewTitle);drawSlide1Facts(plan.slide1,dailyIcons,daylightIcon,thermometerIcon);drawSlide1Summary(plan.slide1);slide1StripBox(45,945,990,250);drawSlide1DayStrip(plan.slide1.dailyStrip,dailyIcons,plan.slide1);drawSignature(1274,'rgba(255,255,255,.94)');}",
     "function drawPublicationSlide(canvas,slide){if(slide.kind!=='OVERVIEW')return drawSlide(canvas,slide);const base=[load(slide.backgroundUrl,'slide1_background'),load(model.brand.logoUrl,'slide1_logo')],dailyPictograms=plan.slide1.dailyStrip.map(function(day){return load(day.pictogram.url,'slide1_pictogram_'+day.dayIndex);}),utilityPictograms=[load(model.slide1UtilityPictograms.daylight,'slide1_daylight'),load(model.slide1UtilityPictograms.thermometer,'slide1_thermometer')];return Promise.all([...base,...dailyPictograms,...utilityPictograms]).then(function(images){const dailyOffset=2,utilityOffset=dailyOffset+dailyPictograms.length;drawSlide1Overview(canvas,slide,images[0],images[1],images.slice(dailyOffset,utilityOffset),images[utilityOffset],images[utilityOffset+1]);});}",
     "function drawWeeklyDayHighlight(kind,x,y,w,h){if(!kind)return;const preferred=kind==='PREFERRED';ctx.save();rr(x+5,y+6,w-10,h-12,18);ctx.fillStyle=preferred?'rgba(253,181,21,.10)':'rgba(18,38,74,.075)';ctx.fill();ctx.strokeStyle=preferred?gold:ink;ctx.lineWidth=2.25;ctx.stroke();ctx.restore();}",
     "function drawWeeklyDayStrip(days,dailyIcons){const x=50,y=1060,w=980,h=190,columnWidth=w/days.length;days.forEach(function(day,index){drawWeeklyDayHighlight(day.highlight,x+columnWidth*index,y,columnWidth,h);});ctx.save();ctx.strokeStyle='rgba(18,38,74,.16)';ctx.lineWidth=1.15;for(let index=1;index<days.length;index++){const separatorX=x+columnWidth*index;ctx.beginPath();ctx.moveTo(separatorX,y+15);ctx.lineTo(separatorX,y+h-15);ctx.stroke();}ctx.restore();days.forEach(function(day,index){const centerX=x+columnWidth*(index+.5),icon=dailyIcons[index];text(day.weekdayLabel,centerX,y+32,15,780,ink,'center');text(day.dayLabel,centerX,y+55,18,760,ink,'center');drawImageCentered(icon,centerX,y+104,88,66);const minLabel=String(Math.round(day.minTemperatureC))+'°',maxLabel=String(Math.round(day.maxTemperatureC))+'°';text(minLabel,centerX-7,y+165,22,780,ink,'right');text('/',centerX,y+165,16,680,ink,'center');text(maxLabel,centerX+7,y+165,22,780,gold,'left');});}",
