@@ -224,6 +224,7 @@ const browserModelLine = html.match(/const model=(.*);\nconst plan=model;/)?.[1]
 const renderedModel = browserModelLine ? JSON.parse(browserModelLine) as {
   slide1: {
     title: string;
+    synthesis: { text: string; maximumLines: number };
     daylight: { deltaLabel: string };
     dailyStrip: Array<{ pictogram: { kind: string; url: string } }>;
   };
@@ -248,7 +249,7 @@ try { new Function(script); } catch { scriptValid = false; }
 ok(scriptValid, "renderer_browser_script_is_valid");
 
 const slide1RuntimeSource = script.slice(0, script.indexOf("Promise.all(plan.slides.map"));
-const adaptiveLayoutRuntime = new Function("document", `${slide1RuntimeSource};return{layout:function(content,context){ctx=context;return slide1FactLayout(content,45,990);}};`)({
+const adaptiveLayoutRuntime = new Function("document", `${slide1RuntimeSource};return{layout:function(content,context){ctx=context;return slide1FactLayout(content,45,990);},summary:function(content,context){ctx=context;completePlainWrap(content.synthesis.text,540,835,880,39,35,25,600,slide1Ink,'center',content.synthesis.maximumLines);}};`)({
   querySelectorAll: () => [],
   getElementById: () => null
 }) as {
@@ -259,6 +260,7 @@ const adaptiveLayoutRuntime = new Function("document", `${slide1RuntimeSource};r
     restore: () => void;
     measureText: (value: string) => { width: number };
   }) => Array<{ x: number; width: number }>;
+  summary: (content: NonNullable<typeof renderedModel>["slide1"], context: unknown) => void;
 };
 let measuredFontSize = 16;
 const adaptiveLayout = adaptiveLayoutRuntime.layout(renderedModel!.slide1, {
@@ -271,6 +273,32 @@ const adaptiveLayout = adaptiveLayoutRuntime.layout(renderedModel!.slide1, {
 });
 ok(adaptiveLayout.length === 3 && adaptiveLayout[0]?.x === 45 && adaptiveLayout[1]?.x === (adaptiveLayout[0]?.x ?? 0) + (adaptiveLayout[0]?.width ?? 0) + 10 && adaptiveLayout[2]?.x === (adaptiveLayout[1]?.x ?? 0) + (adaptiveLayout[1]?.width ?? 0) + 10 && adaptiveLayout.reduce((total, card) => total + card.width, 0) === 970 && adaptiveLayout[2]?.width > (adaptiveLayout[0]?.width ?? 0) && adaptiveLayout[2]?.width > (adaptiveLayout[1]?.width ?? 0), "slide1_adaptive_fact_layout_gives_the_daylight_card_the_space_required_by_its_text");
 
+let summaryFontSize = 16;
+const summaryBaselines: number[] = [];
+const threeLineSummary = {
+  ...renderedModel!.slide1,
+  synthesis: {
+    ...renderedModel!.slide1.synthesis,
+    text: "Après un lundi très chaud, les températures baissent nettement dès mardi. La semaine devient ensuite plus douce, avec un temps plus lumineux à l’approche du week-end."
+  }
+};
+adaptiveLayoutRuntime.summary(threeLineSummary, {
+  get font() { return ""; },
+  set font(value: string) { summaryFontSize = Number(value.match(/(\d+)px/)?.[1] ?? 16); },
+  fontKerning: "normal",
+  save: () => undefined,
+  restore: () => undefined,
+  measureText: (value: string) => ({
+    width: [...value].reduce((total, character) => total + summaryFontSize * (character === " " ? 0.28 : 0.52), 0),
+    actualBoundingBoxAscent: summaryFontSize * 0.76,
+    actualBoundingBoxDescent: summaryFontSize * 0.22
+  }),
+  fillText: (_value: string, _x: number, y: number) => summaryBaselines.push(y)
+});
+const summaryVisibleTop = (summaryBaselines[0] ?? 0) - summaryFontSize * 0.76;
+const summaryVisibleBottom = (summaryBaselines.at(-1) ?? 0) + summaryFontSize * 0.22;
+ok(summaryBaselines.length === 3 && summaryVisibleTop >= 770 && summaryVisibleBottom <= 900 && Math.abs((summaryVisibleTop + summaryVisibleBottom) / 2 - 835) < 1, "slide1_summary_keeps_three_visible_lines_centered_inside_its_box");
+
 const overviewTitleRenderer = script.split("\n").find((line) => line.startsWith("function drawOverviewTitle(")) ?? "";
 const slide1HeaderRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide1Header(")) ?? "";
 const slide1OverviewRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide1Overview(")) ?? "";
@@ -279,6 +307,7 @@ const slide1TemperatureRenderer = script.split("\n").find((line) => line.startsW
 const slide1DaylightRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide1DaylightFact(")) ?? "";
 const slide1FactLayoutRenderer = script.split("\n").find((line) => line.startsWith("function slide1FactLayout(")) ?? "";
 const slide1SummaryRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide1Summary(")) ?? "";
+const plainWrappedLinesRenderer = script.split("\n").find((line) => line.startsWith("function drawPlainWrappedLines(")) ?? "";
 const completeWrapRenderer = script.split("\n").find((line) => line.startsWith("function completeWrap(")) ?? "";
 const slide1DayStripRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide1DayStrip(")) ?? "";
 const slide1DayMarkerRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide1DayMarker(")) ?? "";
@@ -295,7 +324,8 @@ ok(slide1TemperatureRenderer.includes("fact.label") && slide1TemperatureRenderer
 ok(slide1FactsRenderer.includes("cards=slide1FactLayout(content,x,w)") && slide1FactsRenderer.includes("cards[0].x") && slide1FactsRenderer.includes("cards[1].x") && slide1FactsRenderer.includes("cards[2].x") && slide1TemperatureRenderer.includes("plainText(fact.temperatureLabel"), "slide1_temperature_facts_use_optically_balanced_loka_icons_and_adaptive_card_centers");
 ok(slide1FactLayoutRenderer.includes("trackedMeasure(content.coldestMorning.label,19,700,.35)") && slide1FactLayoutRenderer.includes("trackedMeasure(content.hottestDay.label,19,700,.35)") && slide1FactLayoutRenderer.includes("measure(content.daylight.label,19,700)") && slide1FactLayoutRenderer.includes("measure(content.daylight.deltaLabel,38,700)") && !slide1FactsRenderer.includes("cardWidth=(w-gap*2)/3"), "slide1_fact_boxes_measure_each_title_and_daylight_value_before_assigning_widths");
 ok(slide1TemperatureRenderer.includes("const labelSize=fittedSize(fact.label,w-44,19,15,700)") && slide1DaylightRenderer.includes("const labelSize=fittedSize(content.label,w-44,19,15,700)") && slide1DaylightRenderer.includes("plainText(content.label,x+w/2,y+67,labelSize,700,slide1Ink,'center')") && !slide1DaylightRenderer.includes("trackedText(content.label") && script.includes("const sunrise='Lever '") && script.includes("sunset='Coucher '") && script.includes("y+321") && script.includes("y+351"), "slide1_daylight_fact_keeps_a_centered_label_with_a_fitted_size_and_two_larger_astronomical_lines");
-ok(slide1SummaryRenderer.includes("slide1SummaryBox(45,750,990,170)") && slide1SummaryRenderer.includes("completePlainWrap") && slide1SummaryRenderer.includes("600,slide1Ink") && !slide1SummaryRenderer.includes("EN BREF"), "slide1_renders_the_larger_v7_chronological_summary");
+ok(slide1SummaryRenderer.includes("const x=45,y=750,w=990,h=170") && slide1SummaryRenderer.includes("slide1SummaryBox(x,y,w,h)") && slide1SummaryRenderer.includes("x+w/2,y+h/2") && slide1SummaryRenderer.includes("completePlainWrap") && slide1SummaryRenderer.includes("600,slide1Ink") && !slide1SummaryRenderer.includes("EN BREF"), "slide1_renders_the_chronological_summary_at_the_center_of_its_box");
+ok(plainWrappedLinesRenderer.includes("actualBoundingBoxAscent") && plainWrappedLinesRenderer.includes("actualBoundingBoxDescent") && plainWrappedLinesRenderer.includes("textHeight=ascent+descent+Math.max(0,lines.length-1)*lineHeight") && plainWrappedLinesRenderer.includes("firstY=centerY-textHeight/2+ascent") && !plainWrappedLinesRenderer.includes("y-(lines.length-1)*lineHeight/2"), "slide1_summary_centers_the_visible_text_block_not_only_its_baselines");
 ok(completeWrapRenderer.includes("lines.length<=maxLines") && completeWrapRenderer.includes("weekly_slide1_synthesis_does_not_fit"), "slide1_never_cuts_a_summary_mid_sentence");
 ok(slide1DayStripRenderer.includes("days.forEach") && slide1DayStripRenderer.includes("drawImageCentered(icon") && slide1DayStripRenderer.includes("plainText(minLabel") && slide1DayStripRenderer.includes("plainText(maxLabel") && !slide1DayStripRenderer.includes("plainText(maxLabel,centerX+7,y+220,24,600,gold"), "slide1_draws_seven_loka_columns_with_uniform_navy_temperatures");
 ok(slide1DayStripRenderer.includes("content.coldestMorning.dayIndex") && slide1DayStripRenderer.includes("content.hottestDay.dayIndex") && slide1DayMarkerRenderer.includes("kind==='HOT'") && slide1DayMarkerRenderer.includes("slide1ColdBlue") && slide1DayMarkerRenderer.includes("Math.round(x+8)"), "slide1_marks_only_the_extreme_days_with_identical_pixel_rounded_insets");
@@ -303,4 +333,4 @@ ok(slide1StripBoxRenderer.includes("rgba(255,255,255,.80)") && slide1DayStripRen
 ok(publicationSlideRenderer.includes("plan.slide1.dailyStrip.map") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.daylight") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.thermometer") && publicationSlideRenderer.includes("drawSlide1Overview"), "slide1_loads_its_official_daily_and_utility_loka_pictograms");
 ok(publicationLaunch.includes("drawPublicationSlide(slideCanvases[index],slide)"), "publication_renderer_uses_the_new_slide1_visual_path");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/77 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/79 PASS`);
