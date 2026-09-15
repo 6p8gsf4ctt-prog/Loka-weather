@@ -1,6 +1,6 @@
 # LOKA — Référence visuelle de la slide 1
 
-Version : 1.7  
+Version : 1.8  
 Date : 15 septembre 2026  
 Format : Publication Instagram 1080 × 1350
 
@@ -26,9 +26,9 @@ quotidien ou les 24 scènes.
 |---|---:|---:|---:|---:|---|
 | En-tête | 45 | 58 | 990 | 55 | Logo, ville, période compacte sur deux lignes |
 | Box titre | 50 | 160 | 980 | 135 | Titre seul et trait doré |
-| Trois repères | 50 | 330 | 980 | 400 | Trois cartes de 320 px, espacées de 10 px |
-| Synthèse | 50 | 765 | 980 | 120 | Une phrase courte, centrée |
-| Frise sept jours | 50 | 920 | 980 | 270 | Composant secondaire compact, à hauteur fixe |
+| Trois repères | 50 | 330 | 980 | 430 | Trois cartes de 320 px, espacées de 10 px |
+| Synthèse | 50 | 795 | 980 | 120 | Une phrase courte, centrée |
+| Frise sept jours | 50 | 950 | 980 | 240 | Composant secondaire compact, à hauteur fixe |
 | Signature | centré | 1278 | — | — | `Ici, cette semaine.` |
 
 Les trois cartes de repères ont une largeur identique de 320 px ; aucun
@@ -38,7 +38,7 @@ deux cartes de température utilisent donc les mêmes lignes de référence.
 La frise compte strictement sept colonnes de 140 px. Chaque journée conserve
 la même séquence — jour, date, pictogramme, Tmin/Tmax — et la même hauteur,
 qu’elle soit mise en avant ou non. Un contour bleu ou doré est le seul signal
-de distinction ; il n’agrandit jamais une colonne. La hauteur de 270 px est
+de distinction ; il n’agrandit jamais une colonne. La hauteur de 240 px est
 fixe : l’espace vertical disponible est réparti entre les boxes et les
 interstices de la slide, pas dans la frise.
 

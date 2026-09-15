@@ -1,7 +1,7 @@
 # LOKA - Périmètre de publication
 # Première slide « La semaine à Tarnos »
 
-Version : 2.3  
+Version : 2.4  
 Date : 15 septembre 2026  
 Statut : étape 1 validée - périmètre verrouillé  
 Référence éditoriale : `LOKA_Cahier_des_charges_Rendez_vous_hebdomadaire(1).pdf`
@@ -55,7 +55,7 @@ fond atmosphérique et signature.
    lever/coucher ne sont pas affichés dans cette slide.
 4. Une synthèse factuelle en une phrase courte, descriptive et bornée à deux
    lignes ; elle ne retient qu’un ou deux signaux météo de la semaine.
-5. Bande des sept jours : composant secondaire compact de 270 px de haut,
+5. Bande des sept jours : composant secondaire compact de 240 px de haut,
    avec libellé, date, pictogramme officiel LOKA, Tmin et Tmax pour chacune
    des sept colonnes de 140 px. Le matin le plus frais peut recevoir un liseré
    bleu discret ; la journée la plus chaude un liseré doré discret. Un liseré
@@ -246,3 +246,12 @@ L’espace récupéré n’est plus concentré dans cette frise : il est distrib
 entre le titre, les trois cartes, la synthèse et les trois interstices. Le
 footer reste exactement sur les coordonnées et avec le style de la scène
 quotidienne, seul son texte demeurant `Ici, cette semaine.`.
+
+### 15 septembre 2026 - V16, priorité aux trois repères
+
+La frise est resserrée à 240 px sans modifier ses sept colonnes de 140 px,
+son ordre d’information ou les contours de mise en avant. Les 30 px récupérés
+sont transférés aux trois cartes de repères, qui passent toutes à 430 px et
+gardent leurs lignes de titre, pictogramme, période/date et valeur principale
+strictement communes. La synthèse et la frise sont décalées ensemble pour
+préserver les interstices réguliers de 35 px et le footer quotidien.
