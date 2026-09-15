@@ -1,7 +1,7 @@
 # LOKA — Référence visuelle de la slide 1
 
-Version : 1.3  
-Date : 14 septembre 2026  
+Version : 1.4  
+Date : 15 septembre 2026  
 Format : Publication Instagram 1080 × 1350
 
 Ce document verrouille la composition mesurée à partir de la maquette validée.
@@ -13,35 +13,37 @@ le moteur quotidien ou les 24 scènes.
 | Zone | X | Y | Largeur | Hauteur | Rôle |
 |---|---:|---:|---:|---:|---|
 | En-tête | 45 | 58 | 990 | 55 | Logo, ville, période compacte sur deux lignes |
-| Box titre | 45 | 185 | 990 | 135 | Titre seul et trait doré |
-| Trois repères | 45 | 345 | 990 | 380 | Trois cartes, espacées de 10 px |
-| Synthèse | 45 | 750 | 990 | 170 | Deux phrases chronologiques centrées |
-| Frise sept jours | 45 | 945 | 990 | 250 | Sept colonnes égales |
-| Signature | centré | 1274 | — | — | `Ici, cette semaine.` |
+| Box titre | 45 | 185 | 990 | 110 | Titre seul et trait doré |
+| Trois repères | 45 | 320 | 990 | 380 | Trois cartes de même largeur, espacées de 10 px |
+| Synthèse | 45 | 725 | 990 | 120 | Une phrase courte, centrée |
+| Frise sept jours | 45 | 880 | 990 | 250 | Sept colonnes égales |
+| Signature | centré | 1212 | — | — | `Ici, cette semaine.` |
 
-La frise se termine à Y=1195. Il reste environ 79 px avant la ligne de base de
-la signature, contre plus de 150 px dans la version précédente.
+Les trois cartes de repères ont une largeur identique de 323,33 px ; aucun
+contenu ne peut modifier leur grille. Les libellés, pictogrammes et valeurs des
+deux cartes de température utilisent donc les mêmes lignes de référence.
 
 ## Hiérarchie typographique
 
 | Élément | Taille cible | Graisse | Alignement |
 |---|---:|---:|---|
-| Titre principal | 68 px maximum | 820 | gauche |
+| Titre principal | 56 px maximum | 760 | gauche |
 | Libellé d’un repère | 19 px | 700 | centré, légèrement espacé |
 | Jour du repère | 30 px | 560 | centré, sans contour |
 | Température principale | 70 px maximum | 700 | centrée, bleu marine |
-| Variation de lumière | 38 px maximum | 700 | centrée, bleu marine |
-| Détail lever/coucher | 14 px maximum | 450 | une seule ligne centrée |
-| Synthèse | 35 px maximum | 600 | centrée, sans contour, trois lignes maximum |
+| Variation de lumière | 48 px maximum | 720 | centrée, bleu marine |
+| Unité « de jour » | 19 px | 560 | centrée, sous la variation |
+| Détail lever/coucher | 14 px maximum | 560 | une ligne centrée par information |
+| Synthèse | 29 px maximum | 500 | centrée, sans contour, deux lignes maximum |
 | Jour de la frise | 17 px | 700 | centré |
 | Date de la frise | 19 px | 560 | centrée |
 | Températures de la frise | 24 px | 600 | centrées, entièrement bleu marine |
 
 ## Pictogrammes
 
-- Thermomètre : 148 × 132 px, tracé extérieur continu, colonne et bulbe bleus,
+- Thermomètre : 155 × 140 px, tracé extérieur continu, colonne et bulbe bleus,
   trois graduations à droite. Aucun cercle ou rectangle ne doit se chevaucher.
-- Journée chaude : pictogramme V24 du jour, 170 × 145 px.
+- Journée chaude : pictogramme V24 du jour, 195 × 165 px.
 - Lumière : pictogramme officiel de lever de soleil, 205 × 154 px.
 - Frise : pictogrammes V24 à 106 × 82 px.
 
@@ -55,20 +57,22 @@ de 100 à 110 px pour chacun des trois pictogrammes.
 - La période de l’en-tête suit le format compact validé : `14 — 20` puis
   `SEPTEMBRE`. Pour une semaine à cheval sur deux mois : `28 SEPT. —` puis
   `4 OCTOBRE`.
-- La lumière affiche une seule donnée forte : `−N min de jour`, puis une seule
-  ligne de lever et une ligne de coucher, chacune à 16 px maximum.
-- La synthèse est une lecture éditoriale en deux phrases : fait de début de
-  semaine, puis évolution jusqu’au week-end. Elle reste descriptive, sans
-  recommandation ni intertitre.
+- La lumière affiche une seule donnée forte en deux niveaux : `−N min`, puis
+  `de jour`. Les lignes de lever et coucher restent des détails secondaires.
+- La synthèse est une phrase éditoriale descriptive de 70 à 100 caractères,
+  limitée à deux lignes. Elle ne contient ni conseil, ni intertitre, ni les
+  mots de remplissage « globalement » ou « progressivement ».
 - Le bleu marine éditorial de la slide est `#061F4C`. Les températures froides,
   chaudes et celles de la frise utilisent toutes cette même couleur.
 - Le jaune météo `#FDB515` est réservé aux pictogrammes et au cadre chaud. Le
   soulignement utilise le doré éditorial plus feutré `#C49A3A`.
-- La frise utilise un fond blanc translucide à 80 % afin de
+- La frise utilise un fond blanc translucide à 74 % afin de
   préserver les pictogrammes sur la partie sombre de la scène.
-- Les cartes utilisent un blanc à 48 % et la synthèse un blanc à 66 %.
+- Les cartes utilisent un blanc à 36 % et la synthèse un blanc à 46 %.
 - Les jours extrêmes sont encadrés avec un retrait identique de 8 px, un rayon
-  de 12 px et un trait de 2 px : doré pour le maximum, bleu pour le minimum.
+  de 12 px et un trait de 1,5 px : doré pour le maximum, bleu pour le minimum.
+- En cas d’égalité brute, tous les jours concernés sont encadrés et les deux
+  libellés de date sont affichés dans la carte factuelle.
 
 Toute future retouche de la slide 1 doit être comparée à cette grille avant
 livraison. Une variation est acceptée uniquement si un contenu réel ne tient

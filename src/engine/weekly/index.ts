@@ -6,7 +6,7 @@ export type { WeeklyForecastBatch } from "./forecast";
 export { buildWeeklyProfiles, WEEKLY_PROFILE_VERSION } from "./profiles";
 export type { WeeklyDayProfile, WeeklyFullDayProfile, WeeklyProfileSet } from "./profiles";
 export { buildWeeklyFixedFacts, WEEKLY_FIXED_FACTS_VERSION, WEEKLY_MORNING_END_HOUR, WEEKLY_MORNING_START_HOUR } from "./fixedFacts";
-export type { WeeklyDaylightEndpoint, WeeklyFixedFacts, WeeklyTemperatureReference } from "./fixedFacts";
+export type { WeeklyDaylightEndpoint, WeeklyFixedFacts, WeeklyTemperatureFact, WeeklyTemperatureReference } from "./fixedFacts";
 export { detectWeeklyEvents } from "./events";
 export type { WeeklyEvent, WeeklyEventEvidenceValue, WeeklyEventType } from "./events";
 export { consolidateWeeklyEvents } from "./consolidation";

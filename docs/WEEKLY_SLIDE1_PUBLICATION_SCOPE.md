@@ -1,8 +1,8 @@
 # LOKA - Périmètre de publication
 # Première slide « La semaine à Tarnos »
 
-Version : 1.9  
-Date : 14 septembre 2026  
+Version : 2.0  
+Date : 15 septembre 2026  
 Statut : étape 1 validée - périmètre verrouillé  
 Référence éditoriale : `LOKA_Cahier_des_charges_Rendez_vous_hebdomadaire(1).pdf`
 
@@ -52,8 +52,8 @@ fond atmosphérique et signature.
    - **Journée la plus chaude** : jour, date et température maximale ;
    - **Lumière de la semaine** : différence de durée du jour entre lundi et
      dimanche, avec lever/coucher lorsque l'espace le permet.
-4. Une synthèse factuelle en deux phrases : situation de départ, puis
-   évolution jusqu’au week-end. Trois lignes maximum.
+4. Une synthèse factuelle en une phrase courte, descriptive et bornée à deux
+   lignes ; elle ne retient qu’un ou deux signaux météo de la semaine.
 5. Bande des sept jours : libellé, date, pictogramme officiel LOKA, Tmin et
    Tmax pour chaque journée. Le matin le plus frais peut recevoir un liseré
    bleu discret ; la journée la plus chaude un liseré doré discret.
@@ -63,8 +63,8 @@ fond atmosphérique et signature.
 
 | Repère | Calcul |
 |---|---|
-| Matin le plus frais | Minimum de température entre 05:00 et 10:00, heure locale, pour chacun des sept jours ; puis minimum hebdomadaire. |
-| Journée la plus chaude | Maximum de température prévu entre 00:00 et 23:59, heure locale, pour chacun des sept jours ; puis maximum hebdomadaire. |
+| Matin le plus frais | Minimum horaire non arrondi entre 05:00 et 10:00, heure locale, pour chacun des sept jours ; puis minimum hebdomadaire. Toute égalité exacte affiche tous les jours concernés. |
+| Journée la plus chaude | Maximum horaire non arrondi entre 00:00 et 23:59, heure locale, pour chacun des sept jours ; puis maximum hebdomadaire. Toute égalité exacte affiche tous les jours concernés. |
 | Durée du jour | Coucher - lever, calculé pour Tarnos ; résultat = durée du dimanche - durée du lundi. |
 | Pictogrammes | Décision et bibliothèque officielles V24 déjà utilisées par le moteur quotidien. |
 | Températures et météo | Consensus hebdomadaire existant issu des modèles LOKA ; aucun texte ou calcul externe. |
@@ -111,6 +111,8 @@ La première slide est publiable uniquement lorsque :
 4. les deux images exportées respectent 1080 x 1350 et 1080 x 1920 ;
 5. le moteur quotidien compile et ses tests ciblés restent inchangés ;
 6. la prévisualisation n'écrit pas dans D1 et ne publie rien automatiquement.
+7. aucune valeur de carte ne contredit la frise, toute égalité est signalée,
+   Tmin est inférieure ou égale à Tmax et aucun texte ne déborde de sa box.
 
 ## 9. Règle de suivi
 
@@ -195,3 +197,18 @@ journée la plus chaude conserve le pictogramme V24 de sa journée.
 La lumière de la semaine n’utilise plus deux pictogrammes concurrents : un
 seul symbole solaire LOKA accompagne les deux évolutions horaires. Enfin, la
 box des sept jours est renforcée pour rester lisible sur le fond contrasté.
+
+### 15 septembre 2026 - V12, cohérence et robustesse
+
+La première slide conserve son architecture mais adopte une grille plus
+calme : box titre réduite, trois cartes de même largeur, synthèse plus courte
+et plus légère, puis frise de sept jours. Le fond abstrait homogène reste
+visible derrière des surfaces légèrement moins opaques.
+
+Les faits de température sont désormais déterminés sur les points horaires
+bruts. Le matin le plus frais se limite explicitement à 05:00–10:00 ; la
+température maximale couvre la journée entière. Les journées à égalité exacte
+sont conservées dans le contrat, affichées dans les cartes et encadrées dans
+la frise. Le contrôle de publication vérifie en outre les bornes de synthèse,
+la traçabilité des égalités, Tmin ≤ Tmax et l’alignement factuel avec les sept
+jours.

@@ -42,21 +42,23 @@ function dailySummaries(): WeeklyEditorial["dailySummaries"] {
 }
 
 function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial["slide1"] {
-  const coldestMorning = { date: "2026-09-07", dayIndex: 0, temperatureC: 12, sourceHour: 7 };
-  const hottestDay = { date: "2026-09-13", dayIndex: 6, temperatureC: 26, sourceHour: 15 };
+  const coldestMorningReference = { date: "2026-09-07", dayIndex: 0, temperatureC: 12, sourceHour: 7 };
+  const hottestDayReference = { date: "2026-09-13", dayIndex: 6, temperatureC: 26, sourceHour: 15 };
+  const coldestMorning = { ...coldestMorningReference, matches: [coldestMorningReference] };
+  const hottestDay = { ...hottestDayReference, matches: [hottestDayReference] };
   return {
     title: "LA SEMAINE À TARNOS",
-    synthesis: { text: "La semaine débute dans une ambiance modérée. Les conditions restent lisibles jusqu’au week-end.", maximumLines: 3 },
+    synthesis: { text: "Temps assez stable cette semaine, avec davantage de soleil vers le week-end.", maximumLines: 2 },
     coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "12°", timeLabel: "07 H" },
     hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "26°", timeLabel: "15 H" },
     daylight: {
-      label: "LUMIÈRE DE LA SEMAINE", direction: "SHORTER", deltaMinutes: -18, deltaLabel: "18 min de jour en moins",
+      label: "LUMIÈRE DE LA SEMAINE", direction: "SHORTER", deltaMinutes: -18, deltaLabel: "−18 min de jour",
       start: { date: "2026-09-07", weekdayLabel: "LUN.", sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780, sunriseLabel: "07:20", sunsetLabel: "20:20" },
       end: { date: "2026-09-13", weekdayLabel: "DIM.", sunriseMinutes: 449, sunsetMinutes: 1211, durationMinutes: 762, sunriseLabel: "07:29", sunsetLabel: "20:11" }
     },
     dailyStrip: days,
     facts: {
-      version: "1.0.0", citySlug: "tarnos", startDate: "2026-09-07", endDate: "2026-09-13", coldestMorning, hottestDay,
+      version: "1.1.0", citySlug: "tarnos", startDate: "2026-09-07", endDate: "2026-09-13", coldestMorning, hottestDay,
       daylight: {
         start: { date: "2026-09-07", sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780 },
         end: { date: "2026-09-13", sunriseMinutes: 449, sunsetMinutes: 1211, durationMinutes: 762 },
@@ -93,6 +95,7 @@ ok(calmValidation.checks.find((check) => check.id === "weekly_daily_summaries")?
 ok(calmValidation.checks.find((check) => check.id === "weekly_daily_pictograms")?.ok === true, "daily_pictograms_are_officially_bound");
 ok(calmValidation.checks.find((check) => check.id === "weekly_daily_highlights")?.ok === true, "calm_week_has_no_daily_highlights");
 ok(calmValidation.checks.find((check) => check.id === "weekly_slide1_content")?.ok === true, "stable_first_slide_content_is_ready");
+ok(calmValidation.checks.find((check) => check.id === "weekly_slide1_preflight_copy")?.ok === true, "slide1_preflight_copy_is_ready");
 
 const badCount = validateWeeklyActivation(base, { ...calmPlan, slides: [] });
 ok(!badCount.ok && badCount.status === "BLOCKED", "slide_count_blocks_activation");
@@ -117,6 +120,12 @@ ok(!tooManyValidation.checks.find((check) => check.id === "publication_limit")?.
 
 const badDate = validateWeeklyActivation({ ...base, endDate: "2026-09-12" }, calmPlan);
 ok(!badDate.checks.find((check) => check.id === "monday_to_sunday")?.ok, "monday_to_sunday_blocks_bad_range");
+
+const badSlide1Copy = validateWeeklyActivation({
+  ...base,
+  slide1: { ...base.slide1, daylight: { ...base.slide1.daylight, deltaLabel: "" } }
+}, calmPlan);
+ok(!badSlide1Copy.checks.find((check) => check.id === "weekly_slide1_preflight_copy")?.ok, "preflight_blocks_empty_slide1_copy");
 
 const badDailySummaries = validateWeeklyActivation({ ...base, dailySummaries: base.dailySummaries.slice(0, 6) }, calmPlan);
 ok(!badDailySummaries.checks.find((check) => check.id === "weekly_daily_summaries")?.ok, "daily_summary_guard_requires_seven_days");
@@ -203,4 +212,4 @@ const badMapping = validateWeeklyActivation(eventEditorial, {
 });
 ok(!badMapping.checks.find((check) => check.id === "event_mapping")?.ok, "event_mapping_guard");
 
-console.log(`WEEKLY_ACTIVATION ${passed}/25 PASS`);
+console.log(`WEEKLY_ACTIVATION ${passed}/27 PASS`);

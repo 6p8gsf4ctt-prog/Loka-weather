@@ -37,6 +37,66 @@ function isValidDailyV24Scene(scene: WeeklyEditorial["overview"]["scene"]): bool
     && scene.doctrineVersion.startsWith("2.0");
 }
 
+function factMatches(fact: WeeklyEditorial["slide1"]["coldestMorning"]): typeof fact.matches {
+  return fact.matches.length ? fact.matches : [{
+    date: fact.date,
+    dayIndex: fact.dayIndex,
+    temperatureC: fact.temperatureC,
+    sourceHour: fact.sourceHour
+  }];
+}
+
+function isTraceableTemperatureFact(
+  fact: WeeklyEditorial["slide1"]["coldestMorning"],
+  summaries: WeeklyEditorial["dailySummaries"],
+  minimumHour: number,
+  maximumHour: number
+): boolean {
+  const matches = factMatches(fact);
+  return matches.length > 0
+    && matches[0]?.date === fact.date
+    && matches[0]?.dayIndex === fact.dayIndex
+    && matches[0]?.temperatureC === fact.temperatureC
+    && matches.every((match) =>
+      Number.isFinite(match.temperatureC)
+      && match.sourceHour >= minimumHour
+      && match.sourceHour <= maximumHour
+      && summaries[match.dayIndex]?.date === match.date
+      && match.temperatureC === fact.temperatureC
+    );
+}
+
+function hasText(value: string): boolean {
+  return value.trim().length > 0;
+}
+
+function slide1PreflightCopyIsValid(slide1: WeeklyEditorial["slide1"]): boolean {
+  const daylight = slide1.daylight;
+  return [
+    slide1.title,
+    slide1.coldestMorning.label,
+    slide1.coldestMorning.dateLabel,
+    slide1.coldestMorning.temperatureLabel,
+    slide1.hottestDay.label,
+    slide1.hottestDay.dateLabel,
+    slide1.hottestDay.temperatureLabel,
+    daylight.label,
+    daylight.deltaLabel,
+    daylight.start.sunriseLabel,
+    daylight.start.sunsetLabel,
+    daylight.end.sunriseLabel,
+    daylight.end.sunsetLabel
+  ].every(hasText)
+    && /^[-−–+]?\d+ min de jour$|^Durée du jour stable$/.test(daylight.deltaLabel)
+    && /^\d{2}:\d{2}$/.test(daylight.start.sunriseLabel)
+    && /^\d{2}:\d{2}$/.test(daylight.start.sunsetLabel)
+    && /^\d{2}:\d{2}$/.test(daylight.end.sunriseLabel)
+    && /^\d{2}:\d{2}$/.test(daylight.end.sunsetLabel)
+    && daylight.start.sunriseMinutes < daylight.start.sunsetMinutes
+    && daylight.end.sunriseMinutes < daylight.end.sunsetMinutes
+    && daylight.deltaMinutes === daylight.end.durationMinutes - daylight.start.durationMinutes;
+}
+
 /**
  * Validates the complete weekly publication contract before it can be stored
  * or exposed publicly. This is a deterministic guard, not an editorial step.
@@ -72,11 +132,11 @@ export function validateWeeklyActivation(
     "weekly_slide1_content",
     editorial.slide1.title.length > 0
       && editorial.slide1.synthesis.text.length > 0
-      && editorial.slide1.synthesis.maximumLines === 3
-      && editorial.slide1.coldestMorning.sourceHour >= 5
-      && editorial.slide1.coldestMorning.sourceHour <= 10
-      && Number.isFinite(editorial.slide1.coldestMorning.temperatureC)
-      && Number.isFinite(editorial.slide1.hottestDay.temperatureC)
+      && editorial.slide1.synthesis.text.length <= 100
+      && editorial.slide1.synthesis.maximumLines === 2
+      && !/\b(globalement|progressivement)\b/i.test(editorial.slide1.synthesis.text)
+      && isTraceableTemperatureFact(editorial.slide1.coldestMorning, editorial.dailySummaries, 5, 10)
+      && isTraceableTemperatureFact(editorial.slide1.hottestDay, editorial.dailySummaries, 0, 23)
       && editorial.slide1.daylight.deltaMinutes === editorial.slide1.facts.daylight.deltaMinutes
       && editorial.slide1.daylight.start.date === editorial.startDate
       && editorial.slide1.daylight.end.date === editorial.endDate
@@ -91,9 +151,14 @@ export function validateWeeklyActivation(
     "weekly_daily_summaries",
     editorial.dailySummaries.length === 7
       && carousel.dailySummaries.length === 7
-      && editorial.dailySummaries.every((day, index) => day.dayIndex === index && Number.isFinite(day.minTemperatureC) && Number.isFinite(day.maxTemperatureC) && isValidDailyV24Scene(day.scene))
+      && editorial.dailySummaries.every((day, index) => day.dayIndex === index && Number.isFinite(day.minTemperatureC) && Number.isFinite(day.maxTemperatureC) && day.minTemperatureC <= day.maxTemperatureC && isValidDailyV24Scene(day.scene))
       && carousel.dailySummaries.every((day, index) => day.dayIndex === index && day.date === editorial.dailySummaries[index]?.date && day.scene.id === editorial.dailySummaries[index]?.scene.id && day.weekdayLabel.length >= 3 && /^\d{1,2}$/.test(day.dayLabel)),
     "seven_ordered_daily_v24_summaries"
+  ));
+  checks.push(check(
+    "weekly_slide1_preflight_copy",
+    slide1PreflightCopyIsValid(editorial.slide1),
+    "no_empty_boxes_bounded_text_and_coherent_daylight_labels"
   ));
   checks.push(check(
     "weekly_daily_pictograms",

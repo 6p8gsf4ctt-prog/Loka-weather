@@ -3,7 +3,7 @@ import { hourOf } from "../math";
 import type { CityConfig } from "../../types";
 import type { WeeklyDayProfile, WeeklyProfileSet } from "./profiles";
 
-export const WEEKLY_FIXED_FACTS_VERSION = "1.0.0" as const;
+export const WEEKLY_FIXED_FACTS_VERSION = "1.1.0" as const;
 export const WEEKLY_MORNING_START_HOUR = 5 as const;
 export const WEEKLY_MORNING_END_HOUR = 10 as const;
 
@@ -12,6 +12,15 @@ export interface WeeklyTemperatureReference {
   dayIndex: number;
   temperatureC: number;
   sourceHour: number;
+}
+
+/**
+ * The first reference is retained for backwards traceability. `matches` keeps
+ * every day that reached the same unrounded weekly extreme, so the editorial
+ * layer never has to invent a tie-breaker after the facts have been computed.
+ */
+export interface WeeklyTemperatureFact extends WeeklyTemperatureReference {
+  matches: WeeklyTemperatureReference[];
 }
 
 export interface WeeklyDaylightEndpoint {
@@ -27,9 +36,9 @@ export interface WeeklyFixedFacts {
   startDate: string;
   endDate: string;
   /** Lowest consensus temperature observed within 05:00-10:00 local time. */
-  coldestMorning: WeeklyTemperatureReference;
+  coldestMorning: WeeklyTemperatureFact;
   /** Highest consensus temperature observed during a complete local day. */
-  hottestDay: WeeklyTemperatureReference;
+  hottestDay: WeeklyTemperatureFact;
   /** Astronomical daylight evolution from Monday to Sunday, never sunshine duration. */
   daylight: {
     start: WeeklyDaylightEndpoint;
@@ -49,58 +58,45 @@ function orderedDays(profiles: WeeklyProfileSet): WeeklyDayProfile[] {
   return days;
 }
 
-function betterMinimum(candidate: WeeklyTemperatureReference, current: WeeklyTemperatureReference | null): boolean {
-  if (!current) return true;
-  return candidate.temperatureC < current.temperatureC
-    || (candidate.temperatureC === current.temperatureC && candidate.dayIndex < current.dayIndex)
-    || (candidate.temperatureC === current.temperatureC && candidate.dayIndex === current.dayIndex && candidate.sourceHour < current.sourceHour);
-}
-
-function betterMaximum(candidate: WeeklyTemperatureReference, current: WeeklyTemperatureReference | null): boolean {
-  if (!current) return true;
-  return candidate.temperatureC > current.temperatureC
-    || (candidate.temperatureC === current.temperatureC && candidate.dayIndex < current.dayIndex)
-    || (candidate.temperatureC === current.temperatureC && candidate.dayIndex === current.dayIndex && candidate.sourceHour < current.sourceHour);
-}
-
-function coldestMorning(days: WeeklyDayProfile[]): WeeklyTemperatureReference {
-  let selected: WeeklyTemperatureReference | null = null;
+function referencesForHours(days: WeeklyDayProfile[], acceptHour: (hour: number) => boolean): WeeklyTemperatureReference[] {
+  const references: WeeklyTemperatureReference[] = [];
   for (const day of days) {
-    const morningHours = day.hours.filter((point) => {
-      const hour = hourOf(point.time);
-      return hour >= WEEKLY_MORNING_START_HOUR && hour <= WEEKLY_MORNING_END_HOUR;
-    });
-    if (!morningHours.length) throw new Error(`weekly_fixed_facts_missing_morning_hours:${day.date}`);
-    for (const point of morningHours) {
-      const candidate: WeeklyTemperatureReference = {
+    const points = day.hours.filter((point) => acceptHour(hourOf(point.time)));
+    if (!points.length) throw new Error(`weekly_fixed_facts_missing_required_hours:${day.date}`);
+    for (const point of points) {
+      references.push({
         date: day.date,
         dayIndex: day.dayIndex,
         temperatureC: point.temperatureC,
         sourceHour: hourOf(point.time)
-      };
-      if (betterMinimum(candidate, selected)) selected = candidate;
+      });
     }
   }
-  if (!selected) throw new Error("weekly_fixed_facts_missing_coldest_morning");
-  return selected;
+  return references;
 }
 
-function hottestDay(days: WeeklyDayProfile[]): WeeklyTemperatureReference {
-  let selected: WeeklyTemperatureReference | null = null;
-  for (const day of days) {
-    if (!day.hours.length) throw new Error(`weekly_fixed_facts_missing_day_hours:${day.date}`);
-    for (const point of day.hours) {
-      const candidate: WeeklyTemperatureReference = {
-        date: day.date,
-        dayIndex: day.dayIndex,
-        temperatureC: point.temperatureC,
-        sourceHour: hourOf(point.time)
-      };
-      if (betterMaximum(candidate, selected)) selected = candidate;
-    }
-  }
-  if (!selected) throw new Error("weekly_fixed_facts_missing_hottest_day");
-  return selected;
+function extremeFact(references: WeeklyTemperatureReference[], kind: "MIN" | "MAX"): WeeklyTemperatureFact {
+  if (!references.length) throw new Error(`weekly_fixed_facts_missing_${kind.toLowerCase()}_references`);
+  const extremeTemperature = kind === "MIN"
+    ? Math.min(...references.map((reference) => reference.temperatureC))
+    : Math.max(...references.map((reference) => reference.temperatureC));
+  const matches = references
+    .filter((reference) => reference.temperatureC === extremeTemperature)
+    .sort((left, right) => left.dayIndex - right.dayIndex || left.sourceHour - right.sourceHour)
+    .filter((reference, index, all) => index === 0 || reference.dayIndex !== all[index - 1]?.dayIndex);
+  const primary = matches[0];
+  if (!primary) throw new Error(`weekly_fixed_facts_missing_${kind.toLowerCase()}_match`);
+  return { ...primary, matches };
+}
+
+function coldestMorning(days: WeeklyDayProfile[]): WeeklyTemperatureFact {
+  const references = referencesForHours(days, (hour) => hour >= WEEKLY_MORNING_START_HOUR && hour <= WEEKLY_MORNING_END_HOUR);
+  return extremeFact(references, "MIN");
+}
+
+function hottestDay(days: WeeklyDayProfile[]): WeeklyTemperatureFact {
+  const references = referencesForHours(days, () => true);
+  return extremeFact(references, "MAX");
 }
 
 function minutes(value: number): number {

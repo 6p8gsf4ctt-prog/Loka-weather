@@ -50,21 +50,23 @@ function event(index: number): WeeklyEditorialEvent {
 }
 
 function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial["slide1"] {
-  const coldestMorning = { date: nextDate(0), dayIndex: 0, temperatureC: 12, sourceHour: 7 };
-  const hottestDay = { date: nextDate(6), dayIndex: 6, temperatureC: 26, sourceHour: 15 };
+  const coldestMorningReference = { date: nextDate(0), dayIndex: 0, temperatureC: 12, sourceHour: 7 };
+  const hottestDayReference = { date: nextDate(6), dayIndex: 6, temperatureC: 26, sourceHour: 15 };
+  const coldestMorning = { ...coldestMorningReference, matches: [coldestMorningReference] };
+  const hottestDay = { ...hottestDayReference, matches: [hottestDayReference] };
   return {
     title: "LA SEMAINE À TARNOS",
-    synthesis: { text: "La semaine débute dans une ambiance modérée. Les conditions restent lisibles jusqu’au week-end.", maximumLines: 3 },
+    synthesis: { text: "Temps assez stable cette semaine, avec davantage de soleil vers le week-end.", maximumLines: 2 },
     coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "12°", timeLabel: "07 H" },
     hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "26°", timeLabel: "15 H" },
     daylight: {
-      label: "LUMIÈRE DE LA SEMAINE", direction: "SHORTER", deltaMinutes: -18, deltaLabel: "18 min de jour en moins",
+      label: "LUMIÈRE DE LA SEMAINE", direction: "SHORTER", deltaMinutes: -18, deltaLabel: "−18 min de jour",
       start: { date: nextDate(0), weekdayLabel: "LUN.", sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780, sunriseLabel: "07:20", sunsetLabel: "20:20" },
       end: { date: nextDate(6), weekdayLabel: "DIM.", sunriseMinutes: 449, sunsetMinutes: 1211, durationMinutes: 762, sunriseLabel: "07:29", sunsetLabel: "20:11" }
     },
     dailyStrip: days,
     facts: {
-      version: "1.0.0", citySlug: "tarnos", startDate: nextDate(0), endDate: nextDate(6), coldestMorning, hottestDay,
+      version: "1.1.0", citySlug: "tarnos", startDate: nextDate(0), endDate: nextDate(6), coldestMorning, hottestDay,
       daylight: {
         start: { date: nextDate(0), sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780 },
         end: { date: nextDate(6), sunriseMinutes: 449, sunsetMinutes: 1211, durationMinutes: 762 },
