@@ -1,5 +1,6 @@
 import type { EditorialFacts, Scene24Id, SkyBand } from "../../types";
 import type { EditorialDaypart, EditorialFactsV21 } from "./facts";
+import { buildLokaEditorialCopy } from "../editorialCopy";
 
 const FALLBACK_PRIMARY: Record<Scene24Id, string> = {
   1: "Ciel dégagé · Soleil dominant toute la journée",
@@ -254,13 +255,14 @@ function secondary(f: EditorialFactsV21): string {
 
 export function buildVisualEditorial(facts: EditorialFacts | EditorialFactsV21): { subtitle: string; primaryLine: string; secondaryLine: string } {
   const f = facts as EditorialFactsV21;
-  const primaryLine = f.intelligence ? primary(f) : FALLBACK_PRIMARY[f.sceneId];
-  const secondaryLine = f.intelligence ? secondary(f) : `Jusqu’à ${f.temperature.maxC} °C.`;
+  const copy = buildLokaEditorialCopy(
+    f.intelligence ? primary(f) : FALLBACK_PRIMARY[f.sceneId],
+    f.intelligence ? secondary(f) : `Jusqu’à ${f.temperature.maxC} °C.`
+  );
 
   return {
     // Conservé dans le contrat V2 uniquement pour relire les anciens payloads et feedbacks.
     subtitle: "",
-    primaryLine,
-    secondaryLine
+    ...copy
   };
 }

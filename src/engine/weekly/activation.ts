@@ -74,6 +74,8 @@ function slide1PreflightCopyIsValid(slide1: WeeklyEditorial["slide1"]): boolean 
   const daylight = slide1.daylight;
   return [
     slide1.title,
+    slide1.synthesis.primaryLine,
+    slide1.synthesis.secondaryLine,
     slide1.coldestMorning.label,
     slide1.coldestMorning.dateLabel,
     slide1.coldestMorning.temperatureLabel,
@@ -88,6 +90,11 @@ function slide1PreflightCopyIsValid(slide1: WeeklyEditorial["slide1"]): boolean 
     daylight.end.sunriseLabel,
     daylight.end.sunsetLabel
   ].every(hasText)
+    && slide1.synthesis.primaryLine.length <= 80
+    && slide1.synthesis.secondaryLine.length <= 120
+    && slide1.synthesis.primaryMaximumLines === 1
+    && slide1.synthesis.secondaryMaximumLines === 2
+    && !/\b(conseil|privilégier|surveiller|globalement|progressivement)\b/i.test(`${slide1.synthesis.primaryLine} ${slide1.synthesis.secondaryLine}`)
     && /^[-−–+]?\d+ min de jour$|^Durée du jour stable$/.test(daylight.deltaLabel)
     && /^[A-ZÉÙÛÀÂÎÔÇ]{3,4}\. \d{1,2} → [A-ZÉÙÛÀÂÎÔÇ]{3,4}\. \d{1,2}$/.test(daylight.periodLabel)
     && /^\d{2}:\d{2}$/.test(daylight.start.sunriseLabel)
@@ -133,10 +140,13 @@ export function validateWeeklyActivation(
   checks.push(check(
     "weekly_slide1_content",
     editorial.slide1.title.length > 0
-      && editorial.slide1.synthesis.text.length > 0
-      && editorial.slide1.synthesis.text.length <= 100
-      && editorial.slide1.synthesis.maximumLines === 2
-      && !/\b(globalement|progressivement)\b/i.test(editorial.slide1.synthesis.text)
+      && editorial.slide1.synthesis.primaryLine.length > 0
+      && editorial.slide1.synthesis.secondaryLine.length > 0
+      && editorial.slide1.synthesis.primaryLine.length <= 80
+      && editorial.slide1.synthesis.secondaryLine.length <= 120
+      && editorial.slide1.synthesis.primaryMaximumLines === 1
+      && editorial.slide1.synthesis.secondaryMaximumLines === 2
+      && !/\b(globalement|progressivement)\b/i.test(`${editorial.slide1.synthesis.primaryLine} ${editorial.slide1.synthesis.secondaryLine}`)
       && isTraceableTemperatureFact(editorial.slide1.coldestMorning, editorial.dailySummaries, 5, 10)
       && isTraceableTemperatureFact(editorial.slide1.hottestDay, editorial.dailySummaries, 0, 23)
       && editorial.slide1.daylight.deltaMinutes === editorial.slide1.facts.daylight.deltaMinutes

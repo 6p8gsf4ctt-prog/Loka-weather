@@ -56,7 +56,12 @@ function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial
   const hottestDay = { ...hottestDayReference, matches: [hottestDayReference] };
   return {
     title: "LA SEMAINE À TARNOS",
-    synthesis: { text: "Temps assez stable cette semaine, avec davantage de soleil vers le week-end.", maximumLines: 2 },
+    synthesis: {
+      primaryLine: "Temps doux et lumineux · Davantage d’éclaircies en fin de semaine",
+      secondaryLine: "Des maximales de 20 à 26 °C, sous un temps majoritairement sec.",
+      primaryMaximumLines: 1,
+      secondaryMaximumLines: 2
+    },
     coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "12°", timeLabel: "07 H" },
     hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "26°", timeLabel: "15 H" },
     daylight: {

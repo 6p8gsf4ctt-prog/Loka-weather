@@ -51,7 +51,12 @@ function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial
   const hottestDay = { ...hottestDayReference, matches: [hottestDayReference] };
   return {
     title: "LA SEMAINE À TARNOS",
-    synthesis: { text: "Temps assez stable cette semaine, avec davantage de soleil vers le week-end.", maximumLines: 2 },
+    synthesis: {
+      primaryLine: "Temps doux et lumineux · Davantage d’éclaircies en fin de semaine",
+      secondaryLine: "Des maximales de 21 à 27 °C, sous un temps majoritairement sec.",
+      primaryMaximumLines: 1,
+      secondaryMaximumLines: 2
+    },
     coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "13°C", timeLabel: "07 H" },
     hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "27°C", timeLabel: "15 H" },
     daylight: {
@@ -231,7 +236,7 @@ const browserModelLine = html.match(/const model=(.*);\nconst plan=model;/)?.[1]
 const renderedModel = browserModelLine ? JSON.parse(browserModelLine) as {
   slide1: {
     title: string;
-    synthesis: { text: string; maximumLines: number };
+    synthesis: { primaryLine: string; secondaryLine: string; primaryMaximumLines: number; secondaryMaximumLines: number };
     daylight: { deltaLabel: string; periodLabel: string };
     dailyStrip: Array<{ pictogram: { kind: string; url: string } }>;
   };
@@ -248,6 +253,7 @@ ok(renderedModel?.dailySummaries.length === 7, "renderer_exposes_seven_daily_pic
 ok(renderedModel?.dailySummaries.every((day) => day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY" && day.pictogram.libraryVersion === "LOKA_PREMIUM_1.2" && day.pictogram.kind === "partly" && day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")) === true, "renderer_uses_generated_official_loka_pictogram_urls");
 ok(renderedModel?.dailySummaries.map((day) => `${day.weekdayLabel} ${day.dayLabel}`).join(",") === "LUN 7,MAR 8,MER 9,JEU 10,VEN 11,SAM 12,DIM 13", "renderer_keeps_precomputed_french_day_labels");
 ok(renderedModel?.slide1.title === "LA SEMAINE À TARNOS" && renderedModel.slide1.dailyStrip.length === 7 && renderedModel.slide1.dailyStrip.every((day) => day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")), "renderer_exposes_first_slide_content_with_official_daily_pictograms");
+ok(renderedModel?.slide1.synthesis.primaryLine.includes(" · ") === true && renderedModel?.slide1.synthesis.secondaryLine.endsWith(".") === true && renderedModel?.slide1.synthesis.primaryMaximumLines === 1 && renderedModel?.slide1.synthesis.secondaryMaximumLines === 2, "renderer_exposes_the_shared_daily_editorial_copy_contract");
 ok(renderedModel?.slide1.daylight.periodLabel === "LUN. 7 → DIM. 13", "renderer_exposes_the_compact_daylight_period");
 ok(renderedModel?.dailyCardDetails.map((card) => `${card.kind}:${card.weekdayLabel}.${card.dayLabel}:${card.pictogram.kind}:${card.slots.map((slot) => slot.hour).join("-")}`).join(",") === "PREFERRED:SAM.12:partly:8-12-16-20,WATCH:MER.9:partly:8-12-16-20", "renderer_exposes_prepared_central_card_data");
 ok(renderedModel?.dailyCardDetails.every((card) => card.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,") && card.slots.every((slot) => slot.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,"))) === true, "renderer_embeds_official_loka_card_pictograms");
@@ -257,7 +263,7 @@ try { new Function(script); } catch { scriptValid = false; }
 ok(scriptValid, "renderer_browser_script_is_valid");
 
 const slide1RuntimeSource = script.slice(0, script.indexOf("Promise.all(plan.slides.map"));
-const adaptiveLayoutRuntime = new Function("document", `${slide1RuntimeSource};return{layout:function(content,context){ctx=context;return slide1FactLayout(content,50,980);},summary:function(content,context){ctx=context;completePlainWrap(content.synthesis.text,540,943.5,880,33,29,22,500,slide1Ink,'center',content.synthesis.maximumLines);}};`)({
+const adaptiveLayoutRuntime = new Function("document", `${slide1RuntimeSource};return{layout:function(content,context){ctx=context;return slide1FactLayout(content,50,980);},summary:function(content,context){ctx=context;return fitSlide1EditorialLines(content.synthesis.secondaryLine,844,21,17,550,content.synthesis.secondaryMaximumLines);}};`)({
   querySelectorAll: () => [],
   getElementById: () => null
 }) as {
@@ -268,7 +274,7 @@ const adaptiveLayoutRuntime = new Function("document", `${slide1RuntimeSource};r
     restore: () => void;
     measureText: (value: string) => { width: number };
   }) => Array<{ x: number; width: number }>;
-  summary: (content: NonNullable<typeof renderedModel>["slide1"], context: unknown) => void;
+  summary: (content: NonNullable<typeof renderedModel>["slide1"], context: unknown) => { size: number; lines: string[] };
 };
 let measuredFontSize = 16;
 const adaptiveLayout = adaptiveLayoutRuntime.layout(renderedModel!.slide1, {
@@ -282,30 +288,24 @@ const adaptiveLayout = adaptiveLayoutRuntime.layout(renderedModel!.slide1, {
 ok(adaptiveLayout.length === 3 && adaptiveLayout[0]?.x === 50 && adaptiveLayout[1]?.x === (adaptiveLayout[0]?.x ?? 0) + (adaptiveLayout[0]?.width ?? 0) + 10 && adaptiveLayout[2]?.x === (adaptiveLayout[1]?.x ?? 0) + (adaptiveLayout[1]?.width ?? 0) + 10 && Math.abs(adaptiveLayout.reduce((total, card) => total + card.width, 0) - 960) < .001 && adaptiveLayout.every((card) => Math.abs(card.width - 320) < .001), "slide1_fact_layout_uses_three_identical_card_columns");
 
 let summaryFontSize = 16;
-const summaryBaselines: number[] = [];
 const shortSummary = {
   ...renderedModel!.slide1,
   synthesis: {
     ...renderedModel!.slide1.synthesis,
-    text: "Temps assez stable cette semaine, avec davantage de soleil vers le week-end."
+    secondaryLine: "Des maximales de 21 à 27 °C, sous un temps majoritairement sec."
   }
 };
-adaptiveLayoutRuntime.summary(shortSummary, {
+const summaryFit = adaptiveLayoutRuntime.summary(shortSummary, {
   get font() { return ""; },
   set font(value: string) { summaryFontSize = Number(value.match(/(\d+)px/)?.[1] ?? 16); },
   fontKerning: "normal",
   save: () => undefined,
   restore: () => undefined,
   measureText: (value: string) => ({
-    width: [...value].reduce((total, character) => total + summaryFontSize * (character === " " ? 0.28 : 0.52), 0),
-    actualBoundingBoxAscent: summaryFontSize * 0.76,
-    actualBoundingBoxDescent: summaryFontSize * 0.22
-  }),
-  fillText: (_value: string, _x: number, y: number) => summaryBaselines.push(y)
+    width: [...value].reduce((total, character) => total + summaryFontSize * (character === " " ? 0.28 : 0.52), 0)
+  })
 });
-const summaryVisibleTop = (summaryBaselines[0] ?? 0) - summaryFontSize * 0.76;
-const summaryVisibleBottom = (summaryBaselines.at(-1) ?? 0) + summaryFontSize * 0.22;
-ok(summaryBaselines.length >= 1 && summaryBaselines.length <= 2 && summaryVisibleTop >= 856 && summaryVisibleBottom <= 1031 && Math.abs((summaryVisibleTop + summaryVisibleBottom) / 2 - 943.5) < 1, "slide1_summary_keeps_one_or_two_visible_lines_centered_inside_its_box");
+ok(summaryFit.lines.length >= 1 && summaryFit.lines.length <= 2 && summaryFit.size >= 17 && summaryFit.size <= 21, "slide1_summary_secondary_line_is_bounded_by_the_shared_daily_contract");
 
 const overviewTitleRenderer = script.split("\n").find((line) => line.startsWith("function drawOverviewTitle(")) ?? "";
 const slide1HeaderRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide1Header(")) ?? "";
@@ -333,9 +333,8 @@ ok(slide1TemperatureRenderer.includes("fact.label") && slide1TemperatureRenderer
 ok(slide1FactsRenderer.includes("cards=slide1FactLayout(content,x,w)") && slide1FactsRenderer.includes("cards[0].x") && slide1FactsRenderer.includes("cards[1].x") && slide1FactsRenderer.includes("cards[2].x") && slide1TemperatureRenderer.includes("plainText(fact.temperatureLabel"), "slide1_temperature_facts_use_optically_balanced_loka_icons_and_common_card_centers");
 ok(slide1FactLayoutRenderer.includes("cardWidth=(totalWidth-gap*2)/3") && !slide1FactLayoutRenderer.includes("trackedMeasure(content.coldestMorning") && !slide1FactLayoutRenderer.includes("requiredWidths"), "slide1_fact_boxes_share_exactly_the_same_geometry");
 ok(slide1TemperatureRenderer.includes("const labelSize=fittedSize(fact.label,w-44,19,15,700)") && slide1DaylightRenderer.includes("const labelSize=fittedSize(content.label,w-44,19,15,700)") && slide1DaylightRenderer.includes("trackedText(content.label,x+w/2,y+92,labelSize,700,slide1Ink,.35,'center')") && slide1DaylightRenderer.includes("plainText(content.periodLabel,x+w/2,y+329,periodSize,560,slide1Ink,'center')") && slide1DaylightRenderer.includes("plainText(deltaValue,x+w/2,y+430") && !slide1DaylightRenderer.includes("sunriseLabel") && !slide1DaylightRenderer.includes("sunsetLabel"), "slide1_daylight_fact_uses_the_same_title_icon_period_value_structure_as_temperature_cards");
-ok(slide1SummaryRenderer.includes("const x=50,y=856,w=980,h=175") && slide1SummaryRenderer.includes("slide1SummaryBox(x,y,w,h)") && slide1SummaryRenderer.includes("x+w/2,y+h/2") && slide1SummaryRenderer.includes("completePlainWrap") && slide1SummaryRenderer.includes("500,slide1Ink") && !slide1SummaryRenderer.includes("EN BREF"), "slide1_renders_a_lighter_short_summary_at_the_center_of_its_box");
-ok(plainWrappedLinesRenderer.includes("actualBoundingBoxAscent") && plainWrappedLinesRenderer.includes("actualBoundingBoxDescent") && plainWrappedLinesRenderer.includes("textHeight=ascent+descent+Math.max(0,lines.length-1)*lineHeight") && plainWrappedLinesRenderer.includes("firstY=centerY-textHeight/2+ascent") && !plainWrappedLinesRenderer.includes("y-(lines.length-1)*lineHeight/2"), "slide1_summary_centers_the_visible_text_block_not_only_its_baselines");
-ok(completeWrapRenderer.includes("lines.length<=maxLines") && completeWrapRenderer.includes("weekly_slide1_synthesis_does_not_fit"), "slide1_never_cuts_a_summary_mid_sentence");
+ok(slide1SummaryRenderer.includes("const x=50,y=856,w=980,h=175") && slide1SummaryRenderer.includes("visual=content.synthesis") && slide1SummaryRenderer.includes("visual.primaryLine") && slide1SummaryRenderer.includes("visual.secondaryLine") && slide1SummaryRenderer.includes("slide1EditorialGold") && slide1SummaryRenderer.includes("'left'") && !slide1SummaryRenderer.includes("EN BREF"), "slide1_uses_the_daily_two_line_editorial_hierarchy");
+ok(slide1SummaryRenderer.includes("fitSlide1EditorialLines") && slide1SummaryRenderer.includes("visual.secondaryMaximumLines") && !slide1SummaryRenderer.includes("weekly_slide1_synthesis_does_not_fit"), "slide1_never_cuts_a_weekly_editorial_line_mid_sentence");
 ok(slide1DayStripRenderer.includes("days.forEach") && slide1DayStripRenderer.includes("drawImageCentered(icon") && slide1DayStripRenderer.includes("plainText(minLabel") && slide1DayStripRenderer.includes("plainText(maxLabel") && slide1DayStripRenderer.includes("y+210,24,600,slide1Ink") && !slide1DayStripRenderer.includes("plainText(maxLabel,centerX+7,y+210,24,600,gold"), "slide1_draws_seven_loka_columns_with_uniform_navy_temperatures");
 ok(slide1DayStripRenderer.includes("factMatches(content.coldestMorning)") && slide1DayStripRenderer.includes("factMatches(content.hottestDay)") && slide1DayMarkerRenderer.includes("kind==='HOT'") && slide1DayMarkerRenderer.includes("slide1ColdBlue") && slide1DayMarkerRenderer.includes("Math.round(x+8)"), "slide1_marks_every_tied_extreme_day_with_identical_pixel_rounded_insets");
 ok(slide1StripBoxRenderer.includes("rgba(255,255,255,.74)") && slide1DayStripRenderer.includes("const x=50,y=1065,w=980,h=240") && slide1DayMarkerRenderer.includes("ctx.lineWidth=1.5") && slide1DayMarkerRenderer.includes("markerWidth=Math.round(w-16)") && slide1DayMarkerRenderer.includes("markerHeight=Math.round(h-16)"), "slide1_daily_strip_is_fixed_and_uses_contours_without_changing_column_geometry");
