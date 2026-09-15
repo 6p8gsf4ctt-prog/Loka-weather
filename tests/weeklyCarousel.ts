@@ -54,7 +54,7 @@ function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial
     coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "13°C", timeLabel: "07 H" },
     hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "27°C", timeLabel: "15 H" },
     daylight: {
-      label: "LUMIÈRE DE LA SEMAINE", direction: "SHORTER", deltaMinutes: -18, deltaLabel: "−18 min de jour",
+      label: "LUMIÈRE DE LA SEMAINE", direction: "SHORTER", deltaMinutes: -18, deltaLabel: "−18 min de jour", periodLabel: "LUN. 7 → DIM. 13",
       start: { date: dateAt(0), weekdayLabel: "LUN.", sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780, sunriseLabel: "07:20", sunsetLabel: "20:20" },
       end: { date: dateAt(6), weekdayLabel: "DIM.", sunriseMinutes: 449, sunsetMinutes: 1211, durationMinutes: 762, sunriseLabel: "07:29", sunsetLabel: "20:11" }
     },
@@ -228,7 +228,7 @@ const renderedModel = browserModelLine ? JSON.parse(browserModelLine) as {
   slide1: {
     title: string;
     synthesis: { text: string; maximumLines: number };
-    daylight: { deltaLabel: string };
+    daylight: { deltaLabel: string; periodLabel: string };
     dailyStrip: Array<{ pictogram: { kind: string; url: string } }>;
   };
   dailySummaries: Array<{ weekdayLabel: string; dayLabel: string; pictogram: { source: string; libraryVersion: string; kind: string; url: string } }>;
@@ -244,6 +244,7 @@ ok(renderedModel?.dailySummaries.length === 7, "renderer_exposes_seven_daily_pic
 ok(renderedModel?.dailySummaries.every((day) => day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY" && day.pictogram.libraryVersion === "LOKA_PREMIUM_1.2" && day.pictogram.kind === "partly" && day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")) === true, "renderer_uses_generated_official_loka_pictogram_urls");
 ok(renderedModel?.dailySummaries.map((day) => `${day.weekdayLabel} ${day.dayLabel}`).join(",") === "LUN 7,MAR 8,MER 9,JEU 10,VEN 11,SAM 12,DIM 13", "renderer_keeps_precomputed_french_day_labels");
 ok(renderedModel?.slide1.title === "LA SEMAINE À TARNOS" && renderedModel.slide1.dailyStrip.length === 7 && renderedModel.slide1.dailyStrip.every((day) => day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")), "renderer_exposes_first_slide_content_with_official_daily_pictograms");
+ok(renderedModel?.slide1.daylight.periodLabel === "LUN. 7 → DIM. 13", "renderer_exposes_the_compact_daylight_period");
 ok(renderedModel?.dailyCardDetails.map((card) => `${card.kind}:${card.weekdayLabel}.${card.dayLabel}:${card.pictogram.kind}:${card.slots.map((slot) => slot.hour).join("-")}`).join(",") === "PREFERRED:SAM.12:partly:8-12-16-20,WATCH:MER.9:partly:8-12-16-20", "renderer_exposes_prepared_central_card_data");
 ok(renderedModel?.dailyCardDetails.every((card) => card.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,") && card.slots.every((slot) => slot.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,"))) === true, "renderer_embeds_official_loka_card_pictograms");
 const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1] ?? "";
@@ -252,7 +253,7 @@ try { new Function(script); } catch { scriptValid = false; }
 ok(scriptValid, "renderer_browser_script_is_valid");
 
 const slide1RuntimeSource = script.slice(0, script.indexOf("Promise.all(plan.slides.map"));
-const adaptiveLayoutRuntime = new Function("document", `${slide1RuntimeSource};return{layout:function(content,context){ctx=context;return slide1FactLayout(content,45,990);},summary:function(content,context){ctx=context;completePlainWrap(content.synthesis.text,540,785,880,33,29,22,500,slide1Ink,'center',content.synthesis.maximumLines);}};`)({
+const adaptiveLayoutRuntime = new Function("document", `${slide1RuntimeSource};return{layout:function(content,context){ctx=context;return slide1FactLayout(content,45,990);},summary:function(content,context){ctx=context;completePlainWrap(content.synthesis.text,540,775,880,33,29,22,500,slide1Ink,'center',content.synthesis.maximumLines);}};`)({
   querySelectorAll: () => [],
   getElementById: () => null
 }) as {
@@ -300,7 +301,7 @@ adaptiveLayoutRuntime.summary(shortSummary, {
 });
 const summaryVisibleTop = (summaryBaselines[0] ?? 0) - summaryFontSize * 0.76;
 const summaryVisibleBottom = (summaryBaselines.at(-1) ?? 0) + summaryFontSize * 0.22;
-ok(summaryBaselines.length >= 1 && summaryBaselines.length <= 2 && summaryVisibleTop >= 725 && summaryVisibleBottom <= 845 && Math.abs((summaryVisibleTop + summaryVisibleBottom) / 2 - 785) < 1, "slide1_summary_keeps_one_or_two_visible_lines_centered_inside_its_box");
+ok(summaryBaselines.length >= 1 && summaryBaselines.length <= 2 && summaryVisibleTop >= 725 && summaryVisibleBottom <= 825 && Math.abs((summaryVisibleTop + summaryVisibleBottom) / 2 - 775) < 1, "slide1_summary_keeps_one_or_two_visible_lines_centered_inside_its_box");
 
 const overviewTitleRenderer = script.split("\n").find((line) => line.startsWith("function drawOverviewTitle(")) ?? "";
 const slide1HeaderRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide1Header(")) ?? "";
@@ -317,23 +318,23 @@ const slide1DayMarkerRenderer = script.split("\n").find((line) => line.startsWit
 const slide1StripBoxRenderer = script.split("\n").find((line) => line.startsWith("function slide1StripBox(")) ?? "";
 const publicationSlideRenderer = script.split("\n").find((line) => line.startsWith("function drawPublicationSlide(")) ?? "";
 const publicationLaunch = script.split("\n").find((line) => line.startsWith("Promise.all(plan.slides.map")) ?? "";
-ok(slide1OverviewRenderer.includes("box(45,185,990,110);drawOverviewTitle(plan.overviewTitle);drawSlide1Facts(plan.slide1") && slide1OverviewRenderer.includes("drawSlide1Summary(plan.slide1);slide1StripBox(45,880,990,250);drawSlide1DayStrip(plan.slide1.dailyStrip"), "slide1_uses_the_compact_title_facts_summary_and_daily_strip_boxes");
+ok(slide1OverviewRenderer.includes("box(45,185,990,110);drawOverviewTitle(plan.overviewTitle);drawSlide1Facts(plan.slide1") && slide1OverviewRenderer.includes("drawSlide1Summary(plan.slide1);slide1StripBox(45,850,990,300);drawSlide1DayStrip(plan.slide1.dailyStrip"), "slide1_uses_the_compact_title_facts_summary_and_daily_strip_boxes");
 ok(!slide1OverviewRenderer.includes("slide.scene.displayTitle") && !slide1OverviewRenderer.includes("dailyCardDetails"), "slide1_does_not_render_the_previous_daily_cards");
 ok(slide1OverviewRenderer.includes("drawOverviewTitle(plan.overviewTitle)") && overviewTitleRenderer.includes("content.title") && !overviewTitleRenderer.includes("subtitle") && overviewTitleRenderer.includes("870,56,44,760") && overviewTitleRenderer.includes("ctx.strokeStyle=slide1EditorialGold"), "slide1_draws_a_more_discreet_single_week_title_with_reference_palette");
 ok(slide1OverviewRenderer.includes("drawSlide1Header(logo,plan.headerDateCompact,width)") && slide1HeaderRenderer.includes("date.line1") && slide1HeaderRenderer.includes("date.line2") && slide1HeaderRenderer.includes("width-50,81,17") && slide1HeaderRenderer.includes("width-50,104,17"), "slide1_header_keeps_logo_city_and_the_compact_two_line_date");
-ok(slide1OverviewRenderer.includes("drawSignature(1212,'rgba(255,255,255,.94)')"), "slide1_signature_uses_soft_white_on_dark_lower_master");
+ok(slide1OverviewRenderer.includes("drawSignature(1262,'rgba(255,255,255,.94)')"), "slide1_signature_rebalances_the_lower_master_space");
 ok(slide1FactsRenderer.includes("content.coldestMorning") && slide1FactsRenderer.includes("content.hottestDay") && slide1FactsRenderer.includes("content.daylight"), "slide1_draws_the_three_fixed_weekly_facts");
 ok(slide1TemperatureRenderer.includes("fact.label") && slide1TemperatureRenderer.includes("fact.dateLabel") && slide1TemperatureRenderer.includes("fact.temperatureLabel") && !slide1TemperatureRenderer.includes("fact.timeLabel"), "slide1_temperature_fact_keeps_only_the_essential_day_and_temperature");
 ok(slide1FactsRenderer.includes("cards=slide1FactLayout(content,x,w)") && slide1FactsRenderer.includes("cards[0].x") && slide1FactsRenderer.includes("cards[1].x") && slide1FactsRenderer.includes("cards[2].x") && slide1TemperatureRenderer.includes("plainText(fact.temperatureLabel"), "slide1_temperature_facts_use_optically_balanced_loka_icons_and_common_card_centers");
 ok(slide1FactLayoutRenderer.includes("cardWidth=(totalWidth-gap*2)/3") && !slide1FactLayoutRenderer.includes("trackedMeasure(content.coldestMorning") && !slide1FactLayoutRenderer.includes("requiredWidths"), "slide1_fact_boxes_share_exactly_the_same_geometry");
-ok(slide1TemperatureRenderer.includes("const labelSize=fittedSize(fact.label,w-44,19,15,700)") && slide1DaylightRenderer.includes("const labelSize=fittedSize(content.label,w-44,19,15,700)") && slide1DaylightRenderer.includes("plainText(content.label,x+w/2,y+67,labelSize,700,slide1Ink,'center')") && !slide1DaylightRenderer.includes("trackedText(content.label") && script.includes("const sunrise='Lever '") && script.includes("sunset='Coucher '") && script.includes("delta.value") && script.includes("delta.unit") && script.includes("y+339") && script.includes("y+365"), "slide1_daylight_fact_gives_the_daylight_delta_priority_over_its_two_smaller_astronomical_lines");
-ok(slide1SummaryRenderer.includes("const x=45,y=725,w=990,h=120") && slide1SummaryRenderer.includes("slide1SummaryBox(x,y,w,h)") && slide1SummaryRenderer.includes("x+w/2,y+h/2") && slide1SummaryRenderer.includes("completePlainWrap") && slide1SummaryRenderer.includes("500,slide1Ink") && !slide1SummaryRenderer.includes("EN BREF"), "slide1_renders_a_lighter_short_summary_at_the_center_of_its_box");
+ok(slide1TemperatureRenderer.includes("const labelSize=fittedSize(fact.label,w-44,19,15,700)") && slide1DaylightRenderer.includes("const labelSize=fittedSize(content.label,w-44,19,15,700)") && slide1DaylightRenderer.includes("trackedText(content.label,x+w/2,y+67,labelSize,700,slide1Ink,.35,'center')") && slide1DaylightRenderer.includes("plainText(content.periodLabel,x+w/2,y+260,periodSize,560,slide1Ink,'center')") && slide1DaylightRenderer.includes("plainText(deltaValue,x+w/2,y+335") && !slide1DaylightRenderer.includes("sunriseLabel") && !slide1DaylightRenderer.includes("sunsetLabel"), "slide1_daylight_fact_uses_the_same_title_icon_period_value_structure_as_temperature_cards");
+ok(slide1SummaryRenderer.includes("const x=45,y=725,w=990,h=100") && slide1SummaryRenderer.includes("slide1SummaryBox(x,y,w,h)") && slide1SummaryRenderer.includes("x+w/2,y+h/2") && slide1SummaryRenderer.includes("completePlainWrap") && slide1SummaryRenderer.includes("500,slide1Ink") && !slide1SummaryRenderer.includes("EN BREF"), "slide1_renders_a_lighter_short_summary_at_the_center_of_its_box");
 ok(plainWrappedLinesRenderer.includes("actualBoundingBoxAscent") && plainWrappedLinesRenderer.includes("actualBoundingBoxDescent") && plainWrappedLinesRenderer.includes("textHeight=ascent+descent+Math.max(0,lines.length-1)*lineHeight") && plainWrappedLinesRenderer.includes("firstY=centerY-textHeight/2+ascent") && !plainWrappedLinesRenderer.includes("y-(lines.length-1)*lineHeight/2"), "slide1_summary_centers_the_visible_text_block_not_only_its_baselines");
 ok(completeWrapRenderer.includes("lines.length<=maxLines") && completeWrapRenderer.includes("weekly_slide1_synthesis_does_not_fit"), "slide1_never_cuts_a_summary_mid_sentence");
-ok(slide1DayStripRenderer.includes("days.forEach") && slide1DayStripRenderer.includes("drawImageCentered(icon") && slide1DayStripRenderer.includes("plainText(minLabel") && slide1DayStripRenderer.includes("plainText(maxLabel") && !slide1DayStripRenderer.includes("plainText(maxLabel,centerX+7,y+220,24,600,gold"), "slide1_draws_seven_loka_columns_with_uniform_navy_temperatures");
+ok(slide1DayStripRenderer.includes("days.forEach") && slide1DayStripRenderer.includes("drawImageCentered(icon") && slide1DayStripRenderer.includes("plainText(minLabel") && slide1DayStripRenderer.includes("plainText(maxLabel") && slide1DayStripRenderer.includes("y+257,24,600,slide1Ink") && !slide1DayStripRenderer.includes("plainText(maxLabel,centerX+7,y+257,24,600,gold"), "slide1_draws_seven_loka_columns_with_uniform_navy_temperatures");
 ok(slide1DayStripRenderer.includes("factMatches(content.coldestMorning)") && slide1DayStripRenderer.includes("factMatches(content.hottestDay)") && slide1DayMarkerRenderer.includes("kind==='HOT'") && slide1DayMarkerRenderer.includes("slide1ColdBlue") && slide1DayMarkerRenderer.includes("Math.round(x+8)"), "slide1_marks_every_tied_extreme_day_with_identical_pixel_rounded_insets");
-ok(slide1StripBoxRenderer.includes("rgba(255,255,255,.74)") && slide1DayStripRenderer.includes("const x=45,y=880,w=990,h=250") && slide1DayMarkerRenderer.includes("ctx.lineWidth=1.5"), "slide1_daily_strip_preserves_the_background_with_precise_thinner_markers");
+ok(slide1StripBoxRenderer.includes("rgba(255,255,255,.74)") && slide1DayStripRenderer.includes("const x=45,y=850,w=990,h=300") && slide1DayMarkerRenderer.includes("ctx.lineWidth=1.5"), "slide1_daily_strip_uses_the_rebalanced_lower_space_with_precise_thinner_markers");
 ok(publicationSlideRenderer.includes("plan.slide1.dailyStrip.map") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.daylight") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.thermometer") && publicationSlideRenderer.includes("drawSlide1Overview"), "slide1_loads_its_official_daily_and_utility_loka_pictograms");
 ok(publicationLaunch.includes("drawPublicationSlide(slideCanvases[index],slide)"), "publication_renderer_uses_the_new_slide1_visual_path");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/80 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/81 PASS`);

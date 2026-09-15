@@ -1,7 +1,7 @@
 # LOKA - Périmètre de publication
 # Première slide « La semaine à Tarnos »
 
-Version : 2.0  
+Version : 2.1  
 Date : 15 septembre 2026  
 Statut : étape 1 validée - périmètre verrouillé  
 Référence éditoriale : `LOKA_Cahier_des_charges_Rendez_vous_hebdomadaire(1).pdf`
@@ -51,7 +51,8 @@ fond atmosphérique et signature.
    - **Matin le plus frais** : jour, date et température ;
    - **Journée la plus chaude** : jour, date et température maximale ;
    - **Lumière de la semaine** : différence de durée du jour entre lundi et
-     dimanche, avec lever/coucher lorsque l'espace le permet.
+   dimanche, avec une période compacte `LUN. N → DIM. N`. Les horaires de
+   lever/coucher ne sont pas affichés dans cette slide.
 4. Une synthèse factuelle en une phrase courte, descriptive et bornée à deux
    lignes ; elle ne retient qu’un ou deux signaux météo de la semaine.
 5. Bande des sept jours : libellé, date, pictogramme officiel LOKA, Tmin et
@@ -212,3 +213,12 @@ sont conservées dans le contrat, affichées dans les cartes et encadrées dans
 la frise. Le contrôle de publication vérifie en outre les bornes de synthèse,
 la traçabilité des égalités, Tmin ≤ Tmax et l’alignement factuel avec les sept
 jours.
+
+### 15 septembre 2026 - V13, homogénéité de la lumière
+
+La carte « Lumière de la semaine » adopte le même formalisme que les deux
+cartes de température : titre, pictogramme, période lundi–dimanche, puis
+variation de durée du jour. Les deux horaires astronomiques restent disponibles
+dans le contrat interne, mais sont retirés du rendu afin de ne pas concurrencer
+la valeur principale. La synthèse est légèrement resserrée ; la frise gagne de
+la hauteur et la signature descend, ce qui rééquilibre le bas de la slide.

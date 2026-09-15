@@ -1,6 +1,6 @@
 # LOKA — Référence visuelle de la slide 1
 
-Version : 1.4  
+Version : 1.5  
 Date : 15 septembre 2026  
 Format : Publication Instagram 1080 × 1350
 
@@ -15,9 +15,9 @@ le moteur quotidien ou les 24 scènes.
 | En-tête | 45 | 58 | 990 | 55 | Logo, ville, période compacte sur deux lignes |
 | Box titre | 45 | 185 | 990 | 110 | Titre seul et trait doré |
 | Trois repères | 45 | 320 | 990 | 380 | Trois cartes de même largeur, espacées de 10 px |
-| Synthèse | 45 | 725 | 990 | 120 | Une phrase courte, centrée |
-| Frise sept jours | 45 | 880 | 990 | 250 | Sept colonnes égales |
-| Signature | centré | 1212 | — | — | `Ici, cette semaine.` |
+| Synthèse | 45 | 725 | 990 | 100 | Une phrase courte, centrée |
+| Frise sept jours | 45 | 850 | 990 | 300 | Sept colonnes égales |
+| Signature | centré | 1262 | — | — | `Ici, cette semaine.` |
 
 Les trois cartes de repères ont une largeur identique de 323,33 px ; aucun
 contenu ne peut modifier leur grille. Les libellés, pictogrammes et valeurs des
@@ -31,9 +31,8 @@ deux cartes de température utilisent donc les mêmes lignes de référence.
 | Libellé d’un repère | 19 px | 700 | centré, légèrement espacé |
 | Jour du repère | 30 px | 560 | centré, sans contour |
 | Température principale | 70 px maximum | 700 | centrée, bleu marine |
-| Variation de lumière | 48 px maximum | 720 | centrée, bleu marine |
-| Unité « de jour » | 19 px | 560 | centrée, sous la variation |
-| Détail lever/coucher | 14 px maximum | 560 | une ligne centrée par information |
+| Période de lumière | 30 px maximum | 560 | centrée, sans contour |
+| Variation de lumière | 70 px maximum | 700 | centrée, bleu marine |
 | Synthèse | 29 px maximum | 500 | centrée, sans contour, deux lignes maximum |
 | Jour de la frise | 17 px | 700 | centré |
 | Date de la frise | 19 px | 560 | centrée |
@@ -57,8 +56,10 @@ de 100 à 110 px pour chacun des trois pictogrammes.
 - La période de l’en-tête suit le format compact validé : `14 — 20` puis
   `SEPTEMBRE`. Pour une semaine à cheval sur deux mois : `28 SEPT. —` puis
   `4 OCTOBRE`.
-- La lumière affiche une seule donnée forte en deux niveaux : `−N min`, puis
-  `de jour`. Les lignes de lever et coucher restent des détails secondaires.
+- La lumière suit la même séquence que les cartes de température : titre,
+  pictogramme, période `LUN. N → DIM. N`, puis valeur `−N min`. Les horaires
+  de lever et coucher sont conservés dans les données mais ne sont pas affichés
+  dans cette slide.
 - La synthèse est une phrase éditoriale descriptive de 70 à 100 caractères,
   limitée à deux lignes. Elle ne contient ni conseil, ni intertitre, ni les
   mots de remplissage « globalement » ou « progressivement ».

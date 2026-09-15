@@ -82,12 +82,14 @@ function slide1PreflightCopyIsValid(slide1: WeeklyEditorial["slide1"]): boolean 
     slide1.hottestDay.temperatureLabel,
     daylight.label,
     daylight.deltaLabel,
+    daylight.periodLabel,
     daylight.start.sunriseLabel,
     daylight.start.sunsetLabel,
     daylight.end.sunriseLabel,
     daylight.end.sunsetLabel
   ].every(hasText)
     && /^[-−–+]?\d+ min de jour$|^Durée du jour stable$/.test(daylight.deltaLabel)
+    && /^[A-ZÉÙÛÀÂÎÔÇ]{3,4}\. \d{1,2} → [A-ZÉÙÛÀÂÎÔÇ]{3,4}\. \d{1,2}$/.test(daylight.periodLabel)
     && /^\d{2}:\d{2}$/.test(daylight.start.sunriseLabel)
     && /^\d{2}:\d{2}$/.test(daylight.start.sunsetLabel)
     && /^\d{2}:\d{2}$/.test(daylight.end.sunriseLabel)

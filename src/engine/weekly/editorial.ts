@@ -91,6 +91,8 @@ export interface WeeklySlide1Content {
     direction: "LONGER" | "SHORTER" | "STABLE";
     deltaMinutes: number;
     deltaLabel: string;
+    /** Compact Monday-Sunday period displayed in the third factual card. */
+    periodLabel: string;
     start: WeeklySlide1DaylightEndpoint;
     end: WeeklySlide1DaylightEndpoint;
   };
@@ -489,6 +491,7 @@ function weeklySlide1Content(
       direction: daylight.direction,
       deltaMinutes: facts.daylight.deltaMinutes,
       deltaLabel: daylight.label,
+      periodLabel: `${shortDateLabel(facts.daylight.start.date)} → ${shortDateLabel(facts.daylight.end.date)}`,
       start: daylightEndpointContent(facts.daylight.start),
       end: daylightEndpointContent(facts.daylight.end)
     },
