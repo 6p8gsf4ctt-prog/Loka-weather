@@ -1,6 +1,6 @@
 # LOKA — Référence visuelle de la slide 1
 
-Version : 1.6  
+Version : 1.7  
 Date : 15 septembre 2026  
 Format : Publication Instagram 1080 × 1350
 
@@ -15,7 +15,7 @@ quotidien ou les 24 scènes.
 |---|---:|---:|
 | Marge latérale | 50 px | 50 px |
 | Largeur utile | 980 px | 980 px |
-| Rythme entre boxes | 25–29 px | 25 px |
+| Rythme entre boxes | 25–29 px | 35 px, afin de répartir l’espace sans étirer la frise |
 | Footer, ligne de base | 72 px du bas | 72 px du bas (`Y=1278`) |
 | Footer, trait doré | 53 px du bas | 53 px du bas (`Y=1297`) |
 | Footer, texte | 18 px / poids 500 / marine à 88 % | Identique, seul « aujourd’hui » devient « cette semaine » |
@@ -25,15 +25,22 @@ quotidien ou les 24 scènes.
 | Zone | X | Y | Largeur | Hauteur | Rôle |
 |---|---:|---:|---:|---:|---|
 | En-tête | 45 | 58 | 990 | 55 | Logo, ville, période compacte sur deux lignes |
-| Box titre | 50 | 160 | 980 | 125 | Titre seul et trait doré |
-| Trois repères | 50 | 310 | 980 | 380 | Trois cartes de 320 px, espacées de 10 px |
-| Synthèse | 50 | 715 | 980 | 100 | Une phrase courte, centrée |
-| Frise sept jours | 50 | 840 | 980 | 365 | Sept colonnes égales, espace bas rééquilibré |
+| Box titre | 50 | 160 | 980 | 135 | Titre seul et trait doré |
+| Trois repères | 50 | 330 | 980 | 400 | Trois cartes de 320 px, espacées de 10 px |
+| Synthèse | 50 | 765 | 980 | 120 | Une phrase courte, centrée |
+| Frise sept jours | 50 | 920 | 980 | 270 | Composant secondaire compact, à hauteur fixe |
 | Signature | centré | 1278 | — | — | `Ici, cette semaine.` |
 
 Les trois cartes de repères ont une largeur identique de 320 px ; aucun
 contenu ne peut modifier leur grille. Les libellés, pictogrammes et valeurs des
 deux cartes de température utilisent donc les mêmes lignes de référence.
+
+La frise compte strictement sept colonnes de 140 px. Chaque journée conserve
+la même séquence — jour, date, pictogramme, Tmin/Tmax — et la même hauteur,
+qu’elle soit mise en avant ou non. Un contour bleu ou doré est le seul signal
+de distinction ; il n’agrandit jamais une colonne. La hauteur de 270 px est
+fixe : l’espace vertical disponible est réparti entre les boxes et les
+interstices de la slide, pas dans la frise.
 
 ## Hiérarchie typographique
 

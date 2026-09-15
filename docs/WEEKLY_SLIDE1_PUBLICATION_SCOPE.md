@@ -1,7 +1,7 @@
 # LOKA - Périmètre de publication
 # Première slide « La semaine à Tarnos »
 
-Version : 2.2  
+Version : 2.3  
 Date : 15 septembre 2026  
 Statut : étape 1 validée - périmètre verrouillé  
 Référence éditoriale : `LOKA_Cahier_des_charges_Rendez_vous_hebdomadaire(1).pdf`
@@ -55,9 +55,11 @@ fond atmosphérique et signature.
    lever/coucher ne sont pas affichés dans cette slide.
 4. Une synthèse factuelle en une phrase courte, descriptive et bornée à deux
    lignes ; elle ne retient qu’un ou deux signaux météo de la semaine.
-5. Bande des sept jours : libellé, date, pictogramme officiel LOKA, Tmin et
-   Tmax pour chaque journée. Le matin le plus frais peut recevoir un liseré
-   bleu discret ; la journée la plus chaude un liseré doré discret.
+5. Bande des sept jours : composant secondaire compact de 270 px de haut,
+   avec libellé, date, pictogramme officiel LOKA, Tmin et Tmax pour chacune
+   des sept colonnes de 140 px. Le matin le plus frais peut recevoir un liseré
+   bleu discret ; la journée la plus chaude un liseré doré discret. Un liseré
+   ne modifie jamais les dimensions de la journée concernée.
 6. Footer permanent : `Ici, cette semaine.` et trait doré.
 
 ## 5. Conventions de données verrouillées
@@ -232,3 +234,15 @@ donc exactement la taille, le poids, la teinte et le trait doré de
 `Ici, aujourd’hui.` ; seul son texte devient `Ici, cette semaine.`. La frise
 hebdomadaire occupe la hauteur récupérée afin d’éviter toute zone vide en bas
 de page.
+
+### 15 septembre 2026 - V15, frise compacte et rythme réparti
+
+La frise hebdomadaire redevient un composant secondaire à hauteur fixe de
+270 px. Les sept jours conservent une largeur de 140 px et la même séquence
+jour, date, pictogramme, Tmin/Tmax. Les jours remarquables sont signalés
+uniquement par un contour fin bleu ou doré, sans changement de géométrie.
+
+L’espace récupéré n’est plus concentré dans cette frise : il est distribué
+entre le titre, les trois cartes, la synthèse et les trois interstices. Le
+footer reste exactement sur les coordonnées et avec le style de la scène
+quotidienne, seul son texte demeurant `Ici, cette semaine.`.
