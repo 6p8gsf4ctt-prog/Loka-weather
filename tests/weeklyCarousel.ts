@@ -158,6 +158,7 @@ const events: WeeklyEditorial["events"] = [
 ];
 
 const plan = buildWeeklyCarouselPlan(editorial(events));
+ok(WEEKLY_OVERVIEW_MASTER_URL === "/masters24/weekly/SEMAINE_HOMOGENE.jpeg", "overview_uses_the_homogeneous_weekly_master");
 ok(plan.slides.length === 3, "two_events_make_three_slides");
 ok(plan.slides[0].kind === "OVERVIEW" && plan.slides[0].eventId === null, "overview_is_first");
 ok(plan.headerDateLabel === "LUNDI 7 AU DIMANCHE 13 SEPTEMBRE", "weekly_header_date_keeps_full_range_for_existing_surfaces");
@@ -333,4 +334,4 @@ ok(slide1StripBoxRenderer.includes("rgba(255,255,255,.80)") && slide1DayStripRen
 ok(publicationSlideRenderer.includes("plan.slide1.dailyStrip.map") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.daylight") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.thermometer") && publicationSlideRenderer.includes("drawSlide1Overview"), "slide1_loads_its_official_daily_and_utility_loka_pictograms");
 ok(publicationLaunch.includes("drawPublicationSlide(slideCanvases[index],slide)"), "publication_renderer_uses_the_new_slide1_visual_path");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/79 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/80 PASS`);

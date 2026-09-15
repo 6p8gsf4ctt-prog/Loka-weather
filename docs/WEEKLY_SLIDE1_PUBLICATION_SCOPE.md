@@ -74,8 +74,9 @@ d'heures d'ensoleillement.
 
 ## 6. Règles visuelles verrouillées
 
-- Le fond de vue d'ensemble `SEMAINE_CONTRASTEE` reste le support de cette
-  première slide, dans l'univers abstrait LOKA.
+- Le fond de vue d'ensemble `SEMAINE_HOMOGENE` est le support de cette première
+  slide : une scène abstraite LOKA homogène, sans opposition narrative entre
+  une zone supérieure lumineuse et une zone inférieure orageuse.
 - Les pictogrammes, polices, palette bleu marine / doré et boxes proviennent
   des composants existants du moteur journalier.
 - Aucun ciel réaliste, élément décoratif nouveau, police nouvelle ou effet

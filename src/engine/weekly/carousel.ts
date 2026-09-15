@@ -13,7 +13,7 @@ export const WEEKLY_STORY_HEIGHT = 1920 as const;
  * Dedicated master for the weekly overview only. Event slides retain the
  * actual V24 master selected from the representative daily decision.
  */
-export const WEEKLY_OVERVIEW_MASTER_URL = "/masters24/SEMAINE_CONTRASTEE.png" as const;
+export const WEEKLY_OVERVIEW_MASTER_URL = "/masters24/weekly/SEMAINE_HOMOGENE.jpeg" as const;
 
 export type WeeklyCarouselSlideKind = "OVERVIEW" | "EVENT";
 
