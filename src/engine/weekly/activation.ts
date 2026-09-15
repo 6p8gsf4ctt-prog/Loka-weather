@@ -127,7 +127,7 @@ export function validateWeeklyActivation(
     "one_event_slide_per_selected_event"
   ));
   checks.push(check("calm_contract", editorial.status !== "CALM" || editorial.events.length === 0, "calm_week_has_no_event_slides"));
-  checks.push(check("carousel_dimensions", carousel.width === 1080 && carousel.height === 1350, "1080x1350"));
+  checks.push(check("carousel_dimensions", carousel.width === 1080 && carousel.height === 1440, "1080x1440"));
   checks.push(check("story_dimensions", carousel.story.width === 1080 && carousel.story.height === 1920, "1080x1920"));
   checks.push(check("story_relay", carousel.story.relay.kind === "RELAY" && carousel.story.relay.source === "CAROUSEL" && carousel.story.relay.cta.length > 0, "relay_only_story"));
   checks.push(check(

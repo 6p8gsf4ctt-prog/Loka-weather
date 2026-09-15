@@ -1,35 +1,37 @@
 # LOKA — Référence visuelle de la slide 1
 
-Version : 1.8  
+Version : 1.9  
 Date : 15 septembre 2026  
-Format : Publication Instagram 1080 × 1350
+Format : Publication Instagram 1080 × 1440
 
 Ce document verrouille la composition mesurée à partir de la maquette validée
-et de la publication quotidienne LOKA au format 1080 × 1440. Il complète le
-cahier des charges fonctionnel sans modifier les calculs météo, le moteur
-quotidien ou les 24 scènes.
+et de la publication quotidienne LOKA au format 1080 × 1440. Les deux sorties
+partagent maintenant le même cadre de feed. Il complète le
+cahier des charges fonctionnel sans modifier les calculs météo, le rendu
+visuel quotidien ou les 24 scènes.
 
 ## Repères repris de la publication quotidienne
 
-| Référence quotidienne | Valeur | Transposition hebdomadaire 1080 × 1350 |
+| Référence quotidienne | Valeur | Transposition hebdomadaire 1080 × 1440 |
 |---|---:|---:|
 | Marge latérale | 50 px | 50 px |
 | Largeur utile | 980 px | 980 px |
-| Rythme entre boxes | 25–29 px | 35 px, afin de répartir l’espace sans étirer la frise |
-| Footer, ligne de base | 72 px du bas | 72 px du bas (`Y=1278`) |
-| Footer, trait doré | 53 px du bas | 53 px du bas (`Y=1297`) |
+| Box titre | `Y=160`, `H=150` | Identique |
+| Bas de la box inférieure | `Y=1305` | Identique |
+| Footer, ligne de base | 72 px du bas | 72 px du bas (`Y=1368`) |
+| Footer, trait doré | 53 px du bas | 53 px du bas (`Y=1387`) |
 | Footer, texte | 18 px / poids 500 / marine à 88 % | Identique, seul « aujourd’hui » devient « cette semaine » |
 
 ## Géométrie de référence
 
 | Zone | X | Y | Largeur | Hauteur | Rôle |
 |---|---:|---:|---:|---:|---|
-| En-tête | 45 | 58 | 990 | 55 | Logo, ville, période compacte sur deux lignes |
-| Box titre | 50 | 160 | 980 | 135 | Titre seul et trait doré |
-| Trois repères | 50 | 330 | 980 | 430 | Trois cartes de 320 px, espacées de 10 px |
-| Synthèse | 50 | 795 | 980 | 120 | Une phrase courte, centrée |
-| Frise sept jours | 50 | 950 | 980 | 240 | Composant secondaire compact, à hauteur fixe |
-| Signature | centré | 1278 | — | — | `Ici, cette semaine.` |
+| En-tête | 50 | 50 | 980 | 88 | Même ancrage que la publication quotidienne ; période hebdomadaire sur une ligne |
+| Box titre | 50 | 160 | 980 | 150 | Même box que la publication quotidienne ; titre et trait doré propres à la semaine |
+| Trois repères | 50 | 336 | 980 | 490 | Trois cartes de 320 px, espacées de 10 px |
+| Synthèse | 50 | 856 | 980 | 175 | Une phrase courte, centrée |
+| Frise sept jours | 50 | 1065 | 980 | 240 | Composant secondaire compact, bas ancré à `Y=1305` |
+| Signature | centré | 1368 | — | — | `Ici, cette semaine.` — même position que la publication quotidienne |
 
 Les trois cartes de repères ont une largeur identique de 320 px ; aucun
 contenu ne peut modifier leur grille. Les libellés, pictogrammes et valeurs des
@@ -39,8 +41,9 @@ La frise compte strictement sept colonnes de 140 px. Chaque journée conserve
 la même séquence — jour, date, pictogramme, Tmin/Tmax — et la même hauteur,
 qu’elle soit mise en avant ou non. Un contour bleu ou doré est le seul signal
 de distinction ; il n’agrandit jamais une colonne. La hauteur de 240 px est
-fixe : l’espace vertical disponible est réparti entre les boxes et les
-interstices de la slide, pas dans la frise.
+fixe et son bas est ancré à `Y=1305`, exactement comme la box solaire de la
+publication quotidienne. L’espace vertical disponible est réparti entre les
+boxes intérieures, pas dans la frise.
 
 ## Hiérarchie typographique
 
@@ -72,9 +75,9 @@ de 100 à 110 px pour chacun des trois pictogrammes.
 ## Règles de lisibilité
 
 - Les valeurs principales dominent toujours les libellés et les détails.
-- La période de l’en-tête suit le format compact validé : `14 — 20` puis
-  `SEPTEMBRE`. Pour une semaine à cheval sur deux mois : `28 SEPT. —` puis
-  `4 OCTOBRE`.
+- La période de l’en-tête utilise la ligne et la ligne de base quotidiennes :
+  `14 — 20 SEPTEMBRE`. Pour une semaine à cheval sur deux mois :
+  `28 SEPT. — 4 OCTOBRE`.
 - La lumière suit la même séquence que les cartes de température : titre,
   pictogramme, période `LUN. N → DIM. N`, puis valeur `−N min`. Les horaires
   de lever et coucher sont conservés dans les données mais ne sont pas affichés

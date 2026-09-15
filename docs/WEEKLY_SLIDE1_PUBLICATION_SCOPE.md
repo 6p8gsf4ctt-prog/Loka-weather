@@ -1,7 +1,7 @@
 # LOKA - Périmètre de publication
 # Première slide « La semaine à Tarnos »
 
-Version : 2.4  
+Version : 2.5  
 Date : 15 septembre 2026  
 Statut : étape 1 validée - périmètre verrouillé  
 Référence éditoriale : `LOKA_Cahier_des_charges_Rendez_vous_hebdomadaire(1).pdf`
@@ -33,7 +33,7 @@ prévisualisation sécurisée.
 
 | Fichier | Dimensions | Rôle |
 |---|---:|---|
-| `YYYY-MM-DD_weekly_01_essentiel.png` | 1080 x 1350 | Publication Instagram 4:5 |
+| `YYYY-MM-DD_weekly_01_essentiel.png` | 1080 x 1440 | Publication LOKA 3:4, alignée sur le moteur quotidien |
 | `YYYY-MM-DD_weekly_story_relais.png` | 1080 x 1920 | Relais Story 9:16 |
 
 La Story est une adaptation verticale de la même information. Elle ne devient
@@ -45,8 +45,10 @@ La structure graphique reprend les composants du moteur quotidien : logo,
 ville, période, boxes translucides arrondies, typographies, pictogrammes LOKA,
 fond atmosphérique et signature.
 
-1. En-tête : logo LOKA!, `TARNOS` et période dynamique.
-2. Box de titre : `LA SEMAINE À TARNOS` et trait doré. Aucun sous-titre.
+1. En-tête : logo LOKA!, `TARNOS` et période dynamique, aux coordonnées
+   exactes de la publication quotidienne.
+2. Box de titre : `LA SEMAINE À TARNOS` et trait doré, dans la même box de
+   `980 × 150 px` à `Y=160` que la publication quotidienne. Aucun sous-titre.
 3. Trois repères fixes :
    - **Matin le plus frais** : jour, date et température ;
    - **Journée la plus chaude** : jour, date et température maximale ;
@@ -59,8 +61,10 @@ fond atmosphérique et signature.
    avec libellé, date, pictogramme officiel LOKA, Tmin et Tmax pour chacune
    des sept colonnes de 140 px. Le matin le plus frais peut recevoir un liseré
    bleu discret ; la journée la plus chaude un liseré doré discret. Un liseré
-   ne modifie jamais les dimensions de la journée concernée.
-6. Footer permanent : `Ici, cette semaine.` et trait doré.
+   ne modifie jamais les dimensions de la journée concernée. Son bas est
+   ancré à `Y=1305`, comme la box solaire du rendu quotidien.
+6. Footer permanent : `Ici, cette semaine.` et trait doré, aux coordonnées
+   exactes du footer quotidien (`Y=1368` et trait à `Y=1387`).
 
 ## 5. Conventions de données verrouillées
 
@@ -111,7 +115,7 @@ La première slide est publiable uniquement lorsque :
 2. les trois repères fixes sont présents et calculés selon les conventions
    ci-dessus ;
 3. les sept pictogrammes proviennent de la bibliothèque officielle LOKA ;
-4. les deux images exportées respectent 1080 x 1350 et 1080 x 1920 ;
+4. les deux images exportées respectent 1080 x 1440 et 1080 x 1920 ;
 5. le moteur quotidien compile et ses tests ciblés restent inchangés ;
 6. la prévisualisation n'écrit pas dans D1 et ne publie rien automatiquement.
 7. aucune valeur de carte ne contredit la frise, toute égalité est signalée,
@@ -255,3 +259,17 @@ sont transférés aux trois cartes de repères, qui passent toutes à 430 px et
 gardent leurs lignes de titre, pictogramme, période/date et valeur principale
 strictement communes. La synthèse et la frise sont décalées ensemble pour
 préserver les interstices réguliers de 35 px et le footer quotidien.
+
+### 15 septembre 2026 - V17, cadre quotidien partagé
+
+La publication hebdomadaire adopte le même canevas 1080 × 1440 que la
+publication quotidienne. Le moteur quotidien et le moteur hebdomadaire lisent
+désormais les mêmes constantes de cadre pour le format, l’en-tête, la box de
+titre, la ligne basse de la dernière box et la signature. Seuls les modules de
+contenu internes diffèrent.
+
+La frise hebdomadaire conserve ses sept colonnes à hauteur fixe de 240 px,
+mais son bas est ancré à `Y=1305`, au même niveau que la box solaire
+quotidienne. Les trois repères et la synthèse occupent l’espace intérieur entre
+la box titre et cette frise. La date hebdomadaire est affichée sur la même
+ligne et à la même taille que la date quotidienne.
