@@ -21,7 +21,7 @@ export type { WeeklyActivity, WeeklyActivityInsight, WeeklyActivityReasonCode, W
 export { buildWeeklyEditorial } from "./editorial";
 export { WEEKLY_DAILY_CARD_HOURS } from "./editorial";
 export type { WeeklyActivityText, WeeklyDailyCardDetail, WeeklyDailyCardHour, WeeklyDailyCardSlot, WeeklyDailyHighlight, WeeklyDailyHighlightKind, WeeklyDailySummary, WeeklyEditorial, WeeklyEditorialEvent, WeeklySceneReference, WeeklySlide1Content, WeeklySlide1DaylightEndpoint, WeeklySlide1TemperatureFact } from "./editorial";
-export { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_CAROUSEL_HEIGHT, WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, WEEKLY_CAROUSEL_VERSION, WEEKLY_CAROUSEL_WIDTH, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_STORY_HEIGHT, WEEKLY_STORY_WIDTH } from "./carousel";
+export { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_CAROUSEL_HEIGHT, WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, WEEKLY_CAROUSEL_VERSION, WEEKLY_CAROUSEL_WIDTH, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_SLIDE1_DAILY_FEED_GRID, WEEKLY_STORY_HEIGHT, WEEKLY_STORY_WIDTH } from "./carousel";
 export type { WeeklyCarouselDailyCardDetail, WeeklyCarouselDailyCardSlot, WeeklyCarouselDailySummary, WeeklyCarouselSlide1Content, WeeklyDailyPictogramReference, WeeklyCarouselPlan, WeeklyCarouselSlide, WeeklyCarouselSlideKind, WeeklyStoryRelay } from "./carousel";
 export { localDateIsMonday, nextMondayOrSame, weeklyRangeForDate } from "./schedule";
 export type { WeeklyDateRange } from "./schedule";

@@ -1,7 +1,7 @@
 # LOKA - Périmètre de publication
 # Première slide « La semaine à Tarnos »
 
-Version : 2.1  
+Version : 2.2  
 Date : 15 septembre 2026  
 Statut : étape 1 validée - périmètre verrouillé  
 Référence éditoriale : `LOKA_Cahier_des_charges_Rendez_vous_hebdomadaire(1).pdf`
@@ -222,3 +222,13 @@ variation de durée du jour. Les deux horaires astronomiques restent disponibles
 dans le contrat interne, mais sont retirés du rendu afin de ne pas concurrencer
 la valeur principale. La synthèse est légèrement resserrée ; la frise gagne de
 la hauteur et la signature descend, ce qui rééquilibre le bas de la slide.
+
+### 15 septembre 2026 - V14, grille quotidienne transposée
+
+La slide hebdomadaire reprend les ancrages structurels de la publication
+quotidienne : marge latérale de 50 px, largeur utile de 980 px, rythme de 25 px
+entre les boxes et footer calé à la même distance du bas. Le slogan conserve
+donc exactement la taille, le poids, la teinte et le trait doré de
+`Ici, aujourd’hui.` ; seul son texte devient `Ici, cette semaine.`. La frise
+hebdomadaire occupe la hauteur récupérée afin d’éviter toute zone vide en bas
+de page.

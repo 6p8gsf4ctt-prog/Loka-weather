@@ -1,25 +1,37 @@
 # LOKA — Référence visuelle de la slide 1
 
-Version : 1.5  
+Version : 1.6  
 Date : 15 septembre 2026  
 Format : Publication Instagram 1080 × 1350
 
-Ce document verrouille la composition mesurée à partir de la maquette validée.
-Il complète le cahier des charges fonctionnel sans modifier les calculs météo,
-le moteur quotidien ou les 24 scènes.
+Ce document verrouille la composition mesurée à partir de la maquette validée
+et de la publication quotidienne LOKA au format 1080 × 1440. Il complète le
+cahier des charges fonctionnel sans modifier les calculs météo, le moteur
+quotidien ou les 24 scènes.
+
+## Repères repris de la publication quotidienne
+
+| Référence quotidienne | Valeur | Transposition hebdomadaire 1080 × 1350 |
+|---|---:|---:|
+| Marge latérale | 50 px | 50 px |
+| Largeur utile | 980 px | 980 px |
+| Rythme entre boxes | 25–29 px | 25 px |
+| Footer, ligne de base | 72 px du bas | 72 px du bas (`Y=1278`) |
+| Footer, trait doré | 53 px du bas | 53 px du bas (`Y=1297`) |
+| Footer, texte | 18 px / poids 500 / marine à 88 % | Identique, seul « aujourd’hui » devient « cette semaine » |
 
 ## Géométrie de référence
 
 | Zone | X | Y | Largeur | Hauteur | Rôle |
 |---|---:|---:|---:|---:|---|
 | En-tête | 45 | 58 | 990 | 55 | Logo, ville, période compacte sur deux lignes |
-| Box titre | 45 | 185 | 990 | 110 | Titre seul et trait doré |
-| Trois repères | 45 | 320 | 990 | 380 | Trois cartes de même largeur, espacées de 10 px |
-| Synthèse | 45 | 725 | 990 | 100 | Une phrase courte, centrée |
-| Frise sept jours | 45 | 850 | 990 | 300 | Sept colonnes égales |
-| Signature | centré | 1262 | — | — | `Ici, cette semaine.` |
+| Box titre | 50 | 160 | 980 | 125 | Titre seul et trait doré |
+| Trois repères | 50 | 310 | 980 | 380 | Trois cartes de 320 px, espacées de 10 px |
+| Synthèse | 50 | 715 | 980 | 100 | Une phrase courte, centrée |
+| Frise sept jours | 50 | 840 | 980 | 365 | Sept colonnes égales, espace bas rééquilibré |
+| Signature | centré | 1278 | — | — | `Ici, cette semaine.` |
 
-Les trois cartes de repères ont une largeur identique de 323,33 px ; aucun
+Les trois cartes de repères ont une largeur identique de 320 px ; aucun
 contenu ne peut modifier leur grille. Les libellés, pictogrammes et valeurs des
 deux cartes de température utilisent donc les mêmes lignes de référence.
 
