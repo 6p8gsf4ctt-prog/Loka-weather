@@ -97,7 +97,8 @@ d'heures d'ensoleillement.
 
 Cette livraison ne doit pas inclure :
 
-- les slides 2, 3 et 4 du futur carrousel ;
+- les slides 3 et 4 du futur carrousel ; la slide 2 est désormais le
+  composant « Le chiffre de la semaine », documenté séparément ;
 - la sélection de signaux variables, leur score, leur cooldown ou leur mémoire
   éditoriale ;
 - les cartes `Jour à privilégier` et `Jour à surveiller` ;

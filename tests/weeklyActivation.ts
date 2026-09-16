@@ -100,7 +100,7 @@ const calmPlan = buildWeeklyCarouselPlan(base);
 const calmValidation = validateWeeklyActivation(base, calmPlan);
 ok(calmValidation.ok && calmValidation.status === "READY", "valid_calm_publication_ready");
 ok(calmValidation.checks.every((check) => check.ok), "all_calm_checks_pass");
-ok(calmPlan.slides.length === 1, "calm_plan_has_one_slide");
+ok(calmPlan.slides.length === 2, "calm_plan_has_the_weekly_number_slide");
 ok(calmPlan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "weekly_overview_background_is_bound");
 ok(calmValidation.checks.find((check) => check.id === "weekly_daily_summaries")?.ok === true, "daily_summaries_are_ready");
 ok(calmValidation.checks.find((check) => check.id === "weekly_daily_pictograms")?.ok === true, "daily_pictograms_are_officially_bound");
@@ -223,8 +223,8 @@ const eventEditorial: WeeklyEditorial = {
 const eventPlan = buildWeeklyCarouselPlan(eventEditorial);
 const eventValidation = validateWeeklyActivation(eventEditorial, eventPlan);
 ok(eventValidation.ok, "event_publication_ready");
-ok(eventPlan.slides[1]?.eventId === event.id, "event_id_is_preserved");
-ok(eventPlan.slides[1]?.backgroundUrl === event.scene.masterUrl, "event_background_keeps_daily_v24_master");
+ok(eventPlan.slides[1]?.kind === "WEEKLY_NUMBER" && eventPlan.slides[1]?.eventId === null, "weekly_number_replaces_the_legacy_event_slide");
+ok(eventPlan.slides[1]?.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "weekly_number_keeps_the_shared_weekly_master");
 ok(eventPlan.dailySummaries[3]?.highlight === "WATCH", "event_watch_highlight_is_bound_to_daily_column");
 ok(eventPlan.dailyCardDetails[0]?.pictogram.kind === "sun" && eventPlan.dailyCardDetails[0]?.slots.every((slot) => slot.pictogram.kind === "sun"), "central_card_pictograms_follow_daily_rules");
 const badHighlightEditorial: WeeklyEditorial = {
@@ -233,10 +233,10 @@ const badHighlightEditorial: WeeklyEditorial = {
 };
 const badHighlightValidation = validateWeeklyActivation(badHighlightEditorial, eventPlan);
 ok(!badHighlightValidation.checks.find((check) => check.id === "weekly_daily_highlights")?.ok, "daily_highlight_guard_blocks_wrong_event_role");
-const badMapping = validateWeeklyActivation(eventEditorial, {
+const badNumber = validateWeeklyActivation(eventEditorial, {
   ...eventPlan,
-  slides: [eventPlan.slides[0], { ...eventPlan.slides[1], eventId: "other-event" }]
+  slides: [eventPlan.slides[0], { ...eventPlan.slides[1], weeklyNumber: { ...eventPlan.weeklyNumber, dayIndex: 7 } }]
 });
-ok(!badMapping.checks.find((check) => check.id === "event_mapping")?.ok, "event_mapping_guard");
+ok(!badNumber.checks.find((check) => check.id === "slide2_number_identity")?.ok, "weekly_number_guard");
 
 console.log(`WEEKLY_ACTIVATION ${passed}/29 PASS`);

@@ -11,6 +11,7 @@ import { buildWeeklyConclusion } from "./conclusion";
 import { buildWeeklyFixedFacts } from "./fixedFacts";
 import type { WeeklyDaylightEndpoint, WeeklyFixedFacts, WeeklyTemperatureFact } from "./fixedFacts";
 import { buildWeeklySlide1Synthesis, type WeeklySlide1Synthesis } from "./synthesis";
+import { buildWeeklyNumber, type WeeklyNumber } from "./weeklyNumber";
 
 export interface WeeklySceneReference {
   source: "DAILY_V24_DECISION";
@@ -163,6 +164,8 @@ export interface WeeklyEditorial {
   };
   /** Stable factual content for « La semaine à Tarnos », before visual rendering. */
   slide1: WeeklySlide1Content;
+  /** Single, machine-selected fact for the second weekly publication slide. */
+  weeklyNumber?: WeeklyNumber;
   /** Monday to Sunday, derived directly from the seven daily V24 profiles. */
   dailySummaries: WeeklyDailySummary[];
   /** Zero, one or two factual markers derived from selected weekly events. */
@@ -574,6 +577,7 @@ export function buildWeeklyEditorial(
     status: selection.status,
     overview,
     slide1: weeklySlide1Content(city, profiles, facts, dailySummaries, conclusion.body),
+    weeklyNumber: buildWeeklyNumber(profiles),
     dailySummaries,
     dailyHighlights,
     dailyCardDetails: weeklyDailyCardDetails(profiles, dailyHighlights),

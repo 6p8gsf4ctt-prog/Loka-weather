@@ -122,11 +122,11 @@ for (const count of [0, 1, 2, 3, 4]) {
   const validation = validateWeeklyActivation(publication, plan);
   const html = renderWeeklyCarousel(publication);
   const canvasCount = html.match(/class="carousel-canvas"/g)?.length ?? 0;
-  ok(plan.slides.length === count + 1, `adaptive_slide_count_${count}`);
+  ok(plan.slides.length === 2, `slide2_number_count_${count}`);
   ok(validation.ok, `activation_ready_${count}`);
-  ok(canvasCount === count + 1, `preview_canvas_count_${count}`);
+  ok(canvasCount === 2, `preview_canvas_count_${count}`);
   ok(html.includes('"source":"CAROUSEL"'), `story_source_${count}`);
-  ok(count === 0 ? html.includes("Une semaine calme à Tarnos") : html.includes(`data-event-id="wind:${nextDate(0)}"`), `preview_identity_${count}`);
+  ok(html.includes("LE CHIFFRE DE LA SEMAINE") && !html.includes(`data-event-id="wind:${nextDate(0)}"`), `preview_identity_${count}`);
 }
 
 const fiveEvents = editorial(5);

@@ -1,9 +1,10 @@
 import { weeklyRangeForDate } from "./schedule";
 import { WEEKLY_DAILY_CARD_HOURS } from "./editorial";
 import type { WeeklyEditorial } from "./editorial";
-import { WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, WEEKLY_OVERVIEW_MASTER_URL } from "./carousel";
+import { WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_SLIDE2_DAILY_FEED_GRID } from "./carousel";
 import type { WeeklyCarouselPlan } from "./carousel";
 import { PICTOGRAM_LIBRARY_VERSION, hourlyConditionToPictogram, visualIconToPictogram } from "../../ui/pictogramLibrary";
+import { LOKA_DAILY_FEED_FRAME } from "../../ui/feedFrame";
 
 export interface WeeklyActivationCheck {
   id: string;
@@ -19,12 +20,6 @@ export interface WeeklyActivationValidation {
 
 function check(id: string, ok: boolean, detail: string): WeeklyActivationCheck {
   return { id, ok, detail };
-}
-
-function sameIds(actual: Array<string | null>, expected: string[]): boolean {
-  return actual.length === expected.length
-    && actual.every((value, index) => value === expected[index])
-    && new Set(actual).size === expected.length;
 }
 
 function isValidDailyV24Scene(scene: WeeklyEditorial["overview"]["scene"]): boolean {
@@ -202,15 +197,22 @@ export function validateWeeklyActivation(
     expectedRange !== null && editorial.endDate === expectedRange.endDate && carousel.startDate === editorial.startDate && carousel.endDate === editorial.endDate,
     expectedRange ? `${editorial.startDate}:${editorial.endDate}` : "invalid_week_range"
   ));
-  checks.push(check("adaptive_slide_count", carousel.slides.length === editorial.events.length + 1, `${carousel.slides.length}_slides_for_${editorial.events.length}_events`));
+  checks.push(check("slide2_number_contract", carousel.slides.length === 2, `${carousel.slides.length}_slides`));
   checks.push(check("publication_limit", editorial.events.length <= WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, `${editorial.events.length}_event_slides_max_${WEEKLY_CAROUSEL_MAX_EVENT_SLIDES}`));
   checks.push(check("overview_first", carousel.slides[0]?.kind === "OVERVIEW" && carousel.slides[0]?.eventId === null, "overview_first"));
   checks.push(check(
-    "event_mapping",
-    sameIds(carousel.slides.slice(1).map((slide) => slide.eventId), editorial.events.map((event) => event.id)),
-    "one_event_slide_per_selected_event"
+    "slide2_number_identity",
+    carousel.slides[1]?.kind === "WEEKLY_NUMBER"
+      && carousel.slides[1]?.eventId === null
+      && carousel.slides[1]?.weeklyNumber?.title === "LE CHIFFRE DE LA SEMAINE"
+      && carousel.slides[1]?.weeklyNumber?.valueLabel.length > 0
+      && carousel.slides[1]?.weeklyNumber?.unitLabel.length > 0
+      && carousel.slides[1]?.weeklyNumber?.explanation.length > 0
+      && carousel.slides[1]?.weeklyNumber?.dayIndex >= 0
+      && carousel.slides[1]?.weeklyNumber?.dayIndex <= 6,
+    "single_traceable_weekly_number"
   ));
-  checks.push(check("calm_contract", editorial.status !== "CALM" || editorial.events.length === 0, "calm_week_has_no_event_slides"));
+  checks.push(check("calm_contract", editorial.status !== "CALM" || editorial.events.length === 0, "calm_week_keeps_the_same_two_slide_format"));
   checks.push(check("carousel_dimensions", carousel.width === 1080 && carousel.height === 1440, "1080x1440"));
   checks.push(check("story_dimensions", carousel.story.width === 1080 && carousel.story.height === 1920, "1080x1920"));
   checks.push(check("story_relay", carousel.story.relay.kind === "RELAY" && carousel.story.relay.source === "CAROUSEL" && carousel.story.relay.cta.length > 0, "relay_only_story"));
@@ -353,9 +355,16 @@ export function validateWeeklyActivation(
     "dedicated_weekly_overview_master"
   ));
   checks.push(check(
-    "event_background_alignment",
-    carousel.slides.slice(1).every((slide) => slide.backgroundUrl === slide.scene.masterUrl),
-    "event_backgrounds_keep_daily_v24_master"
+    "shared_slide2_background",
+    carousel.slides[1]?.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL,
+    "slide2_uses_the_same_weekly_master_as_slide1"
+  ));
+  checks.push(check(
+    "slide2_shared_frame",
+    WEEKLY_SLIDE2_DAILY_FEED_GRID.title === LOKA_DAILY_FEED_FRAME.title
+      && WEEKLY_SLIDE2_DAILY_FEED_GRID.numberBox.bottom === LOKA_DAILY_FEED_FRAME.lowerBox.bottom
+      && WEEKLY_SLIDE2_DAILY_FEED_GRID.signature === LOKA_DAILY_FEED_FRAME.signature,
+    "daily_title_box_lower_baseline_and_signature"
   ));
   checks.push(check(
     "daily_v24_scene_provenance",
