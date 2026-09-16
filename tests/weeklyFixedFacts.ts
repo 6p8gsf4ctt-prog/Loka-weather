@@ -96,4 +96,41 @@ ok(tiedFacts.coldestMorning.matches.map((match) => match.dayIndex).join(",") ===
 ok(tiedFacts.hottestDay.matches.map((match) => match.dayIndex).join(",") === "5,6", "hottest_day_keeps_every_exact_raw_tie");
 ok(tiedFacts.coldestMorning.matches.every((match) => match.temperatureC === tiedFacts.coldestMorning.temperatureC) && tiedFacts.hottestDay.matches.every((match) => match.temperatureC === tiedFacts.hottestDay.temperatureC), "ties_keep_the_unrounded_extreme_value");
 
-console.log(`WEEKLY_FIXED_FACTS ${passed}/18 PASS`);
+const sameDisplayedDifferentRawForecasts: ModelForecast[] = modelIds.map((modelId, modelIndex) => ({
+  modelId,
+  family: "meteofrance",
+  weight: 1 / modelIds.length,
+  fetchedAt: "2026-09-13T18:00:00.000Z",
+  latitude: city.latitude,
+  longitude: city.longitude,
+  hourly: Array.from({ length: 7 * 24 }, (_, index): HourPoint => {
+    const dayIndex = Math.floor(index / 24);
+    const hour = index % 24;
+    let temperatureC = 22 + Math.sin((hour / 24) * Math.PI) * 4 + modelIndex * .1;
+    if (hour >= WEEKLY_MORNING_START_HOUR && hour <= WEEKLY_MORNING_END_HOUR) {
+      temperatureC = dayIndex === 0 ? 13.5 + modelIndex * .1 : dayIndex === 2 ? 13.9 + modelIndex * .1 : 18 + modelIndex * .1;
+    }
+    if (dayIndex === 6 && hour === 15) temperatureC = 29 + modelIndex * .1;
+    return {
+      time: `${dateAt(startDate, dayIndex)}T${String(hour).padStart(2, "0")}:00`,
+      temperatureC,
+      apparentTemperatureC: temperatureC,
+      precipitationMm: 0,
+      rainMm: 0,
+      cloudCoverPct: 35,
+      cloudCoverLowPct: 20,
+      cloudCoverMidPct: 10,
+      cloudCoverHighPct: 10,
+      windSpeedKmh: 14,
+      windGustKmh: 24,
+      weatherCode: 1
+    };
+  })
+}));
+const sameDisplayedDifferentRawProfiles = buildWeeklyProfiles(city, sameDisplayedDifferentRawForecasts);
+const sameDisplayedDifferentRawFacts = buildWeeklyFixedFacts(city, sameDisplayedDifferentRawProfiles);
+const mondayRaw = sameDisplayedDifferentRawProfiles.days[0]?.hours.find((point) => point.time.slice(11, 13) === "07")?.temperatureC ?? Number.NaN;
+const wednesdayRaw = sameDisplayedDifferentRawProfiles.days[2]?.hours.find((point) => point.time.slice(11, 13) === "07")?.temperatureC ?? Number.NaN;
+ok(Math.round(mondayRaw) === 14 && Math.round(wednesdayRaw) === 14 && mondayRaw < wednesdayRaw && sameDisplayedDifferentRawFacts.coldestMorning.matches.map((match) => match.dayIndex).join(",") === "0", "rounded_strip_values_never_create_a_false_tie");
+
+console.log(`WEEKLY_FIXED_FACTS ${passed}/19 PASS`);

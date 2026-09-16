@@ -46,6 +46,30 @@ function factMatches(fact: WeeklyEditorial["slide1"]["coldestMorning"]): typeof 
   }];
 }
 
+function sameFactMatches(
+  left: WeeklyEditorial["slide1"]["coldestMorning"],
+  right: WeeklyEditorial["slide1"]["coldestMorning"]
+): boolean {
+  const leftMatches = factMatches(left);
+  const rightMatches = factMatches(right);
+  return leftMatches.length === rightMatches.length
+    && leftMatches.every((match, index) =>
+      match.date === rightMatches[index]?.date
+      && match.dayIndex === rightMatches[index]?.dayIndex
+      && match.sourceHour === rightMatches[index]?.sourceHour
+      && match.temperatureC === rightMatches[index]?.temperatureC
+    );
+}
+
+function shortDateLabel(date: string): string {
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris", weekday: "short", day: "numeric"
+  }).formatToParts(new Date(`${date}T12:00:00Z`));
+  const weekday = parts.find((part) => part.type === "weekday")?.value.replace(/\.$/, "").toLocaleUpperCase("fr-FR") ?? "";
+  const day = parts.find((part) => part.type === "day")?.value ?? "";
+  return `${weekday}. ${day}`;
+}
+
 function isTraceableTemperatureFact(
   fact: WeeklyEditorial["slide1"]["coldestMorning"],
   summaries: WeeklyEditorial["dailySummaries"],
@@ -63,7 +87,59 @@ function isTraceableTemperatureFact(
       && match.sourceHour <= maximumHour
       && summaries[match.dayIndex]?.date === match.date
       && match.temperatureC === fact.temperatureC
-    );
+    )
+    && new Set(matches.map((match) => match.dayIndex)).size === matches.length
+    && fact.dateLabel === matches.map((match) => shortDateLabel(match.date)).join(" & ")
+    && fact.temperatureLabel === `${Math.round(fact.temperatureC)} °C`;
+}
+
+function synthesisEvidenceIsConsistent(slide1: WeeklyEditorial["slide1"]): boolean {
+  const synthesis = slide1.synthesis;
+  const evidence = synthesis.evidence;
+  const primary = synthesis.primaryLine;
+  const text = `${synthesis.primaryLine} ${synthesis.secondaryLine}`;
+  const finiteEvidence = [
+    evidence.maximumTemperatureC,
+    evidence.minimumDailyMaximumC,
+    evidence.totalPrecipitationMm,
+    evidence.wetHours,
+    evidence.meanBrightFraction,
+    evidence.startBrightFraction,
+    evidence.endBrightFraction,
+    evidence.startCloudCoverPct,
+    evidence.endCloudCoverPct
+  ].every(Number.isFinite);
+  const thermalLanguage: Record<typeof evidence.thermalClass, string> = {
+    COLD: "Temps froid",
+    COOL: "Temps frais",
+    MILD: "Temps doux",
+    PLEASANT: "Temps agréable",
+    WARM: "Temps chaud",
+    MARKED_HEAT: "Chaleur marquée"
+  };
+  const heatLanguageIsCorrect = primary.startsWith("Pluies fréquentes") || primary.includes(thermalLanguage[evidence.thermalClass]);
+  const solarDominant = evidence.dryWeek && evidence.meanBrightFraction >= .6;
+  const significantRain = evidence.wetHours >= 4 || evidence.totalPrecipitationMm >= 2;
+  const factMaximumMatches = Math.abs(evidence.maximumTemperatureC - slide1.facts.hottestDay.temperatureC) < 1e-9
+    && evidence.maximumDayIndexes.length === factMatches(slide1.hottestDay).length
+    && evidence.maximumDayIndexes.every((dayIndex, index) => dayIndex === factMatches(slide1.hottestDay)[index]?.dayIndex);
+
+  return finiteEvidence
+    && evidence.minimumDailyMaximumC <= evidence.maximumTemperatureC
+    && evidence.maximumDayIndexes.length > 0
+    && heatLanguageIsCorrect
+    && (!/\bTemps doux\b/.test(text) || evidence.thermalClass === "MILD")
+    && (!/\bTemps frais\b/.test(text) || evidence.thermalClass === "COOL")
+    && (!/\bTemps froid\b/.test(text) || evidence.thermalClass === "COLD")
+    && (!/\bTemps agréable\b/.test(text) || evidence.thermalClass === "PLEASANT")
+    && (!/\bTemps chaud\b/.test(text) || evidence.thermalClass === "WARM")
+    && (!/\bChaleur marquée\b/.test(text) || evidence.thermalClass === "MARKED_HEAT")
+    && (!/Davantage de soleil/.test(text) || evidence.measuredBrightening)
+    && (!/Plus nuageux/.test(text) || evidence.measuredClouding)
+    && (!/\bsec\b/i.test(text) || evidence.dryWeek)
+    && (!/Soleil bien présent/.test(text) || solarDominant)
+    && (!/Pluies fréquentes/.test(text) || significantRain)
+    && factMaximumMatches;
 }
 
 function hasText(value: string): boolean {
@@ -95,6 +171,7 @@ function slide1PreflightCopyIsValid(slide1: WeeklyEditorial["slide1"]): boolean 
     && slide1.synthesis.primaryMaximumLines === 1
     && slide1.synthesis.secondaryMaximumLines === 2
     && !/\b(conseil|privilégier|surveiller|globalement|progressivement)\b/i.test(`${slide1.synthesis.primaryLine} ${slide1.synthesis.secondaryLine}`)
+    && synthesisEvidenceIsConsistent(slide1)
     && /^[-−–+]?\d+ min de jour$|^Durée du jour stable$/.test(daylight.deltaLabel)
     && /^[A-ZÉÙÛÀÂÎÔÇ]{3,4}\. \d{1,2} → [A-ZÉÙÛÀÂÎÔÇ]{3,4}\. \d{1,2}$/.test(daylight.periodLabel)
     && /^\d{2}:\d{2}$/.test(daylight.start.sunriseLabel)
@@ -147,14 +224,18 @@ export function validateWeeklyActivation(
       && editorial.slide1.synthesis.primaryMaximumLines === 1
       && editorial.slide1.synthesis.secondaryMaximumLines === 2
       && !/\b(globalement|progressivement)\b/i.test(`${editorial.slide1.synthesis.primaryLine} ${editorial.slide1.synthesis.secondaryLine}`)
+      && synthesisEvidenceIsConsistent(editorial.slide1)
       && isTraceableTemperatureFact(editorial.slide1.coldestMorning, editorial.dailySummaries, 5, 10)
       && isTraceableTemperatureFact(editorial.slide1.hottestDay, editorial.dailySummaries, 0, 23)
+      && factMatches(editorial.slide1.hottestDay).every((match) => editorial.dailySummaries[match.dayIndex]?.maxTemperatureC === match.temperatureC)
       && editorial.slide1.daylight.deltaMinutes === editorial.slide1.facts.daylight.deltaMinutes
       && editorial.slide1.daylight.start.date === editorial.startDate
       && editorial.slide1.daylight.end.date === editorial.endDate
       && editorial.slide1.dailyStrip.length === 7
       && editorial.slide1.dailyStrip.every((day, index) => day.date === editorial.dailySummaries[index]?.date && day.scene.id === editorial.dailySummaries[index]?.scene.id)
       && carousel.slide1.title === editorial.slide1.title
+      && sameFactMatches(editorial.slide1.coldestMorning, carousel.slide1.coldestMorning)
+      && sameFactMatches(editorial.slide1.hottestDay, carousel.slide1.hottestDay)
       && carousel.slide1.dailyStrip.length === 7
       && carousel.slide1.dailyStrip.every((day, index) => day.date === editorial.slide1.dailyStrip[index]?.date && day.pictogram.kind === visualIconToPictogram(day.scene.visualIcon)),
     "permanent_first_slide_facts_are_complete_and_v24_bound"

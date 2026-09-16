@@ -49,13 +49,19 @@ function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial
   return {
     title: "LA SEMAINE À TARNOS",
     synthesis: {
-      primaryLine: "Temps doux et lumineux · Davantage d’éclaircies en fin de semaine",
-      secondaryLine: "Des maximales de 20 à 26 °C, sous un temps majoritairement sec.",
+      primaryLine: "Temps chaud et sec · Soleil bien présent cette semaine",
+      secondaryLine: "Les maximales évolueront de 20 à 26 °C.",
       primaryMaximumLines: 1,
-      secondaryMaximumLines: 2
+      secondaryMaximumLines: 2,
+      evidence: {
+        thermalClass: "WARM", maximumTemperatureC: 26, minimumDailyMaximumC: 20, maximumDayIndexes: [6],
+        totalPrecipitationMm: 0, wetHours: 0, dryWeek: true, meanBrightFraction: .7,
+        startBrightFraction: .6, endBrightFraction: .7, startCloudCoverPct: 30, endCloudCoverPct: 25,
+        measuredBrightening: false, measuredClouding: false
+      }
     },
-    coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "12°", timeLabel: "07 H" },
-    hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "26°", timeLabel: "15 H" },
+    coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "12 °C", timeLabel: "07 H" },
+    hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "26 °C", timeLabel: "15 H" },
     daylight: {
       label: "LUMIÈRE DE LA SEMAINE", direction: "SHORTER", deltaMinutes: -18, deltaLabel: "−18 min de jour", periodLabel: "LUN. 7 → DIM. 13",
       start: { date: "2026-09-07", weekdayLabel: "LUN.", sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780, sunriseLabel: "07:20", sunsetLabel: "20:20" },
@@ -131,6 +137,22 @@ const badSlide1Copy = validateWeeklyActivation({
   slide1: { ...base.slide1, daylight: { ...base.slide1.daylight, deltaLabel: "" } }
 }, calmPlan);
 ok(!badSlide1Copy.checks.find((check) => check.id === "weekly_slide1_preflight_copy")?.ok, "preflight_blocks_empty_slide1_copy");
+
+const badThermalCopy = validateWeeklyActivation({
+  ...base,
+  slide1: { ...base.slide1, synthesis: { ...base.slide1.synthesis, primaryLine: "Temps doux · Temps sec cette semaine" } }
+}, calmPlan);
+ok(!badThermalCopy.checks.find((check) => check.id === "weekly_slide1_content")?.ok, "preflight_blocks_thermal_vocabulary_that_contradicts_the_peak");
+
+const coldTieReference = { date: "2026-09-09", dayIndex: 2, temperatureC: 12, sourceHour: 7 };
+const maskedTie = validateWeeklyActivation({
+  ...base,
+  slide1: {
+    ...base.slide1,
+    coldestMorning: { ...base.slide1.coldestMorning, matches: [base.slide1.coldestMorning, coldTieReference], dateLabel: "LUN. 7" }
+  }
+}, calmPlan);
+ok(!maskedTie.checks.find((check) => check.id === "weekly_slide1_content")?.ok, "preflight_blocks_a_real_tie_missing_from_the_fact_card_label");
 
 const badDailySummaries = validateWeeklyActivation({ ...base, dailySummaries: base.dailySummaries.slice(0, 6) }, calmPlan);
 ok(!badDailySummaries.checks.find((check) => check.id === "weekly_daily_summaries")?.ok, "daily_summary_guard_requires_seven_days");
@@ -217,4 +239,4 @@ const badMapping = validateWeeklyActivation(eventEditorial, {
 });
 ok(!badMapping.checks.find((check) => check.id === "event_mapping")?.ok, "event_mapping_guard");
 
-console.log(`WEEKLY_ACTIVATION ${passed}/27 PASS`);
+console.log(`WEEKLY_ACTIVATION ${passed}/29 PASS`);

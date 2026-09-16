@@ -52,13 +52,19 @@ function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial
   return {
     title: "LA SEMAINE À TARNOS",
     synthesis: {
-      primaryLine: "Temps doux et lumineux · Davantage d’éclaircies en fin de semaine",
-      secondaryLine: "Des maximales de 21 à 27 °C, sous un temps majoritairement sec.",
+      primaryLine: "Temps chaud et sec · Soleil bien présent cette semaine",
+      secondaryLine: "Les maximales évolueront de 21 à 27 °C.",
       primaryMaximumLines: 1,
-      secondaryMaximumLines: 2
+      secondaryMaximumLines: 2,
+      evidence: {
+        thermalClass: "WARM", maximumTemperatureC: 27, minimumDailyMaximumC: 21, maximumDayIndexes: [6],
+        totalPrecipitationMm: 0, wetHours: 0, dryWeek: true, meanBrightFraction: .7,
+        startBrightFraction: .6, endBrightFraction: .7, startCloudCoverPct: 30, endCloudCoverPct: 25,
+        measuredBrightening: false, measuredClouding: false
+      }
     },
-    coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "13°C", timeLabel: "07 H" },
-    hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "27°C", timeLabel: "15 H" },
+    coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "13 °C", timeLabel: "07 H" },
+    hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "27 °C", timeLabel: "15 H" },
     daylight: {
       label: "LUMIÈRE DE LA SEMAINE", direction: "SHORTER", deltaMinutes: -18, deltaLabel: "−18 min de jour", periodLabel: "LUN. 7 → DIM. 13",
       start: { date: dateAt(0), weekdayLabel: "LUN.", sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780, sunriseLabel: "07:20", sunsetLabel: "20:20" },
@@ -292,7 +298,7 @@ const shortSummary = {
   ...renderedModel!.slide1,
   synthesis: {
     ...renderedModel!.slide1.synthesis,
-    secondaryLine: "Des maximales de 21 à 27 °C, sous un temps majoritairement sec."
+    secondaryLine: "Les maximales évolueront de 21 à 27 °C."
   }
 };
 const summaryFit = adaptiveLayoutRuntime.summary(shortSummary, {

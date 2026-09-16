@@ -57,13 +57,19 @@ function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial
   return {
     title: "LA SEMAINE À TARNOS",
     synthesis: {
-      primaryLine: "Temps doux et lumineux · Davantage d’éclaircies en fin de semaine",
-      secondaryLine: "Des maximales de 20 à 26 °C, sous un temps majoritairement sec.",
+      primaryLine: "Temps chaud et sec · Soleil bien présent cette semaine",
+      secondaryLine: "Les maximales évolueront de 20 à 26 °C.",
       primaryMaximumLines: 1,
-      secondaryMaximumLines: 2
+      secondaryMaximumLines: 2,
+      evidence: {
+        thermalClass: "WARM", maximumTemperatureC: 26, minimumDailyMaximumC: 20, maximumDayIndexes: [6],
+        totalPrecipitationMm: 0, wetHours: 0, dryWeek: true, meanBrightFraction: .7,
+        startBrightFraction: .6, endBrightFraction: .7, startCloudCoverPct: 30, endCloudCoverPct: 25,
+        measuredBrightening: false, measuredClouding: false
+      }
     },
-    coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "12°", timeLabel: "07 H" },
-    hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "26°", timeLabel: "15 H" },
+    coldestMorning: { ...coldestMorning, label: "MATIN LE PLUS FRAIS", dateLabel: "LUN. 7", temperatureLabel: "12 °C", timeLabel: "07 H" },
+    hottestDay: { ...hottestDay, label: "JOURNÉE LA PLUS CHAUDE", dateLabel: "DIM. 13", temperatureLabel: "26 °C", timeLabel: "15 H" },
     daylight: {
       label: "LUMIÈRE DE LA SEMAINE", direction: "SHORTER", deltaMinutes: -18, deltaLabel: "−18 min de jour", periodLabel: "LUN. 7 → DIM. 13",
       start: { date: nextDate(0), weekdayLabel: "LUN.", sunriseMinutes: 440, sunsetMinutes: 1220, durationMinutes: 780, sunriseLabel: "07:20", sunsetLabel: "20:20" },

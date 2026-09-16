@@ -1,6 +1,6 @@
 # LOKA — Référence visuelle de la slide 1
 
-Version : 2.0  
+Version : 2.1  
 Date : 15 septembre 2026  
 Format : Publication Instagram 1080 × 1440
 
@@ -9,6 +9,14 @@ et de la publication quotidienne LOKA au format 1080 × 1440. Les deux sorties
 partagent maintenant le même cadre de feed. Il complète le
 cahier des charges fonctionnel sans modifier les calculs météo, le rendu
 visuel quotidien ou les 24 scènes.
+
+## Statut graphique V1 — verrouillé
+
+Cette maquette est la référence graphique de la publication hebdomadaire.
+Toute évolution ultérieure doit préserver les coordonnées, dimensions,
+proportions, fond, trois cartes, box éditoriale, frise et signature décrits
+ci-dessous. Les ajustements V19 concernent exclusivement les données,
+l’éditorial et les contrôles avant export.
 
 ## Repères repris de la publication quotidienne
 

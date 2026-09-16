@@ -10,7 +10,7 @@ import { orderWeeklyEvents } from "./narrativeOrder";
 import { buildWeeklyConclusion } from "./conclusion";
 import { buildWeeklyFixedFacts } from "./fixedFacts";
 import type { WeeklyDaylightEndpoint, WeeklyFixedFacts, WeeklyTemperatureFact } from "./fixedFacts";
-import { buildLokaEditorialCopy, type LokaEditorialCopy } from "../editorialCopy";
+import { buildWeeklySlide1Synthesis, type WeeklySlide1Synthesis } from "./synthesis";
 
 export interface WeeklySceneReference {
   source: "DAILY_V24_DECISION";
@@ -82,10 +82,7 @@ export interface WeeklySlide1DaylightEndpoint extends WeeklyDaylightEndpoint {
 export interface WeeklySlide1Content {
   title: string;
   /** Uses the same two-line editorial contract as a daily publication. */
-  synthesis: LokaEditorialCopy & {
-    primaryMaximumLines: 1;
-    secondaryMaximumLines: 2;
-  };
+  synthesis: WeeklySlide1Synthesis;
   coldestMorning: WeeklySlide1TemperatureFact;
   hottestDay: WeeklySlide1TemperatureFact;
   daylight: {
@@ -419,88 +416,17 @@ function daylightDeltaLabel(deltaMinutes: number): { direction: WeeklySlide1Cont
   return { direction: "STABLE", label: "Durée du jour stable" };
 }
 
-function isBrightDay(day: WeeklyDailySummary): boolean {
-  return ["sun", "partly", "veil", "mixed", "sun-wind"].includes(day.scene.visualIcon);
-}
-
-function isWetDay(day: WeeklyDailySummary): boolean {
-  return ["rain", "shower", "thunder", "rain-wind"].includes(day.scene.visualIcon);
-}
-
-/**
- * Slide 1 is not a shortened event list. It turns the seven daily profiles
- * into one concise editorial signal. It is never an event list, a usage tip or
- * a generic paragraph.
- */
-function weeklyMaximumRange(days: WeeklyDailySummary[]): string {
-  const maxima = days.map((day) => Math.round(day.maxTemperatureC)).filter(Number.isFinite);
-  const lowest = Math.min(...maxima);
-  const highest = Math.max(...maxima);
-  if (!Number.isFinite(lowest) || !Number.isFinite(highest)) return "Des températures sans écart marqué.";
-  return lowest === highest
-    ? `Des maximales autour de ${highest} °C.`
-    : `Des maximales de ${lowest} à ${highest} °C.`;
-}
-
-function weeklyEditorialSynthesis(days: WeeklyDailySummary[], events: WeeklyEditorialEvent[]): WeeklySlide1Content["synthesis"] {
-  const first = days[0];
-  const second = days[1];
-  const weekend = days.slice(-2);
-  const earlyEvents = events.filter((event) => event.startDate <= (days[1]?.date ?? ""));
-  const earlyRainEvent = earlyEvents.find((event) => event.type === "RAIN" || event.type === "THUNDER") ?? null;
-  const lateDegradation = events.some((event) => event.type === "DEGRADATION" && event.startDate >= (days[4]?.date ?? "9999-12-31"));
-  const temperatureDrop = first && second ? Math.round(first.maxTemperatureC - second.maxTemperatureC) : 0;
-  const weekendBright = weekend.length === 2 && weekend.every(isBrightDay);
-  const weekendWet = weekend.some(isWetDay);
-
-  const dryWeek = !days.some(isWetDay);
-  let primaryLine: string;
-  let secondaryLine: string;
-  if (earlyRainEvent && weekendBright) {
-    primaryLine = "Début de semaine perturbé · Plus sec et lumineux vers le week-end";
-    secondaryLine = `${weeklyMaximumRange(days).replace(/\.$/, "")}, avec des pluies surtout en début de période.`;
-  } else if (lateDegradation || weekendWet) {
-    primaryLine = "Un temps plus calme en début de semaine · Plus nuageux en fin de période";
-    secondaryLine = "Des pluies plus fréquentes à l’approche du week-end.";
-  } else if (first && second && first.maxTemperatureC >= 28 && temperatureDrop >= 4 && weekendBright) {
-    primaryLine = "Chaleur marquée en début de semaine · Des températures plus douces ensuite";
-    secondaryLine = `${weeklyMaximumRange(days).replace(/\.$/, "")}, avec davantage d’éclaircies vers le week-end.`;
-  } else if (first && second && temperatureDrop >= 4) {
-    primaryLine = "Un début de semaine chaud · Des températures plus douces ensuite";
-    secondaryLine = weeklyMaximumRange(days);
-  } else if (first && second && temperatureDrop <= -4) {
-    primaryLine = "Fraîcheur en début de semaine · Des températures en hausse ensuite";
-    secondaryLine = weeklyMaximumRange(days);
-  } else if (weekendBright) {
-    primaryLine = "Temps doux et lumineux · Davantage d’éclaircies en fin de semaine";
-    secondaryLine = dryWeek
-      ? `${weeklyMaximumRange(days).replace(/\.$/, "")}, sous un temps majoritairement sec.`
-      : weeklyMaximumRange(days);
-  } else if (earlyRainEvent) {
-    primaryLine = "Une période pluvieuse · Des éclaircies plus limitées ensuite";
-    secondaryLine = "Quelques passages humides marquent la semaine.";
-  } else {
-    primaryLine = "Une semaine douce et assez stable · Peu de changements au fil des jours";
-    secondaryLine = weeklyMaximumRange(days);
-  }
-  return {
-    ...buildLokaEditorialCopy(primaryLine, secondaryLine),
-    primaryMaximumLines: 1,
-    secondaryMaximumLines: 2
-  };
-}
-
 function weeklySlide1Content(
   city: CityConfig,
+  profiles: WeeklyProfileSet,
   facts: WeeklyFixedFacts,
   dailySummaries: WeeklyDailySummary[],
-  events: WeeklyEditorialEvent[],
   _conclusion: string
 ): WeeklySlide1Content {
   const daylight = daylightDeltaLabel(facts.daylight.deltaMinutes);
   return {
     title: `LA SEMAINE À ${city.name.toLocaleUpperCase("fr-FR")}`,
-    synthesis: weeklyEditorialSynthesis(dailySummaries, events),
+    synthesis: buildWeeklySlide1Synthesis(profiles.days, facts),
     coldestMorning: temperatureFact("MATIN LE PLUS FRAIS", facts.coldestMorning),
     hottestDay: temperatureFact("JOURNÉE LA PLUS CHAUDE", facts.hottestDay),
     daylight: {
@@ -647,7 +573,7 @@ export function buildWeeklyEditorial(
     endDate: profiles.endDate,
     status: selection.status,
     overview,
-    slide1: weeklySlide1Content(city, facts, dailySummaries, events, conclusion.body),
+    slide1: weeklySlide1Content(city, profiles, facts, dailySummaries, conclusion.body),
     dailySummaries,
     dailyHighlights,
     dailyCardDetails: weeklyDailyCardDetails(profiles, dailyHighlights),

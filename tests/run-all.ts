@@ -27,6 +27,7 @@ import "./weeklyNarrativeOrder";
 import "./weeklyConclusion";
 import "./weeklyActivities";
 import "./weeklyEditorial";
+import "./weeklySynthesis";
 import "./weeklyCarousel";
 import "./weeklyOperations";
 import "./weeklyActivation";
