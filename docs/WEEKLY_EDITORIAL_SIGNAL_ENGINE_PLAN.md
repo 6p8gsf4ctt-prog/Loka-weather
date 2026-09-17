@@ -20,7 +20,7 @@ que leurs moteurs éditoriaux ne sont pas validés.
 | 2 | Audit et choix des références | Source locale historique, normales et conventions de comparaison validées | TERMINÉE — 17 septembre 2026 |
 | 3 | Références dérivées | Séries, normales, percentiles, seuils et compteurs saisonniers calculés | TERMINÉE — 17 septembre 2026 |
 | 4 | Détecteurs candidats | Historique, anomalies, seuils, phénomènes, régimes et séries | TERMINÉE — 17 septembre 2026 |
-| 5 | Score et déduplication | Importance, rareté, anomalie, intérêt, confiance et conflits | À FAIRE |
+| 5 | Score et déduplication | Importance, rareté, anomalie, intérêt, confiance et conflits | TERMINÉE — 17 septembre 2026 |
 | 6 | Rédaction prudente | Phrases de prévision ou d’observation issues des preuves | À FAIRE |
 | 7 | Liaison slides 2–4 | Un signal non redondant par slide, dans le cadre graphique partagé | À FAIRE |
 | 8 | Prévol et validation | Cohérence, overflow, rejouage historique et activation progressive | À FAIRE |
@@ -131,3 +131,26 @@ Les 24 tests N4 passent, ainsi que les 6 tests du contrat des signaux et tous
 les tests hebdomadaires. Aucune note, déduplication, rédaction ou activation de
 slide n'est encore appliquée. Les règles complètes et les seuils candidats V1
 sont documentés dans `docs/WEEKLY_SIGNAL_DETECTORS.md`.
+
+## Bilan de l'étape 5
+
+Le module `src/engine/weekly/signalRanking.ts` attribue à chaque candidat cinq
+notes explicables sur 5 : importance, rareté, anomalie, intérêt éditorial et
+confiance. Le total sur 25 sert au classement, avec un seuil minimal de 13 et
+des portes éliminatoires qui empêchent un bon score de masquer une preuve trop
+faible.
+
+Sont notamment bloqués : confiance faible, record avec moins de dix ans de
+données, percentile ou anomalie avec moins de 300 observations, « depuis… » de
+moins de 30 jours, première occurrence sans vingt saisons et série sans dix
+ans de référence.
+
+La déduplication conserve un seul gagnant lorsqu'une preuve est identique ou
+que plusieurs formulations décrivent le même événement. Pluie et orage du
+même jour appartiennent ainsi au même thème humide. Chaque rejet garde sa note,
+sa raison et l'identifiant du gagnant, ce qui rend le classement auditable.
+
+Les 18 tests N5, les 24 tests N4 et tous les tests hebdomadaires passent. N5 ne
+limite pas encore le résultat à trois signaux et ne rédige aucun contenu
+public. La grille complète est documentée dans
+`docs/WEEKLY_SIGNAL_RANKING.md`.

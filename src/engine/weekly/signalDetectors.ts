@@ -161,7 +161,7 @@ export function detectHistoricalExtreme(forecast: ForecastDailyFact, archive: Cl
       topicKey: `${forecast.metric}:${direction.toLowerCase()}:${forecast.date}`,
       confidence: forecast.confidence, representativeDayIndex: forecast.dayIndex, forecast: predicted,
       evidence: [{ kind: "HISTORICAL_SINCE", source: "LOCAL_ARCHIVE", reference: { metric: contract.metric, value: previous.value, unit: contract.unit, window: { startDate: previous.row.date, endDate: previous.row.date, basis: contract.basis } }, explanation: `Dernière valeur historique comparable atteignant ce niveau : ${previous.row.date}.` }],
-      facts: { direction, previousDate: previous.row.date, previousValue: previous.value, daysSince: Math.floor((Date.parse(`${forecast.date}T00:00:00Z`) - Date.parse(`${previous.row.date}T00:00:00Z`)) / 86_400_000) }
+      facts: { direction, previousDate: previous.row.date, previousValue: previous.value, daysSince: Math.floor((Date.parse(`${forecast.date}T00:00:00Z`) - Date.parse(`${previous.row.date}T00:00:00Z`)) / 86_400_000), archiveSize: comparable.length }
     });
   }
   const extreme = comparable.reduce((best, item) => direction === "HIGH" ? (item.value > best.value ? item : best) : (item.value < best.value ? item : best));
@@ -170,7 +170,7 @@ export function detectHistoricalExtreme(forecast: ForecastDailyFact, archive: Cl
     topicKey: `${forecast.metric}:record-${direction.toLowerCase()}:${forecast.date}`,
     confidence: forecast.confidence, representativeDayIndex: forecast.dayIndex, forecast: predicted,
     evidence: [{ kind: "RECORD_PROXIMITY", source: "LOCAL_ARCHIVE", reference: { metric: contract.metric, value: extreme.value, unit: contract.unit, window: { startDate: extreme.row.date, endDate: extreme.row.date, basis: contract.basis } }, explanation: `Extrême observé dans l'archive disponible : ${extreme.row.date}.` }],
-    facts: { direction, recordDate: extreme.row.date, recordValue: extreme.value, forecastBeyondRecord: true }
+    facts: { direction, recordDate: extreme.row.date, recordValue: extreme.value, forecastBeyondRecord: true, archiveSize: comparable.length }
   });
 }
 
@@ -324,7 +324,7 @@ export function detectProjectedSeries(input: ProjectedSeriesInput): WeeklySignal
   return candidate({ detector: "REMARKABLE_SERIES", role: "DETAIL", family: "SERIES", topicKey: `${input.metric}:series:${input.operator}:${input.threshold}:${input.endDate}`,
     confidence: input.confidence, representativeDayIndex: input.representativeDayIndex, forecast,
     evidence: [{ kind: "SERIES", source: "LOCAL_ARCHIVE", reference: { ...forecast, value: input.reference.longestRun, window: { ...forecast.window, startDate: input.reference.startDate, endDate: input.reference.endDate } }, explanation: "Plus longue série comparable de la période historique fournie." }],
-    facts: { operator: input.operator, threshold: input.threshold, projectedLength: input.projectedLength, historicalLongestRun: input.reference.longestRun } });
+    facts: { operator: input.operator, threshold: input.threshold, projectedLength: input.projectedLength, historicalLongestRun: input.reference.longestRun, referenceDays: Math.floor((Date.parse(`${input.reference.endDate}T00:00:00Z`) - Date.parse(`${input.reference.startDate}T00:00:00Z`)) / 86_400_000) + 1 } });
 }
 
 export function detectIntradayChanges(profiles: WeeklyProfileSet): WeeklySignalCandidate[] {
