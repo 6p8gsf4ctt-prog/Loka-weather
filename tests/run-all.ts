@@ -37,6 +37,7 @@ import "./weeklyComplementarySlides";
 import "./weeklyComplementaryPreflight";
 import "./weeklyContextualPipeline";
 import "./weeklyPilotValidation";
+import "./weeklyProgressivePublication";
 import "./weeklyCarousel";
 import "./weeklyOperations";
 import "./weeklyActivation";

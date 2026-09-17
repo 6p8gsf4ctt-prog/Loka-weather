@@ -1,6 +1,6 @@
 export const WEEKLY_ENGINE_VERSION = "0.1.0";
 export const WEEKLY_ENGINE_ENABLED_ENV = "WEEKLY_ENABLED" as const;
-export { isWeeklyEnabled, isWeeklyContextualSlidesEnabled } from "./featureFlag";
+export { isWeeklyEnabled, isWeeklyContextualSlidesEnabled, isWeeklyProgressivePublicationEnabled, isWeeklyProgressiveShadowModeEnabled, isWeeklyProgressiveRollbackEnabled } from "./featureFlag";
 export { fetchWeeklyForecasts, WEEKLY_FORECAST_DAYS, WEEKLY_FORECAST_TIMEOUT_MS } from "./forecast";
 export type { WeeklyForecastBatch } from "./forecast";
 export { buildWeeklyProfiles, WEEKLY_PROFILE_VERSION } from "./profiles";
@@ -48,3 +48,5 @@ export { validateWeeklyActivation } from "./activation";
 export type { WeeklyActivationCheck, WeeklyActivationValidation } from "./activation";
 export { summarizeWeeklyEditorialPilot, validateWeeklyEditorialPilot, WEEKLY_EDITORIAL_PILOT_VERSION } from "./pilotValidation";
 export type { WeeklyEditorialPilotBatch, WeeklyEditorialPilotCheck, WeeklyEditorialPilotInput, WeeklyEditorialPilotReport, WeeklyEditorialPilotSource, WeeklyEditorialPilotStatus } from "./pilotValidation";
+export { evaluateWeeklyProgressivePublication, resolveWeeklyPublicSurface, logWeeklyProgressivePublication } from "./progressivePublication";
+export type { WeeklyProgressivePublicationCheck, WeeklyProgressivePublicationDecision, WeeklyProgressivePublicationMode, WeeklyPublicSurface } from "./progressivePublication";

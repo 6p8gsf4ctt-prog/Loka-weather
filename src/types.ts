@@ -7,6 +7,12 @@ export interface Env {
   WEEKLY_ENABLED?: string;
   /** Opt-in gate: contextual slides stay preview-only until explicitly enabled. */
   WEEKLY_CONTEXTUAL_SLIDES_ENABLED?: string;
+  /** Phase-4 gate: expose preflighted editorial slides on the public surface. */
+  WEEKLY_PROGRESSIVE_PUBLICATION_ENABLED?: string;
+  /** Phase-4 shadow mode: run the rollout checks while keeping slide 1 public. */
+  WEEKLY_PROGRESSIVE_SHADOW_MODE?: string;
+  /** Immediate kill switch: force the public weekly surface back to slide 1. */
+  WEEKLY_PROGRESSIVE_ROLLBACK?: string;
 }
 
 export type WeatherFamily =

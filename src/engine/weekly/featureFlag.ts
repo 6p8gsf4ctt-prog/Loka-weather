@@ -12,3 +12,20 @@ export function isWeeklyEnabled(env: Pick<Env, "WEEKLY_ENABLED">): boolean {
 export function isWeeklyContextualSlidesEnabled(env: Pick<Env, "WEEKLY_CONTEXTUAL_SLIDES_ENABLED">): boolean {
   return env.WEEKLY_CONTEXTUAL_SLIDES_ENABLED?.trim().toLowerCase() === "true";
 }
+
+function flag(value: string | undefined): boolean {
+  return value?.trim().toLowerCase() === "true";
+}
+
+/** Phase-4 kill switch and explicit public exposure gate. */
+export function isWeeklyProgressivePublicationEnabled(env: Pick<Env, "WEEKLY_PROGRESSIVE_PUBLICATION_ENABLED">): boolean {
+  return flag(env.WEEKLY_PROGRESSIVE_PUBLICATION_ENABLED);
+}
+
+export function isWeeklyProgressiveShadowModeEnabled(env: Pick<Env, "WEEKLY_PROGRESSIVE_SHADOW_MODE">): boolean {
+  return flag(env.WEEKLY_PROGRESSIVE_SHADOW_MODE);
+}
+
+export function isWeeklyProgressiveRollbackEnabled(env: Pick<Env, "WEEKLY_PROGRESSIVE_ROLLBACK">): boolean {
+  return flag(env.WEEKLY_PROGRESSIVE_ROLLBACK);
+}

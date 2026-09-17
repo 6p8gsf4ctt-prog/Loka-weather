@@ -1,7 +1,7 @@
 import { CITIES, getCity } from "./config/cities";
 import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
-import { isWeeklyEnabled, renderWeeklyCarousel } from "./engine/weekly";
+import { isWeeklyEnabled, renderWeeklyCarousel, resolveWeeklyPublicSurface, logWeeklyProgressivePublication } from "./engine/weekly";
 import { generateWeeklyCalmVisualPreview, generateWeeklyContextualVisualPreview, generateWeeklyCity, generateWeeklyPreviewCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyRangeForDate } from "./weeklyPipeline";
 import { localDate, runManualCity, runScheduledCity } from "./pipeline";
 import { generationHistory, officialForDate, officialHistory } from "./storage/db";
@@ -77,7 +77,9 @@ export default {
       const result = await currentWeekly(env, slug);
       if (!result) return json({ error: "unknown_city" }, 404);
       if (!result.publication) return json({ error: "weekly_not_found", ...result.range }, 404);
-      return json(result.publication);
+      const surface = resolveWeeklyPublicSurface(env, result.publication.editorial, result.publication.carousel);
+      logWeeklyProgressivePublication(surface.rollout, { citySlug: result.publication.citySlug, startDate: result.publication.startDate, endDate: result.publication.endDate });
+      return json({ ...result.publication, editorial: surface.editorial, carousel: surface.carousel, rollout: surface.rollout });
     }
     if (url.pathname === "/api/decision") {
       const slug = url.searchParams.get("city") || "tarnos";
@@ -347,36 +349,26 @@ export default {
     }
 
     if (url.pathname === "/weekly-preview") {
-      if (request.method === "GET") {
-        return new Response(renderWeeklyPreviewGate(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+      if (request.method !== "GET" && request.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: { "allow": "GET, POST" } });
+      // This is the manual public workflow: always real forecasts, always the
+      // next Monday by default, never a demo mode or an admin token.
+      let form: FormData | null = null;
+      if (request.method === "POST") {
+        try { form = await request.formData(); } catch { form = null; }
       }
-      if (request.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: { "allow": "GET, POST" } });
-      let form: FormData;
-      try { form = await request.formData(); }
-      catch { return new Response(renderWeeklyPreviewGate("Formulaire invalide."), { status: 400, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } }); }
-      const token = form.get("token");
-      if (typeof token !== "string" || !env.ADMIN_TOKEN || token !== env.ADMIN_TOKEN) {
-        return new Response(renderWeeklyPreviewGate("Token administrateur invalide."), { status: 401, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
-      }
-      const slugValue = form.get("city");
+      const slugValue = form?.get("city") ?? url.searchParams.get("city");
       const slug = typeof slugValue === "string" && slugValue.trim() ? slugValue.trim() : "tarnos";
       const city = getCity(slug);
       if (!city) return new Response(renderWeeklyPreviewGate("Ville inconnue."), { status: 404, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
-      const startValue = form.get("start");
+      const startValue = form?.get("start") ?? url.searchParams.get("start");
       const start = typeof startValue === "string" && startValue.trim() ? startValue.trim() : undefined;
-      const modeValue = form.get("mode");
-      const mode = modeValue === "CALM_DEMO" || modeValue === "CONTEXTUAL_DEMO" ? modeValue : "LIVE";
       try {
-        const generated = mode === "CALM_DEMO"
-          ? generateWeeklyCalmVisualPreview(city, new Date(), start)
-          : mode === "CONTEXTUAL_DEMO"
-            ? generateWeeklyContextualVisualPreview(city, new Date(), start)
-            : await generateWeeklyPreviewCity(env, city, new Date(), start);
+        const generated = await generateWeeklyPreviewCity(env, city, new Date(), start);
         return new Response(renderWeeklyCarousel(generated.editorial, {
           complementarySlides: generated.contextual.slides,
           complementaryPreflight: generated.contextual.preflight,
           pilot: generated.pilot,
-          ...(mode === "CONTEXTUAL_DEMO" ? { surface: "CONTEXTUAL_DEMO" as const } : {})
+          includeStory: false
         }), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -408,7 +400,9 @@ export default {
       if (!result) return json({ error: "unknown_city" }, 404);
       if (!result.publication) return json({ error: "weekly_not_found", ...result.range }, 404);
       if (!await masterAvailable(request, env, result.publication.editorial.overview.scene.masterUrl)) return unavailable("weekly_master_graphic_unavailable");
-      return new Response(renderWeeklyCarousel(result.publication.editorial), {
+      const surface = resolveWeeklyPublicSurface(env, result.publication.editorial, result.publication.carousel);
+      logWeeklyProgressivePublication(surface.rollout, { citySlug: result.publication.citySlug, startDate: result.publication.startDate, endDate: result.publication.endDate });
+      return new Response(renderWeeklyCarousel(surface.editorial, surface.renderOptions), {
         headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
       });
     }

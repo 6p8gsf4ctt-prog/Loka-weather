@@ -18,7 +18,7 @@ que leurs moteurs éditoriaux ne sont pas validés.
 | 1 | Intégration complète : profils → signaux → classement → slides → renderer | TERMINÉE — 17 septembre 2026 |
 | 2 | Prévol automatisé : données, ex æquo, sources, texte, pictogrammes, frame et débordements | TERMINÉE — 17 septembre 2026 |
 | 3 | Validation pilote : scénarios contrôlés et semaines réelles | EN COURS — outillage prêt, 4 semaines live à collecter |
-| 4 | Publication progressive avec repli slide 1 | À FAIRE |
+| 4 | Publication progressive avec repli slide 1 | OUTILLÉE — activation par flags après validation pilote |
 
 ## Étapes
 
@@ -273,3 +273,14 @@ Les 12 tests N7 et tous les tests hebdomadaires passent. Le rendu dans le cadre
 visuel partagé, le prévol, les contrôles d'overflow et l'activation restent
 volontairement réservés à N8. La règle complète est documentée dans
 `docs/WEEKLY_COMPLEMENTARY_SLIDES.md`.
+
+## Bilan de la phase 4 de mise en publication
+
+`progressivePublication.ts` protège désormais la surface publique : slide 1
+seule par défaut, mode shadow pour l'observation, exposition progressive après
+double opt-in, et repli automatique en cas d'échec du prévol ou de l'activation.
+Le rollback opérateur est immédiat via `WEEKLY_PROGRESSIVE_ROLLBACK=true`.
+Les routes `/weekly` et `/api/weekly` réutilisent le plan réellement autorisé,
+sans modifier la slide 1 ni le moteur quotidien. La publication officielle
+reste conditionnée à la sortie de la phase 3 : quatre semaines live distinctes
+avec couverture climatique locale.

@@ -175,6 +175,8 @@ export interface WeeklyCarouselRenderOptions extends WeeklyCarouselBuildOptions 
   surface?: "FULL" | "CONTEXTUAL_DEMO";
   /** Preview-only operational result; never painted inside a publication slide. */
   pilot?: WeeklyEditorialPilotReport;
+  /** The manual Instagram workflow downloads carousel slides only. */
+  includeStory?: boolean;
 }
 
 function overviewSlide(editorial: WeeklyEditorial): WeeklyCarouselSlide {
@@ -426,7 +428,7 @@ function renderSlideCard(slide: WeeklyCarouselSlide, position: number, total: nu
     escapeHtml(slide.kind === "OVERVIEW" ? "VUE D’ENSEMBLE" : slide.title) + "</span><span>" + position + "/" + total +
     '</span></div><div class="canvas-wrap"><canvas class="carousel-canvas" width="' + WEEKLY_CAROUSEL_WIDTH + '" height="' + WEEKLY_CAROUSEL_HEIGHT +
     '" aria-label="' + escapeHtml(label) + '"></canvas></div>' + (activities ? '<div class="activity-list">' + activities + "</div>" : "") +
-    '<button class="secondary download-slide" type="button">Télécharger cette slide</button></article>';
+    '<button class="secondary download-slide" type="button">Enregistrer / partager la photo</button></article>';
 }
 
 function sceneForBrowser(scene: WeeklySceneReference): WeeklySceneReference & { pictogramUrl: string } {
@@ -506,12 +508,12 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial, options: Weekly
   const range = plan.headerDateLabel;
   const cards = plan.slides.map((slide) => renderSlideCard(slide, slide.index + 1, contextualDemo ? 4 : plan.slides.length)).join("\n");
   const storyLabel = "Relais Story : " + plan.story.relay.title;
-  const storySection = contextualDemo ? "" : '<section class="story-card"><div class="story-head">STORY · RELAIS DE LA PUBLICATION</div><div class="canvas-wrap"><canvas id="story-relay" width="' + String(WEEKLY_STORY_WIDTH) + '" height="' + String(WEEKLY_STORY_HEIGHT) + '" aria-label="' + escapeHtml(storyLabel) + '"></canvas></div><button class="secondary" id="download-story" type="button">Télécharger le relais Story</button></section>';
+  const storySection = contextualDemo || options.includeStory === false ? "" : '<section class="story-card"><div class="story-head">STORY · RELAIS DE LA PUBLICATION</div><div class="canvas-wrap"><canvas id="story-relay" width="' + String(WEEKLY_STORY_WIDTH) + '" height="' + String(WEEKLY_STORY_HEIGHT) + '" aria-label="' + escapeHtml(storyLabel) + '"></canvas></div><button class="secondary" id="download-story" type="button">Télécharger le relais Story</button></section>';
   const previewTitle = contextualDemo ? "Démo · slides éditoriales" : plan.story.relay.title;
-  const previewBadge = contextualDemo ? "Démo interne · slides 2–4" : "La semaine à Tarnos · V24 · aperçu";
+  const previewBadge = contextualDemo ? "Laboratoire interne · non publiable" : "Publication à télécharger · prévisions réelles";
   const previewNote = contextualDemo
-    ? "Démo interne : seules les slides éditoriales sont affichées. La slide 1 validée et le relais Story en sont volontairement exclus."
-    : "Le rendu utilise le logo LOKA!, les box translucides, les pictogrammes redessinés et les fonds des 24 scènes. La Story reste un relais du carrousel ; elle ne constitue pas un bulletin autonome.";
+    ? "Laboratoire interne : seules les slides éditoriales sont affichées. Elles servent à contrôler le moteur et ne doivent pas être publiées."
+    : "Les cartes ci-dessus sont les slides à télécharger et à importer dans Instagram, dans l’ordre affiché. Le relais Story séparé est facultatif et ne fait pas partie du carrousel.";
   const pilotPanel = options.pilot
     ? '<section class="pilot ' + escapeHtml(options.pilot.status.toLowerCase()) + '"><div><strong>Pilote éditorial · ' + escapeHtml(options.pilot.status) + '</strong><span>' + escapeHtml(options.pilot.summary) + '</span></div><small>' + escapeHtml(options.pilot.startDate + " → " + options.pilot.endDate + " · " + options.pilot.climateStatus) + '</small></section>'
     : "";
@@ -592,10 +594,12 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial, options: Weekly
     "function drawStory(canvas,relay,background,logo,icon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawStoryHeader(logo,plan.headerDateLabel);text('RELAIS DE LA PUBLICATION',58,225,24,780,ink,'left');box(58,470,964,820);drawImageCentered(icon,540,602,150,116);const titleSize=fittedSize(relay.title,820,58,36,820);wrap(relay.title,101,770,820,58,titleSize,820,ink,'left',2);wrap(relay.body,101,890,820,38,28,540,ink,'left',2);ctx.save();rr(101,1050,430,72,36);ctx.fillStyle=gold;ctx.fill();ctx.restore();text(relay.cta,316,1096,24,800,'#ffffff','center');text('Faites défiler le carrousel',540,1778,22,600,'#ffffff','center');drawSignature(1830,'#ffffff');}",
     "function drawSlide(canvas,slide){const base=[load(slide.backgroundUrl,'background_'+slide.index),load(model.brand.logoUrl,'logo')];if(slide.kind==='OVERVIEW'){const dailyPictograms=plan.dailySummaries.map(function(day){return load(day.pictogram.url,'weekly_pictogram_'+day.dayIndex);});const preferredCard=plan.dailyCardDetails.find(function(card){return card.kind==='PREFERRED';})||null;const watchCard=plan.dailyCardDetails.find(function(card){return card.kind==='WATCH';})||null;const preferredPictograms=preferredCard?[load(preferredCard.pictogram.url,'central_preferred_main_'+preferredCard.dayIndex),...preferredCard.slots.map(function(slot){return load(slot.pictogram.url,'central_preferred_hour_'+slot.hour);})]:[];const watchPictograms=watchCard?[load(watchCard.pictogram.url,'central_watch_main_'+watchCard.dayIndex),...watchCard.slots.map(function(slot){return load(slot.pictogram.url,'central_watch_hour_'+slot.hour);})]:[];return Promise.all([...base,...dailyPictograms,...preferredPictograms,...watchPictograms]).then(function(images){const dailyIconOffset=2,preferredIconOffset=dailyIconOffset+dailyPictograms.length,watchIconOffset=preferredIconOffset+preferredPictograms.length;const preferredVisual=preferredCard?{card:preferredCard,mainIcon:images[preferredIconOffset],slotIcons:images.slice(preferredIconOffset+1,preferredIconOffset+1+preferredCard.slots.length)}:null;const watchVisual=watchCard?{card:watchCard,mainIcon:images[watchIconOffset],slotIcons:images.slice(watchIconOffset+1,watchIconOffset+1+watchCard.slots.length)}:null;drawOverview(canvas,slide,images[0],images[1],images.slice(dailyIconOffset,preferredIconOffset),preferredVisual,watchVisual);});}return Promise.all([...base,load(slide.scene.pictogramUrl,'pictogram_'+slide.scene.id)]).then(function(images){drawEvent(canvas,slide,images[0],images[1],images[2]);});}",
     "function drawRelay(){const relay=plan.story.relay;return Promise.all([load(relay.backgroundUrl,'story_background'),load(model.brand.logoUrl,'story_logo'),load(relay.scene.pictogramUrl,'story_pictogram_'+relay.scene.id)]).then(function(images){drawStory(storyCanvas,relay,images[0],images[1],images[2]);});}",
-    "function download(canvas,name){canvas.toBlob(function(blob){if(!blob)return;const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=name;link.click();setTimeout(function(){URL.revokeObjectURL(link.href);},1000);},'image/png');}",
+    "function canvasFile(targetCanvas,name){return new Promise(function(resolve){targetCanvas.toBlob(function(blob){resolve(blob?new File([blob],name,{type:'image/png'}):null);},'image/png');});}",
+    "function fallbackDownload(file){if(!file)return;const url=URL.createObjectURL(file);const link=document.createElement('a');link.href=url;link.download=file.name;document.body.appendChild(link);link.click();link.remove();setTimeout(function(){URL.revokeObjectURL(url);},30000);}",
+    "async function shareCanvas(targetCanvas,name){const file=await canvasFile(targetCanvas,name);if(!file)return;if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){try{await navigator.share({files:[file],title:'LOKA!'});return;}catch(error){if(error&&error.name==='AbortError')return;}}fallbackDownload(file);}",
     "Promise.all(plan.slides.map(function(slide,index){return drawPublicationSlide(slideCanvases[index],slide);})).catch(function(error){console.error(error);});",
     "if(storyCanvas)drawRelay().catch(function(error){console.error(error);});",
-    "document.querySelectorAll('.download-slide').forEach(function(button,index){button.addEventListener('click',function(){const slide=plan.slides[index];download(slideCanvases[index],'loka-semaine-'+String((slide?slide.index:index)+1).padStart(2,'0')+'.png');});});",
+    "document.querySelectorAll('.download-slide').forEach(function(button,index){button.addEventListener('click',function(){const slide=plan.slides[index];shareCanvas(slideCanvases[index],'loka-semaine-'+String((slide?slide.index:index)+1).padStart(2,'0')+'.png');});});",
     "const storyDownload=document.getElementById('download-story');if(storyDownload&&storyCanvas)storyDownload.addEventListener('click',function(){download(storyCanvas,'loka-semaine-story-relais.png');});"
   ].join("\n");
 

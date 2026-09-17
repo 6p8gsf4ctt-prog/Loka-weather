@@ -61,7 +61,9 @@ async function generateWeeklyForRange(
   const activities = translateWeeklyActivities(profiles, selection, city);
   const editorial = buildWeeklyEditorial(profiles, selection, activities, city);
   const contextual = buildWeeklyContextualPipeline(profiles);
-  const carousel = buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides, complementaryPreflight: contextual.preflight });
+  const carousel = contextual.preflight.ok && contextual.preflight.comprehensive
+    ? buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides, complementaryPreflight: contextual.preflight })
+    : buildWeeklyCarouselPlan({ ...editorial, weeklyNumber: undefined });
   const activation = validateWeeklyActivation(editorial, carousel);
   if (!activation.ok) throw new Error(`weekly_activation_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);
   const pilot = validateWeeklyEditorialPilot({ source: "LIVE", label: source, profiles, contextual, carousel, activation });

@@ -2,7 +2,7 @@ import type { ClimateDailyObservation } from "./climateReferences";
 import { buildDatedTemperatureReference } from "./climateReferences";
 import { buildWeeklyComplementarySlides } from "./complementarySlides";
 import type { WeeklyComplementarySlidePlan } from "./complementarySlides";
-import { assertWeeklyComplementaryPreflight } from "./complementaryPreflight";
+import { preflightWeeklyComplementarySlides } from "./complementaryPreflight";
 import type { WeeklyComplementaryPreflight } from "./complementaryPreflight";
 import { detectClimateDeparture, detectHistoricalExtreme, detectWeeklySignalCandidates } from "./signalDetectors";
 import type { ForecastDailyFact, WeeklySignalCandidate } from "./signalDetectors";
@@ -89,7 +89,9 @@ export function buildWeeklyContextualPipeline(
 
   const ranking = rankAndDeduplicateWeeklySignals(candidates);
   const slides = buildWeeklyComplementarySlides(ranking.selected);
-  const preflight = assertWeeklyComplementaryPreflight(slides, { profiles, ranking, climateStatus });
+  // Keep the failed report instead of throwing. Phase 4 can then publish the
+  // validated slide 1 as a safe fallback and expose the exact failed checks.
+  const preflight = preflightWeeklyComplementarySlides(slides, { profiles, ranking, climateStatus });
   return {
     version: WEEKLY_CONTEXTUAL_PIPELINE_VERSION,
     climateStatus,
