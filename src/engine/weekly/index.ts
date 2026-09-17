@@ -32,6 +32,8 @@ export { detectClimateDeparture, detectHistoricalExtreme, detectImpactPhenomena,
 export type { ForecastDailyFact, ProjectedSeriesInput, SeasonalFirstInput, WeeklySignalCandidate, WeeklySignalDetectorKind } from "./signalDetectors";
 export { rankAndDeduplicateWeeklySignals, scoreWeeklySignalCandidate, WEEKLY_SIGNAL_MIN_TOTAL_SCORE, WEEKLY_SIGNAL_RANKING_VERSION } from "./signalRanking";
 export type { RankedWeeklySignalCandidate, WeeklySignalRankingResult, WeeklySignalRejectionReason, WeeklySignalScoreDimension, WeeklySignalScores } from "./signalRanking";
+export { buildWeeklySignalCopies, buildWeeklySignalCopy, WEEKLY_SIGNAL_COPY_VERSION } from "./signalCopy";
+export type { WeeklySignalClaimStatus, WeeklySignalCopy } from "./signalCopy";
 export { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_CAROUSEL_HEIGHT, WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, WEEKLY_CAROUSEL_VERSION, WEEKLY_CAROUSEL_WIDTH, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_SLIDE1_DAILY_FEED_GRID, WEEKLY_SLIDE2_DAILY_FEED_GRID, WEEKLY_STORY_HEIGHT, WEEKLY_STORY_WIDTH } from "./carousel";
 export type { WeeklyCarouselDailyCardDetail, WeeklyCarouselDailyCardSlot, WeeklyCarouselDailySummary, WeeklyCarouselSlide1Content, WeeklyDailyPictogramReference, WeeklyCarouselPlan, WeeklyCarouselSlide, WeeklyCarouselSlideKind, WeeklyStoryRelay } from "./carousel";
 export { localDateIsMonday, nextMondayOrSame, weeklyRangeForDate } from "./schedule";

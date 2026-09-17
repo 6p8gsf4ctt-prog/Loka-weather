@@ -21,7 +21,7 @@ que leurs moteurs éditoriaux ne sont pas validés.
 | 3 | Références dérivées | Séries, normales, percentiles, seuils et compteurs saisonniers calculés | TERMINÉE — 17 septembre 2026 |
 | 4 | Détecteurs candidats | Historique, anomalies, seuils, phénomènes, régimes et séries | TERMINÉE — 17 septembre 2026 |
 | 5 | Score et déduplication | Importance, rareté, anomalie, intérêt, confiance et conflits | TERMINÉE — 17 septembre 2026 |
-| 6 | Rédaction prudente | Phrases de prévision ou d’observation issues des preuves | À FAIRE |
+| 6 | Rédaction prudente | Phrases de prévision ou d’observation issues des preuves | TERMINÉE — 17 septembre 2026 |
 | 7 | Liaison slides 2–4 | Un signal non redondant par slide, dans le cadre graphique partagé | À FAIRE |
 | 8 | Prévol et validation | Cohérence, overflow, rejouage historique et activation progressive | À FAIRE |
 
@@ -154,3 +154,24 @@ Les 18 tests N5, les 24 tests N4 et tous les tests hebdomadaires passent. N5 ne
 limite pas encore le résultat à trois signaux et ne rédige aucun contenu
 public. La grille complète est documentée dans
 `docs/WEEKLY_SIGNAL_RANKING.md`.
+
+## Bilan de l'étape 6
+
+Le module `src/engine/weekly/signalCopy.ts` transforme uniquement les candidats
+sélectionnés par N5 en deux lignes éditoriales. Il réutilise le contrat commun
+du moteur quotidien : 80 caractères maximum pour l'information principale et
+120 pour sa précision factuelle.
+
+Quatre statuts distinguent strictement observation et prévision : passé
+affirmatif pour `OBSERVED`, « devrait » pour `EXPECTED`, « pourrait » pour
+`POSSIBLE`, et « si … se confirment » pour tout record futur potentiel. Une
+preuve issue du consensus ne peut pas être rebaptisée observation.
+
+Les références climatiques dérivées sont décrites comme « référence locale »
+ou « période comparable », jamais comme normale officielle. Percentiles,
+seuils, séries, changements de régime et phénomènes importants disposent de
+gabarits factuels spécifiques sans dramatisation.
+
+Les 53 tests N6 et tous les tests hebdomadaires passent. Aucun titre de slide,
+pictogramme, rendu graphique ou activation publique n'est encore produit. Le
+contrat complet est documenté dans `docs/WEEKLY_SIGNAL_COPY.md`.
