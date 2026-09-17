@@ -132,7 +132,7 @@ export function validateWeeklyEditorialSignal(signal: WeeklyEditorialSignal): We
     if (proof.kind === "INTRADAY_CHANGE" && signal.forecast.window.startDate !== signal.forecast.window.endDate) {
       issues.push("intraday_must_stay_within_one_day");
     }
-    if (proof.kind === "PHENOMENON" || proof.kind === "REGIME_CHANGE") {
+    if (proof.kind === "PHENOMENON" || proof.kind === "REGIME_CHANGE" || proof.kind === "INTRADAY_CHANGE") {
       if (!proof.direct || proof.source !== "CONSENSUS_FORECAST") issues.push(`direct_consensus_proof_required:${proof.kind}`);
     } else if (proof.source === "CONSENSUS_FORECAST") {
       issues.push(`reference_source_required:${proof.kind}`);

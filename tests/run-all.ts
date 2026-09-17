@@ -30,6 +30,7 @@ import "./weeklyEditorial";
 import "./weeklySynthesis";
 import "./weeklyEditorialSignals";
 import "./weeklyClimateReferences";
+import "./weeklySignalDetectors";
 import "./weeklyCarousel";
 import "./weeklyOperations";
 import "./weeklyActivation";

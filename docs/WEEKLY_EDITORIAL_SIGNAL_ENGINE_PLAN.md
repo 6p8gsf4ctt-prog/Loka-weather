@@ -19,7 +19,7 @@ que leurs moteurs éditoriaux ne sont pas validés.
 | 1 | Contrat des signaux | Données, preuves, comparaisons et niveau de certitude normalisés | TERMINÉE — 16 septembre 2026 |
 | 2 | Audit et choix des références | Source locale historique, normales et conventions de comparaison validées | TERMINÉE — 17 septembre 2026 |
 | 3 | Références dérivées | Séries, normales, percentiles, seuils et compteurs saisonniers calculés | TERMINÉE — 17 septembre 2026 |
-| 4 | Détecteurs candidats | Historique, anomalies, seuils, phénomènes, régimes et séries | À FAIRE |
+| 4 | Détecteurs candidats | Historique, anomalies, seuils, phénomènes, régimes et séries | TERMINÉE — 17 septembre 2026 |
 | 5 | Score et déduplication | Importance, rareté, anomalie, intérêt, confiance et conflits | À FAIRE |
 | 6 | Rédaction prudente | Phrases de prévision ou d’observation issues des preuves | À FAIRE |
 | 7 | Liaison slides 2–4 | Un signal non redondant par slide, dans le cadre graphique partagé | À FAIRE |
@@ -112,3 +112,22 @@ rencontre encore l'échec préexistant du test quotidien
 modifie ni le moteur quotidien, ni le rendu graphique, ni l'activation des
 slides. Son contrat détaillé est documenté dans
 `docs/WEEKLY_CLIMATE_REFERENCES.md`.
+
+## Bilan de l'étape 4
+
+Le module `src/engine/weekly/signalDetectors.ts` transforme les prévisions et
+références N3 en candidats prouvés pour les familles suivantes : historique
+« depuis », record potentiel, anomalie, percentile, pluie hebdomadaire rare,
+première occurrence saisonnière, phénomène important, changement de régime,
+série remarquable et variation intrajournalière.
+
+Chaque candidat conserve sa règle de déclenchement, sa valeur, son seuil, sa
+preuve comparable, son jour représentatif et des faits lisibles par le moteur.
+Les valeurs ordinaires sont rejetées. Les variations intrajournalières restent
+strictement contenues dans une même journée, et les seuils horaires et
+journaliers de pluie sont séparés.
+
+Les 24 tests N4 passent, ainsi que les 6 tests du contrat des signaux et tous
+les tests hebdomadaires. Aucune note, déduplication, rédaction ou activation de
+slide n'est encore appliquée. Les règles complètes et les seuils candidats V1
+sont documentés dans `docs/WEEKLY_SIGNAL_DETECTORS.md`.

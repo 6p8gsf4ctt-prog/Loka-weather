@@ -47,6 +47,12 @@ ok(validateWeeklyEditorialSignal({
 }).issues.includes("intraday_must_stay_within_one_day"), "cross_day_amplitude_is_blocked");
 ok(validateWeeklyEditorialSignal({
   ...base,
+  family: "INTRADAY_CHANGE",
+  forecast: { ...forecast, value: 8, window: { startDate: "2026-09-22", endDate: "2026-09-22", basis: "HOURLY", startHour: 15, endHour: 19 } },
+  evidence: [{ kind: "INTRADAY_CHANGE", source: "CONSENSUS_FORECAST", direct: true, reference: { metric: "TEMPERATURE", value: 7, unit: "°C", window: { startDate: "2026-09-22", endDate: "2026-09-22", basis: "HOURLY", startHour: 15, endHour: 19 } }, explanation: "Baisse rapide calculée dans une seule journée." }]
+}).ok, "same_day_consensus_intraday_change_is_valid");
+ok(validateWeeklyEditorialSignal({
+  ...base,
   role: "PRACTICAL",
   family: "PHENOMENON",
   topicKey: "rain:friday",
@@ -54,4 +60,4 @@ ok(validateWeeklyEditorialSignal({
   evidence: [{ kind: "PHENOMENON", source: "CONSENSUS_FORECAST", direct: true, reference: { metric: "PRECIPITATION", value: 11, unit: "mm", window: { startDate: "2026-09-25", endDate: "2026-09-25", basis: "DAILY_TOTAL" } }, explanation: "Cumul journalier significatif confirmé par le consensus." }]
 }).ok, "direct_consensus_phenomenon_is_valid");
 
-console.log(`WEEKLY_EDITORIAL_SIGNALS ${passed}/5 PASS`);
+console.log(`WEEKLY_EDITORIAL_SIGNALS ${passed}/6 PASS`);
