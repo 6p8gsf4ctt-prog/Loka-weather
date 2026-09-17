@@ -1,4 +1,4 @@
-import { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_SLIDE1_DAILY_FEED_GRID, WEEKLY_SLIDE2_DAILY_FEED_GRID } from "../src/engine/weekly";
+import { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_SLIDE1_DAILY_FEED_GRID, WEEKLY_SLIDE2_DAILY_FEED_GRID } from "../src/engine/weekly";
 import { LOKA_DAILY_FEED_FRAME } from "../src/ui/feedFrame";
 import type { WeeklyEditorial, WeeklySceneReference } from "../src/engine/weekly";
 
@@ -346,4 +346,21 @@ ok(slide1StripBoxRenderer.includes("rgba(255,255,255,.74)") && slide1DayStripRen
 ok(publicationSlideRenderer.includes("slide.kind==='WEEKLY_NUMBER'") && publicationSlideRenderer.includes("model.weeklyNumberPictogram") && publicationSlideRenderer.includes("plan.slide1.dailyStrip.map") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.daylight") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.thermometer") && publicationSlideRenderer.includes("drawSlide1Overview"), "slide1_and_slide2_load_their_official_loka_pictograms");
 ok(publicationLaunch.includes("drawPublicationSlide(slideCanvases[index],slide)"), "publication_renderer_uses_the_new_slide1_visual_path");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/82 PASS`);
+const complementarySlides = {
+  version: "1.0.0" as const,
+  inputSignals: 2,
+  omittedSignalIds: [],
+  slides: [
+    { version: "1.0.0" as const, position: 2 as const, role: "NUMBER" as const, title: "LE CHIFFRE DE LA SEMAINE" as const, signalId: "heat", detector: "HISTORICAL_SINCE" as const, theme: "TEMPERATURE" as const, visual: "THERMOMETER" as const, displayValue: "31 °C", primaryLine: "Jeudi devrait être particulièrement chaud.", secondaryLine: "Référence locale comparable à cette date.", claimStatus: "EXPECTED" as const, sourceNote: "Archive locale comparable et consensus multi-modèles.", frame: "WEEKLY_SHARED_V1" as const },
+    { version: "1.0.0" as const, position: 3 as const, role: "PRACTICAL" as const, title: "À SAVOIR CETTE SEMAINE" as const, signalId: "rain", detector: "IMPACT_PHENOMENON" as const, theme: "WET_WEATHER" as const, visual: "RAIN" as const, displayValue: "28 mm", primaryLine: "Des pluies marquées pourraient arriver mercredi.", secondaryLine: "Le cumul quotidien deviendrait notable.", claimStatus: "POSSIBLE" as const, sourceNote: "Consensus de prévision et seuil d'impact local documenté.", frame: "WEEKLY_SHARED_V1" as const }
+  ]
+};
+const contextualCarousel = buildWeeklyCarouselPlan(editorial(events), { complementarySlides });
+ok(contextualCarousel.slides.map((slide) => slide.kind).join(",") === "OVERVIEW,COMPLEMENTARY_NUMBER,COMPLEMENTARY_PRACTICAL", "preflight_approved_contextual_slides_replace_legacy_raw_number");
+ok(contextualCarousel.slides.slice(1).every((slide) => slide.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL && slide.complementary?.frame === "WEEKLY_SHARED_V1"), "contextual_slides_reuse_weekly_master_and_shared_frame");
+ok(WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID === WEEKLY_SLIDE2_DAILY_FEED_GRID && WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID.numberBox.bottom === LOKA_DAILY_FEED_FRAME.lowerBox.bottom, "contextual_slides_share_exact_lower_baseline");
+const contextualHtml = renderWeeklyCarousel(editorial(events), { complementarySlides });
+ok(contextualHtml.includes("drawComplementarySlide") && contextualHtml.includes("COMPLEMENTARY_PRACTICAL") && contextualHtml.includes("weekly_shared_frame_required"), "renderer_draws_contextual_slides_only_inside_shared_frame");
+ok(contextualHtml.includes("complementaryPictogramUrl") && contextualHtml.includes("contextual_pictogram"), "renderer_binds_only_official_loka_contextual_pictograms");
+
+console.log(`WEEKLY_CAROUSEL ${passed}/87 PASS`);

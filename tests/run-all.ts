@@ -34,6 +34,7 @@ import "./weeklySignalDetectors";
 import "./weeklySignalRanking";
 import "./weeklySignalCopy";
 import "./weeklyComplementarySlides";
+import "./weeklyComplementaryPreflight";
 import "./weeklyCarousel";
 import "./weeklyOperations";
 import "./weeklyActivation";

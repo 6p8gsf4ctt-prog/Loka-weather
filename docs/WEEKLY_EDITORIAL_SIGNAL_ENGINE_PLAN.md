@@ -23,7 +23,7 @@ que leurs moteurs éditoriaux ne sont pas validés.
 | 5 | Score et déduplication | Importance, rareté, anomalie, intérêt, confiance et conflits | TERMINÉE — 17 septembre 2026 |
 | 6 | Rédaction prudente | Phrases de prévision ou d’observation issues des preuves | TERMINÉE — 17 septembre 2026 |
 | 7 | Liaison slides 2–4 | Un signal non redondant par slide, dans le cadre graphique partagé | TERMINÉE — 17 septembre 2026 |
-| 8 | Prévol et validation | Cohérence, overflow, rejouage historique et activation progressive | À FAIRE |
+| 8 | Prévol et validation | Cohérence, overflow, rejouage historique et activation progressive | TERMINÉE — 17 septembre 2026 |
 
 ## Règles non négociables
 
@@ -55,6 +55,25 @@ que leurs moteurs éditoriaux ne sont pas validés.
 
 Les titres ne forcent jamais la sélection : si un seul signal atteint le seuil,
 le carrousel reste court.
+
+## Bilan de l'étape 8
+
+N8 apporte le prévol `complementaryPreflight.ts` et le renderer partagé : une
+slide complémentaire est refusée avant rendu si ses positions, titres, thèmes,
+sources, longueur de texte ou formulation prévision/observation ne sont pas
+valides. Les limites sont ensuite doublées d'un fit canvas explicite : aucun
+débordement n'est coupé silencieusement.
+
+Les slides 2 à 4 réutilisent désormais exactement le frame quotidien/slide 1 :
+canvas `1080 × 1440`, en-tête, title box, fond hebdomadaire homogène, baseline
+basse et signature. Le flag `WEEKLY_CONTEXTUAL_SLIDES_ENABLED` reste désactivé
+par défaut et le pipeline de publication existant n'injecte pas encore N7 : la
+mise en production demeure donc progressive, après aperçu et validation.
+
+Les tests N8 couvrent les garde-fous de prévol et l'intégration renderer. Les
+tests TypeScript, N7, carousel et activation passent. La suite exhaustive
+reste arrêtée par l'échec quotidien préexistant `scene13_showers_context`, hors
+périmètre hebdomadaire.
 
 ## Bilan de l’étape 1
 

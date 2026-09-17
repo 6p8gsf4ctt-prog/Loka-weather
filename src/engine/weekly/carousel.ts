@@ -5,6 +5,8 @@ import type { WeatherPictogramKind } from "../../ui/pictogramLibrary";
 import { LOKA_BRAND_VERSION, LOKA_CANVAS_FONT, LOKA_LOGO_DATA_URL, LOKA_SLOGAN_WEEKLY } from "../../ui/lokaBrand";
 import { LOKA_DAILY_FEED_FRAME } from "../../ui/feedFrame";
 import { LOKA_EDITORIAL_SUMMARY_FRAME } from "../../ui/editorialSummaryFrame";
+import { assertWeeklyComplementaryPreflight } from "./complementaryPreflight";
+import type { WeeklyComplementarySlide, WeeklyComplementarySlidePlan, WeeklyComplementaryVisual } from "./complementarySlides";
 
 export const WEEKLY_CAROUSEL_VERSION = "0.1.0" as const;
 export const WEEKLY_CAROUSEL_MAX_EVENT_SLIDES = 4 as const;
@@ -44,13 +46,15 @@ export const WEEKLY_SLIDE2_DAILY_FEED_GRID = {
   },
   signature: LOKA_DAILY_FEED_FRAME.signature
 } as const;
+/** N8 makes slides 2–4 use precisely the same permanent frame as slide 2. */
+export const WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID = WEEKLY_SLIDE2_DAILY_FEED_GRID;
 /**
  * Dedicated master for the weekly overview only. Event slides retain the
  * actual V24 master selected from the representative daily decision.
  */
 export const WEEKLY_OVERVIEW_MASTER_URL = "/masters24/weekly/SEMAINE_HOMOGENE.jpeg" as const;
 
-export type WeeklyCarouselSlideKind = "OVERVIEW" | "WEEKLY_NUMBER";
+export type WeeklyCarouselSlideKind = "OVERVIEW" | "WEEKLY_NUMBER" | "COMPLEMENTARY_NUMBER" | "COMPLEMENTARY_PRACTICAL" | "COMPLEMENTARY_DETAIL";
 
 export interface WeeklyCarouselSlide {
   index: number;
@@ -63,6 +67,7 @@ export interface WeeklyCarouselSlide {
   scene: WeeklySceneReference;
   activities: WeeklyEditorialEvent["activities"];
   weeklyNumber?: WeeklyNumber;
+  complementary?: WeeklyComplementarySlide;
 }
 
 export interface WeeklyStoryRelay {
@@ -137,6 +142,7 @@ export interface WeeklyCarouselPlan {
   slide1: WeeklyCarouselSlide1Content;
   /** Present only after a contextual, preflight-approved editorial signal exists. */
   weeklyNumber?: WeeklyNumber;
+  complementaryPreflight?: ReturnType<typeof assertWeeklyComplementaryPreflight>;
   /** Seven daily V24 references and their official LOKA pictogram bindings. */
   dailySummaries: WeeklyCarouselDailySummary[];
   /** Editorial origins of the optional preferred/watch strip markers. */
@@ -152,6 +158,11 @@ export interface WeeklyCarouselPlan {
     height: typeof WEEKLY_STORY_HEIGHT;
     relay: WeeklyStoryRelay;
   };
+}
+
+export interface WeeklyCarouselBuildOptions {
+  /** N7 output. It can reach the renderer only through the N8 preflight. */
+  complementarySlides?: WeeklyComplementarySlidePlan;
 }
 
 function overviewSlide(editorial: WeeklyEditorial): WeeklyCarouselSlide {
@@ -185,16 +196,33 @@ function weeklyNumberSlide(editorial: WeeklyEditorial, number: WeeklyNumber): We
   };
 }
 
+function complementarySlide(editorial: WeeklyEditorial, content: WeeklyComplementarySlide): WeeklyCarouselSlide {
+  const kind: Exclude<WeeklyCarouselSlideKind, "OVERVIEW" | "WEEKLY_NUMBER"> = content.role === "NUMBER"
+    ? "COMPLEMENTARY_NUMBER" : content.role === "PRACTICAL" ? "COMPLEMENTARY_PRACTICAL" : "COMPLEMENTARY_DETAIL";
+  return {
+    index: content.position - 1, kind, eventId: null,
+    dateLabel: dateRangeLabel(editorial.startDate, editorial.endDate),
+    // Shared master is intentional: slides 2–4 must not revert to a daily scene.
+    backgroundUrl: WEEKLY_OVERVIEW_MASTER_URL,
+    title: content.title, body: content.primaryLine,
+    scene: editorial.overview.scene, activities: [], complementary: { ...content }
+  };
+}
+
 /**
  * Build the publication structure without rendering, storing or publishing it.
  * The first slide is always the overview; every retained event gets exactly one
  * dedicated slide. A calm week therefore contains one slide only.
  */
-export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarouselPlan {
+export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial, options: WeeklyCarouselBuildOptions = {}): WeeklyCarouselPlan {
   const weeklyNumber = editorial.weeklyNumber;
   // A raw forecast number is not an editorial signal. Until the contextual
   // signal engine validates one, publication deliberately remains on slide 1.
-  const slides = weeklyNumber ? [overviewSlide(editorial), weeklyNumberSlide(editorial, weeklyNumber)] : [overviewSlide(editorial)];
+  const complementaryPreflight = options.complementarySlides ? assertWeeklyComplementaryPreflight(options.complementarySlides) : undefined;
+  const contextualSlides = options.complementarySlides?.slides.map((slide) => complementarySlide(editorial, slide)) ?? [];
+  const slides = contextualSlides.length
+    ? [overviewSlide(editorial), ...contextualSlides]
+    : weeklyNumber ? [overviewSlide(editorial), weeklyNumberSlide(editorial, weeklyNumber)] : [overviewSlide(editorial)];
   const highlightsByDay = new Map(editorial.dailyHighlights.map((highlight) => [highlight.dayIndex, highlight]));
   const headerDateCompact = weeklyHeaderDateCompact(editorial.startDate, editorial.endDate);
   const dailySummaries: WeeklyCarouselDailySummary[] = editorial.dailySummaries.map((day) => ({
@@ -222,6 +250,7 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
       dailyStrip: dailySummaries.map((day) => ({ ...day, scene: { ...day.scene }, pictogram: { ...day.pictogram } }))
     },
     ...(weeklyNumber ? { weeklyNumber: { ...weeklyNumber } } : {}),
+    ...(complementaryPreflight ? { complementaryPreflight } : {}),
     dailySummaries,
     dailyHighlights: editorial.dailyHighlights.map((highlight) => ({ ...highlight })),
     dailyCardDetails: editorial.dailyCardDetails.map((card) => ({
@@ -393,6 +422,16 @@ function sceneForBrowser(scene: WeeklySceneReference): WeeklySceneReference & { 
   };
 }
 
+function complementaryPictogramDataUrl(visual: WeeklyComplementaryVisual): string {
+  if (visual === "THERMOMETER") return temperaturePictogramDataUrl("thermometer");
+  if (visual === "RAIN") return weatherPictogramDataUrl("rain");
+  if (visual === "WIND") return weatherPictogramDataUrl("wind");
+  if (visual === "THUNDER") return weatherPictogramDataUrl("thunder");
+  if (visual === "FOG") return weatherPictogramDataUrl("fog");
+  if (visual === "SUN") return weatherPictogramDataUrl("sun");
+  return weatherPictogramDataUrl("partly");
+}
+
 function browserModel(plan: WeeklyCarouselPlan): unknown {
   const weeklyNumberDay = plan.weeklyNumber ? (plan.dailySummaries[plan.weeklyNumber.dayIndex] ?? plan.dailySummaries[0]) : null;
   if (plan.weeklyNumber && !weeklyNumberDay) throw new Error("weekly_number_requires_a_browser_day");
@@ -407,7 +446,11 @@ function browserModel(plan: WeeklyCarouselPlan): unknown {
       ink: PICTOGRAM_STYLE.ink,
       gold: PICTOGRAM_STYLE.gold
     },
-    slides: plan.slides.map((slide) => ({ ...slide, scene: sceneForBrowser(slide.scene) })),
+    slides: plan.slides.map((slide) => ({
+      ...slide,
+      scene: sceneForBrowser(slide.scene),
+      ...(slide.complementary ? { complementaryPictogramUrl: complementaryPictogramDataUrl(slide.complementary.visual) } : {})
+    })),
     dailySummaries: plan.dailySummaries.map((day) => ({
       ...day,
       pictogram: { ...day.pictogram, url: weatherPictogramDataUrl(day.pictogram.kind) }
@@ -449,8 +492,8 @@ function browserModel(plan: WeeklyCarouselPlan): unknown {
  * preview route and remains independent from the daily renderer, routes and
  * production activation flag.
  */
-export function renderWeeklyCarousel(editorial: WeeklyEditorial): string {
-  const plan = buildWeeklyCarouselPlan(editorial);
+export function renderWeeklyCarousel(editorial: WeeklyEditorial, options: WeeklyCarouselBuildOptions = {}): string {
+  const plan = buildWeeklyCarouselPlan(editorial, options);
   const model = browserModel(plan);
   const range = plan.headerDateLabel;
   const cards = plan.slides.map((slide, index) => renderSlideCard(slide, index + 1, plan.slides.length)).join("\n");
@@ -517,7 +560,8 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial): string {
     `function drawSlide1FeedSignature(){text(model.signature||model.brand.slogan,${WEEKLY_SLIDE1_DAILY_FEED_GRID.signature.x},${WEEKLY_SLIDE1_DAILY_FEED_GRID.signature.baseline},${WEEKLY_SLIDE1_DAILY_FEED_GRID.signature.size},${WEEKLY_SLIDE1_DAILY_FEED_GRID.signature.weight},rgba(ink,${WEEKLY_SLIDE1_DAILY_FEED_GRID.signature.colorAlpha}),'center');ctx.save();ctx.strokeStyle=gold;ctx.lineWidth=${WEEKLY_SLIDE1_DAILY_FEED_GRID.signature.underlineWidth};ctx.lineCap='round';ctx.beginPath();ctx.moveTo(${WEEKLY_SLIDE1_DAILY_FEED_GRID.signature.underlineStartX},${WEEKLY_SLIDE1_DAILY_FEED_GRID.signature.underlineY});ctx.lineTo(${WEEKLY_SLIDE1_DAILY_FEED_GRID.signature.underlineEndX},${WEEKLY_SLIDE1_DAILY_FEED_GRID.signature.underlineY});ctx.stroke();ctx.restore();}`,
     `function drawSlide1Overview(canvas,slide,background,logo,dailyIcons,daylightIcon,thermometerIcon){ctx=canvas.getContext('2d');const width=canvas.width,height=canvas.height;ctx.clearRect(0,0,width,height);cover(background,width,height);overlay(width,height);drawSlide1Header(logo,plan.headerDateFeed,width);box(${WEEKLY_SLIDE1_DAILY_FEED_GRID.x},${WEEKLY_SLIDE1_DAILY_FEED_GRID.title.y},${WEEKLY_SLIDE1_DAILY_FEED_GRID.width},${WEEKLY_SLIDE1_DAILY_FEED_GRID.title.height});drawOverviewTitle(plan.overviewTitle);drawSlide1Facts(plan.slide1,dailyIcons,daylightIcon,thermometerIcon);drawSlide1Summary(plan.slide1);slide1StripBox(${WEEKLY_SLIDE1_DAILY_FEED_GRID.x},${WEEKLY_SLIDE1_DAILY_FEED_GRID.dailyStrip.y},${WEEKLY_SLIDE1_DAILY_FEED_GRID.width},${WEEKLY_SLIDE1_DAILY_FEED_GRID.dailyStrip.height});drawSlide1DayStrip(plan.slide1.dailyStrip,dailyIcons,plan.slide1);drawSlide1FeedSignature();}`,
     `function drawSlide2Number(canvas,slide,background,logo,icon){const content=slide.weeklyNumber,x=${WEEKLY_SLIDE2_DAILY_FEED_GRID.x},y=${WEEKLY_SLIDE2_DAILY_FEED_GRID.numberBox.y},w=${WEEKLY_SLIDE2_DAILY_FEED_GRID.width},h=${WEEKLY_SLIDE2_DAILY_FEED_GRID.numberBox.height};ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);cover(background,canvas.width,canvas.height);overlay(canvas.width,canvas.height);drawSlide1Header(logo,plan.headerDateFeed,canvas.width);box(x,${WEEKLY_SLIDE2_DAILY_FEED_GRID.title.y},w,${WEEKLY_SLIDE2_DAILY_FEED_GRID.title.height});drawOverviewTitle(content);box(x,y,w,h);drawImageCentered(icon,x+w/2,y+252,224,172);const valueSize=fittedSize(content.valueLabel,w-100,152,82,760);plainText(content.valueLabel,x+w/2,y+470,valueSize,760,slide1Ink,'center');const unitSize=fittedSize(content.unitLabel,w-120,28,18,700);trackedText(content.unitLabel,x+w/2,y+530,unitSize,700,slide1Ink,1.2,'center');ctx.save();ctx.strokeStyle=slide1EditorialGold;ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x+w/2-40,y+567);ctx.lineTo(x+w/2+40,y+567);ctx.stroke();ctx.restore();completePlainWrap(content.explanation,x+w/2,y+660,w-150,38,29,20,560,slide1Ink,'center',2);drawSlide1FeedSignature();}`,
-    "function drawPublicationSlide(canvas,slide){if(slide.kind==='WEEKLY_NUMBER')return Promise.all([load(slide.backgroundUrl,'slide2_background'),load(model.brand.logoUrl,'slide2_logo'),load(model.weeklyNumberPictogram,'slide2_pictogram')]).then(function(images){drawSlide2Number(canvas,slide,images[0],images[1],images[2]);});if(slide.kind!=='OVERVIEW')return drawSlide(canvas,slide);const base=[load(slide.backgroundUrl,'slide1_background'),load(model.brand.logoUrl,'slide1_logo')],dailyPictograms=plan.slide1.dailyStrip.map(function(day){return load(day.pictogram.url,'slide1_pictogram_'+day.dayIndex);}),utilityPictograms=[load(model.slide1UtilityPictograms.daylight,'slide1_daylight'),load(model.slide1UtilityPictograms.thermometer,'slide1_thermometer')];return Promise.all([...base,...dailyPictograms,...utilityPictograms]).then(function(images){const dailyOffset=2,utilityOffset=dailyOffset+dailyPictograms.length;drawSlide1Overview(canvas,slide,images[0],images[1],images.slice(dailyOffset,utilityOffset),images[utilityOffset],images[utilityOffset+1]);});}",
+    `function drawComplementarySlide(canvas,slide,background,logo,icon){const content=slide.complementary,x=${WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID.x},y=${WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID.numberBox.y},w=${WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID.width},h=${WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID.numberBox.height};if(!content||content.frame!=='WEEKLY_SHARED_V1')throw new Error('weekly_shared_frame_required');ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);cover(background,canvas.width,canvas.height);overlay(canvas.width,canvas.height);drawSlide1Header(logo,plan.headerDateFeed,canvas.width);box(x,${WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID.title.y},w,${WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID.title.height});drawOverviewTitle(content);box(x,y,w,h);drawImageCentered(icon,x+w/2,y+198,190,148);const valueSize=fittedSize(content.displayValue,w-110,116,64,760);plainText(content.displayValue,x+w/2,y+390,valueSize,760,slide1Ink,'center');ctx.save();ctx.strokeStyle=slide1EditorialGold;ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x+w/2-40,y+425);ctx.lineTo(x+w/2+40,y+425);ctx.stroke();ctx.restore();completePlainWrap(content.primaryLine,x+w/2,y+520,w-142,40,33,23,560,slide1Ink,'center',2);completePlainWrap(content.secondaryLine,x+w/2,y+640,w-142,33,24,18,520,rgba(slide1Ink,.94),'center',2);drawSlide1FeedSignature();}`,
+    "function drawPublicationSlide(canvas,slide){if(slide.kind==='WEEKLY_NUMBER')return Promise.all([load(slide.backgroundUrl,'slide2_background'),load(model.brand.logoUrl,'slide2_logo'),load(model.weeklyNumberPictogram,'slide2_pictogram')]).then(function(images){drawSlide2Number(canvas,slide,images[0],images[1],images[2]);});if(slide.kind==='COMPLEMENTARY_NUMBER'||slide.kind==='COMPLEMENTARY_PRACTICAL'||slide.kind==='COMPLEMENTARY_DETAIL')return Promise.all([load(slide.backgroundUrl,'contextual_background'),load(model.brand.logoUrl,'contextual_logo'),load(slide.complementaryPictogramUrl,'contextual_pictogram')]).then(function(images){drawComplementarySlide(canvas,slide,images[0],images[1],images[2]);});if(slide.kind!=='OVERVIEW')return drawSlide(canvas,slide);const base=[load(slide.backgroundUrl,'slide1_background'),load(model.brand.logoUrl,'slide1_logo')],dailyPictograms=plan.slide1.dailyStrip.map(function(day){return load(day.pictogram.url,'slide1_pictogram_'+day.dayIndex);}),utilityPictograms=[load(model.slide1UtilityPictograms.daylight,'slide1_daylight'),load(model.slide1UtilityPictograms.thermometer,'slide1_thermometer')];return Promise.all([...base,...dailyPictograms,...utilityPictograms]).then(function(images){const dailyOffset=2,utilityOffset=dailyOffset+dailyPictograms.length;drawSlide1Overview(canvas,slide,images[0],images[1],images.slice(dailyOffset,utilityOffset),images[utilityOffset],images[utilityOffset+1]);});}",
     "function drawWeeklyDayHighlight(kind,x,y,w,h){if(!kind)return;const preferred=kind==='PREFERRED';ctx.save();rr(x+5,y+6,w-10,h-12,18);ctx.fillStyle=preferred?'rgba(253,181,21,.10)':'rgba(18,38,74,.075)';ctx.fill();ctx.strokeStyle=preferred?gold:ink;ctx.lineWidth=2.25;ctx.stroke();ctx.restore();}",
     "function drawWeeklyDayStrip(days,dailyIcons){const x=50,y=1060,w=980,h=190,columnWidth=w/days.length;days.forEach(function(day,index){drawWeeklyDayHighlight(day.highlight,x+columnWidth*index,y,columnWidth,h);});ctx.save();ctx.strokeStyle='rgba(18,38,74,.16)';ctx.lineWidth=1.15;for(let index=1;index<days.length;index++){const separatorX=x+columnWidth*index;ctx.beginPath();ctx.moveTo(separatorX,y+15);ctx.lineTo(separatorX,y+h-15);ctx.stroke();}ctx.restore();days.forEach(function(day,index){const centerX=x+columnWidth*(index+.5),icon=dailyIcons[index];text(day.weekdayLabel,centerX,y+32,15,780,ink,'center');text(day.dayLabel,centerX,y+55,18,760,ink,'center');drawImageCentered(icon,centerX,y+104,88,66);const minLabel=String(Math.round(day.minTemperatureC))+'°',maxLabel=String(Math.round(day.maxTemperatureC))+'°';text(minLabel,centerX-7,y+165,22,780,ink,'right');text('/',centerX,y+165,16,680,ink,'center');text(maxLabel,centerX+7,y+165,22,780,gold,'left');});}",
     "function drawPreferredCard(card,mainIcon,slotIcons){const x=74,y=360,w=932,h=320;ctx.save();rr(x,y,w,h,30);ctx.fillStyle='rgba(255,255,255,.115)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,.76)';ctx.lineWidth=1.2;ctx.stroke();ctx.restore();const badgeLabel='LE JOUR À PRIVILÉGIER',badgeWidth=276;ctx.save();rr(x+242,y+18,badgeWidth,40,20);ctx.fillStyle=gold;ctx.fill();ctx.restore();text(badgeLabel,x+242+badgeWidth/2,y+46,17,800,ink,'center');drawImageCentered(mainIcon,x+110,y+126,142,108);const dateLabel=card.weekdayLabel+'. '+card.dayLabel;text(dateLabel,x+205,y+134,fittedSize(dateLabel,390,66,42,820),820,ink,'left');text(card.weatherLabel,x+205,y+179,fittedSize(card.weatherLabel,390,28,18,780),780,ink,'left');ctx.save();ctx.strokeStyle='rgba(18,38,74,.23)';ctx.lineWidth=1.25;ctx.beginPath();ctx.moveTo(x+596,y+77);ctx.lineTo(x+596,y+194);ctx.moveTo(x+22,y+205);ctx.lineTo(x+w-22,y+205);ctx.stroke();ctx.restore();text(String(Math.round(card.minTemperatureC))+'°',x+676,y+137,61,820,ink,'center');text(String(Math.round(card.maxTemperatureC))+'°',x+829,y+137,61,820,gold,'center');trackedText('MIN',x+676,y+171,14,720,ink,3,'center');trackedText('MAX',x+829,y+171,14,720,ink,3,'center');const slotsLeft=x+40,columnWidth=(w-80)/card.slots.length;card.slots.forEach(function(slot,index){const centerX=slotsLeft+columnWidth*(index+.5),icon=slotIcons[index];text(String(slot.hour).padStart(2,'0')+'h',centerX,y+235,18,720,ink,'center');drawImageCentered(icon,centerX-22,y+267,76,54);text(String(Math.round(slot.temperatureC))+'°',centerX+22,y+280,27,800,ink,'left');if(index<card.slots.length-1){ctx.save();ctx.strokeStyle='rgba(18,38,74,.18)';ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(centerX+columnWidth/2,y+223);ctx.lineTo(centerX+columnWidth/2,y+300);ctx.stroke();ctx.restore();}});}",

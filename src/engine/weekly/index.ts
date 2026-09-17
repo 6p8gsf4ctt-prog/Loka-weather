@@ -1,6 +1,6 @@
 export const WEEKLY_ENGINE_VERSION = "0.1.0";
 export const WEEKLY_ENGINE_ENABLED_ENV = "WEEKLY_ENABLED" as const;
-export { isWeeklyEnabled } from "./featureFlag";
+export { isWeeklyEnabled, isWeeklyContextualSlidesEnabled } from "./featureFlag";
 export { fetchWeeklyForecasts, WEEKLY_FORECAST_DAYS, WEEKLY_FORECAST_TIMEOUT_MS } from "./forecast";
 export type { WeeklyForecastBatch } from "./forecast";
 export { buildWeeklyProfiles, WEEKLY_PROFILE_VERSION } from "./profiles";
@@ -36,8 +36,10 @@ export { buildWeeklySignalCopies, buildWeeklySignalCopy, WEEKLY_SIGNAL_COPY_VERS
 export type { WeeklySignalClaimStatus, WeeklySignalCopy } from "./signalCopy";
 export { buildWeeklyComplementarySlides, WEEKLY_COMPLEMENTARY_SLIDES_VERSION } from "./complementarySlides";
 export type { WeeklyComplementarySlide, WeeklyComplementarySlidePlan, WeeklyComplementarySlideRole, WeeklyComplementaryTheme, WeeklyComplementaryVisual } from "./complementarySlides";
-export { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_CAROUSEL_HEIGHT, WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, WEEKLY_CAROUSEL_VERSION, WEEKLY_CAROUSEL_WIDTH, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_SLIDE1_DAILY_FEED_GRID, WEEKLY_SLIDE2_DAILY_FEED_GRID, WEEKLY_STORY_HEIGHT, WEEKLY_STORY_WIDTH } from "./carousel";
-export type { WeeklyCarouselDailyCardDetail, WeeklyCarouselDailyCardSlot, WeeklyCarouselDailySummary, WeeklyCarouselSlide1Content, WeeklyDailyPictogramReference, WeeklyCarouselPlan, WeeklyCarouselSlide, WeeklyCarouselSlideKind, WeeklyStoryRelay } from "./carousel";
+export { assertWeeklyComplementaryPreflight, preflightWeeklyComplementarySlides, WEEKLY_COMPLEMENTARY_PREFLIGHT_VERSION } from "./complementaryPreflight";
+export type { WeeklyComplementaryPreflight, WeeklyComplementaryPreflightCheck } from "./complementaryPreflight";
+export { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_CAROUSEL_HEIGHT, WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, WEEKLY_CAROUSEL_VERSION, WEEKLY_CAROUSEL_WIDTH, WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_SLIDE1_DAILY_FEED_GRID, WEEKLY_SLIDE2_DAILY_FEED_GRID, WEEKLY_STORY_HEIGHT, WEEKLY_STORY_WIDTH } from "./carousel";
+export type { WeeklyCarouselBuildOptions, WeeklyCarouselDailyCardDetail, WeeklyCarouselDailyCardSlot, WeeklyCarouselDailySummary, WeeklyCarouselSlide1Content, WeeklyDailyPictogramReference, WeeklyCarouselPlan, WeeklyCarouselSlide, WeeklyCarouselSlideKind, WeeklyStoryRelay } from "./carousel";
 export { localDateIsMonday, nextMondayOrSame, weeklyRangeForDate } from "./schedule";
 export type { WeeklyDateRange } from "./schedule";
 export { validateWeeklyActivation } from "./activation";

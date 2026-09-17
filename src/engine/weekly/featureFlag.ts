@@ -7,3 +7,8 @@ import type { Env } from "../../types";
 export function isWeeklyEnabled(env: Pick<Env, "WEEKLY_ENABLED">): boolean {
   return env.WEEKLY_ENABLED?.trim().toLowerCase() === "true";
 }
+
+/** N8 keeps contextual slides off in production until a staged activation. */
+export function isWeeklyContextualSlidesEnabled(env: Pick<Env, "WEEKLY_CONTEXTUAL_SLIDES_ENABLED">): boolean {
+  return env.WEEKLY_CONTEXTUAL_SLIDES_ENABLED?.trim().toLowerCase() === "true";
+}

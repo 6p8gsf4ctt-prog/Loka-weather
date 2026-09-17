@@ -5,6 +5,8 @@ export interface Env {
   OPEN_METEO_API_KEY?: string;
   ADMIN_TOKEN?: string;
   WEEKLY_ENABLED?: string;
+  /** Opt-in gate: contextual slides stay preview-only until explicitly enabled. */
+  WEEKLY_CONTEXTUAL_SLIDES_ENABLED?: string;
 }
 
 export type WeatherFamily =
