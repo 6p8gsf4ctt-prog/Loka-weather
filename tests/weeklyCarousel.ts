@@ -362,5 +362,8 @@ ok(WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID === WEEKLY_SLIDE2_DAILY_FEED_GRID && WEE
 const contextualHtml = renderWeeklyCarousel(editorial(events), { complementarySlides });
 ok(contextualHtml.includes("drawComplementarySlide") && contextualHtml.includes("COMPLEMENTARY_PRACTICAL") && contextualHtml.includes("weekly_shared_frame_required"), "renderer_draws_contextual_slides_only_inside_shared_frame");
 ok(contextualHtml.includes("complementaryPictogramUrl") && contextualHtml.includes("contextual_pictogram"), "renderer_binds_only_official_loka_contextual_pictograms");
+const editorialDemoHtml = renderWeeklyCarousel(editorial(events), { complementarySlides, surface: "CONTEXTUAL_DEMO" });
+ok(!editorialDemoHtml.includes('data-slide-index="0"') && editorialDemoHtml.includes('data-slide-index="1"') && editorialDemoHtml.includes('data-slide-index="2"'), "editorial_demo_excludes_validated_slide1");
+ok(!editorialDemoHtml.includes('id="story-relay"') && !editorialDemoHtml.includes("Télécharger le relais Story") && editorialDemoHtml.includes("Démo · slides éditoriales"), "editorial_demo_excludes_legacy_story_relay");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/87 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/89 PASS`);

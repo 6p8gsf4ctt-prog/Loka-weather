@@ -165,6 +165,11 @@ export interface WeeklyCarouselBuildOptions {
   complementarySlides?: WeeklyComplementarySlidePlan;
 }
 
+export interface WeeklyCarouselRenderOptions extends WeeklyCarouselBuildOptions {
+  /** Internal editorial lab: never repeats the validated public slide 1 or Story relay. */
+  surface?: "FULL" | "CONTEXTUAL_DEMO";
+}
+
 function overviewSlide(editorial: WeeklyEditorial): WeeklyCarouselSlide {
   return {
     index: 0,
@@ -409,7 +414,7 @@ function renderSlideCard(slide: WeeklyCarouselSlide, position: number, total: nu
     : "Slide " + position + " : " + slide.title;
   const activities = slide.activities.map((activity) => '<span class="activity ' + activityStatusClass(activity.status) + '">' + escapeHtml(activity.text) + "</span>").join("");
   return '<article class="slide-card" data-slide-index="' + (position - 1) + '"' + (slide.eventId ? ' data-event-id="' + escapeHtml(slide.eventId) + '"' : '') + '><div class="slide-head"><span>' +
-    escapeHtml(position === 1 ? "VUE D’ENSEMBLE" : "LE CHIFFRE DE LA SEMAINE") + "</span><span>" + position + "/" + total +
+    escapeHtml(slide.kind === "OVERVIEW" ? "VUE D’ENSEMBLE" : slide.title) + "</span><span>" + position + "/" + total +
     '</span></div><div class="canvas-wrap"><canvas class="carousel-canvas" width="' + WEEKLY_CAROUSEL_WIDTH + '" height="' + WEEKLY_CAROUSEL_HEIGHT +
     '" aria-label="' + escapeHtml(label) + '"></canvas></div>' + (activities ? '<div class="activity-list">' + activities + "</div>" : "") +
     '<button class="secondary download-slide" type="button">Télécharger cette slide</button></article>';
@@ -492,15 +497,25 @@ function browserModel(plan: WeeklyCarouselPlan): unknown {
  * preview route and remains independent from the daily renderer, routes and
  * production activation flag.
  */
-export function renderWeeklyCarousel(editorial: WeeklyEditorial, options: WeeklyCarouselBuildOptions = {}): string {
-  const plan = buildWeeklyCarouselPlan(editorial, options);
+export function renderWeeklyCarousel(editorial: WeeklyEditorial, options: WeeklyCarouselRenderOptions = {}): string {
+  const completePlan = buildWeeklyCarouselPlan(editorial, options);
+  const contextualDemo = options.surface === "CONTEXTUAL_DEMO";
+  const plan = contextualDemo
+    ? { ...completePlan, slides: completePlan.slides.filter((slide) => slide.kind !== "OVERVIEW") }
+    : completePlan;
   const model = browserModel(plan);
   const range = plan.headerDateLabel;
-  const cards = plan.slides.map((slide, index) => renderSlideCard(slide, index + 1, plan.slides.length)).join("\n");
+  const cards = plan.slides.map((slide) => renderSlideCard(slide, slide.index + 1, contextualDemo ? 4 : plan.slides.length)).join("\n");
   const storyLabel = "Relais Story : " + plan.story.relay.title;
+  const storySection = contextualDemo ? "" : '<section class="story-card"><div class="story-head">STORY · RELAIS DE LA PUBLICATION</div><div class="canvas-wrap"><canvas id="story-relay" width="' + String(WEEKLY_STORY_WIDTH) + '" height="' + String(WEEKLY_STORY_HEIGHT) + '" aria-label="' + escapeHtml(storyLabel) + '"></canvas></div><button class="secondary" id="download-story" type="button">Télécharger le relais Story</button></section>';
+  const previewTitle = contextualDemo ? "Démo · slides éditoriales" : plan.story.relay.title;
+  const previewBadge = contextualDemo ? "Démo interne · slides 2–4" : "La semaine à Tarnos · V24 · aperçu";
+  const previewNote = contextualDemo
+    ? "Démo interne : seules les slides éditoriales sont affichées. La slide 1 validée et le relais Story en sont volontairement exclus."
+    : "Le rendu utilise le logo LOKA!, les box translucides, les pictogrammes redessinés et les fonds des 24 scènes. La Story reste un relais du carrousel ; elle ne constitue pas un bulletin autonome.";
   const shell =
 '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + escapeHtml(plan.story.relay.title) + ' · LOKA</title>' +
-'<style>:root{--ink:#12264a;--gold:#fdb515;--paper:#f3f1eb;--muted:#6f716f;--dark:#171715}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}.wrap{max-width:1180px;margin:0 auto;padding:24px 18px 48px}.toolbar{background:#fff;border-radius:24px;padding:20px 22px;margin-bottom:22px;box-shadow:0 12px 40px rgba(18,38,74,.08)}.topline{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-size:27px;font-weight:850;letter-spacing:.06em}.badge{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}.toolbar h1{font-size:28px;line-height:1.05;margin:20px 0 6px}.muted{font-size:13px;color:var(--muted)}.carousel{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}.slide-card,.story-card{background:#fff;border-radius:24px;padding:14px;box-shadow:0 14px 46px rgba(18,38,74,.1)}.slide-head{display:flex;justify-content:space-between;gap:8px;padding:3px 4px 11px;font-size:11px;font-weight:780;letter-spacing:.09em;color:var(--muted)}.canvas-wrap{overflow:hidden;border-radius:18px;background:#d6d4cf}.canvas-wrap canvas{display:block;width:100%;height:auto}.activity-list{display:flex;flex-direction:column;gap:7px;margin:12px 2px 0}.activity{border-radius:11px;padding:8px 10px;font-size:12px;line-height:1.35}.activity.favorable{background:#edf7ef;color:#21613b}.activity.mixed{background:#faf3e3;color:#7a5b16}.activity.unfavorable{background:#f9e9e7;color:#8c302b}.secondary{width:100%;margin-top:12px;border:0;border-radius:12px;padding:12px 10px;background:#f0f0ed;color:var(--dark);font:650 12px/1 -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer}.story-card{max-width:420px;margin:28px auto 0}.story-head{padding:3px 4px 11px;font-size:11px;font-weight:780;letter-spacing:.09em;color:var(--muted)}.note{text-align:center;color:var(--muted);font-size:11px;line-height:1.5;margin:22px auto 0;max-width:760px}</style></head><body><main class="wrap"><section class="toolbar"><div class="topline"><div class="brand">LOKA!</div><div class="badge">La semaine à Tarnos · V24 · aperçu</div></div><h1>' + escapeHtml(plan.story.relay.title) + '</h1><div class="muted">' + escapeHtml(range) + ' · ' + String(plan.slides.length) + ' slide' + (plan.slides.length > 1 ? 's' : '') + '</div></section><section class="carousel" aria-label="Carrousel hebdomadaire">' + cards + '</section><section class="story-card"><div class="story-head">STORY · RELAIS DE LA PUBLICATION</div><div class="canvas-wrap"><canvas id="story-relay" width="' + String(WEEKLY_STORY_WIDTH) + '" height="' + String(WEEKLY_STORY_HEIGHT) + '" aria-label="' + escapeHtml(storyLabel) + '"></canvas></div><button class="secondary" id="download-story" type="button">Télécharger le relais Story</button></section><p class="note">Le rendu utilise le logo LOKA!, les box translucides, les pictogrammes redessinés et les fonds des 24 scènes. La Story reste un relais du carrousel ; elle ne constitue pas un bulletin autonome.</p></main><script>';
+'<style>:root{--ink:#12264a;--gold:#fdb515;--paper:#f3f1eb;--muted:#6f716f;--dark:#171715}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}.wrap{max-width:1180px;margin:0 auto;padding:24px 18px 48px}.toolbar{background:#fff;border-radius:24px;padding:20px 22px;margin-bottom:22px;box-shadow:0 12px 40px rgba(18,38,74,.08)}.topline{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-size:27px;font-weight:850;letter-spacing:.06em}.badge{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}.toolbar h1{font-size:28px;line-height:1.05;margin:20px 0 6px}.muted{font-size:13px;color:var(--muted)}.carousel{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px}.slide-card,.story-card{background:#fff;border-radius:24px;padding:14px;box-shadow:0 14px 46px rgba(18,38,74,.1)}.slide-head{display:flex;justify-content:space-between;gap:8px;padding:3px 4px 11px;font-size:11px;font-weight:780;letter-spacing:.09em;color:var(--muted)}.canvas-wrap{overflow:hidden;border-radius:18px;background:#d6d4cf}.canvas-wrap canvas{display:block;width:100%;height:auto}.activity-list{display:flex;flex-direction:column;gap:7px;margin:12px 2px 0}.activity{border-radius:11px;padding:8px 10px;font-size:12px;line-height:1.35}.activity.favorable{background:#edf7ef;color:#21613b}.activity.mixed{background:#faf3e3;color:#7a5b16}.activity.unfavorable{background:#f9e9e7;color:#8c302b}.secondary{width:100%;margin-top:12px;border:0;border-radius:12px;padding:12px 10px;background:#f0f0ed;color:var(--dark);font:650 12px/1 -apple-system,BlinkMacSystemFont,sans-serif;cursor:pointer}.story-card{max-width:420px;margin:28px auto 0}.story-head{padding:3px 4px 11px;font-size:11px;font-weight:780;letter-spacing:.09em;color:var(--muted)}.note{text-align:center;color:var(--muted);font-size:11px;line-height:1.5;margin:22px auto 0;max-width:760px}</style></head><body><main class="wrap"><section class="toolbar"><div class="topline"><div class="brand">LOKA!</div><div class="badge">' + escapeHtml(previewBadge) + '</div></div><h1>' + escapeHtml(previewTitle) + '</h1><div class="muted">' + escapeHtml(range) + ' · ' + String(plan.slides.length) + ' slide' + (plan.slides.length > 1 ? 's' : '') + '</div></section><section class="carousel" aria-label="Carrousel hebdomadaire">' + cards + '</section>' + storySection + '<p class="note">' + escapeHtml(previewNote) + '</p></main><script>';
 
   const script = [
     "const model=" + safeJson(model) + ";",
@@ -577,9 +592,9 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial, options: Weekly
     "function drawRelay(){const relay=plan.story.relay;return Promise.all([load(relay.backgroundUrl,'story_background'),load(model.brand.logoUrl,'story_logo'),load(relay.scene.pictogramUrl,'story_pictogram_'+relay.scene.id)]).then(function(images){drawStory(storyCanvas,relay,images[0],images[1],images[2]);});}",
     "function download(canvas,name){canvas.toBlob(function(blob){if(!blob)return;const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=name;link.click();setTimeout(function(){URL.revokeObjectURL(link.href);},1000);},'image/png');}",
     "Promise.all(plan.slides.map(function(slide,index){return drawPublicationSlide(slideCanvases[index],slide);})).catch(function(error){console.error(error);});",
-    "drawRelay().catch(function(error){console.error(error);});",
-    "document.querySelectorAll('.download-slide').forEach(function(button,index){button.addEventListener('click',function(){download(slideCanvases[index],'loka-semaine-'+String(index+1).padStart(2,'0')+'.png');});});",
-    "document.getElementById('download-story').addEventListener('click',function(){download(storyCanvas,'loka-semaine-story-relais.png');});"
+    "if(storyCanvas)drawRelay().catch(function(error){console.error(error);});",
+    "document.querySelectorAll('.download-slide').forEach(function(button,index){button.addEventListener('click',function(){const slide=plan.slides[index];download(slideCanvases[index],'loka-semaine-'+String((slide?slide.index:index)+1).padStart(2,'0')+'.png');});});",
+    "const storyDownload=document.getElementById('download-story');if(storyDownload&&storyCanvas)storyDownload.addEventListener('click',function(){download(storyCanvas,'loka-semaine-story-relais.png');});"
   ].join("\n");
 
   return shell + script + "</script></body></html>";

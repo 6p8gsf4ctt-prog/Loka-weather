@@ -372,7 +372,10 @@ export default {
           : mode === "CONTEXTUAL_DEMO"
             ? generateWeeklyContextualVisualPreview(city, new Date(), start)
             : await generateWeeklyPreviewCity(env, city, new Date(), start);
-        return new Response(renderWeeklyCarousel(generated.editorial, { complementarySlides: generated.contextual.slides }), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+        return new Response(renderWeeklyCarousel(generated.editorial, {
+          complementarySlides: generated.contextual.slides,
+          ...(mode === "CONTEXTUAL_DEMO" ? { surface: "CONTEXTUAL_DEMO" as const } : {})
+        }), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         const status = message === "weekly_preview_start_requires_monday" ? 400 : message.startsWith("LOKA_WEEKLY_NEEDS_3_MODELS") ? 503 : 500;

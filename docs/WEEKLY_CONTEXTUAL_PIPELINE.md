@@ -21,6 +21,10 @@ Le pipeline hebdomadaire réel appelle désormais ce module et transmet son plan
 au carrousel. `/weekly-preview` dispose aussi du mode interne
 `CONTEXTUAL_DEMO`, qui crée une chaleur forte et une journée pluvieuse
 contrôlées : il vérifie les slides 2 et 3 sans jamais publier ces données.
+Cette surface isole strictement les slides éditoriales : elle ne rend ni la
+slide 1 validée, qui reste exclusivement dans « Prévisions réelles », ni le
+relais Story historique. Les téléchargements conservent donc les numéros
+réels des slides (`02`, `03`, puis `04` lorsqu'elle est disponible).
 
 Les tests vérifient que le plan arrive bien au renderer, garde le master
 hebdomadaire homogène et conserve le frame `WEEKLY_SHARED_V1`.

@@ -92,6 +92,13 @@ lorsqu'elles sont disponibles traversent donc la même chaîne N4 → N5 → N6 
 N7 → N8. Le résultat est transmis à `buildWeeklyCarouselPlan` et devient
 visible dans `/weekly-preview`.
 
+La surface « Prévisions réelles » reste l'unique surface de la slide 1
+factuelle, validée et publiable. Le laboratoire `CONTEXTUAL_DEMO` ne rend que
+les slides complémentaires déjà disponibles, à partir de la position 2 ; il
+exclut explicitement la slide 1 et l'ancien relais Story. Cette séparation
+empêche toute régression du socle prévisionnel pendant le développement des
+slides éditoriales.
+
 Un mode interne `CONTEXTUAL_DEMO` vérifie ce parcours avec une chaleur forte et
 une journée pluvieuse contrôlées. Il permet de voir les slides 2 et 3 sans
 annoncer de faux signal pour Tarnos. Sans archive officielle chargée, le moteur
