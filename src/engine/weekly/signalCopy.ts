@@ -234,9 +234,12 @@ export function buildWeeklySignalCopy(ranked: RankedWeeklySignalCandidate): Week
   const copy = write(ranked, claimStatus);
   const signal = ranked.candidate.signal;
   const displayValue = valueText(signal.forecast.metric, signal.forecast.value, signal.forecast.unit);
+  const directConsensus = signal.evidence.every((proof) => proof.source === "CONSENSUS_FORECAST" && proof.direct === true);
   const sourceNote = signal.mode === "OBSERVATION"
     ? "Observation locale Météo-France comparée à la référence historique retenue."
-    : "Prévision issue du consensus LOKA, comparée à la référence locale retenue.";
+    : directConsensus
+      ? "Prévision issue du consensus LOKA, comparée à un seuil moteur documenté."
+      : "Prévision issue du consensus LOKA, comparée à la référence locale retenue.";
   return {
     version: WEEKLY_SIGNAL_COPY_VERSION,
     signalId: signal.id,

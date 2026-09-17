@@ -210,6 +210,7 @@ export function validateWeeklyActivation(
         && complementarySlides.length === carousel.slides.length - 1
         && complementarySlides.every((slide, index) => complementaryKinds.has(slide.kind) && slide.complementary?.position === index + 2)
         && carousel.complementaryPreflight?.ok === true
+        && carousel.complementaryPreflight.comprehensive === true
       : hasContextualNumber
         ? carousel.slides.length === 2 && slide2?.kind === "WEEKLY_NUMBER"
         : carousel.slides.length === 1 && slide2 === undefined,

@@ -374,6 +374,7 @@ export default {
             : await generateWeeklyPreviewCity(env, city, new Date(), start);
         return new Response(renderWeeklyCarousel(generated.editorial, {
           complementarySlides: generated.contextual.slides,
+          complementaryPreflight: generated.contextual.preflight,
           ...(mode === "CONTEXTUAL_DEMO" ? { surface: "CONTEXTUAL_DEMO" as const } : {})
         }), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
       } catch (error) {

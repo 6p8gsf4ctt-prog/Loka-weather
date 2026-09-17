@@ -16,7 +16,7 @@ que leurs moteurs éditoriaux ne sont pas validés.
 | Phase | Livrable | Statut |
 |---:|---|---|
 | 1 | Intégration complète : profils → signaux → classement → slides → renderer | TERMINÉE — 17 septembre 2026 |
-| 2 | Prévol automatisé : données, texte, frame et débordements | TERMINÉE — 17 septembre 2026 |
+| 2 | Prévol automatisé : données, ex æquo, sources, texte, pictogrammes, frame et débordements | TERMINÉE — 17 septembre 2026 |
 | 3 | Validation pilote : scénarios contrôlés et semaines réelles | À FAIRE |
 | 4 | Publication progressive avec repli slide 1 | À FAIRE |
 
@@ -104,6 +104,19 @@ une journée pluvieuse contrôlées. Il permet de voir les slides 2 et 3 sans
 annoncer de faux signal pour Tarnos. Sans archive officielle chargée, le moteur
 porte explicitement l'état `UNAVAILABLE` et ne fabrique aucune comparaison
 historique ; les phénomènes consensus restent néanmoins possibles.
+
+## Bilan de la phase 2 de mise en publication
+
+Le prévol des slides éditoriales est regroupé dans un rapport unique, lié au
+plan par une empreinte. Douze contrôles couvrent maintenant la cohérence avec
+les profils météo, les ex æquo des formulations superlatives, les preuves et
+leurs sources, la prudence observation/prévision, la non-redondance des thèmes,
+le frame partagé, les pictogrammes officiels et l'encombrement réel du canvas.
+
+Un contrôle seulement structurel porte `comprehensive: false` et ne peut pas
+activer une publication. Le pipeline réel transmet le rapport complet au
+renderer ; toute modification ultérieure du plan invalide son empreinte. La
+slide 1 validée reste entièrement hors de ce prévol éditorial.
 
 ## Bilan de l’étape 1
 

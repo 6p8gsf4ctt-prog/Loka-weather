@@ -2,6 +2,8 @@ import type { ClimateDailyObservation } from "./climateReferences";
 import { buildDatedTemperatureReference } from "./climateReferences";
 import { buildWeeklyComplementarySlides } from "./complementarySlides";
 import type { WeeklyComplementarySlidePlan } from "./complementarySlides";
+import { assertWeeklyComplementaryPreflight } from "./complementaryPreflight";
+import type { WeeklyComplementaryPreflight } from "./complementaryPreflight";
 import { detectClimateDeparture, detectHistoricalExtreme, detectWeeklySignalCandidates } from "./signalDetectors";
 import type { ForecastDailyFact, WeeklySignalCandidate } from "./signalDetectors";
 import { rankAndDeduplicateWeeklySignals } from "./signalRanking";
@@ -26,6 +28,7 @@ export interface WeeklyContextualPipelineResult {
   candidates: WeeklySignalCandidate[];
   ranking: WeeklySignalRankingResult;
   slides: WeeklyComplementarySlidePlan;
+  preflight: WeeklyComplementaryPreflight;
 }
 
 function confidence(day: WeeklyProfileSet["days"][number]): ForecastDailyFact["confidence"] {
@@ -85,12 +88,15 @@ export function buildWeeklyContextualPipeline(
   }
 
   const ranking = rankAndDeduplicateWeeklySignals(candidates);
+  const slides = buildWeeklyComplementarySlides(ranking.selected);
+  const preflight = assertWeeklyComplementaryPreflight(slides, { profiles, ranking, climateStatus });
   return {
     version: WEEKLY_CONTEXTUAL_PIPELINE_VERSION,
     climateStatus,
     climateDetail,
     candidates,
     ranking,
-    slides: buildWeeklyComplementarySlides(ranking.selected)
+    slides,
+    preflight
   };
 }

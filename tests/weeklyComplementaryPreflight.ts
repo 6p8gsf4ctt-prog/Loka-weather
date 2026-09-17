@@ -1,5 +1,7 @@
 import { assertWeeklyComplementaryPreflight, preflightWeeklyComplementarySlides, WEEKLY_COMPLEMENTARY_PREFLIGHT_VERSION } from "../src/engine/weekly";
-import type { WeeklyComplementarySlidePlan } from "../src/engine/weekly";
+import type { WeeklyComplementaryPreflightContext, WeeklyComplementarySlidePlan, WeeklyProfileSet } from "../src/engine/weekly";
+import { CITIES } from "../src/config/cities";
+import { generateWeeklyContextualVisualPreview } from "../src/weeklyPipeline";
 
 let passed = 0;
 function ok(value: boolean, label: string): void {
@@ -16,8 +18,8 @@ const valid: WeeklyComplementarySlidePlan = {
 };
 
 const result = preflightWeeklyComplementarySlides(valid);
-ok(result.version === WEEKLY_COMPLEMENTARY_PREFLIGHT_VERSION && result.ok, "valid_plan_passes");
-ok(result.checks.length === 8 && result.checks.every((item) => item.ok), "every_required_gate_is_checked");
+ok(result.version === WEEKLY_COMPLEMENTARY_PREFLIGHT_VERSION && result.ok && !result.comprehensive, "valid_structural_plan_passes_without_authorizing_publication");
+ok(result.checks.length === 12 && result.checks.every((item) => item.ok), "every_required_gate_is_checked");
 ok(assertWeeklyComplementaryPreflight(valid).ok, "assertion_allows_valid_plan");
 
 const badFrame = preflightWeeklyComplementarySlides({ ...valid, slides: [{ ...valid.slides[0]!, frame: "BROKEN" as "WEEKLY_SHARED_V1" }] });
@@ -32,4 +34,74 @@ ok(!repeatedTheme.ok && !repeatedTheme.checks.find((item) => item.id === "themes
 const observedAsForecast = preflightWeeklyComplementarySlides({ ...valid, slides: [{ ...valid.slides[0]!, claimStatus: "OBSERVED", primaryLine: "Jeudi pourrait être particulièrement chaud." }] });
 ok(!observedAsForecast.ok && !observedAsForecast.checks.find((item) => item.id === "claim")?.ok, "observation_cannot_use_forecast_language");
 
-console.log(`WEEKLY_COMPLEMENTARY_PREFLIGHT ${passed}/7 PASS`);
+const wrongPictogram = preflightWeeklyComplementarySlides({ ...valid, slides: [{ ...valid.slides[0]!, visual: "RAIN" }] });
+ok(!wrongPictogram.ok && !wrongPictogram.checks.find((item) => item.id === "pictograms")?.ok, "pictogram_must_be_official_and_match_its_theme");
+
+const canvasOverflow = preflightWeeklyComplementarySlides({ ...valid, slides: [{ ...valid.slides[0]!, primaryLine: "W".repeat(80) }] });
+ok(!canvasOverflow.ok && canvasOverflow.checks.find((item) => item.id === "copy")?.ok === true && !canvasOverflow.checks.find((item) => item.id === "overflow")?.ok, "canvas_width_blocks_unbreakable_copy_even_inside_character_limit");
+
+let fingerprintBlocked = false;
+try {
+  assertWeeklyComplementaryPreflight({ ...valid, slides: [{ ...valid.slides[0]!, displayValue: "32 °C" }] }, undefined, result);
+} catch (error) {
+  fingerprintBlocked = error instanceof Error && error.message === "weekly_complementary_preflight_failed:fingerprint";
+}
+ok(fingerprintBlocked, "prepared_report_cannot_be_reused_for_a_modified_plan");
+
+const generated = generateWeeklyContextualVisualPreview(CITIES.tarnos!, new Date("2026-09-17T12:00:00Z"), "2026-09-21");
+const integrated = generated.contextual.preflight;
+ok(integrated.ok && integrated.comprehensive, "real_contextual_pipeline_produces_comprehensive_preflight");
+ok(["weather", "ties", "source", "pictograms", "overflow"].every((id) => integrated.checks.find((item) => item.id === id)?.ok), "data_and_render_guards_pass_together_before_render");
+
+const signalValue = (date: string, metric: string): number => generated.contextual.ranking.selected
+  .find((item) => item.candidate.signal.forecast.window.startDate === date && item.candidate.signal.forecast.metric === metric)
+  ?.candidate.signal.forecast.value ?? 0;
+const profiles = {
+  version: "0.1.0", citySlug: "tarnos", forecastDays: 7,
+  startDate: generated.editorial.startDate, endDate: generated.editorial.endDate,
+  days: generated.editorial.dailySummaries.map((day) => ({
+    version: "0.1.0", citySlug: "tarnos", date: day.date, dayIndex: day.dayIndex,
+    hours: [], daylight: {}, sceneDecision: {},
+    fullDay: {
+      pointCount: 24, minTemperatureC: day.minTemperatureC, maxTemperatureC: day.maxTemperatureC,
+      meanTemperatureC: (day.minTemperatureC + day.maxTemperatureC) / 2,
+      minApparentTemperatureC: day.minTemperatureC, maxApparentTemperatureC: day.maxTemperatureC,
+      precipitation: { totalMm: signalValue(day.date, "PRECIPITATION"), wetHours: 0, wetBlockMaxHours: 0, wetBreakCount: 0, dryGapMaxHours: 24, maxHourlyMm: 0, supportPeak: 0 },
+      wind: { notableHours: 0, strongHours: 0, notableBlockMaxHours: 0, strongBlockMaxHours: 0, maxGustKmh: signalValue(day.date, "WIND_GUST"), maxSpeedKmh: 0 },
+      thunderHours: signalValue(day.date, "THUNDER"), fogHours: signalValue(day.date, "VISIBILITY"),
+      modelCountMin: 5, modelCountMean: 5, temperatureSpreadMeanC: 0, temperatureSpreadMaxC: 0
+    }
+  }))
+} as unknown as WeeklyProfileSet;
+const context: WeeklyComplementaryPreflightContext = {
+  profiles, ranking: generated.contextual.ranking, climateStatus: generated.contextual.climateStatus
+};
+const reconstructed = preflightWeeklyComplementarySlides(generated.contextual.slides, context);
+ok(reconstructed.ok && reconstructed.comprehensive, "complete_report_can_be_reproduced_from_profiles_and_ranking");
+
+const weatherMismatch = structuredClone(context);
+const heatSignal = generated.contextual.slides.slides.find((slide) => slide.theme === "TEMPERATURE")!;
+const heatRanked = weatherMismatch.ranking.selected.find((item) => item.candidate.signal.id === heatSignal.signalId)!;
+weatherMismatch.profiles.days[heatRanked.candidate.signal.representativeDayIndex]!.fullDay.maxTemperatureC += 1;
+const badWeather = preflightWeeklyComplementarySlides(generated.contextual.slides, weatherMismatch);
+ok(!badWeather.checks.find((item) => item.id === "weather")?.ok, "weather_mismatch_blocks_render");
+
+const badSourceContext = structuredClone(context);
+const firstSignal = badSourceContext.ranking.selected.find((item) => item.candidate.signal.id === generated.contextual.slides.slides[0]!.signalId)!;
+firstSignal.candidate.signal.evidence[0]!.source = "LOCAL_ARCHIVE";
+firstSignal.candidate.signal.evidence[0]!.direct = false;
+const badSource = preflightWeeklyComplementarySlides(generated.contextual.slides, badSourceContext);
+ok(!badSource.checks.find((item) => item.id === "source")?.ok, "untraceable_source_blocks_render");
+
+const tieContext = structuredClone(context);
+const tiePlan = structuredClone(generated.contextual.slides);
+const tieHeatSlide = tiePlan.slides.find((slide) => slide.theme === "TEMPERATURE")!;
+const tieHeatSignal = tieContext.ranking.selected.find((item) => item.candidate.signal.id === tieHeatSlide.signalId)!;
+const tieValue = tieHeatSignal.candidate.signal.forecast.value;
+const otherDay = tieContext.profiles.days.find((day) => day.dayIndex !== tieHeatSignal.candidate.signal.representativeDayIndex)!;
+otherDay.fullDay.maxTemperatureC = tieValue;
+tieHeatSlide.primaryLine = "Mardi devrait être le plus chaud de la semaine.";
+const maskedTie = preflightWeeklyComplementarySlides(tiePlan, tieContext);
+ok(!maskedTie.checks.find((item) => item.id === "ties")?.ok, "masked_exact_tie_blocks_superlative_copy");
+
+console.log(`WEEKLY_COMPLEMENTARY_PREFLIGHT ${passed}/16 PASS`);

@@ -6,7 +6,9 @@ import { LOKA_BRAND_VERSION, LOKA_CANVAS_FONT, LOKA_LOGO_DATA_URL, LOKA_SLOGAN_W
 import { LOKA_DAILY_FEED_FRAME } from "../../ui/feedFrame";
 import { LOKA_EDITORIAL_SUMMARY_FRAME } from "../../ui/editorialSummaryFrame";
 import { assertWeeklyComplementaryPreflight } from "./complementaryPreflight";
-import type { WeeklyComplementarySlide, WeeklyComplementarySlidePlan, WeeklyComplementaryVisual } from "./complementarySlides";
+import type { WeeklyComplementaryPreflight } from "./complementaryPreflight";
+import type { WeeklyComplementarySlide, WeeklyComplementarySlidePlan } from "./complementarySlides";
+import { complementaryPictogramDataUrl } from "./complementaryPictograms";
 
 export const WEEKLY_CAROUSEL_VERSION = "0.1.0" as const;
 export const WEEKLY_CAROUSEL_MAX_EVENT_SLIDES = 4 as const;
@@ -163,6 +165,8 @@ export interface WeeklyCarouselPlan {
 export interface WeeklyCarouselBuildOptions {
   /** N7 output. It can reach the renderer only through the N8 preflight. */
   complementarySlides?: WeeklyComplementarySlidePlan;
+  /** Comprehensive preflight produced from the same profiles and ranking. */
+  complementaryPreflight?: WeeklyComplementaryPreflight;
 }
 
 export interface WeeklyCarouselRenderOptions extends WeeklyCarouselBuildOptions {
@@ -223,7 +227,9 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial, options: Wee
   const weeklyNumber = editorial.weeklyNumber;
   // A raw forecast number is not an editorial signal. Until the contextual
   // signal engine validates one, publication deliberately remains on slide 1.
-  const complementaryPreflight = options.complementarySlides ? assertWeeklyComplementaryPreflight(options.complementarySlides) : undefined;
+  const complementaryPreflight = options.complementarySlides
+    ? assertWeeklyComplementaryPreflight(options.complementarySlides, undefined, options.complementaryPreflight)
+    : undefined;
   const contextualSlides = options.complementarySlides?.slides.map((slide) => complementarySlide(editorial, slide)) ?? [];
   const slides = contextualSlides.length
     ? [overviewSlide(editorial), ...contextualSlides]
@@ -425,16 +431,6 @@ function sceneForBrowser(scene: WeeklySceneReference): WeeklySceneReference & { 
     ...scene,
     pictogramUrl: weatherPictogramDataUrl(visualIconToPictogram(scene.visualIcon))
   };
-}
-
-function complementaryPictogramDataUrl(visual: WeeklyComplementaryVisual): string {
-  if (visual === "THERMOMETER") return temperaturePictogramDataUrl("thermometer");
-  if (visual === "RAIN") return weatherPictogramDataUrl("rain");
-  if (visual === "WIND") return weatherPictogramDataUrl("wind");
-  if (visual === "THUNDER") return weatherPictogramDataUrl("thunder");
-  if (visual === "FOG") return weatherPictogramDataUrl("fog");
-  if (visual === "SUN") return weatherPictogramDataUrl("sun");
-  return weatherPictogramDataUrl("partly");
 }
 
 function browserModel(plan: WeeklyCarouselPlan): unknown {

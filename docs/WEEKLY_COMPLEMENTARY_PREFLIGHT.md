@@ -2,9 +2,10 @@
 
 ## Barrière avant rendu
 
-`src/engine/weekly/complementaryPreflight.ts` valide tout plan issu de N7 avant
-qu'il puisse entrer dans `buildWeeklyCarouselPlan`. Un échec lève une erreur
-explicite : aucune slide tronquée ou incohérente n'est rendue silencieusement.
+`src/engine/weekly/complementaryPreflight.ts` produit désormais un rapport
+unique de douze contrôles avant que les slides 2 à 4 puissent entrer dans
+`buildWeeklyCarouselPlan`. Un échec lève une erreur explicite : aucune slide
+tronquée ou incohérente n'est rendue silencieusement.
 
 Le prévol bloque notamment :
 
@@ -15,11 +16,22 @@ Le prévol bloque notamment :
 - un signal ou un thème répété ;
 - une valeur, ligne principale ou ligne secondaire vide ou hors limite ;
 - une formulation de prévision présentée comme une observation, et inversement ;
-- une note de source trop courte pour assurer la traçabilité.
+- une source non démontrée par les preuves structurées du signal ;
+- une valeur qui ne correspond pas aux profils météo horaires ou journaliers ;
+- une formulation superlative qui masquerait un ex æquo exact ;
+- un pictogramme extérieur à la bibliothèque officielle LOKA ou incohérent
+  avec le thème ;
+- un texte qui dépasserait les dimensions réelles du canvas, même s'il reste
+  sous la limite brute de caractères.
 
-Les limites éditoriales sont de 32 caractères pour la valeur, 80 pour la ligne
-principale et 120 pour la ligne secondaire. Le canvas applique ensuite un fit
-borné sur deux lignes : il ne coupe jamais un texte pour le faire rentrer.
+Les limites éditoriales restent de 32 caractères pour la valeur, 80 pour la
+ligne principale et 120 pour la ligne secondaire. Le prévol simule en plus la
+largeur typographique aux corps minimums réellement employés par le canvas.
+
+Un rapport sans profils ni classement est marqué `comprehensive: false`. Il
+peut servir à un test structurel isolé, mais `validateWeeklyActivation` refuse
+de l'utiliser pour autoriser une publication. Seul le rapport complet, calculé
+par `buildWeeklyContextualPipeline`, peut franchir la barrière d'activation.
 
 ## Frame verrouillé
 
@@ -37,20 +49,20 @@ slides complémentaires n'utilisent pas un fond V24 de journée. Seul le module
 intérieur varie ; les pictogrammes restent issus de la bibliothèque officielle
 LOKA.
 
-## Activation progressive
+## Intégration
 
-Le flag `WEEKLY_CONTEXTUAL_SLIDES_ENABLED` est volontairement absent par défaut
-et `isWeeklyContextualSlidesEnabled` renvoie `false` dans ce cas. Le pipeline
-de publication actuel ne transmet aucun plan N7 : il reste donc strictement
-sur la slide 1 tant qu'une activation explicitement revue n'est pas réalisée.
+Le pipeline éditorial calcule le rapport complet à partir des mêmes profils,
+du même classement et du même état de référence climatique que les slides.
+Le fingerprint du plan empêche ensuite de réutiliser ce rapport après une
+modification du texte, de la valeur, du thème, du pictogramme ou de la source.
 
-La phase de déploiement doit se faire ainsi : aperçu manuel avec un plan N7
-prévolé, validation éditoriale, activation du flag en environnement de test,
-puis seulement activation de production. Un rejet de prévol doit conserver la
-publication existante plutôt que publier une slide incomplète.
+La slide 1 reste hors de cette surface : elle demeure validée et générée dans
+« Prévisions réelles ». Le prévol décrit ici protège uniquement les slides
+éditoriales 2 à 4.
 
 ## Contrôles
 
-- `tests/weeklyComplementaryPreflight.ts` : 7 garde-fous N8 ;
+- `tests/weeklyComplementaryPreflight.ts` : 16 scénarios couvrant les 12
+  garde-fous, le contrôle de largeur canvas et le verrou d'empreinte ;
 - `tests/weeklyCarousel.ts` : 5 intégrations de frame et de renderer ;
 - les tests N7, activation et carousel existants restent exécutés.

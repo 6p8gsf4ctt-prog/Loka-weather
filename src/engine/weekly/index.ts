@@ -38,8 +38,8 @@ export { buildWeeklyComplementarySlides, WEEKLY_COMPLEMENTARY_SLIDES_VERSION } f
 export type { WeeklyComplementarySlide, WeeklyComplementarySlidePlan, WeeklyComplementarySlideRole, WeeklyComplementaryTheme, WeeklyComplementaryVisual } from "./complementarySlides";
 export { buildWeeklyContextualPipeline, WEEKLY_CONTEXTUAL_PIPELINE_VERSION } from "./contextualPipeline";
 export type { WeeklyContextualInput, WeeklyContextualPipelineResult } from "./contextualPipeline";
-export { assertWeeklyComplementaryPreflight, preflightWeeklyComplementarySlides, WEEKLY_COMPLEMENTARY_PREFLIGHT_VERSION } from "./complementaryPreflight";
-export type { WeeklyComplementaryPreflight, WeeklyComplementaryPreflightCheck } from "./complementaryPreflight";
+export { assertWeeklyComplementaryPreflight, preflightWeeklyComplementarySlides, weeklyComplementaryPlanFingerprint, WEEKLY_COMPLEMENTARY_PREFLIGHT_VERSION } from "./complementaryPreflight";
+export type { WeeklyComplementaryPreflight, WeeklyComplementaryPreflightCheck, WeeklyComplementaryPreflightCheckId, WeeklyComplementaryPreflightContext } from "./complementaryPreflight";
 export { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_CAROUSEL_HEIGHT, WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, WEEKLY_CAROUSEL_VERSION, WEEKLY_CAROUSEL_WIDTH, WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_SLIDE1_DAILY_FEED_GRID, WEEKLY_SLIDE2_DAILY_FEED_GRID, WEEKLY_STORY_HEIGHT, WEEKLY_STORY_WIDTH } from "./carousel";
 export type { WeeklyCarouselBuildOptions, WeeklyCarouselRenderOptions, WeeklyCarouselDailyCardDetail, WeeklyCarouselDailyCardSlot, WeeklyCarouselDailySummary, WeeklyCarouselSlide1Content, WeeklyDailyPictogramReference, WeeklyCarouselPlan, WeeklyCarouselSlide, WeeklyCarouselSlideKind, WeeklyStoryRelay } from "./carousel";
 export { localDateIsMonday, nextMondayOrSame, weeklyRangeForDate } from "./schedule";

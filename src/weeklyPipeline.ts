@@ -59,7 +59,7 @@ async function generateWeeklyForRange(
   const activities = translateWeeklyActivities(profiles, selection, city);
   const editorial = buildWeeklyEditorial(profiles, selection, activities, city);
   const contextual = buildWeeklyContextualPipeline(profiles);
-  const carousel = buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides });
+  const carousel = buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides, complementaryPreflight: contextual.preflight });
   const activation = validateWeeklyActivation(editorial, carousel);
   if (!activation.ok) throw new Error(`weekly_activation_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);
   return {
@@ -172,7 +172,7 @@ export function generateWeeklyCalmVisualPreview(
   const activities = translateWeeklyActivities(profiles, selection, city);
   const editorial = buildWeeklyEditorial(profiles, selection, activities, city);
   const contextual = buildWeeklyContextualPipeline(profiles);
-  const carousel = buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides });
+  const carousel = buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides, complementaryPreflight: contextual.preflight });
   const activation = validateWeeklyActivation(editorial, carousel);
   if (!activation.ok) throw new Error(`weekly_activation_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);
   return {
@@ -201,7 +201,7 @@ export function generateWeeklyContextualVisualPreview(
   const activities = translateWeeklyActivities(profiles, selection, city);
   const editorial = buildWeeklyEditorial(profiles, selection, activities, city);
   const contextual = buildWeeklyContextualPipeline(profiles);
-  const carousel = buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides });
+  const carousel = buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides, complementaryPreflight: contextual.preflight });
   const activation = validateWeeklyActivation(editorial, carousel);
   if (!activation.ok) throw new Error(`weekly_activation_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);
   return {
