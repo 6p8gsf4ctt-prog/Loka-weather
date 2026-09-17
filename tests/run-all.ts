@@ -29,6 +29,7 @@ import "./weeklyActivities";
 import "./weeklyEditorial";
 import "./weeklySynthesis";
 import "./weeklyEditorialSignals";
+import "./weeklyClimateReferences";
 import "./weeklyCarousel";
 import "./weeklyOperations";
 import "./weeklyActivation";
