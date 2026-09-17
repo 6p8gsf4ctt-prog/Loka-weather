@@ -28,6 +28,7 @@ import "./weeklyConclusion";
 import "./weeklyActivities";
 import "./weeklyEditorial";
 import "./weeklySynthesis";
+import "./weeklyEditorialSignals";
 import "./weeklyCarousel";
 import "./weeklyOperations";
 import "./weeklyActivation";

@@ -174,7 +174,7 @@ const events: WeeklyEditorial["events"] = [
 const plan = buildWeeklyCarouselPlan(editorial(events));
 ok(WEEKLY_OVERVIEW_MASTER_URL === "/masters24/weekly/SEMAINE_HOMOGENE.jpeg", "overview_uses_the_homogeneous_weekly_master");
 ok(WEEKLY_SLIDE1_DAILY_FEED_GRID.x === LOKA_DAILY_FEED_FRAME.title.x && WEEKLY_SLIDE1_DAILY_FEED_GRID.width === LOKA_DAILY_FEED_FRAME.title.width && WEEKLY_SLIDE1_DAILY_FEED_GRID.title === LOKA_DAILY_FEED_FRAME.title && WEEKLY_SLIDE1_DAILY_FEED_GRID.facts.y === 336 && WEEKLY_SLIDE1_DAILY_FEED_GRID.facts.height === 490 && WEEKLY_SLIDE1_DAILY_FEED_GRID.summary.y === 856 && WEEKLY_SLIDE1_DAILY_FEED_GRID.summary.height === 175 && WEEKLY_SLIDE1_DAILY_FEED_GRID.dailyStrip.height === 240 && WEEKLY_SLIDE1_DAILY_FEED_GRID.dailyStrip.bottom === LOKA_DAILY_FEED_FRAME.lowerBox.bottom && WEEKLY_SLIDE1_DAILY_FEED_GRID.signature === LOKA_DAILY_FEED_FRAME.signature, "slide1_shares_the_daily_feed_frame_and_only_varies_inner_box_heights");
-ok(plan.slides.length === 2, "slide1_and_weekly_number_make_two_slides");
+ok(plan.slides.length === 1, "raw_weekly_number_is_not_published_without_context");
 ok(plan.slides[0].kind === "OVERVIEW" && plan.slides[0].eventId === null, "overview_is_first");
 ok(plan.headerDateLabel === "LUNDI 7 AU DIMANCHE 13 SEPTEMBRE", "weekly_header_date_keeps_full_range_for_existing_surfaces");
 ok(plan.headerDateCompact.line1 === "7 — 13" && plan.headerDateCompact.line2 === "SEPTEMBRE", "slide1_header_uses_the_compact_two_line_date_option");
@@ -195,19 +195,16 @@ ok(plan.dailyCardDetails.map((card) => `${card.weekdayLabel}. ${card.dayLabel}`)
 ok(buildWeeklyCarouselPlan(editorial([events[1]])).overviewTitle.title === "LA SEMAINE À TARNOS", "single_preferred_card_keeps_the_week_name");
 ok(buildWeeklyCarouselPlan(editorial([events[0]])).overviewTitle.title === "LA SEMAINE À TARNOS", "single_watch_card_keeps_the_week_name");
 ok(plan.slides[0].backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "overview_uses_dedicated_weekly_master");
-ok(plan.slides[1]?.kind === "WEEKLY_NUMBER" && plan.slides[1]?.eventId === null, "weekly_number_follows_overview");
-ok(plan.weeklyNumber.title === "LE CHIFFRE DE LA SEMAINE" && plan.weeklyNumber.valueLabel === "14 °C" && plan.weeklyNumber.unitLabel === "D’ÉCART THERMIQUE", "weekly_number_has_one_traceable_thermal_fallback");
-ok(plan.slides[1]?.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL, "weekly_number_keeps_the_same_homogeneous_background");
+ok(plan.weeklyNumber === undefined && plan.slides[1] === undefined, "weekly_number_requires_a_contextual_editorial_signal");
 ok(plan.width === 1080 && plan.height === 1440, "carousel_dimensions");
 ok(plan.story.width === 1080 && plan.story.height === 1920, "story_dimensions");
 ok(plan.story.relay.kind === "RELAY" && plan.story.relay.source === "CAROUSEL", "story_is_relay");
 ok(plan.story.relay.body.includes("carrousel") && !plan.story.relay.body.includes("jour"), "story_does_not_become_daily_bulletin");
 ok(plan.slides.every((slide) => slide.scene.masterUrl.startsWith("/masters24/")), "slides_reuse_v24_masters");
 ok(plan.slides.every((slide) => slide.scene.source === "DAILY_V24_DECISION" && slide.scene.validity === "VALID"), "slides_keep_daily_v24_provenance");
-ok(plan.slides[1].weeklyNumber?.explanation === "Entre 13 °C et 27 °C au cours de la semaine.", "weekly_number_explains_its_single_measure");
 
 const calmPlan = buildWeeklyCarouselPlan(editorial([]));
-ok(calmPlan.slides.length === 2, "calm_week_keeps_the_number_slide");
+ok(calmPlan.slides.length === 1, "calm_week_does_not_invent_a_number_slide");
 ok(calmPlan.slides[0].kind === "OVERVIEW" && calmPlan.slides[0].title === "Une semaine calme à Tarnos", "calm_week_uses_short_overview");
 ok(calmPlan.overviewTitle.title === "LA SEMAINE À TARNOS", "calm_week_keeps_the_permanent_week_name");
 ok(calmPlan.story.relay.source === "CAROUSEL" && calmPlan.story.relay.body.includes("publication"), "calm_story_relays_publication");
@@ -224,7 +221,7 @@ ok(crossMonthPlan.headerDateFeed === "28 SEPT. — 4 OCTOBRE", "slide1_header_ke
 
 const html = renderWeeklyCarousel(editorial(events));
 ok(html.includes("carousel-canvas") && html.includes("story-relay"), "renderer_contains_carousel_and_story");
-ok(html.includes("data-slide-index=\"1\""), "renderer_keeps_the_two_slide_sequence");
+ok(!html.includes("data-slide-index=\"1\""), "renderer_keeps_only_the_validated_overview");
 ok(!html.includes("data-event-id=\"wind:2026-09-09\""), "renderer_does_not_publish_the_legacy_event_slide");
 ok(html.includes("RELAIS DE LA PUBLICATION"), "renderer_labels_story_as_relay");
 ok(html.includes("strokeText(label"), "renderer_uses_daily_full_text_draw");
@@ -335,7 +332,7 @@ ok(slide1OverviewRenderer.includes("drawOverviewTitle(plan.overviewTitle)") && o
 ok(slide1OverviewRenderer.includes("drawSlide1Header(logo,plan.headerDateFeed,width)") && !slide1HeaderRenderer.includes("date.line1") && !slide1HeaderRenderer.includes("date.line2") && slide1HeaderRenderer.includes("logo,50,79,174,58") && slide1HeaderRenderer.includes("width-50,94,19,540"), "slide1_header_matches_the_daily_feed_coordinates_with_weekly_copy");
 ok(slide1OverviewRenderer.includes("drawSlide1FeedSignature()") && slide1FeedSignatureRenderer.includes("540,1368,18,500,rgba(ink,0.88),'center'") && slide1FeedSignatureRenderer.includes("ctx.moveTo(518,1387)") && slide1FeedSignatureRenderer.includes("ctx.lineTo(562,1387)"), "slide1_signature_matches_the_daily_feed_position_color_and_dimensions");
 ok(WEEKLY_SLIDE2_DAILY_FEED_GRID.title === LOKA_DAILY_FEED_FRAME.title && WEEKLY_SLIDE2_DAILY_FEED_GRID.numberBox.bottom === LOKA_DAILY_FEED_FRAME.lowerBox.bottom && WEEKLY_SLIDE2_DAILY_FEED_GRID.signature === LOKA_DAILY_FEED_FRAME.signature, "slide2_shares_the_daily_title_lower_baseline_and_signature");
-ok(slide2NumberRenderer.includes("drawSlide1Header(logo,plan.headerDateFeed") && slide2NumberRenderer.includes("drawOverviewTitle(content)") && slide2NumberRenderer.includes("box(x,160,w,150)") && slide2NumberRenderer.includes("box(x,y,w,h)") && slide2NumberRenderer.includes("drawSlide1FeedSignature()"), "slide2_reuses_the_exact_slide1_frame_and_only_varies_the_inner_content");
+ok(slide2NumberRenderer.includes("drawSlide1Header(logo,plan.headerDateFeed") && slide2NumberRenderer.includes("drawOverviewTitle(content)") && slide2NumberRenderer.includes("box(x,160,w,150)") && slide2NumberRenderer.includes("box(x,y,w,h)") && slide2NumberRenderer.includes("drawSlide1FeedSignature()"), "slide2_frame_is_preserved_until_a_contextual_signal_is_available");
 ok(slide1FactsRenderer.includes("content.coldestMorning") && slide1FactsRenderer.includes("content.hottestDay") && slide1FactsRenderer.includes("content.daylight"), "slide1_draws_the_three_fixed_weekly_facts");
 ok(slide1TemperatureRenderer.includes("fact.label") && slide1TemperatureRenderer.includes("fact.dateLabel") && slide1TemperatureRenderer.includes("fact.temperatureLabel") && !slide1TemperatureRenderer.includes("fact.timeLabel"), "slide1_temperature_fact_keeps_only_the_essential_day_and_temperature");
 ok(slide1FactsRenderer.includes("cards=slide1FactLayout(content,x,w)") && slide1FactsRenderer.includes("cards[0].x") && slide1FactsRenderer.includes("cards[1].x") && slide1FactsRenderer.includes("cards[2].x") && slide1TemperatureRenderer.includes("plainText(fact.temperatureLabel"), "slide1_temperature_facts_use_optically_balanced_loka_icons_and_common_card_centers");
@@ -349,4 +346,4 @@ ok(slide1StripBoxRenderer.includes("rgba(255,255,255,.74)") && slide1DayStripRen
 ok(publicationSlideRenderer.includes("slide.kind==='WEEKLY_NUMBER'") && publicationSlideRenderer.includes("model.weeklyNumberPictogram") && publicationSlideRenderer.includes("plan.slide1.dailyStrip.map") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.daylight") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.thermometer") && publicationSlideRenderer.includes("drawSlide1Overview"), "slide1_and_slide2_load_their_official_loka_pictograms");
 ok(publicationLaunch.includes("drawPublicationSlide(slideCanvases[index],slide)"), "publication_renderer_uses_the_new_slide1_visual_path");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/85 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/82 PASS`);

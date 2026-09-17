@@ -135,8 +135,8 @@ export interface WeeklyCarouselPlan {
   };
   /** Stable slide-1 copy, including the three factual anchors and daily strip. */
   slide1: WeeklyCarouselSlide1Content;
-  /** Stable render-ready content of the second publication slide. */
-  weeklyNumber: WeeklyNumber;
+  /** Present only after a contextual, preflight-approved editorial signal exists. */
+  weeklyNumber?: WeeklyNumber;
   /** Seven daily V24 references and their official LOKA pictogram bindings. */
   dailySummaries: WeeklyCarouselDailySummary[];
   /** Editorial origins of the optional preferred/watch strip markers. */
@@ -168,21 +168,6 @@ function overviewSlide(editorial: WeeklyEditorial): WeeklyCarouselSlide {
   };
 }
 
-function fallbackWeeklyNumber(editorial: WeeklyEditorial): WeeklyNumber {
-  const minimum = Math.min(...editorial.dailySummaries.map((day) => day.minTemperatureC));
-  const maximum = Math.max(...editorial.dailySummaries.map((day) => day.maxTemperatureC));
-  const day = editorial.dailySummaries.find((item) => item.maxTemperatureC === maximum) ?? editorial.dailySummaries[0];
-  if (!day) throw new Error("weekly_number_requires_daily_summaries");
-  return {
-    title: "LE CHIFFRE DE LA SEMAINE",
-    kind: "THERMAL_RANGE",
-    valueLabel: `${Math.max(0, Math.round(maximum - minimum))} °C`,
-    unitLabel: "D’ÉCART THERMIQUE",
-    explanation: `Entre ${Math.round(minimum)} °C et ${Math.round(maximum)} °C au cours de la semaine.`,
-    dayIndex: day.dayIndex
-  };
-}
-
 function weeklyNumberSlide(editorial: WeeklyEditorial, number: WeeklyNumber): WeeklyCarouselSlide {
   const day = editorial.dailySummaries[number.dayIndex] ?? editorial.dailySummaries[0];
   if (!day) throw new Error("weekly_number_requires_a_representative_day");
@@ -206,10 +191,10 @@ function weeklyNumberSlide(editorial: WeeklyEditorial, number: WeeklyNumber): We
  * dedicated slide. A calm week therefore contains one slide only.
  */
 export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarouselPlan {
-  const weeklyNumber = editorial.weeklyNumber ?? fallbackWeeklyNumber(editorial);
-  // Slides 3 and 4 receive their own templates in later steps. Publishing the
-  // legacy event renderer meanwhile would break the approved visual contract.
-  const slides = [overviewSlide(editorial), weeklyNumberSlide(editorial, weeklyNumber)];
+  const weeklyNumber = editorial.weeklyNumber;
+  // A raw forecast number is not an editorial signal. Until the contextual
+  // signal engine validates one, publication deliberately remains on slide 1.
+  const slides = weeklyNumber ? [overviewSlide(editorial), weeklyNumberSlide(editorial, weeklyNumber)] : [overviewSlide(editorial)];
   const highlightsByDay = new Map(editorial.dailyHighlights.map((highlight) => [highlight.dayIndex, highlight]));
   const headerDateCompact = weeklyHeaderDateCompact(editorial.startDate, editorial.endDate);
   const dailySummaries: WeeklyCarouselDailySummary[] = editorial.dailySummaries.map((day) => ({
@@ -236,7 +221,7 @@ export function buildWeeklyCarouselPlan(editorial: WeeklyEditorial): WeeklyCarou
       ...editorial.slide1,
       dailyStrip: dailySummaries.map((day) => ({ ...day, scene: { ...day.scene }, pictogram: { ...day.pictogram } }))
     },
-    weeklyNumber: { ...weeklyNumber },
+    ...(weeklyNumber ? { weeklyNumber: { ...weeklyNumber } } : {}),
     dailySummaries,
     dailyHighlights: editorial.dailyHighlights.map((highlight) => ({ ...highlight })),
     dailyCardDetails: editorial.dailyCardDetails.map((card) => ({
@@ -409,8 +394,8 @@ function sceneForBrowser(scene: WeeklySceneReference): WeeklySceneReference & { 
 }
 
 function browserModel(plan: WeeklyCarouselPlan): unknown {
-  const weeklyNumberDay = plan.dailySummaries[plan.weeklyNumber.dayIndex] ?? plan.dailySummaries[0];
-  if (!weeklyNumberDay) throw new Error("weekly_number_requires_a_browser_day");
+  const weeklyNumberDay = plan.weeklyNumber ? (plan.dailySummaries[plan.weeklyNumber.dayIndex] ?? plan.dailySummaries[0]) : null;
+  if (plan.weeklyNumber && !weeklyNumberDay) throw new Error("weekly_number_requires_a_browser_day");
   return {
     ...plan,
     brand: {
@@ -447,9 +432,11 @@ function browserModel(plan: WeeklyCarouselPlan): unknown {
       daylight: solarPictogramDataUrl("sunrise"),
       thermometer: temperaturePictogramDataUrl("thermometer")
     },
-    weeklyNumberPictogram: plan.weeklyNumber.kind === "THERMAL_RANGE"
-      ? temperaturePictogramDataUrl("thermometer")
-      : weatherPictogramDataUrl(visualIconToPictogram(weeklyNumberDay.scene.visualIcon)),
+    ...(plan.weeklyNumber && weeklyNumberDay ? {
+      weeklyNumberPictogram: plan.weeklyNumber.kind === "THERMAL_RANGE"
+        ? temperaturePictogramDataUrl("thermometer")
+        : weatherPictogramDataUrl(visualIconToPictogram(weeklyNumberDay.scene.visualIcon))
+    } : {}),
     story: {
       ...plan.story,
       relay: { ...plan.story.relay, scene: sceneForBrowser(plan.story.relay.scene) }

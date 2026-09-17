@@ -17,7 +17,18 @@ une seule valeur très lisible, son libellé et une phrase explicative bornée �
 deux lignes. Aucune seconde statistique, aucun tableau et aucune décoration
 concurrente ne sont ajoutés.
 
-## Choix moteur V1
+## État du moteur
+
+La sélection V20 de cumul brut, amplitude entre jours, heures chaudes ou heures
+lumineuses est retirée du chemin de publication. Ces valeurs pourront devenir
+des preuves internes, mais ne suffisent pas à elles seules à justifier une
+slide.
+
+La slide 2 est volontairement absente tant qu’un signal contextualisé n’a pas
+été validé par le moteur décrit dans
+`docs/WEEKLY_EDITORIAL_SIGNAL_ENGINE_PLAN.md`.
+
+## Historique V20 — non publiable
 
 Le moteur évalue, dans cet ordre de force, une seule statistique basée sur les
 sept profils horaires consensuels :
@@ -32,7 +43,5 @@ factuelle et un jour représentatif. À défaut de seuil remarquable, l’amplit
 thermique devient le repli : la slide ne reste jamais vide et ne formule jamais
 une information non calculée.
 
-Les slides 3 et 4 ne sont pas rendues dans cette étape : leurs composants
-« À savoir cette semaine » et « Le détail à remarquer » recevront chacun leur
-propre contrat de sélection, afin de ne pas republier l’ancien template
-« temps fort météo ».
+Les slides 3 et 4 recevront leurs propres contrats de sélection. Aucun ancien
+template « temps fort météo » ne sera republié.

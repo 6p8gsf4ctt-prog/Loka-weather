@@ -22,8 +22,10 @@ function representativeDay(days: WeeklyDayProfile[], measure: (day: WeeklyDayPro
 }
 
 /**
- * Selects one statistic only. All candidates are calculated from the seven
- * consensus profiles and use their raw values before display rounding.
+ * Retired V20 helper. It is intentionally no longer exported or called:
+ * a raw forecast statistic cannot populate slide 2 without historical,
+ * climatological or seasonal context. It will be replaced by the validated
+ * editorial signal engine defined in WEEKLY_EDITORIAL_SIGNAL_ENGINE_PLAN.md.
  */
 export function buildWeeklyNumber(profiles: WeeklyProfileSet): WeeklyNumber {
   const days = [...profiles.days].sort((left, right) => left.dayIndex - right.dayIndex);

@@ -1,5 +1,5 @@
 import { CITIES } from "../src/config/cities";
-import { buildWeeklyFixedFacts, buildWeeklyNumber, buildWeeklyProfiles, buildWeeklySlide1Synthesis, weeklyThermalClass } from "../src/engine/weekly";
+import { buildWeeklyFixedFacts, buildWeeklyProfiles, buildWeeklySlide1Synthesis, weeklyThermalClass } from "../src/engine/weekly";
 import type { HourPoint, ModelForecast } from "../src/types";
 
 const city = CITIES.tarnos;
@@ -58,13 +58,6 @@ const heatFacts = buildWeeklyFixedFacts(city, heatProfiles);
 const heatSynthesis = buildWeeklySlide1Synthesis(heatProfiles.days, heatFacts);
 ok(heatSynthesis.evidence.thermalClass === "MARKED_HEAT" && heatSynthesis.primaryLine === "Chaleur marquée · Temps majoritairement sec", "thirty_one_degrees_never_uses_mild_vocabulary");
 ok(heatSynthesis.secondaryLine === "Les températures culmineront à 31 °C jeudi." && heatSynthesis.evidence.maximumDayIndexes.join(",") === "3", "heat_sentence_is_traceable_to_its_real_peak_day");
-const heatNumber = buildWeeklyNumber(heatProfiles);
-ok(heatNumber.kind === "THERMAL_RANGE" && heatNumber.valueLabel.endsWith(" °C") && heatNumber.unitLabel === "D’ÉCART THERMIQUE" && heatNumber.dayIndex === 3, "weekly_number_selects_the_strongest_verified_thermal_statistic");
-
-const rainyProfiles = buildWeeklyProfiles(city, forecasts({ rainAt: (dayIndex, hour) => dayIndex === 4 && hour >= 8 && hour <= 14 ? 2 : 0 }));
-const rainyNumber = buildWeeklyNumber(rainyProfiles);
-ok(rainyNumber.kind === "RAIN_TOTAL" && rainyNumber.valueLabel === "14 mm" && rainyNumber.explanation === "Cumul prévu du lundi au dimanche." && rainyNumber.dayIndex === 4, "weekly_number_prioritizes_a_significant_weekly_rain_total");
-
 const improvingProfiles = buildWeeklyProfiles(city, forecasts({ cloudAt: (dayIndex) => dayIndex < 2 ? 80 : 10 }));
 const improvingFacts = buildWeeklyFixedFacts(city, improvingProfiles);
 const improvingSynthesis = buildWeeklySlide1Synthesis(improvingProfiles.days, improvingFacts);
@@ -76,4 +69,4 @@ const stableSynthesis = buildWeeklySlide1Synthesis(stableProfiles.days, stableFa
 ok(!stableSynthesis.evidence.measuredBrightening && !/Davantage de soleil/.test(stableSynthesis.primaryLine), "no_more_sun_wording_without_measured_progression");
 ok(stableSynthesis.secondaryLine === "Les maximales resteront proches de 24 °C.", "secondary_line_uses_the_factual_temperature_range_only");
 
-console.log(`WEEKLY_SYNTHESIS ${passed}/8 PASS`);
+console.log(`WEEKLY_SYNTHESIS ${passed}/6 PASS`);

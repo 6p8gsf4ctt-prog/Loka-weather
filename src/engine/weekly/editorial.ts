@@ -11,7 +11,7 @@ import { buildWeeklyConclusion } from "./conclusion";
 import { buildWeeklyFixedFacts } from "./fixedFacts";
 import type { WeeklyDaylightEndpoint, WeeklyFixedFacts, WeeklyTemperatureFact } from "./fixedFacts";
 import { buildWeeklySlide1Synthesis, type WeeklySlide1Synthesis } from "./synthesis";
-import { buildWeeklyNumber, type WeeklyNumber } from "./weeklyNumber";
+import type { WeeklyNumber } from "./weeklyNumber";
 
 export interface WeeklySceneReference {
   source: "DAILY_V24_DECISION";
@@ -577,7 +577,6 @@ export function buildWeeklyEditorial(
     status: selection.status,
     overview,
     slide1: weeklySlide1Content(city, profiles, facts, dailySummaries, conclusion.body),
-    weeklyNumber: buildWeeklyNumber(profiles),
     dailySummaries,
     dailyHighlights,
     dailyCardDetails: weeklyDailyCardDetails(profiles, dailyHighlights),

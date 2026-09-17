@@ -197,20 +197,30 @@ export function validateWeeklyActivation(
     expectedRange !== null && editorial.endDate === expectedRange.endDate && carousel.startDate === editorial.startDate && carousel.endDate === editorial.endDate,
     expectedRange ? `${editorial.startDate}:${editorial.endDate}` : "invalid_week_range"
   ));
-  checks.push(check("slide2_number_contract", carousel.slides.length === 2, `${carousel.slides.length}_slides`));
+  const slide2 = carousel.slides[1];
+  const hasContextualNumber = editorial.weeklyNumber !== undefined;
+  checks.push(check(
+    "editorial_signal_gate",
+    hasContextualNumber
+      ? carousel.slides.length === 2 && slide2?.kind === "WEEKLY_NUMBER"
+      : carousel.slides.length === 1 && slide2 === undefined,
+    hasContextualNumber ? "contextual_signal_has_slide2" : "no_uncontextualized_number_published"
+  ));
   checks.push(check("publication_limit", editorial.events.length <= WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, `${editorial.events.length}_event_slides_max_${WEEKLY_CAROUSEL_MAX_EVENT_SLIDES}`));
   checks.push(check("overview_first", carousel.slides[0]?.kind === "OVERVIEW" && carousel.slides[0]?.eventId === null, "overview_first"));
   checks.push(check(
     "slide2_number_identity",
-    carousel.slides[1]?.kind === "WEEKLY_NUMBER"
-      && carousel.slides[1]?.eventId === null
-      && carousel.slides[1]?.weeklyNumber?.title === "LE CHIFFRE DE LA SEMAINE"
-      && carousel.slides[1]?.weeklyNumber?.valueLabel.length > 0
-      && carousel.slides[1]?.weeklyNumber?.unitLabel.length > 0
-      && carousel.slides[1]?.weeklyNumber?.explanation.length > 0
-      && carousel.slides[1]?.weeklyNumber?.dayIndex >= 0
-      && carousel.slides[1]?.weeklyNumber?.dayIndex <= 6,
-    "single_traceable_weekly_number"
+    !hasContextualNumber || (
+      slide2?.kind === "WEEKLY_NUMBER"
+      && slide2.eventId === null
+      && slide2.weeklyNumber?.title === "LE CHIFFRE DE LA SEMAINE"
+      && slide2.weeklyNumber?.valueLabel.length > 0
+      && slide2.weeklyNumber?.unitLabel.length > 0
+      && slide2.weeklyNumber?.explanation.length > 0
+      && slide2.weeklyNumber?.dayIndex >= 0
+      && slide2.weeklyNumber?.dayIndex <= 6
+    ),
+    hasContextualNumber ? "single_traceable_weekly_number" : "no_signal_no_slide2"
   ));
   checks.push(check("calm_contract", editorial.status !== "CALM" || editorial.events.length === 0, "calm_week_keeps_the_same_two_slide_format"));
   checks.push(check("carousel_dimensions", carousel.width === 1080 && carousel.height === 1440, "1080x1440"));
@@ -356,8 +366,8 @@ export function validateWeeklyActivation(
   ));
   checks.push(check(
     "shared_slide2_background",
-    carousel.slides[1]?.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL,
-    "slide2_uses_the_same_weekly_master_as_slide1"
+    !hasContextualNumber || slide2?.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL,
+    hasContextualNumber ? "slide2_uses_the_same_weekly_master_as_slide1" : "no_signal_no_slide2_background"
   ));
   checks.push(check(
     "slide2_shared_frame",
