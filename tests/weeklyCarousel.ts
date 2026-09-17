@@ -365,5 +365,13 @@ ok(contextualHtml.includes("complementaryPictogramUrl") && contextualHtml.includ
 const editorialDemoHtml = renderWeeklyCarousel(editorial(events), { complementarySlides, surface: "CONTEXTUAL_DEMO" });
 ok(!editorialDemoHtml.includes('data-slide-index="0"') && editorialDemoHtml.includes('data-slide-index="1"') && editorialDemoHtml.includes('data-slide-index="2"'), "editorial_demo_excludes_validated_slide1");
 ok(!editorialDemoHtml.includes('id="story-relay"') && !editorialDemoHtml.includes("Télécharger le relais Story") && editorialDemoHtml.includes("Démo · slides éditoriales"), "editorial_demo_excludes_legacy_story_relay");
+const pilotHtml = renderWeeklyCarousel(editorial(events), {
+  complementarySlides,
+  pilot: {
+    version: "1.0.0", source: "CONTROLLED", label: "test", startDate: "2026-09-07", endDate: "2026-09-13",
+    status: "PASS", summary: "Pilote valide.", climateStatus: "READY", selectedSignalIds: [], renderedPositions: [], checks: []
+  }
+});
+ok(pilotHtml.includes("Pilote éditorial · PASS") && pilotHtml.includes("Pilote valide."), "preview_shows_pilot_result_outside_publication_canvas");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/89 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/90 PASS`);

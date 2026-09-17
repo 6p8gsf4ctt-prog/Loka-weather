@@ -28,3 +28,8 @@ réels des slides (`02`, `03`, puis `04` lorsqu'elle est disponible).
 
 Les tests vérifient que le plan arrive bien au renderer, garde le master
 hebdomadaire homogène et conserve le frame `WEEKLY_SHARED_V1`.
+
+Chaque exécution est aussi relue par `pilotValidation.ts`. Les aperçus live
+exposés sur `/api/admin/weekly/preview` retournent un champ `pilot` afin de
+collecter des semaines réelles sans les publier. Un état climatique
+`UNAVAILABLE` reste une revue, jamais une fausse validation historique.

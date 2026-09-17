@@ -1,4 +1,4 @@
-import { buildWeeklyCarouselPlan, buildWeeklyContextualPipeline, buildWeeklyEditorial, buildWeeklyProfiles, detectWeeklyEvents, fetchWeeklyForecasts, selectWeeklyEvents, translateWeeklyActivities, validateWeeklyActivation, WEEKLY_ENGINE_VERSION } from "./engine/weekly";
+import { buildWeeklyCarouselPlan, buildWeeklyContextualPipeline, buildWeeklyEditorial, buildWeeklyProfiles, detectWeeklyEvents, fetchWeeklyForecasts, selectWeeklyEvents, translateWeeklyActivities, validateWeeklyActivation, validateWeeklyEditorialPilot, WEEKLY_ENGINE_VERSION } from "./engine/weekly";
 import { MODELS } from "./config/models";
 import { isWeeklyEnabled } from "./engine/weekly/featureFlag";
 import { localDateIsMonday, nextMondayOrSame, weeklyRangeForDate, type WeeklyDateRange } from "./engine/weekly/schedule";
@@ -8,10 +8,12 @@ import type { CityConfig, Env, HourPoint, ModelForecast } from "./types";
 export interface GeneratedWeekly {
   generatedAt: string;
   source: string;
+  profiles: ReturnType<typeof buildWeeklyProfiles>;
   editorial: ReturnType<typeof buildWeeklyEditorial>;
   contextual: ReturnType<typeof buildWeeklyContextualPipeline>;
   carousel: ReturnType<typeof buildWeeklyCarouselPlan>;
   activation: ReturnType<typeof validateWeeklyActivation>;
+  pilot: ReturnType<typeof validateWeeklyEditorialPilot>;
 }
 
 export interface WeeklyRunResult {
@@ -62,13 +64,16 @@ async function generateWeeklyForRange(
   const carousel = buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides, complementaryPreflight: contextual.preflight });
   const activation = validateWeeklyActivation(editorial, carousel);
   if (!activation.ok) throw new Error(`weekly_activation_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);
+  const pilot = validateWeeklyEditorialPilot({ source: "LIVE", label: source, profiles, contextual, carousel, activation });
   return {
     generatedAt: new Date().toISOString(),
     source,
+    profiles,
     editorial,
     contextual,
     carousel,
-    activation
+    activation,
+    pilot
   };
 }
 
@@ -175,13 +180,16 @@ export function generateWeeklyCalmVisualPreview(
   const carousel = buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides, complementaryPreflight: contextual.preflight });
   const activation = validateWeeklyActivation(editorial, carousel);
   if (!activation.ok) throw new Error(`weekly_activation_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);
+  const pilot = validateWeeklyEditorialPilot({ source: "CONTROLLED", label: "semaine_calme_controlee", profiles, contextual, carousel, activation });
   return {
     generatedAt: new Date().toISOString(),
     source: "admin_weekly_calm_visual_preview",
+    profiles,
     editorial,
     contextual,
     carousel,
-    activation
+    activation,
+    pilot
   };
 }
 
@@ -204,13 +212,16 @@ export function generateWeeklyContextualVisualPreview(
   const carousel = buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides, complementaryPreflight: contextual.preflight });
   const activation = validateWeeklyActivation(editorial, carousel);
   if (!activation.ok) throw new Error(`weekly_activation_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);
+  const pilot = validateWeeklyEditorialPilot({ source: "CONTROLLED", label: "chaleur_pluie_controlee", profiles, contextual, carousel, activation });
   return {
     generatedAt: new Date().toISOString(),
     source: "admin_weekly_contextual_visual_preview",
+    profiles,
     editorial,
     contextual,
     carousel,
-    activation
+    activation,
+    pilot
   };
 }
 

@@ -17,7 +17,7 @@ que leurs moteurs éditoriaux ne sont pas validés.
 |---:|---|---|
 | 1 | Intégration complète : profils → signaux → classement → slides → renderer | TERMINÉE — 17 septembre 2026 |
 | 2 | Prévol automatisé : données, ex æquo, sources, texte, pictogrammes, frame et débordements | TERMINÉE — 17 septembre 2026 |
-| 3 | Validation pilote : scénarios contrôlés et semaines réelles | À FAIRE |
+| 3 | Validation pilote : scénarios contrôlés et semaines réelles | EN COURS — outillage prêt, 4 semaines live à collecter |
 | 4 | Publication progressive avec repli slide 1 | À FAIRE |
 
 ## Étapes
@@ -117,6 +117,19 @@ Un contrôle seulement structurel porte `comprehensive: false` et ne peut pas
 activer une publication. Le pipeline réel transmet le rapport complet au
 renderer ; toute modification ultérieure du plan invalide son empreinte. La
 slide 1 validée reste entièrement hors de ce prévol éditorial.
+
+## Bilan provisoire de la phase 3 de mise en publication
+
+`pilotValidation.ts` produit un rapport `PASS`, `REVIEW` ou `BLOCKED` à partir
+des profils, du prévol, du classement, du carousel et de l'activation exacts.
+Deux scénarios contrôlés sont certifiés : semaine calme sans signal, puis
+chaleur et pluie avec slides 2 et 3. Un échec d'activation est bloquant.
+
+Pour une vraie semaine, l'aperçu administrateur expose désormais ce rapport
+dans le champ `pilot`. Sans archive climatique locale réellement injectée, le
+rapport reste volontairement `REVIEW` : LOKA ne valide pas une couverture
+historique qu'il n'a pas chargée. La phase passe à `TERMINÉE` après quatre
+semaines live distinctes, sans blocage et avec référence locale disponible.
 
 ## Bilan de l’étape 1
 

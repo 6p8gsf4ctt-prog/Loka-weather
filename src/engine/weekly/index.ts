@@ -46,3 +46,5 @@ export { localDateIsMonday, nextMondayOrSame, weeklyRangeForDate } from "./sched
 export type { WeeklyDateRange } from "./schedule";
 export { validateWeeklyActivation } from "./activation";
 export type { WeeklyActivationCheck, WeeklyActivationValidation } from "./activation";
+export { summarizeWeeklyEditorialPilot, validateWeeklyEditorialPilot, WEEKLY_EDITORIAL_PILOT_VERSION } from "./pilotValidation";
+export type { WeeklyEditorialPilotBatch, WeeklyEditorialPilotCheck, WeeklyEditorialPilotInput, WeeklyEditorialPilotReport, WeeklyEditorialPilotSource, WeeklyEditorialPilotStatus } from "./pilotValidation";

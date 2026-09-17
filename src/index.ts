@@ -205,7 +205,7 @@ export default {
       if (!city) return json({ error: "unknown_city" }, 404);
       try {
         const generated = await generateWeeklyPreviewCity(env, city, new Date(), url.searchParams.get("start") || undefined);
-        return json({ ok: true, previewOnly: true, activation: generated.activation, editorial: generated.editorial, carousel: generated.carousel });
+        return json({ ok: true, previewOnly: true, pilot: generated.pilot, activation: generated.activation, editorial: generated.editorial, carousel: generated.carousel });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         const status = message === "weekly_preview_start_requires_monday" ? 400 : message.startsWith("LOKA_WEEKLY_NEEDS_3_MODELS") ? 503 : 500;
@@ -375,6 +375,7 @@ export default {
         return new Response(renderWeeklyCarousel(generated.editorial, {
           complementarySlides: generated.contextual.slides,
           complementaryPreflight: generated.contextual.preflight,
+          pilot: generated.pilot,
           ...(mode === "CONTEXTUAL_DEMO" ? { surface: "CONTEXTUAL_DEMO" as const } : {})
         }), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
       } catch (error) {

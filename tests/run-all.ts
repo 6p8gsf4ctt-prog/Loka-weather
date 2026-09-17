@@ -36,6 +36,7 @@ import "./weeklySignalCopy";
 import "./weeklyComplementarySlides";
 import "./weeklyComplementaryPreflight";
 import "./weeklyContextualPipeline";
+import "./weeklyPilotValidation";
 import "./weeklyCarousel";
 import "./weeklyOperations";
 import "./weeklyActivation";
