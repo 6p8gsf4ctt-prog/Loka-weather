@@ -2,7 +2,7 @@ import { CITIES, getCity } from "./config/cities";
 import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
 import { isWeeklyEnabled, renderWeeklyCarousel } from "./engine/weekly";
-import { generateWeeklyCalmVisualPreview, generateWeeklyCity, generateWeeklyPreviewCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyRangeForDate } from "./weeklyPipeline";
+import { generateWeeklyCalmVisualPreview, generateWeeklyContextualVisualPreview, generateWeeklyCity, generateWeeklyPreviewCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyRangeForDate } from "./weeklyPipeline";
 import { localDate, runManualCity, runScheduledCity } from "./pipeline";
 import { generationHistory, officialForDate, officialHistory } from "./storage/db";
 import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySceneLedger";
@@ -365,12 +365,14 @@ export default {
       const startValue = form.get("start");
       const start = typeof startValue === "string" && startValue.trim() ? startValue.trim() : undefined;
       const modeValue = form.get("mode");
-      const mode = modeValue === "CALM_DEMO" ? "CALM_DEMO" : "LIVE";
+      const mode = modeValue === "CALM_DEMO" || modeValue === "CONTEXTUAL_DEMO" ? modeValue : "LIVE";
       try {
         const generated = mode === "CALM_DEMO"
           ? generateWeeklyCalmVisualPreview(city, new Date(), start)
-          : await generateWeeklyPreviewCity(env, city, new Date(), start);
-        return new Response(renderWeeklyCarousel(generated.editorial), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+          : mode === "CONTEXTUAL_DEMO"
+            ? generateWeeklyContextualVisualPreview(city, new Date(), start)
+            : await generateWeeklyPreviewCity(env, city, new Date(), start);
+        return new Response(renderWeeklyCarousel(generated.editorial, { complementarySlides: generated.contextual.slides }), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         const status = message === "weekly_preview_start_requires_monday" ? 400 : message.startsWith("LOKA_WEEKLY_NEEDS_3_MODELS") ? 503 : 500;

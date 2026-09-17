@@ -199,18 +199,27 @@ export function validateWeeklyActivation(
   ));
   const slide2 = carousel.slides[1];
   const hasContextualNumber = editorial.weeklyNumber !== undefined;
+  const complementarySlides = carousel.slides.slice(1).filter((slide) => slide.complementary !== undefined);
+  const hasComplementarySlides = complementarySlides.length > 0;
+  const complementaryKinds = new Set(["COMPLEMENTARY_NUMBER", "COMPLEMENTARY_PRACTICAL", "COMPLEMENTARY_DETAIL"]);
   checks.push(check(
     "editorial_signal_gate",
-    hasContextualNumber
-      ? carousel.slides.length === 2 && slide2?.kind === "WEEKLY_NUMBER"
-      : carousel.slides.length === 1 && slide2 === undefined,
-    hasContextualNumber ? "contextual_signal_has_slide2" : "no_uncontextualized_number_published"
+    hasComplementarySlides
+      ? !hasContextualNumber
+        && carousel.slides.length >= 2 && carousel.slides.length <= 4
+        && complementarySlides.length === carousel.slides.length - 1
+        && complementarySlides.every((slide, index) => complementaryKinds.has(slide.kind) && slide.complementary?.position === index + 2)
+        && carousel.complementaryPreflight?.ok === true
+      : hasContextualNumber
+        ? carousel.slides.length === 2 && slide2?.kind === "WEEKLY_NUMBER"
+        : carousel.slides.length === 1 && slide2 === undefined,
+    hasComplementarySlides ? "preflight_approved_contextual_slides" : hasContextualNumber ? "contextual_signal_has_slide2" : "no_uncontextualized_number_published"
   ));
   checks.push(check("publication_limit", editorial.events.length <= WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, `${editorial.events.length}_event_slides_max_${WEEKLY_CAROUSEL_MAX_EVENT_SLIDES}`));
   checks.push(check("overview_first", carousel.slides[0]?.kind === "OVERVIEW" && carousel.slides[0]?.eventId === null, "overview_first"));
   checks.push(check(
     "slide2_number_identity",
-    !hasContextualNumber || (
+    hasComplementarySlides || !hasContextualNumber || (
       slide2?.kind === "WEEKLY_NUMBER"
       && slide2.eventId === null
       && slide2.weeklyNumber?.title === "LE CHIFFRE DE LA SEMAINE"
@@ -220,7 +229,7 @@ export function validateWeeklyActivation(
       && slide2.weeklyNumber?.dayIndex >= 0
       && slide2.weeklyNumber?.dayIndex <= 6
     ),
-    hasContextualNumber ? "single_traceable_weekly_number" : "no_signal_no_slide2"
+    hasComplementarySlides ? "contextual_slide_plan_is_preflighted" : hasContextualNumber ? "single_traceable_weekly_number" : "no_signal_no_slide2"
   ));
   checks.push(check("calm_contract", editorial.status !== "CALM" || editorial.events.length === 0, "calm_week_keeps_the_same_two_slide_format"));
   checks.push(check("carousel_dimensions", carousel.width === 1080 && carousel.height === 1440, "1080x1440"));
@@ -366,8 +375,10 @@ export function validateWeeklyActivation(
   ));
   checks.push(check(
     "shared_slide2_background",
-    !hasContextualNumber || slide2?.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL,
-    hasContextualNumber ? "slide2_uses_the_same_weekly_master_as_slide1" : "no_signal_no_slide2_background"
+    hasComplementarySlides
+      ? complementarySlides.every((slide) => slide.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL)
+      : !hasContextualNumber || slide2?.backgroundUrl === WEEKLY_OVERVIEW_MASTER_URL,
+    hasComplementarySlides ? "all_contextual_slides_use_the_same_weekly_master_as_slide1" : hasContextualNumber ? "slide2_uses_the_same_weekly_master_as_slide1" : "no_signal_no_slide2_background"
   ));
   checks.push(check(
     "slide2_shared_frame",

@@ -36,6 +36,8 @@ export { buildWeeklySignalCopies, buildWeeklySignalCopy, WEEKLY_SIGNAL_COPY_VERS
 export type { WeeklySignalClaimStatus, WeeklySignalCopy } from "./signalCopy";
 export { buildWeeklyComplementarySlides, WEEKLY_COMPLEMENTARY_SLIDES_VERSION } from "./complementarySlides";
 export type { WeeklyComplementarySlide, WeeklyComplementarySlidePlan, WeeklyComplementarySlideRole, WeeklyComplementaryTheme, WeeklyComplementaryVisual } from "./complementarySlides";
+export { buildWeeklyContextualPipeline, WEEKLY_CONTEXTUAL_PIPELINE_VERSION } from "./contextualPipeline";
+export type { WeeklyContextualInput, WeeklyContextualPipelineResult } from "./contextualPipeline";
 export { assertWeeklyComplementaryPreflight, preflightWeeklyComplementarySlides, WEEKLY_COMPLEMENTARY_PREFLIGHT_VERSION } from "./complementaryPreflight";
 export type { WeeklyComplementaryPreflight, WeeklyComplementaryPreflightCheck } from "./complementaryPreflight";
 export { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_CAROUSEL_HEIGHT, WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, WEEKLY_CAROUSEL_VERSION, WEEKLY_CAROUSEL_WIDTH, WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_SLIDE1_DAILY_FEED_GRID, WEEKLY_SLIDE2_DAILY_FEED_GRID, WEEKLY_STORY_HEIGHT, WEEKLY_STORY_WIDTH } from "./carousel";

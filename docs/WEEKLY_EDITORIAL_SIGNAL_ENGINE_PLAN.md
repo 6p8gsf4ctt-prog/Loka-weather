@@ -11,6 +11,15 @@ graphique V20 — même fond, en-tête, title box, baseline basse et footer — 
 ne reçoit plus aucun chiffre brut. Les slides 3 et 4 restent non rendues tant
 que leurs moteurs éditoriaux ne sont pas validés.
 
+## Plan de mise en publication
+
+| Phase | Livrable | Statut |
+|---:|---|---|
+| 1 | Intégration complète : profils → signaux → classement → slides → renderer | TERMINÉE — 17 septembre 2026 |
+| 2 | Prévol automatisé : données, texte, frame et débordements | TERMINÉE — 17 septembre 2026 |
+| 3 | Validation pilote : scénarios contrôlés et semaines réelles | À FAIRE |
+| 4 | Publication progressive avec repli slide 1 | À FAIRE |
+
 ## Étapes
 
 | # | Étape | Livrable | Statut |
@@ -74,6 +83,20 @@ Les tests N8 couvrent les garde-fous de prévol et l'intégration renderer. Les
 tests TypeScript, N7, carousel et activation passent. La suite exhaustive
 reste arrêtée par l'échec quotidien préexistant `scene13_showers_context`, hors
 périmètre hebdomadaire.
+
+## Bilan de la phase 1 de mise en publication
+
+Le pipeline réel appelle maintenant `buildWeeklyContextualPipeline` avant de
+construire le carrousel. Les candidats directs et les références historiques
+lorsqu'elles sont disponibles traversent donc la même chaîne N4 → N5 → N6 →
+N7 → N8. Le résultat est transmis à `buildWeeklyCarouselPlan` et devient
+visible dans `/weekly-preview`.
+
+Un mode interne `CONTEXTUAL_DEMO` vérifie ce parcours avec une chaleur forte et
+une journée pluvieuse contrôlées. Il permet de voir les slides 2 et 3 sans
+annoncer de faux signal pour Tarnos. Sans archive officielle chargée, le moteur
+porte explicitement l'état `UNAVAILABLE` et ne fabrique aucune comparaison
+historique ; les phénomènes consensus restent néanmoins possibles.
 
 ## Bilan de l’étape 1
 
