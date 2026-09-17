@@ -33,6 +33,7 @@ import "./weeklyClimateReferences";
 import "./weeklySignalDetectors";
 import "./weeklySignalRanking";
 import "./weeklySignalCopy";
+import "./weeklyComplementarySlides";
 import "./weeklyCarousel";
 import "./weeklyOperations";
 import "./weeklyActivation";

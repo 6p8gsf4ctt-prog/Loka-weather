@@ -22,7 +22,7 @@ que leurs moteurs éditoriaux ne sont pas validés.
 | 4 | Détecteurs candidats | Historique, anomalies, seuils, phénomènes, régimes et séries | TERMINÉE — 17 septembre 2026 |
 | 5 | Score et déduplication | Importance, rareté, anomalie, intérêt, confiance et conflits | TERMINÉE — 17 septembre 2026 |
 | 6 | Rédaction prudente | Phrases de prévision ou d’observation issues des preuves | TERMINÉE — 17 septembre 2026 |
-| 7 | Liaison slides 2–4 | Un signal non redondant par slide, dans le cadre graphique partagé | À FAIRE |
+| 7 | Liaison slides 2–4 | Un signal non redondant par slide, dans le cadre graphique partagé | TERMINÉE — 17 septembre 2026 |
 | 8 | Prévol et validation | Cohérence, overflow, rejouage historique et activation progressive | À FAIRE |
 
 ## Règles non négociables
@@ -175,3 +175,26 @@ gabarits factuels spécifiques sans dramatisation.
 Les 53 tests N6 et tous les tests hebdomadaires passent. Aucun titre de slide,
 pictogramme, rendu graphique ou activation publique n'est encore produit. Le
 contrat complet est documenté dans `docs/WEEKLY_SIGNAL_COPY.md`.
+
+## Bilan de l'étape 7
+
+Le module `src/engine/weekly/complementarySlides.ts` affecte les candidats N5
+sélectionnés et les copies N6 aux rôles complémentaires : chiffre, information
+pratique et détail à remarquer. La sélection est adaptative et plafonnée à trois
+slides : elle ne crée aucune page sans signal solide.
+
+La slide 2 privilégie une statistique contextualisée ; la slide 3 privilégie
+un phénomène ou un changement de régime utile à anticiper ; la slide 4 reçoit
+un repère saisonnier ou curieux. Si le rôle pratique est absent, le détail se
+place directement en troisième page physique du carrousel.
+
+La complémentarité est imposée par thème : température, pluie/orage, vent,
+visibilité et lumière ne peuvent chacun apparaître qu'une seule fois. Chaque
+slide transporte déjà sa valeur, ses deux lignes prudentes, son statut, sa
+source, son pictogramme indicatif et la contrainte `WEEKLY_SHARED_V1`, qui
+interdit tout nouveau langage graphique.
+
+Les 12 tests N7 et tous les tests hebdomadaires passent. Le rendu dans le cadre
+visuel partagé, le prévol, les contrôles d'overflow et l'activation restent
+volontairement réservés à N8. La règle complète est documentée dans
+`docs/WEEKLY_COMPLEMENTARY_SLIDES.md`.

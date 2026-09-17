@@ -34,6 +34,8 @@ export { rankAndDeduplicateWeeklySignals, scoreWeeklySignalCandidate, WEEKLY_SIG
 export type { RankedWeeklySignalCandidate, WeeklySignalRankingResult, WeeklySignalRejectionReason, WeeklySignalScoreDimension, WeeklySignalScores } from "./signalRanking";
 export { buildWeeklySignalCopies, buildWeeklySignalCopy, WEEKLY_SIGNAL_COPY_VERSION } from "./signalCopy";
 export type { WeeklySignalClaimStatus, WeeklySignalCopy } from "./signalCopy";
+export { buildWeeklyComplementarySlides, WEEKLY_COMPLEMENTARY_SLIDES_VERSION } from "./complementarySlides";
+export type { WeeklyComplementarySlide, WeeklyComplementarySlidePlan, WeeklyComplementarySlideRole, WeeklyComplementaryTheme, WeeklyComplementaryVisual } from "./complementarySlides";
 export { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_CAROUSEL_HEIGHT, WEEKLY_CAROUSEL_MAX_EVENT_SLIDES, WEEKLY_CAROUSEL_VERSION, WEEKLY_CAROUSEL_WIDTH, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_SLIDE1_DAILY_FEED_GRID, WEEKLY_SLIDE2_DAILY_FEED_GRID, WEEKLY_STORY_HEIGHT, WEEKLY_STORY_WIDTH } from "./carousel";
 export type { WeeklyCarouselDailyCardDetail, WeeklyCarouselDailyCardSlot, WeeklyCarouselDailySummary, WeeklyCarouselSlide1Content, WeeklyDailyPictogramReference, WeeklyCarouselPlan, WeeklyCarouselSlide, WeeklyCarouselSlideKind, WeeklyStoryRelay } from "./carousel";
 export { localDateIsMonday, nextMondayOrSame, weeklyRangeForDate } from "./schedule";
