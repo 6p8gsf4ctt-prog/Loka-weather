@@ -209,9 +209,9 @@ function intradayCopy(ranked: RankedWeeklySignalCandidate, claimStatus: WeeklySi
   const value = valueText(signal.forecast.metric, signal.forecast.value, signal.forecast.unit);
   if (factString(candidate, "change") === "RAPID_DROP") {
     const start = factNumber(candidate, "startHour"); const end = factNumber(candidate, "endHour");
-    return buildLokaEditorialCopy(observed ? `${day} a perdu ${value} en quelques heures.` : `${day} pourrait perdre ${value} en quelques heures.`, `La baisse se concentre entre ${start ?? "?"} h et ${end ?? "?"} h.`);
+    return buildLokaEditorialCopy(observed ? `${day} a perdu ${value} en quelques heures.` : `${day} ${modal(claimStatus).could} perdre ${value} en quelques heures.`, `La baisse se concentre entre ${start ?? "?"} h et ${end ?? "?"} h.`);
   }
-  return buildLokaEditorialCopy(observed ? `${day} a connu une amplitude de ${value}.` : `${day} pourrait connaître une amplitude de ${value}.`, "L’écart est calculé entre le minimum et le maximum de la même journée.");
+  return buildLokaEditorialCopy(observed ? `${day} a connu une amplitude de ${value}.` : `${day} ${modal(claimStatus).could} connaître une amplitude de ${value}.`, "L’écart est calculé entre le minimum et le maximum de la même journée.");
 }
 
 function write(ranked: RankedWeeklySignalCandidate, claimStatus: WeeklySignalClaimStatus): LokaEditorialCopy {
