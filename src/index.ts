@@ -17,7 +17,7 @@ import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExpo
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
-import { renderWeeklyPreviewGate, renderWeeklySelectionPanel } from "./ui/weeklyPreview";
+import { renderWeeklyCandidatePreview, renderWeeklyPreviewGate, renderWeeklySelectionPanel } from "./ui/weeklyPreview";
 import { ensureMeteoFranceDailyArchive } from "./weather/meteoFranceClimate";
 
 function json(data: unknown, status = 200): Response {
@@ -389,6 +389,12 @@ export default {
         const status = message === "weekly_preview_start_requires_monday" ? 400 : message.startsWith("LOKA_WEEKLY_NEEDS_3_MODELS") ? 503 : 500;
         return new Response(renderWeeklyPreviewGate(message), { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
       }
+    }
+
+    if (url.pathname === "/weekly-candidate-preview" && request.method === "GET") {
+      return new Response(renderWeeklyCandidatePreview(url.searchParams), {
+        headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" }
+      });
     }
 
     if (url.pathname === "/api/admin/weekly/publish-selection" && request.method === "POST") {

@@ -41,6 +41,32 @@ function candidatePreview(item: RankedWeeklySignalCandidate): { value: string; p
   };
 }
 
+function candidatePreviewHref(input: { startDate: string }, item: RankedWeeklySignalCandidate, copy: { value: string; primary: string; secondary: string; source: string }): string {
+  const params = new URLSearchParams({
+    date: input.startDate,
+    title: detectorLabel(item.candidate.detector),
+    value: copy.value,
+    primary: copy.primary,
+    secondary: copy.secondary,
+    source: copy.source,
+    rank: String(item.automaticRank),
+    status: item.rejectionReasons.length ? "CLASSEMENT AUTOMATIQUE" : "CANDIDATE RETENUE PAR LE CLASSEMENT"
+  });
+  return `/weekly-candidate-preview?${params.toString()}`;
+}
+
+export function renderWeeklyCandidatePreview(params: URLSearchParams): string {
+  const read = (key: string, fallback: string): string => params.get(key)?.trim() || fallback;
+  const title = read("title", "Information météo");
+  const value = read("value", "—");
+  const primary = read("primary", "Information détectée par le moteur éditorial.");
+  const secondary = read("secondary", "");
+  const source = read("source", "Source moteur LOKA.");
+  const date = read("date", "Semaine à venir");
+  const status = read("status", "Aperçu éditorial");
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aperçu · LOKA</title><style>:root{--ink:#102b55;--gold:#c39a3d;--paper:#f2f0ea;--muted:#657083}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;display:grid;place-items:center;padding:24px}.page{width:min(100%,620px)}.back{display:inline-block;margin:0 0 14px;color:var(--ink);font-size:14px;font-weight:750;text-decoration:none}.slide{aspect-ratio:3/4;background:linear-gradient(145deg,#f5f0df 0%,#dce6ee 42%,#17365e 100%);border-radius:28px;padding:42px 38px;box-shadow:0 18px 50px rgba(16,43,85,.18);display:flex;flex-direction:column;position:relative;overflow:hidden}.slide:before{content:"";position:absolute;inset:-25%;background:radial-gradient(ellipse at 25% 20%,rgba(255,255,255,.85),transparent 43%),radial-gradient(ellipse at 70% 48%,rgba(255,255,255,.5),transparent 38%);transform:rotate(-10deg)}.content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%}.header{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;letter-spacing:.18em}.logo{font-size:25px;letter-spacing:.03em}.logo span{color:#f2b317}.date{font-size:11px;letter-spacing:.08em}.eyebrow{margin-top:70px;border:1px solid rgba(255,255,255,.82);border-radius:18px;padding:18px 20px;font-size:20px;font-weight:850;background:rgba(255,255,255,.18)}.line{width:58px;height:3px;background:var(--gold);margin:14px 0 0}.value{margin:auto 0 18px;font-size:clamp(42px,10vw,72px);font-weight:850;line-height:1.02;letter-spacing:-.04em}.primary{font-size:clamp(20px,4vw,29px);font-weight:800;line-height:1.18;max-width:95%}.secondary{margin-top:18px;font-size:16px;line-height:1.4;color:#33455e}.source{margin-top:auto;padding-top:24px;font-size:12px;line-height:1.4;color:#566579}.status{margin-top:14px;color:#7a5b16;font-size:12px;font-weight:750;letter-spacing:.05em;text-transform:uppercase}</style></head><body><main class="page"><a class="back" href="/weekly-preview?start=${encodeURIComponent(date)}">← Retour au classement</a><article class="slide"><div class="content"><div class="header"><div class="logo">LOKA<span>!</span></div><div class="date">${escapeHtml(date)}</div></div><div class="eyebrow">${escapeHtml(title)}<div class="line"></div></div><div class="value">${escapeHtml(value)}</div><div class="primary">${escapeHtml(primary)}</div><div class="secondary">${escapeHtml(secondary)}</div><div class="source">${escapeHtml(source)}<div class="status">${escapeHtml(status)} · aperçu sans publication</div></div></div></article></main></body></html>`;
+}
+
 export function renderWeeklySelectionPanel(input: {
   citySlug: string;
   startDate: string;
@@ -51,7 +77,7 @@ export function renderWeeklySelectionPanel(input: {
   input.candidates.forEach((item) => {
     const id = item.candidate.signal.id;
     const copy = candidatePreview(item);
-    const preview = `<a class="candidate-preview" target="_blank" rel="noopener" href="/weekly-preview?start=${encodeURIComponent(input.startDate)}&candidate=${encodeURIComponent(id)}">Voir l’aperçu</a>`;
+    const preview = `<a class="candidate-preview" target="_blank" rel="noopener" href="${escapeHtml(candidatePreviewHref(input, item, copy))}">Voir l’aperçu</a>`;
     const automaticStatus = item.rejectionReasons.length ? `Contrôle automatique : ${item.rejectionReasons.join(", ")}` : "Retenue par la sélection automatique";
     const card = `<label class="candidate ${item.rejectionReasons.length ? "candidate-review" : "candidate-ok"}"><div class="candidate-row"><input type="checkbox" value="${escapeHtml(id)}"><span class="candidate-content"><strong>${escapeHtml(detectorLabel(item.candidate.detector))}</strong><b>${escapeHtml(copy.value)}</b><em>${escapeHtml(copy.primary)}</em><small>${escapeHtml(copy.secondary)}</small><small class="source">${escapeHtml(copy.source)}</small><span class="candidate-meta">${escapeHtml(automaticStatus)} · score ${item.scores.total} · classement automatique n°${item.automaticRank}</span>${preview}</span></div></label>`;
     cards.push(card);
