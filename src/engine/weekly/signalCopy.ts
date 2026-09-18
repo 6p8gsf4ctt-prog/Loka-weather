@@ -194,7 +194,9 @@ function seriesCopy(ranked: RankedWeeklySignalCandidate, claimStatus: WeeklySign
   const historical = factNumber(candidate, "historicalLongestRun") ?? signal.evidence[0].reference.value;
   const dry = signal.forecast.metric === "PRECIPITATION" && (factString(candidate, "operator") === "LT" || factString(candidate, "operator") === "LTE");
   const label = dry ? "sans pluie significative" : "consécutifs au-dessus du seuil";
-  const primary = claimStatus === "OBSERVED" ? `La série atteint ${round(projected)} jours ${label}.` : `La série pourrait atteindre ${round(projected)} jours ${label}.`;
+  const primary = claimStatus === "OBSERVED"
+    ? `La série atteint ${round(projected)} jours ${label}.`
+    : `La série ${modal(claimStatus).could} atteindre ${round(projected)} jours ${label}.`;
   const secondary = `La plus longue séquence de la référence fournie comptait ${round(historical)} jours.`;
   return buildLokaEditorialCopy(primary, secondary);
 }

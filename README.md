@@ -176,11 +176,21 @@ Il classe et déduplique les signaux, puis n’autorise les slides 2 à 4 qu’a
 un prévol complet. Le résultat de l’étape 2 est documenté dans
 `docs/WEEKLY_EDITORIAL_FINALIZATION_STEP2.md`.
 
+L'étape 3 ajoute le rejeu de quatre semaines réelles, le test explicite du
+repli slide 1 et la certification du build Cloudflare. Son rapport est décrit
+dans `docs/WEEKLY_VALIDATION_PRODUCTION_STEP3.md`.
+
 La suite hebdomadaire peut être certifiée indépendamment du test quotidien
 historique avec :
 
 ```bash
 npm run test:weekly
+```
+
+Le pilote complet de production se relance avec :
+
+```bash
+npm run validate:weekly:production
 ```
 
 ## Limites connues de V0.1

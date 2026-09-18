@@ -40,7 +40,16 @@ que la référence Météo-France n'est pas réellement chargée.
 
 ## Collecte des semaines réelles
 
-Après déploiement, appeler l'aperçu administrateur pour chaque lundi à tester :
+Le pilote de l'étape 3 rejoue automatiquement quatre semaines réelles avec :
+
+```bash
+npm run validate:weekly:production
+```
+
+Les semaines du 17 août, 24 août, 31 août et 7 septembre 2026 passent toutes.
+Le rapport détaillé est écrit dans `artifacts/weekly-production/report.json`.
+Après déploiement, l'aperçu administrateur reste disponible pour un contrôle
+ponctuel :
 
 ```text
 POST /api/admin/weekly/preview?city=tarnos&start=YYYY-MM-DD
@@ -62,6 +71,5 @@ La fonction `summarizeWeeklyEditorialPilot` ne donne `PASS` que si :
 - aucune semaine live n'est bloquée ;
 - chaque semaine live dispose de la référence climatique locale nécessaire.
 
-À ce stade, l'outillage et les scénarios contrôlés sont terminés. La collecte
-des quatre semaines live reste volontairement ouverte : elle dépend des vraies
-prévisions du moteur et de la disponibilité effective des archives locales.
+Ce critère est satisfait : deux scénarios contrôlés et quatre semaines réelles
+distinctes sont en `PASS`, avec couverture climatique locale et cinq modèles.

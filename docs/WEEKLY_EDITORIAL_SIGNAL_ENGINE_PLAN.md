@@ -17,7 +17,7 @@ que leurs moteurs éditoriaux ne sont pas validés.
 |---:|---|---|
 | 1 | Capture prévisionnelle commune, import Météo-France, cache et raccordement hebdomadaire | TERMINÉE — 17 septembre 2026 |
 | 2 | Prévol consolidé sur les données réellement unifiées | TERMINÉE — 18 septembre 2026 |
-| 3 | Validation pilote puis activation officielle | À FAIRE |
+| 3 | Validation pilote puis activation officielle | VALIDÉE — déploiement Cloudflare à effectuer |
 
 L'étape 1 est documentée dans `docs/WEEKLY_DATA_UNIFICATION_STEP1.md`. Elle ne
 modifie ni la slide 1 validée, ni son graphisme, ni le contrat éditorial. Elle
@@ -30,8 +30,8 @@ accessibles et conformes aux contrôles de couverture et de fraîcheur.
 |---:|---|---|
 | 1 | Intégration complète : profils → signaux → classement → slides → renderer | TERMINÉE — 17 septembre 2026 |
 | 2 | Prévol automatisé : données, ex æquo, sources, texte, pictogrammes, frame et débordements | TERMINÉE — 17 septembre 2026 |
-| 3 | Validation pilote : scénarios contrôlés et semaines réelles | EN COURS — outillage prêt, 4 semaines live à collecter |
-| 4 | Publication progressive avec repli slide 1 | OUTILLÉE — activation par flags après validation pilote |
+| 3 | Validation pilote : scénarios contrôlés et semaines réelles | TERMINÉE — 18 septembre 2026 |
+| 4 | Publication progressive avec repli slide 1 | VALIDÉE — activation par flags après déploiement |
 
 ## Étapes
 

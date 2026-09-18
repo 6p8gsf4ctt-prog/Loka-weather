@@ -2,9 +2,10 @@
 
 ## Réponse courte
 
-Oui, une commande Cloudflare est nécessaire avant l’activation publique : la
-migration D1 `0018_weekly_publications.sql` doit être appliquée sur la base
-distante. Elle ne modifie pas les tables quotidiennes.
+Les opérations peuvent être réalisées sans terminal depuis GitHub et le tableau
+de bord Cloudflare. Les migrations D1 `0018_weekly_publications.sql` et
+`0019_weekly_data_unification.sql` doivent être présentes sur la base distante.
+Elles ne modifient pas les tables quotidiennes.
 
 Ne pas activer `WEEKLY_ENABLED` avant cette migration et avant le déploiement
 du code correspondant.
@@ -24,19 +25,27 @@ Depuis le dépôt, la méthode recommandée est :
 npx wrangler d1 migrations apply DB --remote
 ```
 
-Si la console SQL D1 est utilisée à la place, exécuter uniquement le contenu de
-`migrations/0018_weekly_publications.sql`. Il ne faut exécuter aucun `DROP`,
-`DELETE` ou `UPDATE` sur `forecasts`, `runs` ou `daily_scene_ledger`.
+Sans terminal, ouvrir Cloudflare → D1 → `loka-weather` → Console, puis exécuter
+uniquement le contenu des migrations `0018_weekly_publications.sql` et
+`0019_weekly_data_unification.sql` si leurs tables sont absentes. Il ne faut
+exécuter aucun `DROP`, `DELETE` ou `UPDATE` sur `forecasts`, `runs` ou
+`daily_scene_ledger`.
 
 Vérification non destructive :
 
 ```sql
 SELECT name
 FROM sqlite_master
-WHERE type = 'table' AND name = 'weekly_publications';
+WHERE type = 'table'
+  AND name IN (
+    'weekly_publications',
+    'forecast_snapshots',
+    'climate_daily_archive_chunks',
+    'climate_archive_state'
+  );
 ```
 
-Le résultat attendu contient `weekly_publications`.
+Le résultat attendu contient les quatre tables.
 
 ### 3. Prévisualiser sans écrire dans D1
 
@@ -59,9 +68,9 @@ Pour vérifier le rendu visuel du carrousel et du relais Story, ouvrir ensuite :
 https://loka-weather.jpbm62n289.workers.dev/weekly-preview
 ```
 
-Saisir le token dans le formulaire, laisser la date vide ou renseigner un lundi,
-puis télécharger les slides depuis la page. Cette page reste disponible même
-si `WEEKLY_ENABLED` est désactivé et ne stocke rien en D1.
+La page ne demande plus de token. Laisser la date vide pour la prochaine semaine
+ou ajouter `?start=YYYY-MM-DD` avec un lundi, puis télécharger les slides. Elle
+reste disponible même si `WEEKLY_ENABLED` est désactivé et n'écrit rien en D1.
 
 ### 4. Activer progressivement
 

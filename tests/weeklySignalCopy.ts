@@ -123,6 +123,7 @@ const series = buildWeeklySignalCopy(selected(raw({
 })));
 ok(series.primaryLine.includes("14 jours sans pluie significative"), "dry_series_copy_defines_the_sequence");
 ok(series.secondaryLine.includes("12 jours"), "series_copy_keeps_historical_reference");
+ok(series.claimStatus === "EXPECTED" && series.primaryLine.includes("devrait"), "high_confidence_series_uses_expected_modal");
 
 const intraday = buildWeeklySignalCopy(selected(raw({
   id: "rapid-drop", detector: "INTRADAY_CHANGE", family: "INTRADAY_CHANGE", value: 8, reference: 7,
@@ -150,4 +151,4 @@ const falseObservation = selected(raw({
 try { buildWeeklySignalCopy(falseObservation); } catch (error) { falseObservationBlocked = error instanceof Error && error.message === "weekly_signal_copy_observation_requires_observed_source"; }
 ok(falseObservationBlocked, "forecast_consensus_cannot_be_relabelled_as_observation");
 
-console.log(`WEEKLY_SIGNAL_COPY ${passed}/53 PASS`);
+console.log(`WEEKLY_SIGNAL_COPY ${passed}/54 PASS`);

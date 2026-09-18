@@ -2,7 +2,7 @@ import { CITIES, getCity } from "./config/cities";
 import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
 import { isWeeklyEnabled, renderWeeklyCarousel, resolveWeeklyPublicSurface, logWeeklyProgressivePublication } from "./engine/weekly";
-import { generateWeeklyCalmVisualPreview, generateWeeklyContextualVisualPreview, generateWeeklyCity, generateWeeklyPreviewCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyRangeForDate } from "./weeklyPipeline";
+import { generateWeeklyCalmVisualPreview, generateWeeklyContextualVisualPreview, generateWeeklyCity, generateWeeklyPreviewCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyPreviewRenderOptions, weeklyRangeForDate } from "./weeklyPipeline";
 import { localDate, runManualCity, runScheduledCity } from "./pipeline";
 import { generationHistory, officialForDate, officialHistory } from "./storage/db";
 import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySceneLedger";
@@ -365,11 +365,15 @@ export default {
       const start = typeof startValue === "string" && startValue.trim() ? startValue.trim() : undefined;
       try {
         const generated = await generateWeeklyPreviewCity(env, city, new Date(), start);
-        return new Response(renderWeeklyCarousel(generated.editorial, {
-          complementarySlides: generated.contextual.slides,
-          complementaryPreflight: generated.contextual.preflight,
-          includeStory: false
-        }), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+        const previewOptions = weeklyPreviewRenderOptions(generated);
+        const fallback = !previewOptions.complementarySlides && generated.contextual.slides.slides.length > 0;
+        return new Response(renderWeeklyCarousel(generated.editorial, previewOptions), {
+          headers: {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store",
+            "x-loka-weekly-contextual": fallback ? "slide1-fallback" : previewOptions.complementarySlides ? "approved" : "no-signal"
+          }
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         const status = message === "weekly_preview_start_requires_monday" ? 400 : message.startsWith("LOKA_WEEKLY_NEEDS_3_MODELS") ? 503 : 500;

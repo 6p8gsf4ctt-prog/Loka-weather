@@ -8,7 +8,7 @@ const tests = [
   "weeklySignalDetectors", "weeklyEditorialActivation", "weeklySignalRanking",
   "weeklySignalCopy", "weeklyComplementarySlides", "weeklyComplementaryPreflight",
   "weeklyContextualPipeline", "weeklyPilotValidation", "weeklyProgressivePublication",
-  "weeklyCarousel", "weeklyOperations", "weeklyActivation", "weeklyReleaseCandidate"
+  "weeklyProductionReadiness", "weeklyCarousel", "weeklyOperations", "weeklyActivation", "weeklyReleaseCandidate"
 ];
 
 for (const test of tests) {

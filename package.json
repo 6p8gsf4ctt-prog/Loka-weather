@@ -10,6 +10,7 @@
     "types": "wrangler types",
     "test": "rm -rf .test-dist && tsc -p tsconfig.tests.json && printf '{\"type\":\"commonjs\"}' > .test-dist/package.json && node .test-dist/tests/run-all.js",
     "test:weekly": "rm -rf .test-dist && tsc -p tsconfig.tests.json && printf '{\"type\":\"commonjs\"}' > .test-dist/package.json && node scripts/run-weekly-tests.mjs",
+    "validate:weekly:production": "npm run test:weekly && node scripts/validate-weekly-production.mjs",
     "test:scenes": "rm -rf .test-dist && tsc -p tsconfig.tests.json && printf '{\"type\":\"commonjs\"}' > .test-dist/package.json && node .test-dist/tests/scenes24/certify.js",
     "certify:scenes": "npm run test:scenes",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",

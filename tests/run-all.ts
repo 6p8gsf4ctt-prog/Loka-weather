@@ -40,6 +40,7 @@ import "./weeklyComplementaryPreflight";
 import "./weeklyContextualPipeline";
 import "./weeklyPilotValidation";
 import "./weeklyProgressivePublication";
+import "./weeklyProductionReadiness";
 import "./weeklyCarousel";
 import "./weeklyOperations";
 import "./weeklyActivation";

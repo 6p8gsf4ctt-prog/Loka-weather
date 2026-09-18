@@ -1,4 +1,5 @@
 import { buildWeeklyCarouselPlan, buildWeeklyContextualPipeline, buildWeeklyEditorial, buildWeeklyProfiles, detectWeeklyEvents, fetchWeeklyForecasts, selectWeeklyEvents, translateWeeklyActivities, validateWeeklyActivation, validateWeeklyEditorialPilot, WEEKLY_ENGINE_VERSION } from "./engine/weekly";
+import type { WeeklyCarouselRenderOptions } from "./engine/weekly";
 import { MODELS } from "./config/models";
 import { isWeeklyEnabled } from "./engine/weekly/featureFlag";
 import { localDateIsMonday, nextMondayOrSame, weeklyRangeForDate, type WeeklyDateRange } from "./engine/weekly/schedule";
@@ -21,6 +22,43 @@ export interface WeeklyRunResult {
   skipped: boolean;
   saved: boolean;
   publication?: WeeklyPublicationRecord;
+}
+
+function buildSafeWeeklyPublication(
+  editorial: ReturnType<typeof buildWeeklyEditorial>,
+  contextual: ReturnType<typeof buildWeeklyContextualPipeline>
+): { editorial: ReturnType<typeof buildWeeklyEditorial>; carousel: ReturnType<typeof buildWeeklyCarouselPlan> } {
+  // Raw weekly numbers pre-date the contextual engine. Phase 3 never exposes
+  // them: only a complete contextual preflight may add slides after slide 1.
+  const publishableEditorial = { ...editorial, weeklyNumber: undefined };
+  const contextualReady = contextual.preflight.ok
+    && contextual.preflight.comprehensive;
+  const carousel = contextualReady
+    ? buildWeeklyCarouselPlan(publishableEditorial, {
+      complementarySlides: contextual.slides,
+      complementaryPreflight: contextual.preflight
+    })
+    : buildWeeklyCarouselPlan(publishableEditorial);
+  return { editorial: publishableEditorial, carousel };
+}
+
+/**
+ * Resolves the exact preview renderer input. Any missing or failed contextual
+ * control produces slide 1 only; the slide itself is never rewritten.
+ */
+export function weeklyPreviewRenderOptions(generated: GeneratedWeekly): WeeklyCarouselRenderOptions {
+  const contextualReady = generated.activation.ok
+    && generated.contextual.preflight.ok
+    && generated.contextual.preflight.comprehensive
+    && generated.contextual.slides.slides.length > 0;
+  return {
+    ...(contextualReady ? {
+      complementarySlides: generated.contextual.slides,
+      complementaryPreflight: generated.contextual.preflight
+    } : {}),
+    includeStory: false,
+    pilot: generated.pilot
+  };
 }
 
 function assertMonday(city: CityConfig, instant: Date): string {
@@ -64,15 +102,14 @@ async function generateWeeklyForRange(
   const rawEvents = detectWeeklyEvents(profiles, city);
   const selection = selectWeeklyEvents(profiles, rawEvents, city);
   const activities = translateWeeklyActivities(profiles, selection, city);
-  const editorial = buildWeeklyEditorial(profiles, selection, activities, city);
+  const rawEditorial = buildWeeklyEditorial(profiles, selection, activities, city);
   const climate = await climatePromise;
   const contextual = buildWeeklyContextualPipeline(
     profiles,
     climate.status === "READY" ? { dailyArchive: climate.observations } : {}
   );
-  const carousel = contextual.preflight.ok && contextual.preflight.comprehensive
-    ? buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides, complementaryPreflight: contextual.preflight })
-    : buildWeeklyCarouselPlan({ ...editorial, weeklyNumber: undefined });
+  const publication = buildSafeWeeklyPublication(rawEditorial, contextual);
+  const { editorial, carousel } = publication;
   const activation = validateWeeklyActivation(editorial, carousel);
   if (!activation.ok) throw new Error(`weekly_activation_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);
   const pilot = validateWeeklyEditorialPilot({ source: "LIVE", label: source, profiles, contextual, carousel, activation });
@@ -186,9 +223,9 @@ export function generateWeeklyCalmVisualPreview(
   const selection = selectWeeklyEvents(profiles, rawEvents, city);
   if (selection.status !== "CALM") throw new Error("weekly_calm_preview_scenario_not_calm");
   const activities = translateWeeklyActivities(profiles, selection, city);
-  const editorial = buildWeeklyEditorial(profiles, selection, activities, city);
+  const rawEditorial = buildWeeklyEditorial(profiles, selection, activities, city);
   const contextual = buildWeeklyContextualPipeline(profiles);
-  const carousel = buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides, complementaryPreflight: contextual.preflight });
+  const { editorial, carousel } = buildSafeWeeklyPublication(rawEditorial, contextual);
   const activation = validateWeeklyActivation(editorial, carousel);
   if (!activation.ok) throw new Error(`weekly_activation_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);
   const pilot = validateWeeklyEditorialPilot({ source: "CONTROLLED", label: "semaine_calme_controlee", profiles, contextual, carousel, activation });
@@ -218,9 +255,9 @@ export function generateWeeklyContextualVisualPreview(
   const rawEvents = detectWeeklyEvents(profiles, city);
   const selection = selectWeeklyEvents(profiles, rawEvents, city);
   const activities = translateWeeklyActivities(profiles, selection, city);
-  const editorial = buildWeeklyEditorial(profiles, selection, activities, city);
+  const rawEditorial = buildWeeklyEditorial(profiles, selection, activities, city);
   const contextual = buildWeeklyContextualPipeline(profiles);
-  const carousel = buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides, complementaryPreflight: contextual.preflight });
+  const { editorial, carousel } = buildSafeWeeklyPublication(rawEditorial, contextual);
   const activation = validateWeeklyActivation(editorial, carousel);
   if (!activation.ok) throw new Error(`weekly_activation_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);
   const pilot = validateWeeklyEditorialPilot({ source: "CONTROLLED", label: "chaleur_pluie_controlee", profiles, contextual, carousel, activation });
