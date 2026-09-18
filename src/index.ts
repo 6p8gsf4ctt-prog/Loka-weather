@@ -2,13 +2,13 @@ import { CITIES, getCity } from "./config/cities";
 import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
 import { isWeeklyEnabled, renderWeeklyCarousel, resolveWeeklyPublicSurface, logWeeklyProgressivePublication } from "./engine/weekly";
-import { generateWeeklyCalmVisualPreview, generateWeeklyContextualVisualPreview, generateWeeklyCity, generateWeeklyPreviewCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyPreviewRenderOptions, weeklyRangeForDate } from "./weeklyPipeline";
+import { applyWeeklyManualSelection, generateWeeklyCalmVisualPreview, generateWeeklyContextualVisualPreview, generateWeeklyCity, generateWeeklyPreviewCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyPreviewRenderOptions, weeklyRangeForDate } from "./weeklyPipeline";
 import { localDate, runManualCity, runScheduledCity } from "./pipeline";
 import { generationHistory, officialForDate, officialHistory } from "./storage/db";
 import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySceneLedger";
 import { editorialFeedbackForOfficial, saveEditorialFeedback } from "./storage/editorialFeedback";
 import { buildEditorialLearningExport } from "./storage/editorialFeedbackExport";
-import { weeklyPublicationForRange } from "./storage/weeklyPublications";
+import { saveWeeklyPublication, weeklyPublicationForRange } from "./storage/weeklyPublications";
 import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
 import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
@@ -17,7 +17,7 @@ import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExpo
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
-import { renderWeeklyPreviewGate } from "./ui/weeklyPreview";
+import { renderWeeklyPreviewGate, renderWeeklySelectionPanel } from "./ui/weeklyPreview";
 import { ensureMeteoFranceDailyArchive } from "./weather/meteoFranceClimate";
 
 function json(data: unknown, status = 200): Response {
@@ -367,7 +367,13 @@ export default {
         const generated = await generateWeeklyPreviewCity(env, city, new Date(), start);
         const previewOptions = weeklyPreviewRenderOptions(generated);
         const fallback = !previewOptions.complementarySlides && generated.contextual.slides.slides.length > 0;
-        return new Response(renderWeeklyCarousel(generated.editorial, previewOptions), {
+        const selectionPanel = renderWeeklySelectionPanel({
+          citySlug: city.slug,
+          startDate: generated.editorial.startDate,
+          endDate: generated.editorial.endDate,
+          candidates: generated.contextual.ranking.all
+        });
+        return new Response(renderWeeklyCarousel(generated.editorial, previewOptions).replace('<section class="carousel"', selectionPanel + '<section class="carousel"'), {
           headers: {
             "content-type": "text/html; charset=utf-8",
             "cache-control": "no-store",
@@ -378,6 +384,35 @@ export default {
         const message = error instanceof Error ? error.message : String(error);
         const status = message === "weekly_preview_start_requires_monday" ? 400 : message.startsWith("LOKA_WEEKLY_NEEDS_3_MODELS") ? 503 : 500;
         return new Response(renderWeeklyPreviewGate(message), { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+      }
+    }
+
+    if (url.pathname === "/api/admin/weekly/publish-selection" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+      let body: { city?: unknown; start?: unknown; signalIds?: unknown };
+      try { body = await request.json() as typeof body; } catch { return json({ error: "invalid_json" }, 400); }
+      const city = getCity(typeof body.city === "string" ? body.city : "tarnos");
+      const start = typeof body.start === "string" ? body.start : "";
+      const signalIds = Array.isArray(body.signalIds) && body.signalIds.every((id) => typeof id === "string") ? body.signalIds as string[] : [];
+      if (!city || !start) return json({ error: "city_and_start_required" }, 400);
+      try {
+        const generated = await generateWeeklyPreviewCity(env, city, new Date(), start);
+        const selected = applyWeeklyManualSelection(generated, signalIds);
+        const publication = await saveWeeklyPublication(env.DB, {
+          citySlug: city.slug,
+          startDate: selected.editorial.startDate,
+          endDate: selected.editorial.endDate,
+          generatedAt: new Date().toISOString(),
+          source: "manual_weekly_selection",
+          status: selected.editorial.status,
+          engineVersion: "0.1.0",
+          editorial: selected.editorial,
+          carousel: selected.carousel
+        });
+        return json({ ok: true, publicationId: publication.id, startDate: publication.startDate, endDate: publication.endDate, selectedSignalIds: selected.contextual.slides.slides.map((slide) => slide.signalId) });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return json({ error: message }, 409);
       }
     }
 

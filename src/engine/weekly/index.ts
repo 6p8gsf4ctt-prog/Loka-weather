@@ -38,7 +38,7 @@ export { buildWeeklySignalCopies, buildWeeklySignalCopy, WEEKLY_SIGNAL_COPY_VERS
 export type { WeeklySignalClaimStatus, WeeklySignalCopy } from "./signalCopy";
 export { buildWeeklyComplementarySlides, WEEKLY_COMPLEMENTARY_SLIDES_VERSION } from "./complementarySlides";
 export type { WeeklyComplementarySlide, WeeklyComplementarySlidePlan, WeeklyComplementarySlideRole, WeeklyComplementaryTheme, WeeklyComplementaryVisual } from "./complementarySlides";
-export { buildWeeklyContextualPipeline, WEEKLY_CONTEXTUAL_PIPELINE_VERSION } from "./contextualPipeline";
+export { buildWeeklyContextualPipeline, buildWeeklyContextualSelection, WEEKLY_CONTEXTUAL_PIPELINE_VERSION } from "./contextualPipeline";
 export type { WeeklyContextualInput, WeeklyContextualPipelineResult } from "./contextualPipeline";
 export { assertWeeklyComplementaryPreflight, preflightWeeklyComplementarySlides, weeklyComplementaryPlanFingerprint, WEEKLY_COMPLEMENTARY_PREFLIGHT_VERSION } from "./complementaryPreflight";
 export type { WeeklyComplementaryPreflight, WeeklyComplementaryPreflightCheck, WeeklyComplementaryPreflightCheckId, WeeklyComplementaryPreflightContext } from "./complementaryPreflight";

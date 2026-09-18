@@ -1,4 +1,4 @@
-import { buildWeeklyCarouselPlan, buildWeeklyContextualPipeline, buildWeeklyEditorial, buildWeeklyProfiles, detectWeeklyEvents, fetchWeeklyForecasts, selectWeeklyEvents, translateWeeklyActivities, validateWeeklyActivation, validateWeeklyEditorialPilot, WEEKLY_ENGINE_VERSION } from "./engine/weekly";
+import { buildWeeklyCarouselPlan, buildWeeklyContextualPipeline, buildWeeklyContextualSelection, buildWeeklyEditorial, buildWeeklyProfiles, detectWeeklyEvents, fetchWeeklyForecasts, selectWeeklyEvents, translateWeeklyActivities, validateWeeklyActivation, validateWeeklyEditorialPilot, WEEKLY_ENGINE_VERSION } from "./engine/weekly";
 import type { WeeklyCarouselRenderOptions } from "./engine/weekly";
 import { MODELS } from "./config/models";
 import { isWeeklyEnabled } from "./engine/weekly/featureFlag";
@@ -22,6 +22,15 @@ export interface WeeklyRunResult {
   skipped: boolean;
   saved: boolean;
   publication?: WeeklyPublicationRecord;
+}
+
+export function applyWeeklyManualSelection(generated: GeneratedWeekly, signalIds: string[]): GeneratedWeekly {
+  const contextual = buildWeeklyContextualSelection(generated.contextual, generated.profiles, signalIds);
+  const publication = buildSafeWeeklyPublication(generated.editorial, contextual);
+  const activation = validateWeeklyActivation(publication.editorial, publication.carousel);
+  if (!activation.ok) throw new Error(`weekly_manual_selection_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);
+  const pilot = validateWeeklyEditorialPilot({ source: "LIVE", label: "manual_weekly_selection", profiles: generated.profiles, contextual, carousel: publication.carousel, activation });
+  return { ...generated, editorial: publication.editorial, contextual, carousel: publication.carousel, activation, pilot };
 }
 
 function buildSafeWeeklyPublication(

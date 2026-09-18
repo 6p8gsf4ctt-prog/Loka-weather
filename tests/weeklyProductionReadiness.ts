@@ -1,6 +1,6 @@
 import { CITIES } from "../src/config/cities";
 import { renderWeeklyCarousel } from "../src/engine/weekly";
-import { generateWeeklyCalmVisualPreview, generateWeeklyContextualVisualPreview, weeklyPreviewRenderOptions } from "../src/weeklyPipeline";
+import { applyWeeklyManualSelection, generateWeeklyCalmVisualPreview, generateWeeklyContextualVisualPreview, weeklyPreviewRenderOptions } from "../src/weeklyPipeline";
 
 let passed = 0;
 function ok(value: boolean, label: string): void {
@@ -34,4 +34,14 @@ const calmHtml = renderWeeklyCarousel(calm.editorial, calmOptions);
 ok(calmOptions.complementarySlides === undefined && (calmHtml.match(/class="slide-card"/g) ?? []).length === 1, "no_signal_week_renders_slide1_only");
 ok(calm.editorial.slide1.title === contextual.editorial.slide1.title, "fallback_does_not_change_the_locked_slide1_title");
 
-console.log(`WEEKLY_PRODUCTION_READINESS ${passed}/7 PASS`);
+const firstSignalId = contextual.contextual.ranking.selected[0]?.candidate.signal.id;
+if (!firstSignalId) throw new Error("WEEKLY_PRODUCTION_READINESS_FAIL:no_eligible_signal_for_manual_selection");
+const manuallySelected = applyWeeklyManualSelection(contextual, [firstSignalId]);
+ok(manuallySelected.carousel.slides.length === 2, "manual_selection_keeps_slide1_and_one_selected_slide");
+ok(manuallySelected.carousel.slides[0]?.kind === "OVERVIEW", "manual_selection_keeps_overview_first");
+ok(manuallySelected.contextual.slides.slides[0]?.signalId === firstSignalId, "manual_selection_uses_requested_signal");
+let rejectedUnknown = false;
+try { applyWeeklyManualSelection(contextual, ["unknown-signal-id"]); } catch { rejectedUnknown = true; }
+ok(rejectedUnknown, "manual_selection_rejects_unknown_signal");
+
+console.log(`WEEKLY_PRODUCTION_READINESS ${passed}/11 PASS`);

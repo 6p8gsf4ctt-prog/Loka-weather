@@ -76,3 +76,27 @@ export function buildWeeklyContextualPipeline(
     activation
   };
 }
+
+/**
+ * Rebuilds the complementary plan from an explicit editorial selection.
+ * Only candidates already accepted by the automatic ranking are selectable;
+ * the same preflight and renderer contracts are then applied again.
+ */
+export function buildWeeklyContextualSelection(
+  base: WeeklyContextualPipelineResult,
+  profiles: WeeklyProfileSet,
+  signalIds: string[]
+): WeeklyContextualPipelineResult {
+  const uniqueIds = [...new Set(signalIds.map((id) => id.trim()).filter(Boolean))];
+  if (uniqueIds.length > 3) throw new Error("weekly_manual_selection_max_three_signals");
+  const selected = uniqueIds.map((id) => base.ranking.selected.find((item) => item.candidate.signal.id === id));
+  if (selected.some((item) => !item)) throw new Error("weekly_manual_selection_candidate_not_eligible");
+  const ranking: WeeklySignalRankingResult = {
+    ...base.ranking,
+    selected: selected as NonNullable<typeof selected[number]>[],
+    all: [...(selected as NonNullable<typeof selected[number]>[]), ...base.ranking.rejected]
+  };
+  const slides = buildWeeklyComplementarySlides(ranking.selected);
+  const preflight = preflightWeeklyComplementarySlides(slides, { profiles, ranking, climateStatus: base.climateStatus });
+  return { ...base, ranking, slides, preflight };
+}
