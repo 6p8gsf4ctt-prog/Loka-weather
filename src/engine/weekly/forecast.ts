@@ -1,5 +1,6 @@
 import type { CityConfig, Env, ModelForecast } from "../../types";
 import { captureForecastSnapshot } from "../../weather/forecastSnapshot";
+import { latestWeeklyForecastSnapshot } from "../../storage/forecastSnapshots";
 import type { WeeklyDateRange } from "./schedule";
 
 export const WEEKLY_FORECAST_DAYS = 7 as const;
@@ -22,6 +23,12 @@ export async function fetchWeeklyForecasts(
   city: CityConfig,
   range?: WeeklyDateRange
 ): Promise<WeeklyForecastBatch> {
+  if (range) {
+    const cached = await latestWeeklyForecastSnapshot(env.DB, city.slug, range.startDate, range.endDate);
+    if (cached && cached.forecasts.length >= 3) {
+      return { forecastDays: WEEKLY_FORECAST_DAYS, snapshotId: cached.id, generatedAt: cached.generatedAt, forecasts: cached.forecasts, failures: cached.failures };
+    }
+  }
   const snapshot = await captureForecastSnapshot(env, city, "WEEKLY", range ? {
     forecastDays: WEEKLY_FORECAST_DAYS,
     startDate: range.startDate,

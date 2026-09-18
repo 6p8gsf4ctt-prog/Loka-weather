@@ -21,3 +21,8 @@ réécrite.
 
 La publication manuelle utilise la source `manual_weekly_selection` et devient
 la publication officielle de la période sélectionnée.
+
+Les aperçus réutilisent désormais la dernière capture hebdomadaire D1 récente
+au lieu de relancer les cinq fournisseurs météo à chaque clic. Cela évite le
+dépassement CPU Cloudflare observé sur les candidates initialement classées
+hors sélection automatique.

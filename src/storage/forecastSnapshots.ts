@@ -4,6 +4,51 @@ function databaseAvailable(db: D1Database | undefined): db is D1Database {
   return !!db && typeof db.prepare === "function";
 }
 
+interface ForecastSnapshotDbRow {
+  snapshot_id: string;
+  city_slug: string;
+  purpose: "DAILY" | "WEEKLY";
+  start_date: string | null;
+  end_date: string | null;
+  forecast_days: number;
+  generated_at: string;
+  failures_json: string;
+  forecasts_json: string;
+  consensus_json: string;
+}
+
+function parseSnapshotRow(row: ForecastSnapshotDbRow): ForecastSnapshot {
+  return {
+    version: "1.0.0",
+    id: row.snapshot_id,
+    citySlug: row.city_slug,
+    purpose: row.purpose,
+    generatedAt: row.generated_at,
+    request: { forecastDays: row.forecast_days, startDate: row.start_date ?? undefined, endDate: row.end_date ?? undefined },
+    forecasts: JSON.parse(row.forecasts_json) as ForecastSnapshot["forecasts"],
+    failures: JSON.parse(row.failures_json) as ForecastSnapshot["failures"],
+    consensus: JSON.parse(row.consensus_json) as ForecastSnapshot["consensus"]
+  };
+}
+
+/** Reuses a recent weekly capture so candidate previews do not refetch five models. */
+export async function latestWeeklyForecastSnapshot(
+  db: D1Database | undefined,
+  citySlug: string,
+  startDate: string,
+  endDate: string,
+  maxAgeMs = 12 * 60 * 60 * 1000
+): Promise<ForecastSnapshot | null> {
+  if (!databaseAvailable(db)) return null;
+  const row = await db.prepare(`
+    SELECT * FROM forecast_snapshots
+    WHERE city_slug = ? AND purpose = 'WEEKLY' AND start_date = ? AND end_date = ?
+    ORDER BY generated_at DESC LIMIT 1
+  `).bind(citySlug, startDate, endDate).first<ForecastSnapshotDbRow>();
+  if (!row || Date.now() - Date.parse(row.generated_at) > maxAgeMs) return null;
+  try { return parseSnapshotRow(row); } catch { return null; }
+}
+
 /**
  * Persists the exact multi-model capture used by a publication. Failure to
  * archive never changes the forecast result; publication guards remain the
@@ -37,4 +82,3 @@ export async function persistForecastSnapshot(db: D1Database | undefined, snapsh
     return false;
   }
 }
-
