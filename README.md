@@ -170,6 +170,19 @@ quotidien officiel Météo-France de la station locale retenue, avec cache D1,
 contrôle de couverture et contrôle de fraîcheur. Le contrat et le déploiement
 sont détaillés dans `docs/WEEKLY_DATA_UNIFICATION_STEP1.md`.
 
+Le moteur éditorial hebdomadaire active ensuite les records potentiels,
+anomalies, percentiles, seuils saisonniers, séries et phénomènes importants.
+Il classe et déduplique les signaux, puis n’autorise les slides 2 à 4 qu’après
+un prévol complet. Le résultat de l’étape 2 est documenté dans
+`docs/WEEKLY_EDITORIAL_FINALIZATION_STEP2.md`.
+
+La suite hebdomadaire peut être certifiée indépendamment du test quotidien
+historique avec :
+
+```bash
+npm run test:weekly
+```
+
 ## Limites connues de V0.1
 
 Cette version utilise cinq modèles déterministes. Son `confidenceRain` représente encore la convergence entre modèles, **pas une vraie probabilité météorologique calibrée**.

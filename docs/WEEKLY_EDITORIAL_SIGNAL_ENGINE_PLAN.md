@@ -16,7 +16,7 @@ que leurs moteurs éditoriaux ne sont pas validés.
 | Étape | Livrable | Statut |
 |---:|---|---|
 | 1 | Capture prévisionnelle commune, import Météo-France, cache et raccordement hebdomadaire | TERMINÉE — 17 septembre 2026 |
-| 2 | Prévol consolidé sur les données réellement unifiées | À FAIRE |
+| 2 | Prévol consolidé sur les données réellement unifiées | TERMINÉE — 18 septembre 2026 |
 | 3 | Validation pilote puis activation officielle | À FAIRE |
 
 L'étape 1 est documentée dans `docs/WEEKLY_DATA_UNIFICATION_STEP1.md`. Elle ne

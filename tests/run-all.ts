@@ -32,6 +32,7 @@ import "./weeklyEditorialSignals";
 import "./weeklyClimateReferences";
 import "./weeklyDataUnification";
 import "./weeklySignalDetectors";
+import "./weeklyEditorialActivation";
 import "./weeklySignalRanking";
 import "./weeklySignalCopy";
 import "./weeklyComplementarySlides";

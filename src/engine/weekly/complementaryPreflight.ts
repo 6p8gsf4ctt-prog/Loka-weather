@@ -4,6 +4,7 @@ import { complementaryPictogramIsOfficial } from "./complementaryPictograms";
 import type { WeeklyComplementarySlide, WeeklyComplementarySlidePlan } from "./complementarySlides";
 import type { WeeklyProfileSet } from "./profiles";
 import type { RankedWeeklySignalCandidate, WeeklySignalRankingResult } from "./signalRanking";
+import { WEEKLY_CLIMATE_REFERENCE_VERSION, WEEKLY_CLIMATE_STATION_ID } from "./climateReferences";
 
 export const WEEKLY_COMPLEMENTARY_PREFLIGHT_VERSION = "2.0.0" as const;
 
@@ -135,6 +136,7 @@ function hourValue(day: WeeklyProfileSet["days"][number], hour: number, metric: 
 
 function dailyValue(item: RankedWeeklySignalCandidate, measurement: WeeklySignalMeasurement, context: WeeklyComplementaryPreflightContext): number | null {
   const signal = item.candidate.signal;
+  if (measurement.window.basis === "SEASON_TO_DATE") return measurement.value;
   const start = profileDay(context, measurement.window.startDate);
   const end = profileDay(context, measurement.window.endDate);
   if (!start || !end) return null;
@@ -153,7 +155,6 @@ function dailyValue(item: RankedWeeklySignalCandidate, measurement: WeeklySignal
   if (measurement.window.basis === "WEEKLY_TOTAL" && measurement.metric === "PRECIPITATION") {
     return context.profiles.days.reduce((sum, day) => sum + day.fullDay.precipitation.totalMm, 0);
   }
-  if (measurement.window.basis === "SEASON_TO_DATE") return measurement.value;
   if (measurement.metric === "TEMPERATURE") {
     const minimum = signal.topicKey.startsWith("tminC:") || item.candidate.facts.phenomenon === "FROST";
     return minimum ? start.fullDay.minTemperatureC : start.fullDay.maxTemperatureC;
@@ -184,7 +185,12 @@ function sourceIsTraceable(slide: WeeklyComplementarySlide, context?: WeeklyComp
   const evidence = ranked.candidate.signal.evidence;
   if (!evidence.length || evidence.some((item) => !compact(item.explanation) || !item.source)) return false;
   if (CONTEXTUAL_DETECTORS.has(ranked.candidate.detector)) {
-    return context.climateStatus === "READY" && evidence.every((item) => item.source !== "CONSENSUS_FORECAST");
+    return context.climateStatus === "READY"
+      && ranked.candidate.facts.stationId === WEEKLY_CLIMATE_STATION_ID
+      && ranked.candidate.facts.referenceVersion === WEEKLY_CLIMATE_REFERENCE_VERSION
+      && typeof ranked.candidate.facts.resourceCount === "number"
+      && ranked.candidate.facts.resourceCount >= 1
+      && evidence.every((item) => item.source !== "CONSENSUS_FORECAST");
   }
   return evidence.every((item) => item.source === "CONSENSUS_FORECAST" && item.direct === true);
 }

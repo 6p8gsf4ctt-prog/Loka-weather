@@ -43,6 +43,13 @@ en mémoire, filtrés sur la station `64024001`, puis normalisés au contrat N3.
 Le fichier courant remplace les éventuels doublons de date du fichier
 historique.
 
+Pour respecter les limites d’exécution Cloudflare au premier démarrage, le
+dépôt embarque également un amorçage compact, traçable et contrôlé des 25 203
+journées 1956–2024 de cette même ressource officielle. Seul le fichier glissant
+2025–2026 doit alors être filtré à l’exécution. Si le titre, l’URL ou la date de
+modification de la ressource historique changent, cet amorçage est refusé et
+le moteur revient automatiquement à l’import officiel complet.
+
 ## Contrôles avant activation
 
 Une archive n'est mise en cache que si elle respecte tous les contrôles :

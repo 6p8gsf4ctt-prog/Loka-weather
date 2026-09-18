@@ -7,6 +7,7 @@ import {
 } from "../src/engine/weekly";
 import {
   evaluateMeteoFranceDailyArchive,
+  readMeteoFranceClimateBootstrap,
   readMeteoFranceDailyResource,
   selectMeteoFranceDailyResources,
   type DataGouvClimateDataset
@@ -78,6 +79,19 @@ function archive(endDate: string): ClimateDailyObservation[] {
   ok(parsed.length === 1 && parsed[0].date === "2026-09-15", "gzip_stream_is_filtered_to_reference_station");
   ok(parsed[0].tminC === 15.6 && parsed[0].gust3sMs === 15, "gzip_stream_is_normalized");
 
+  const bootstrap = await readMeteoFranceClimateBootstrap(new Response(JSON.stringify({
+    version: 1,
+    stationId: WEEKLY_CLIMATE_STATION_ID,
+    sourceTitle: "history",
+    sourceUrl: "https://example.test/history.csv.gz",
+    sourceLastModified: "2026-08-02T00:00:00Z",
+    firstDate: "2024-12-31",
+    lastDate: "2024-12-31",
+    rowCount: 1,
+    rows: [["2024-12-31", 8, 15, 1.2, 12, 1, 1, 1, 1]]
+  })), provenance);
+  ok(bootstrap.length === 1 && bootstrap[0].rainMm === 1.2 && bootstrap[0].provenance.resourceId === "latest", "compact_official_bootstrap_is_normalized");
+
   const quality = evaluateMeteoFranceDailyArchive(archive("2026-09-15"), new Date("2026-09-17T12:00:00Z"));
   ok(quality.acceptable && quality.latestObservationAgeDays === 2, "complete_recent_archive_is_accepted");
   ok(Object.values(quality.coverage).every((item) => item.acceptable), "reference_coverage_is_checked");
@@ -85,6 +99,5 @@ function archive(endDate: string): ClimateDailyObservation[] {
   const stale = evaluateMeteoFranceDailyArchive(archive("2026-08-31"), new Date("2026-09-17T12:00:00Z"));
   ok(!stale.acceptable && stale.issues.some((item) => item.startsWith("latest_observation_too_old")), "stale_archive_is_rejected");
 
-  console.log(`WEEKLY_DATA_UNIFICATION ${passed}/6 PASS`);
+  console.log(`WEEKLY_DATA_UNIFICATION ${passed}/7 PASS`);
 })().catch((error) => { throw error; });
-

@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "types": "wrangler types",
     "test": "rm -rf .test-dist && tsc -p tsconfig.tests.json && printf '{\"type\":\"commonjs\"}' > .test-dist/package.json && node .test-dist/tests/run-all.js",
+    "test:weekly": "rm -rf .test-dist && tsc -p tsconfig.tests.json && printf '{\"type\":\"commonjs\"}' > .test-dist/package.json && node scripts/run-weekly-tests.mjs",
     "test:scenes": "rm -rf .test-dist && tsc -p tsconfig.tests.json && printf '{\"type\":\"commonjs\"}' > .test-dist/package.json && node .test-dist/tests/scenes24/certify.js",
     "certify:scenes": "npm run test:scenes",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
@@ -17,7 +18,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "latest",
-    "typescript": "latest",
-    "wrangler": "latest"
+    "typescript": "5.9.3",
+    "wrangler": "4.134.0"
   }
 }

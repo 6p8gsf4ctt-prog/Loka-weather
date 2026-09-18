@@ -30,6 +30,8 @@ export { buildConsecutiveSeriesReference, buildDatedTemperatureReference, buildH
 export type { ClimateCoverageReport, ClimateDailyMetric, ClimateDailyObservation, ClimateDistribution, ClimateHourlyMetric, ClimateHourlyObservation, ClimateProvenance, ConsecutiveSeriesReference, DatedClimateReference, HourlyClimateReference, RainfallReference, SeasonalThresholdReference } from "./climateReferences";
 export { detectClimateDeparture, detectHistoricalExtreme, detectImpactPhenomena, detectIntradayChanges, detectProjectedSeries, detectRegimeChanges, detectSeasonalFirst, detectWeeklyRainfallDeparture, detectWeeklySignalCandidates, INTRADAY_THRESHOLDS, PHENOMENON_THRESHOLDS, REGIME_THRESHOLDS, WEEKLY_SIGNAL_DETECTOR_VERSION } from "./signalDetectors";
 export type { ForecastDailyFact, ProjectedSeriesInput, SeasonalFirstInput, WeeklySignalCandidate, WeeklySignalDetectorKind } from "./signalDetectors";
+export { activateWeeklyEditorialSignals, WEEKLY_EDITORIAL_ACTIVATION_VERSION } from "./editorialActivation";
+export type { WeeklyEditorialActivationResult } from "./editorialActivation";
 export { rankAndDeduplicateWeeklySignals, scoreWeeklySignalCandidate, WEEKLY_SIGNAL_MIN_TOTAL_SCORE, WEEKLY_SIGNAL_RANKING_VERSION } from "./signalRanking";
 export type { RankedWeeklySignalCandidate, WeeklySignalRankingResult, WeeklySignalRejectionReason, WeeklySignalScoreDimension, WeeklySignalScores } from "./signalRanking";
 export { buildWeeklySignalCopies, buildWeeklySignalCopy, WEEKLY_SIGNAL_COPY_VERSION } from "./signalCopy";

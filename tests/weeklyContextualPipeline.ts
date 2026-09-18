@@ -8,7 +8,7 @@ function ok(value: boolean, label: string): void {
 }
 
 const generated = generateWeeklyContextualVisualPreview(CITIES.tarnos!, new Date("2026-09-17T12:00:00Z"), "2026-09-21");
-ok(generated.contextual.version === "1.0.0" && generated.contextual.climateStatus === "UNAVAILABLE", "real_pipeline_reports_missing_archive_without_inventing_history");
+ok(generated.contextual.version === "2.0.0" && generated.contextual.climateStatus === "UNAVAILABLE" && generated.contextual.activation === null, "real_pipeline_reports_missing_archive_without_inventing_history");
 ok(generated.contextual.candidates.length >= 2 && generated.contextual.ranking.selected.length >= 2, "controlled_forecast_reaches_detection_and_ranking");
 ok(generated.contextual.slides.slides.map((slide) => `${slide.position}:${slide.role}`).join(",") === "2:NUMBER,3:PRACTICAL", "selected_signals_reach_adaptive_slide_assignment");
 ok(generated.contextual.preflight.ok && generated.contextual.preflight.comprehensive && generated.contextual.preflight.checks.length === 12, "all_pre_render_checks_are_grouped_in_one_comprehensive_report");

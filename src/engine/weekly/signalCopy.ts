@@ -3,6 +3,7 @@ import type { LokaEditorialCopy } from "../editorialCopy";
 import type { WeeklyEditorialMetric, WeeklyEditorialSignalMode } from "./editorialSignals";
 import type { WeeklySignalCandidate } from "./signalDetectors";
 import type { RankedWeeklySignalCandidate } from "./signalRanking";
+import { WEEKLY_CLIMATE_STATION_ID } from "./climateReferences";
 
 export const WEEKLY_SIGNAL_COPY_VERSION = "1.0.0" as const;
 
@@ -239,7 +240,7 @@ export function buildWeeklySignalCopy(ranked: RankedWeeklySignalCandidate): Week
     ? "Observation locale Météo-France comparée à la référence historique retenue."
     : directConsensus
       ? "Prévision issue du consensus LOKA, comparée à un seuil moteur documenté."
-      : "Prévision issue du consensus LOKA, comparée à la référence locale retenue.";
+      : `Prévision LOKA comparée à Météo-France Biarritz (${WEEKLY_CLIMATE_STATION_ID}).`;
   return {
     version: WEEKLY_SIGNAL_COPY_VERSION,
     signalId: signal.id,

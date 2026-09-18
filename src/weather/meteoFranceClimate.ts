@@ -23,6 +23,7 @@ export const METEO_FRANCE_CLIMATE_DEPARTMENT = "64";
 export const METEO_FRANCE_CLIMATE_REFRESH_HOURS = 12;
 export const METEO_FRANCE_CLIMATE_MAX_OBSERVATION_AGE_DAYS = 7;
 export const METEO_FRANCE_CLIMATE_FETCH_TIMEOUT_MS = 60_000;
+export const METEO_FRANCE_CLIMATE_BOOTSTRAP_PATH = "/climate/64024001-daily-1956-2024.json";
 
 export interface DataGouvClimateResource {
   id: string;
@@ -46,6 +47,30 @@ export interface ClimateArchiveQuality {
   latestObservationAgeDays: number;
   coverage: Record<string, ClimateCoverageReport>;
   issues: string[];
+}
+
+type ClimateBootstrapTuple = [
+  date: string,
+  tminC: number | null,
+  tmaxC: number | null,
+  rainMm: number | null,
+  gust3sMs: number | null,
+  qTmin: number | null,
+  qTmax: number | null,
+  qRain: number | null,
+  qGust: number | null
+];
+
+export interface ClimateBootstrapPayload {
+  version: 1;
+  stationId: string;
+  sourceTitle: string;
+  sourceUrl: string;
+  sourceLastModified: string;
+  firstDate: string;
+  lastDate: string;
+  rowCount: number;
+  rows: ClimateBootstrapTuple[];
 }
 
 function envNumber(value: string | undefined, fallback: number, minimum: number, maximum: number): number {
@@ -116,6 +141,55 @@ export async function readMeteoFranceDailyResource(response: Response, provenanc
   return observations;
 }
 
+function bootstrapNumber(value: unknown): number | null {
+  if (value === null) return null;
+  return typeof value === "number" && Number.isFinite(value) ? value : Number.NaN;
+}
+
+/** Reads the compact station-only snapshot bundled from the official immutable historical resource. */
+export async function readMeteoFranceClimateBootstrap(
+  response: Response,
+  provenance: ClimateProvenance,
+  expected?: Pick<DataGouvClimateResource, "title" | "url" | "last_modified">
+): Promise<ClimateDailyObservation[]> {
+  if (!response.ok) throw new Error(`meteo_france_bootstrap_http_${response.status}`);
+  const payload = await response.json() as ClimateBootstrapPayload;
+  if (payload.version !== 1 || payload.stationId !== WEEKLY_CLIMATE_STATION_ID || !Array.isArray(payload.rows)) throw new Error("meteo_france_bootstrap_contract_invalid");
+  if (expected && (payload.sourceTitle !== expected.title || payload.sourceUrl !== expected.url
+    || (expected.last_modified && Date.parse(payload.sourceLastModified) !== Date.parse(expected.last_modified)))) {
+    throw new Error("meteo_france_bootstrap_source_changed");
+  }
+  if (payload.rowCount !== payload.rows.length || payload.rows[0]?.[0] !== payload.firstDate || payload.rows.at(-1)?.[0] !== payload.lastDate) {
+    throw new Error("meteo_france_bootstrap_integrity_invalid");
+  }
+  return payload.rows.map((row) => {
+    const values = row.slice(1).map(bootstrapNumber);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(row[0]) || values.some(Number.isNaN)) throw new Error("meteo_france_bootstrap_row_invalid");
+    return {
+      stationId: WEEKLY_CLIMATE_STATION_ID,
+      date: row[0],
+      tminC: values[0], tmaxC: values[1], rainMm: values[2], gust3sMs: values[3],
+      quality: { tminC: values[4], tmaxC: values[5], rainMm: values[6], gust3sMs: values[7] },
+      provenance
+    };
+  });
+}
+
+async function bundledHistoricalRows(
+  env: Env,
+  resource: DataGouvClimateResource,
+  provenance: ClimateProvenance
+): Promise<ClimateDailyObservation[] | null> {
+  if (!env.ASSETS || resourcePeriodPriority(resource.title) !== 1) return null;
+  try {
+    const response = await env.ASSETS.fetch(new Request(`https://loka-assets.local${METEO_FRANCE_CLIMATE_BOOTSTRAP_PATH}`));
+    return await readMeteoFranceClimateBootstrap(response, provenance, resource);
+  } catch (error) {
+    console.warn("meteo_france_historical_bootstrap_unavailable", error instanceof Error ? error.message : String(error));
+    return null;
+  }
+}
+
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -178,8 +252,6 @@ async function importMeteoFranceDailyArchive(env: Env, now: Date): Promise<Clima
   const resources: ClimateArchiveResourceRecord[] = [];
   const resourceRows: ClimateDailyObservation[][] = [];
   for (const item of selected) {
-    const response = await fetchWithTimeout(item.url, timeoutMs);
-    if (!response.ok) throw new Error(`meteo_france_resource_http_${response.status}:${item.id}`);
     const resource: ClimateArchiveResourceRecord = {
       id: item.id,
       title: item.title,
@@ -197,6 +269,13 @@ async function importMeteoFranceDailyArchive(env: Env, now: Date): Promise<Clima
       referenceVersion: WEEKLY_CLIMATE_REFERENCE_VERSION
     };
     resources.push(resource);
+    const bundled = await bundledHistoricalRows(env, item, provenance);
+    if (bundled) {
+      resourceRows.push(bundled);
+      continue;
+    }
+    const response = await fetchWithTimeout(item.url, timeoutMs);
+    if (!response.ok) throw new Error(`meteo_france_resource_http_${response.status}:${item.id}`);
     resourceRows.push(await readMeteoFranceDailyResource(response, provenance));
   }
   const observations = mergeObservations(resourceRows);
