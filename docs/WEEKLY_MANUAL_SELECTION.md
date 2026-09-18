@@ -1,8 +1,10 @@
 # Sélection manuelle de la publication hebdomadaire
 
 `/weekly-preview` conserve la génération automatique, mais expose désormais
-toutes les candidates éditoriales produites par les détecteurs. Les candidates
-rejetées restent visibles avec leur motif et ne peuvent pas être cochées.
+toutes les candidates éditoriales produites par les détecteurs. Chaque candidate
+admissible possède un aperçu réel de la slide. Les candidates rejetées sont
+regroupées dans une section séparée, avec leur formulation indicative et leur
+motif ; elles ne peuvent pas être cochées ni publiées.
 
 ## Publication
 

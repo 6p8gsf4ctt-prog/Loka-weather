@@ -365,15 +365,19 @@ export default {
       const start = typeof startValue === "string" && startValue.trim() ? startValue.trim() : undefined;
       try {
         const generated = await generateWeeklyPreviewCity(env, city, new Date(), start);
-        const previewOptions = weeklyPreviewRenderOptions(generated);
-        const fallback = !previewOptions.complementarySlides && generated.contextual.slides.slides.length > 0;
-        const selectionPanel = renderWeeklySelectionPanel({
+        const candidateId = url.searchParams.get("candidate");
+        const selectedPreview = candidateId ? applyWeeklyManualSelection(generated, [candidateId]) : null;
+        const previewSource = selectedPreview ?? generated;
+        const previewOptions = weeklyPreviewRenderOptions(previewSource);
+        const fallback = !previewOptions.complementarySlides && previewSource.contextual.slides.slides.length > 0;
+        const selectionPanel = selectedPreview ? "" : renderWeeklySelectionPanel({
           citySlug: city.slug,
           startDate: generated.editorial.startDate,
           endDate: generated.editorial.endDate,
           candidates: generated.contextual.ranking.all
         });
-        return new Response(renderWeeklyCarousel(generated.editorial, previewOptions).replace('<section class="carousel"', selectionPanel + '<section class="carousel"'), {
+        const html = renderWeeklyCarousel(previewSource.editorial, previewOptions).replace('<section class="carousel"', selectionPanel + '<section class="carousel"');
+        return new Response(html, {
           headers: {
             "content-type": "text/html; charset=utf-8",
             "cache-control": "no-store",

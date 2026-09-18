@@ -7,30 +7,58 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-export interface WeeklySelectionPanelCandidate {
-  candidate: {
-    signal: { id: string; forecast: { value: number; unit: string } };
-    detector: string;
+import { buildWeeklySignalCopy } from "../engine/weekly";
+import type { RankedWeeklySignalCandidate } from "../engine/weekly";
+
+function detectorLabel(detector: string): string {
+  const labels: Record<string, string> = {
+    CLIMATE_ANOMALY: "Écart à la normale",
+    INTRADAY_CHANGE: "Amplitude dans la journée",
+    EXTREME_PERCENTILE: "Valeur statistiquement remarquable",
+    RECORD_PROXIMITY: "Proximité d’un record",
+    HISTORICAL_SINCE: "Situation rare dans l’historique",
+    SEASONAL_FIRST: "Premier passage saisonnier",
+    REMARKABLE_SERIES: "Série remarquable",
+    IMPACT_PHENOMENON: "Phénomène météo important",
+    REGIME_CHANGE: "Changement de régime météo"
   };
-  scores: { total: number };
-  eligible: boolean;
-  rejectionReasons: string[];
-  rank: number | null;
+  return labels[detector] ?? "Information météo remarquable";
+}
+
+function candidatePreview(item: RankedWeeklySignalCandidate): { value: string; primary: string; secondary: string; source: string } {
+  if (item.eligible && item.rank !== null && item.rejectionReasons.length === 0) {
+    const copy = buildWeeklySignalCopy(item);
+    return { value: copy.displayValue, primary: copy.primaryLine, secondary: copy.secondaryLine, source: copy.sourceNote };
+  }
+  const signal = item.candidate.signal;
+  const value = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(signal.forecast.value);
+  const unit = signal.forecast.unit === "C" ? "°C" : signal.forecast.unit;
+  return {
+    value: `${value} ${unit}`,
+    primary: "Cette information a été détectée mais n’est pas publiable en l’état.",
+    secondary: `Motif : ${item.rejectionReasons.join(", ") || "prévol incomplet"}.`,
+    source: "Candidate conservée pour transparence éditoriale."
+  };
 }
 
 export function renderWeeklySelectionPanel(input: {
   citySlug: string;
   startDate: string;
   endDate: string;
-  candidates: WeeklySelectionPanelCandidate[];
+  candidates: RankedWeeklySignalCandidate[];
 }): string {
-  const cards = input.candidates.map((item) => {
+  const eligibleCards: string[] = [];
+  const rejectedCards: string[] = [];
+  input.candidates.forEach((item) => {
     const id = item.candidate.signal.id;
-    const value = `${item.candidate.signal.forecast.value} ${item.candidate.signal.forecast.unit}`;
-    const state = item.eligible ? `Éligible · score ${item.scores.total}` : `Écartée · ${item.rejectionReasons.join(", ")}`;
-    return `<label class="candidate ${item.eligible ? "candidate-ok" : "candidate-off"}"><input type="checkbox" value="${escapeHtml(id)}" ${item.eligible ? "" : "disabled"}><span><strong>${escapeHtml(item.candidate.detector)}</strong><b>${escapeHtml(value)}</b><small>${escapeHtml(state)}</small></span></label>`;
-  }).join("");
-  return `<section class="selection-panel"><div class="selection-title">CHOISIR LA PUBLICATION OFFICIELLE</div><p class="selection-help">Sélectionnez jusqu’à trois données fiables pour les slides 2, 3 et 4. La slide 1 reste inchangée. Sans sélection, seule la slide 1 sera publiée.</p><div class="candidate-grid">${cards || "<p>Aucune donnée complémentaire suffisamment fiable cette semaine.</p>"}</div><div class="selection-actions"><input id="weeklyAdminToken" type="password" placeholder="Mot de passe administrateur" autocomplete="current-password"><button id="publishWeeklySelection" type="button">Enregistrer cette sélection</button></div><p id="weeklySelectionStatus" class="selection-status" role="status"></p></section><style>.selection-panel{background:#fff;border-radius:24px;padding:20px 22px;margin-bottom:22px;box-shadow:0 12px 40px rgba(18,38,74,.08)}.selection-title{font-size:12px;font-weight:850;letter-spacing:.1em;color:#6f716f}.selection-help{font-size:13px;color:#6f716f;line-height:1.45}.candidate-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}.candidate{display:flex;gap:10px;align-items:flex-start;border:1px solid #e0e0dc;border-radius:14px;padding:12px;cursor:pointer}.candidate-ok{background:#f8fbff}.candidate-off{opacity:.58;background:#f4f3f0;cursor:not-allowed}.candidate input{margin-top:4px}.candidate span{display:grid;gap:4px;font-size:12px}.candidate b{font-size:20px;color:#12264a}.candidate small{color:#6f716f;line-height:1.3}.selection-actions{display:flex;gap:10px;margin-top:16px}.selection-actions input{min-width:230px;flex:1;border:1px solid #d7d7d2;border-radius:11px;padding:12px}.selection-actions button{border:0;border-radius:11px;padding:12px 15px;background:#12264a;color:#fff;font-weight:750;cursor:pointer}.selection-status{font-size:13px;color:#21613b;min-height:18px}.selection-status.error{color:#8c302b}</style><script>(function(){const boxes=[...document.querySelectorAll('.candidate-ok input')];const status=document.getElementById('weeklySelectionStatus');boxes.forEach(function(box){box.addEventListener('change',function(){const count=boxes.filter(function(item){return item.checked;}).length;if(count>3){box.checked=false;status.textContent='Trois données maximum peuvent être publiées.';status.className='selection-status error';}else{status.textContent='';status.className='selection-status';}});});const button=document.getElementById('publishWeeklySelection');if(button)button.addEventListener('click',async function(){const token=document.getElementById('weeklyAdminToken').value.trim();const signalIds=boxes.filter(function(item){return item.checked;}).map(function(item){return item.value;});if(!token){status.textContent='Le mot de passe administrateur est requis.';status.className='selection-status error';return;}button.disabled=true;status.textContent='Prévol et enregistrement en cours…';status.className='selection-status';try{const response=await fetch('/api/admin/weekly/publish-selection',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+token},body:JSON.stringify({city:'${escapeHtml(input.citySlug)}',start:'${escapeHtml(input.startDate)}',signalIds})});const payload=await response.json();if(!response.ok)throw new Error(payload.error||'publication_impossible');status.textContent='Publication officielle enregistrée pour ${escapeHtml(input.startDate)} → ${escapeHtml(input.endDate)}.';}catch(error){status.textContent=error.message||String(error);status.className='selection-status error';}finally{button.disabled=false;}});})();</script>`;
+    const copy = candidatePreview(item);
+    const preview = item.eligible ? `<a class="candidate-preview" target="_blank" rel="noopener" href="/weekly-preview?start=${encodeURIComponent(input.startDate)}&candidate=${encodeURIComponent(id)}">Voir l’aperçu</a>` : "<span class=\"candidate-preview disabled\">Aperçu non publiable</span>";
+    const card = `<div class="candidate ${item.eligible ? "candidate-ok" : "candidate-off"}"><div class="candidate-row">${item.eligible ? `<input type="checkbox" value="${escapeHtml(id)}">` : "<span class=\"empty-check\"></span>"}<span class="candidate-content"><strong>${escapeHtml(detectorLabel(item.candidate.detector))}</strong><b>${escapeHtml(copy.value)}</b><em>${escapeHtml(copy.primary)}</em><small>${escapeHtml(copy.secondary)}</small><small class="source">${escapeHtml(copy.source)}</small><span class="candidate-meta">${item.eligible ? `Éligible · score ${item.scores.total}` : `Écartée · ${item.rejectionReasons.join(", ") || "prévol incomplet"}`} · rang ${item.rank ?? "—"}</span>${preview}</span></div></div>`;
+    (item.eligible ? eligibleCards : rejectedCards).push(card);
+  });
+  const cards = eligibleCards.join("") || "<p>Aucune donnée complémentaire suffisamment fiable cette semaine.</p>";
+  const rejected = rejectedCards.length ? `<details class="rejected"><summary>Voir les ${rejectedCards.length} données écartées</summary><div class="candidate-grid">${rejectedCards.join("")}</div></details>` : "";
+  return `<section class="selection-panel"><div class="selection-title">CHOISIR LA PUBLICATION OFFICIELLE</div><p class="selection-help">Chaque fiche correspond à une publication possible. Ouvrez « Voir l’aperçu » pour visualiser la slide avant de la sélectionner. Vous pouvez en retenir une, deux ou trois. Sans sélection, seule la slide 1 sera publiée.</p><div class="candidate-grid">${cards}</div>${rejected}<div class="selection-actions"><input id="weeklyAdminToken" type="password" placeholder="Mot de passe administrateur" autocomplete="current-password"><button id="publishWeeklySelection" type="button">Enregistrer cette sélection</button></div><p id="weeklySelectionStatus" class="selection-status" role="status"></p></section><style>.selection-panel{background:#fff;border-radius:24px;padding:20px 22px;margin-bottom:22px;box-shadow:0 12px 40px rgba(18,38,74,.08)}.selection-title{font-size:12px;font-weight:850;letter-spacing:.1em;color:#6f716f}.selection-help{font-size:13px;color:#6f716f;line-height:1.45}.candidate-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px}.candidate{border:1px solid #e0e0dc;border-radius:16px;padding:14px}.candidate-ok{background:#f8fbff}.candidate-off{background:#f4f3f0}.candidate-row{display:flex;gap:11px;align-items:flex-start}.candidate input{margin-top:5px}.empty-check{width:14px;height:14px;margin:4px 0 0 1px;border:2px solid #bcc0c2;border-radius:5px;display:block}.candidate-content{display:grid;gap:5px;min-width:0}.candidate-content strong{font-size:13px;color:#12264a}.candidate-content b{font-size:25px;color:#12264a}.candidate-content em{font-size:14px;font-style:normal;font-weight:700;color:#12264a;line-height:1.3}.candidate-content small{font-size:12px;color:#596879;line-height:1.35}.candidate-content .source{color:#6f716f}.candidate-meta{font-size:11px;color:#6f716f}.candidate-preview{display:inline-block;width:max-content;margin-top:4px;color:#12264a;font-size:12px;font-weight:800;text-decoration:underline}.candidate-preview.disabled{color:#8c302b;text-decoration:none}.rejected{margin-top:16px;border-top:1px solid #e0e0dc;padding-top:14px}.rejected summary{cursor:pointer;color:#6f716f;font-size:13px;font-weight:750;margin-bottom:12px}.selection-actions{display:flex;gap:10px;margin-top:16px}.selection-actions input{min-width:230px;flex:1;border:1px solid #d7d7d2;border-radius:11px;padding:12px}.selection-actions button{border:0;border-radius:11px;padding:12px 15px;background:#12264a;color:#fff;font-weight:750;cursor:pointer}.selection-status{font-size:13px;color:#21613b;min-height:18px}.selection-status.error{color:#8c302b}</style><script>(function(){const boxes=[...document.querySelectorAll('.candidate-ok input')];const status=document.getElementById('weeklySelectionStatus');boxes.forEach(function(box){box.addEventListener('change',function(){const count=boxes.filter(function(item){return item.checked;}).length;if(count>3){box.checked=false;status.textContent='Trois données maximum peuvent être publiées.';status.className='selection-status error';}else{status.textContent='';status.className='selection-status';}});});const button=document.getElementById('publishWeeklySelection');if(button)button.addEventListener('click',async function(){const token=document.getElementById('weeklyAdminToken').value.trim();const signalIds=boxes.filter(function(item){return item.checked;}).map(function(item){return item.value;});if(!token){status.textContent='Le mot de passe administrateur est requis.';status.className='selection-status error';return;}button.disabled=true;status.textContent='Prévol et enregistrement en cours…';status.className='selection-status';try{const response=await fetch('/api/admin/weekly/publish-selection',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+token},body:JSON.stringify({city:'${escapeHtml(input.citySlug)}',start:'${escapeHtml(input.startDate)}',signalIds})});const payload=await response.json();if(!response.ok)throw new Error(payload.error||'publication_impossible');status.textContent='Publication officielle enregistrée pour ${escapeHtml(input.startDate)} → ${escapeHtml(input.endDate)}.';}catch(error){status.textContent=error.message||String(error);status.className='selection-status error';}finally{button.disabled=false;}});})();</script>`;
 }
 
 export function renderWeeklyPreviewGate(message = ""): string {
