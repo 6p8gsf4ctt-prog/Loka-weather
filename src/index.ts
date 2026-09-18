@@ -9,6 +9,7 @@ import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySce
 import { editorialFeedbackForOfficial, saveEditorialFeedback } from "./storage/editorialFeedback";
 import { buildEditorialLearningExport } from "./storage/editorialFeedbackExport";
 import { saveWeeklyPublication, weeklyPublicationForRange } from "./storage/weeklyPublications";
+import { loadWeeklyPreviewDraft, saveWeeklyPreviewDraft } from "./storage/weeklyPreviewDrafts";
 import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
 import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
@@ -370,10 +371,27 @@ export default {
         const previewSource = selectedPreview ?? generated;
         const previewOptions = weeklyPreviewRenderOptions(previewSource);
         const fallback = !previewOptions.complementarySlides && previewSource.contextual.slides.slides.length > 0;
+        const draftId = crypto.randomUUID();
+        if (!selectedPreview) {
+          try {
+            await saveWeeklyPreviewDraft(env.DB, {
+              draftId,
+              citySlug: city.slug,
+              startDate: generated.editorial.startDate,
+              endDate: generated.editorial.endDate,
+              generatedAt: generated.generatedAt,
+              expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+              payload: { profiles: generated.profiles, editorial: generated.editorial, contextual: generated.contextual }
+            });
+          } catch (error) {
+            console.error("weekly_preview_draft_persistence_failed", error instanceof Error ? error.message : String(error));
+          }
+        }
         const selectionPanel = selectedPreview ? "" : renderWeeklySelectionPanel({
           citySlug: city.slug,
           startDate: generated.editorial.startDate,
           endDate: generated.editorial.endDate,
+          draftId,
           candidates: generated.contextual.ranking.all
         });
         const html = renderWeeklyCarousel(previewSource.editorial, previewOptions).replace('<section class="carousel"', selectionPanel + '<section class="carousel"');
@@ -399,15 +417,17 @@ export default {
 
     if (url.pathname === "/api/admin/weekly/publish-selection" && request.method === "POST") {
       if (!isAuthorized(request, env)) return unauthorized();
-      let body: { city?: unknown; start?: unknown; signalIds?: unknown };
+      let body: { draftId?: unknown; city?: unknown; start?: unknown; signalIds?: unknown };
       try { body = await request.json() as typeof body; } catch { return json({ error: "invalid_json" }, 400); }
       const city = getCity(typeof body.city === "string" ? body.city : "tarnos");
       const start = typeof body.start === "string" ? body.start : "";
       const signalIds = Array.isArray(body.signalIds) && body.signalIds.every((id) => typeof id === "string") ? body.signalIds as string[] : [];
-      if (!city || !start) return json({ error: "city_and_start_required" }, 400);
+      const draftId = typeof body.draftId === "string" ? body.draftId : "";
+      if (!city || !start || !draftId) return json({ error: "draft_id_city_and_start_required" }, 400);
       try {
-        const generated = await generateWeeklyPreviewCity(env, city, new Date(), start);
-        const selected = applyWeeklyManualSelection(generated, signalIds);
+        const draft = await loadWeeklyPreviewDraft(env.DB, draftId);
+        if (!draft) return json({ error: "weekly_preview_draft_expired_or_missing" }, 409);
+        const selected = applyWeeklyManualSelection(draft as import("./weeklyPipeline").GeneratedWeekly, signalIds);
         const publication = await saveWeeklyPublication(env.DB, {
           citySlug: city.slug,
           startDate: selected.editorial.startDate,
