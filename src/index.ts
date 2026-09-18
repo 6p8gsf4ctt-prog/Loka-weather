@@ -45,10 +45,10 @@ async function safeToday(env: Env, citySlug: string) {
   const surface = await resolvePublicSurfaceSafely(stored?.payload ?? null, stored?.manifest ?? null);
   return { city, date, surface };
 }
-async function currentWeekly(env: Env, citySlug: string) {
+async function currentWeekly(env: Env, citySlug: string, requestedStartDate?: string) {
   const city = getCity(citySlug);
   if (!city) return null;
-  const range = weeklyRangeForDate(localDate(city.timezone));
+  const range = weeklyRangeForDate(requestedStartDate || localDate(city.timezone));
   const publication = await weeklyPublicationForRange(env.DB, city.slug, range.startDate, range.endDate);
   return { city, range, publication };
 }
@@ -76,7 +76,7 @@ export default {
     if (url.pathname === "/api/weekly" && request.method === "GET") {
       if (!isWeeklyEnabled(env)) return json({ error: "weekly_disabled" }, 404);
       const slug = url.searchParams.get("city") || "tarnos";
-      const result = await currentWeekly(env, slug);
+      const result = await currentWeekly(env, slug, url.searchParams.get("start") || undefined);
       if (!result) return json({ error: "unknown_city" }, 404);
       if (!result.publication) return json({ error: "weekly_not_found", ...result.range }, 404);
       const surface = resolveWeeklyPublicSurface(env, result.publication.editorial, result.publication.carousel);
@@ -465,7 +465,7 @@ export default {
     if (url.pathname === "/weekly" && request.method === "GET") {
       if (!isWeeklyEnabled(env)) return json({ error: "weekly_disabled" }, 404);
       const slug = url.searchParams.get("city") || "tarnos";
-      const result = await currentWeekly(env, slug);
+      const result = await currentWeekly(env, slug, url.searchParams.get("start") || undefined);
       if (!result) return json({ error: "unknown_city" }, 404);
       if (!result.publication) return json({ error: "weekly_not_found", ...result.range }, 404);
       if (!await masterAvailable(request, env, result.publication.editorial.overview.scene.masterUrl)) return unavailable("weekly_master_graphic_unavailable");
