@@ -229,7 +229,6 @@ function write(ranked: RankedWeeklySignalCandidate, claimStatus: WeeklySignalCla
 
 export function buildWeeklySignalCopy(ranked: RankedWeeklySignalCandidate): WeeklySignalCopy {
   if (!ranked.eligible || ranked.rank === null || ranked.rejectionReasons.length) throw new Error("weekly_signal_copy_requires_selected_candidate");
-  if (ranked.candidate.signal.confidence === "LOW") throw new Error("weekly_signal_copy_low_confidence");
   if (ranked.candidate.signal.mode === "OBSERVATION" && ranked.candidate.signal.evidence.some((proof) => proof.source === "CONSENSUS_FORECAST")) {
     throw new Error("weekly_signal_copy_observation_requires_observed_source");
   }

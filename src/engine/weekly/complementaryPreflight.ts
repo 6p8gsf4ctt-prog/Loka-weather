@@ -22,6 +22,7 @@ export interface WeeklyComplementaryPreflightContext {
   profiles: WeeklyProfileSet;
   ranking: WeeklySignalRankingResult;
   climateStatus: "READY" | "UNAVAILABLE" | "REJECTED";
+  allowRepeatedThemes?: boolean;
 }
 
 export interface WeeklyComplementaryPreflight {
@@ -228,7 +229,7 @@ export function preflightWeeklyComplementarySlides(plan: WeeklyComplementarySlid
     check("positions", positions.every((position, index) => position === expected[index]), "positions_are_contiguous_after_overview"),
     check("frame", slides.every((slide) => slide.frame === "WEEKLY_SHARED_V1"), "daily_weekly_shared_frame_required"),
     check("titles", slides.every((slide) => slide.title === TITLES[slide.role]), "fixed_title_per_role"),
-    check("themes", new Set(slides.map((slide) => slide.theme)).size === slides.length && new Set(slides.map((slide) => slide.signalId)).size === slides.length, "one_theme_and_signal_once"),
+    check("themes", (context?.allowRepeatedThemes || new Set(slides.map((slide) => slide.theme)).size === slides.length) && new Set(slides.map((slide) => slide.signalId)).size === slides.length, context?.allowRepeatedThemes ? "manual_selection_may_repeat_a_theme" : "one_theme_and_signal_once"),
     check("copy", slides.every(copyFitsContract), "bounded_nonempty_display_and_editorial_copy"),
     check("claim", slides.every(claimIsCoherent), "forecast_observation_wording_is_coherent"),
     check("source", slides.every((slide) => sourceIsTraceable(slide, context)), context ? "structured_evidence_and_source_status_are_traceable" : "source_note_only_context_not_supplied"),

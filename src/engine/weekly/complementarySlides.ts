@@ -83,11 +83,11 @@ function rolePriority(role: WeeklyComplementarySlideRole, item: RankedWeeklySign
   return signatureSuitable(item.candidate.detector) ? 1 : 0;
 }
 
-function choose(candidates: RankedWeeklySignalCandidate[], role: WeeklyComplementarySlideRole, usedThemes: Set<WeeklyComplementaryTheme>, allowFallback: boolean): RankedWeeklySignalCandidate | null {
+function choose(candidates: RankedWeeklySignalCandidate[], role: WeeklyComplementarySlideRole, usedThemes: Set<WeeklyComplementaryTheme>, allowFallback: boolean, allowRepeatedThemes: boolean): RankedWeeklySignalCandidate | null {
   const suited = candidates.filter((item) => {
     const detector = item.candidate.detector;
     const matches = role === "NUMBER" ? signatureSuitable(detector) : role === "PRACTICAL" ? practicalSuitable(detector) : detailSuitable(detector);
-    return !usedThemes.has(theme(item.candidate.signal.forecast.metric)) && (matches || allowFallback);
+    return (allowRepeatedThemes || !usedThemes.has(theme(item.candidate.signal.forecast.metric))) && (matches || allowFallback);
   });
   const pool = suited.length ? suited : [];
   return pool.sort((a, b) => rolePriority(role, b) - rolePriority(role, a)
@@ -121,13 +121,13 @@ function slide(position: 2 | 3 | 4, role: WeeklyComplementarySlideRole, ranked: 
  * N7 creates at most three complementary slides. It never creates a slide to
  * fill a vacant role, and it never repeats a meteorological theme.
  */
-export function buildWeeklyComplementarySlides(rankedCandidates: RankedWeeklySignalCandidate[]): WeeklyComplementarySlidePlan {
+export function buildWeeklyComplementarySlides(rankedCandidates: RankedWeeklySignalCandidate[], options: { allowRepeatedThemes?: boolean } = {}): WeeklyComplementarySlidePlan {
   const candidates = selectedOnly(rankedCandidates);
   const usedIds = new Set<string>();
   const usedThemes = new Set<WeeklyComplementaryTheme>();
   const slides: WeeklyComplementarySlide[] = [];
   const take = (position: 2 | 3 | 4, role: WeeklyComplementarySlideRole, fallback = false): boolean => {
-    const candidate = choose(candidates.filter((item) => !usedIds.has(item.candidate.signal.id)), role, usedThemes, fallback);
+    const candidate = choose(candidates.filter((item) => !usedIds.has(item.candidate.signal.id)), role, usedThemes, fallback, options.allowRepeatedThemes === true);
     if (!candidate) return false;
     slides.push(slide(position, role, candidate));
     usedIds.add(candidate.candidate.signal.id);

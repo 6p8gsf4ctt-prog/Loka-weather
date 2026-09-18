@@ -35,6 +35,8 @@ export interface RankedWeeklySignalCandidate {
   proofKey: string;
   eventKey: string;
   rank: number | null;
+  /** Stable automatic ranking position, including candidates not selected by the default plan. */
+  automaticRank: number;
   suppressedById: string | null;
 }
 
@@ -183,7 +185,7 @@ export function scoreWeeklySignalCandidate(candidate: WeeklySignalCandidate): Ra
   if (candidate.signal.confidence === "LOW") rejectionReasons.push("LOW_CONFIDENCE");
   if (scores.total < WEEKLY_SIGNAL_MIN_TOTAL_SCORE) rejectionReasons.push("BELOW_SCORE_THRESHOLD");
   return {
-    rankingVersion: WEEKLY_SIGNAL_RANKING_VERSION, candidate, scores, priorityTier: priorityTier(candidate.detector),
+    rankingVersion: WEEKLY_SIGNAL_RANKING_VERSION, candidate, scores, priorityTier: priorityTier(candidate.detector), automaticRank: 0,
     eligible: rejectionReasons.length === 0, rejectionReasons,
     scoringReasons: { importance: importanceScore.reason, rarity: rarityScore.reason, anomaly: anomalyScore.reason, editorialInterest: interestScore.reason, confidence: confidenceScore.reason },
     proofKey: proofKey(candidate), eventKey: eventKey(candidate), rank: null, suppressedById: null
@@ -200,6 +202,7 @@ function compareRank(a: RankedWeeklySignalCandidate, b: RankedWeeklySignalCandid
 /** Scores all candidates, then retains one winner for each proof or event. */
 export function rankAndDeduplicateWeeklySignals(candidates: WeeklySignalCandidate[]): WeeklySignalRankingResult {
   const scored = candidates.map(scoreWeeklySignalCandidate).sort(compareRank);
+  scored.forEach((item, index) => { item.automaticRank = index + 1; });
   const eligibleBeforeDeduplication = scored.filter((item) => item.eligible).length;
   const selected: RankedWeeklySignalCandidate[] = [];
   const rejected: RankedWeeklySignalCandidate[] = [];
