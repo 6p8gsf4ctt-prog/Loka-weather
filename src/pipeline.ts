@@ -1,13 +1,11 @@
 import { CITIES } from "./config/cities";
-import { MODELS } from "./config/models";
-import { buildConsensus } from "./engine/consensus";
 import { buildPublicationManifest } from "./engine/publicationManifest";
 import { evaluatePublicationGuard } from "./engine/publicationGuard";
 import { buildCandidateProduct } from "./engine/verdict";
 import { archiveGeneration, saveRun } from "./storage/db";
 import { ensureDailyTracking, hasOfficialScene, officializeFirstScheduledGeneration } from "./storage/dailySceneLedger";
-import type { CityConfig, Env, ModelForecast, OfficialPublicPayloadV24, PublicationManifestV24 } from "./types";
-import { fetchModelForecast } from "./weather/openMeteo";
+import type { CityConfig, Env, OfficialPublicPayloadV24, PublicationManifestV24 } from "./types";
+import { captureForecastSnapshot, consensusMapFromSnapshot } from "./weather/forecastSnapshot";
 
 export function localDate(timezone: string, instant = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(instant);
@@ -24,13 +22,9 @@ export interface GeneratedV24 {
 export async function generateCity(env: Env, city: CityConfig, source: string, instant = new Date()): Promise<GeneratedV24> {
   const started = Date.now();
   const targetDate = localDate(city.timezone, instant);
-  const settled = await Promise.allSettled(MODELS.map((model) => fetchModelForecast(env, city, model)));
-  const forecasts: ModelForecast[] = [];
-  const failures: Record<string, string> = {};
-  settled.forEach((result, index) => {
-    if (result.status === "fulfilled") forecasts.push(result.value);
-    else failures[MODELS[index].id] = result.reason instanceof Error ? result.reason.message : String(result.reason);
-  });
+  const snapshot = await captureForecastSnapshot(env, city, "DAILY", { forecastDays: 2 });
+  const forecasts = snapshot.forecasts;
+  const failures = snapshot.failures;
   if (forecasts.length < 3) {
     await saveRun(env.DB, {
       citySlug: city.slug, forecastDate: targetDate, generatedAt: new Date().toISOString(), source,
@@ -39,7 +33,7 @@ export async function generateCity(env: Env, city: CityConfig, source: string, i
     });
     throw new Error(`LOKA_V24_NEEDS_3_MODELS:${forecasts.length}`);
   }
-  const consensus = buildConsensus(forecasts);
+  const consensus = consensusMapFromSnapshot(snapshot);
   const payload = buildCandidateProduct(city, targetDate, consensus, forecasts, failures, source);
   const guard = evaluatePublicationGuard(payload);
   if (guard.status !== "PASS") {

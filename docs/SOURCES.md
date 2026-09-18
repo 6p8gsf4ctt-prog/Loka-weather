@@ -10,3 +10,5 @@
 - Open-Meteo GFS: https://open-meteo.com/en/docs/gfs-api
 - Open-Meteo Ensemble API: https://open-meteo.com/en/docs/ensemble-api
 - Open-Meteo model enum: https://github.com/open-meteo/open-meteo/blob/main/openapi/forecast.yml
+- Météo-France — données climatologiques quotidiennes publiques : https://www.data.gouv.fr/datasets/donnees-climatologiques-de-base-quotidiennes
+- data.gouv.fr — métadonnées machine du jeu quotidien : https://www.data.gouv.fr/api/1/datasets/donnees-climatologiques-de-base-quotidiennes/

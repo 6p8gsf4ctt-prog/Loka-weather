@@ -4,6 +4,7 @@ import { isWeeklyEnabled } from "./engine/weekly/featureFlag";
 import { localDateIsMonday, nextMondayOrSame, weeklyRangeForDate, type WeeklyDateRange } from "./engine/weekly/schedule";
 import { saveWeeklyPublication, weeklyPublicationForRange, type WeeklyPublicationRecord } from "./storage/weeklyPublications";
 import type { CityConfig, Env, HourPoint, ModelForecast } from "./types";
+import { ensureMeteoFranceDailyArchive } from "./weather/meteoFranceClimate";
 
 export interface GeneratedWeekly {
   generatedAt: string;
@@ -42,15 +43,19 @@ export async function generateWeeklyCity(
   instant = new Date()
 ): Promise<GeneratedWeekly> {
   const localDate = assertMonday(city, instant);
-  return generateWeeklyForRange(env, city, source, weeklyRangeForDate(localDate));
+  return generateWeeklyForRange(env, city, source, weeklyRangeForDate(localDate), instant);
 }
 
 async function generateWeeklyForRange(
   env: Env,
   city: CityConfig,
   source: string,
-  expected: WeeklyDateRange
+  expected: WeeklyDateRange,
+  instant = new Date()
 ): Promise<GeneratedWeekly> {
+  const climatePromise = city.slug === "tarnos"
+    ? ensureMeteoFranceDailyArchive(env, instant)
+    : Promise.resolve({ status: "UNAVAILABLE" as const, detail: "climate_reference_not_configured_for_city", observations: [], state: null });
   const batch = await fetchWeeklyForecasts(env, city, expected);
   const profiles = buildWeeklyProfiles(city, batch.forecasts);
   if (profiles.startDate !== expected.startDate || profiles.endDate !== expected.endDate) {
@@ -60,7 +65,11 @@ async function generateWeeklyForRange(
   const selection = selectWeeklyEvents(profiles, rawEvents, city);
   const activities = translateWeeklyActivities(profiles, selection, city);
   const editorial = buildWeeklyEditorial(profiles, selection, activities, city);
-  const contextual = buildWeeklyContextualPipeline(profiles);
+  const climate = await climatePromise;
+  const contextual = buildWeeklyContextualPipeline(
+    profiles,
+    climate.status === "READY" ? { dailyArchive: climate.observations } : {}
+  );
   const carousel = contextual.preflight.ok && contextual.preflight.comprehensive
     ? buildWeeklyCarouselPlan(editorial, { complementarySlides: contextual.slides, complementaryPreflight: contextual.preflight })
     : buildWeeklyCarouselPlan({ ...editorial, weeklyNumber: undefined });
@@ -93,7 +102,7 @@ export async function generateWeeklyPreviewCity(
   const startDate = requestedStartDate || nextMondayOrSame(localDate);
   const expected = weeklyRangeForDate(startDate);
   if (expected.startDate !== startDate) throw new Error("weekly_preview_start_requires_monday");
-  return generateWeeklyForRange(env, city, "admin_weekly_preview", expected);
+  return generateWeeklyForRange(env, city, "admin_weekly_preview", expected, instant);
 }
 
 function dateAt(startDate: string, offset: number): string {

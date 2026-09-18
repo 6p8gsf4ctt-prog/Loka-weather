@@ -162,6 +162,14 @@ Journée sèche.
 
 Le moteur ne donne pas de conseil du type « prenez un parapluie » ou « mettez une veste ». Il donne une conclusion météo suffisamment claire pour que la décision soit naturelle.
 
+## Données hebdomadaires unifiées
+
+Le quotidien et l'hebdomadaire passent par la même capture de consensus
+multi-modèles. Le pipeline semaine ajoute automatiquement l'historique
+quotidien officiel Météo-France de la station locale retenue, avec cache D1,
+contrôle de couverture et contrôle de fraîcheur. Le contrat et le déploiement
+sont détaillés dans `docs/WEEKLY_DATA_UNIFICATION_STEP1.md`.
+
 ## Limites connues de V0.1
 
 Cette version utilise cinq modèles déterministes. Son `confidenceRain` représente encore la convergence entre modèles, **pas une vraie probabilité météorologique calibrée**.

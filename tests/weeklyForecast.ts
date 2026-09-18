@@ -37,6 +37,7 @@ function mockPayload(): Record<string, unknown> {
   try {
     const batch = await fetchWeeklyForecasts({} as Env, CITIES.tarnos);
     ok(batch.forecastDays === 7, "seven_day_batch");
+    ok(batch.snapshotId.length === 64 && !Number.isNaN(Date.parse(batch.generatedAt)), "weekly_snapshot_is_identified_and_timestamped");
     ok(batch.forecasts.length === MODELS.length, "all_models_returned");
     ok(Object.keys(batch.failures).length === 0, "no_mock_failures");
     ok(batch.forecasts.every((forecast) => forecast.hourly.length === 168), "one_hundred_sixty_eight_hours");
@@ -61,5 +62,5 @@ function mockPayload(): Record<string, unknown> {
     globalThis.fetch = originalFetch;
   }
 
-  console.log(`WEEKLY_FORECAST ${passed}/10 PASS`);
+    console.log(`WEEKLY_FORECAST ${passed}/11 PASS`);
 })().catch((error) => { throw error; });

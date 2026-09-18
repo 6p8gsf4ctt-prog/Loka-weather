@@ -11,6 +11,19 @@ graphique V20 — même fond, en-tête, title box, baseline basse et footer — 
 ne reçoit plus aucun chiffre brut. Les slides 3 et 4 restent non rendues tant
 que leurs moteurs éditoriaux ne sont pas validés.
 
+## Finalisation du produit semaine — unification des données
+
+| Étape | Livrable | Statut |
+|---:|---|---|
+| 1 | Capture prévisionnelle commune, import Météo-France, cache et raccordement hebdomadaire | TERMINÉE — 17 septembre 2026 |
+| 2 | Prévol consolidé sur les données réellement unifiées | À FAIRE |
+| 3 | Validation pilote puis activation officielle | À FAIRE |
+
+L'étape 1 est documentée dans `docs/WEEKLY_DATA_UNIFICATION_STEP1.md`. Elle ne
+modifie ni la slide 1 validée, ni son graphisme, ni le contrat éditorial. Elle
+remplace l'état climatique `UNAVAILABLE` lorsque les archives officielles sont
+accessibles et conformes aux contrôles de couverture et de fraîcheur.
+
 ## Plan de mise en publication
 
 | Phase | Livrable | Statut |

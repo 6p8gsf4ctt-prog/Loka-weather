@@ -3,6 +3,12 @@ export interface Env {
   ASSETS?: Fetcher;
   OPEN_METEO_BASE_URL?: string;
   OPEN_METEO_API_KEY?: string;
+  /** Public data.gouv.fr dataset metadata endpoint; no user credential required. */
+  METEO_FRANCE_DAILY_DATASET_URL?: string;
+  /** Hours before the local Météo-France climate cache is refreshed. */
+  METEO_FRANCE_CLIMATE_REFRESH_HOURS?: string;
+  /** Network timeout for metadata and compressed climate resources. */
+  METEO_FRANCE_CLIMATE_FETCH_TIMEOUT_MS?: string;
   ADMIN_TOKEN?: string;
   WEEKLY_ENABLED?: string;
   /** Opt-in gate: contextual slides stay preview-only until explicitly enabled. */

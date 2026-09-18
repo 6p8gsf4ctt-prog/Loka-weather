@@ -18,6 +18,7 @@ import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
 import { renderWeeklyPreviewGate } from "./ui/weeklyPreview";
+import { ensureMeteoFranceDailyArchive } from "./weather/meteoFranceClimate";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: { "cache-control": "no-store", "access-control-allow-origin": "*" } });
@@ -367,7 +368,6 @@ export default {
         return new Response(renderWeeklyCarousel(generated.editorial, {
           complementarySlides: generated.contextual.slides,
           complementaryPreflight: generated.contextual.preflight,
-          pilot: generated.pilot,
           includeStory: false
         }), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
       } catch (error) {
@@ -419,6 +419,9 @@ export default {
       else if (hour === 6) jobs.push(runScheduledCity(env, city, "RETRY", instant));
       if (hour === 5 && isWeeklyEnabled(env) && localDateIsMonday(city.timezone, instant)) {
         jobs.push(runScheduledWeeklyCity(env, city, instant));
+      } else if (hour === 5 && isWeeklyEnabled(env) && city.slug === "tarnos") {
+        // Keep the official local archive warm before Sunday/Monday previews.
+        jobs.push(ensureMeteoFranceDailyArchive(env, instant));
       }
     }
     if (jobs.length) ctx.waitUntil(Promise.allSettled(jobs).then(() => undefined));
