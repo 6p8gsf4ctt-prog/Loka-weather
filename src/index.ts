@@ -9,7 +9,7 @@ import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySce
 import { editorialFeedbackForOfficial, saveEditorialFeedback } from "./storage/editorialFeedback";
 import { buildEditorialLearningExport } from "./storage/editorialFeedbackExport";
 import { saveWeeklyPublication, weeklyPublicationForRange } from "./storage/weeklyPublications";
-import { loadWeeklyPreviewDraft, saveWeeklyPreviewDraft } from "./storage/weeklyPreviewDrafts";
+import { consumeWeeklyPreviewDraft, loadWeeklyPreviewDraft, saveWeeklyPreviewDraft } from "./storage/weeklyPreviewDrafts";
 import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
 import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
@@ -416,7 +416,6 @@ export default {
     }
 
     if (url.pathname === "/api/admin/weekly/publish-selection" && request.method === "POST") {
-      if (!isAuthorized(request, env)) return unauthorized();
       let body: { draftId?: unknown; city?: unknown; start?: unknown; signalIds?: unknown };
       try { body = await request.json() as typeof body; } catch { return json({ error: "invalid_json" }, 400); }
       const city = getCity(typeof body.city === "string" ? body.city : "tarnos");
@@ -439,7 +438,8 @@ export default {
           editorial: selected.editorial,
           carousel: selected.carousel
         });
-        return json({ ok: true, publicationId: publication.id, startDate: publication.startDate, endDate: publication.endDate, selectedSignalIds: selected.contextual.slides.slides.map((slide) => slide.signalId) });
+        await consumeWeeklyPreviewDraft(env.DB, draftId);
+        return json({ ok: true, publicationId: publication.id, startDate: publication.startDate, endDate: publication.endDate, publicationUrl: `/weekly?city=${encodeURIComponent(city.slug)}&start=${encodeURIComponent(publication.startDate)}`, selectedSignalIds: selected.contextual.slides.slides.map((slide) => slide.signalId) });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return json({ error: message }, 409);

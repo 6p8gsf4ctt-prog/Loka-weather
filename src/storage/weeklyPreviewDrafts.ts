@@ -30,3 +30,7 @@ export async function loadWeeklyPreviewDraft(db: D1Database, draftId: string): P
   try { return JSON.parse(row.payload_json) as WeeklyPreviewDraftPayload; }
   catch { return null; }
 }
+
+export async function consumeWeeklyPreviewDraft(db: D1Database, draftId: string): Promise<void> {
+  await db.prepare(`UPDATE weekly_preview_drafts SET expires_at = CURRENT_TIMESTAMP WHERE draft_id = ?`).bind(draftId).run();
+}
