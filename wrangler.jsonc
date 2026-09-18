@@ -4,7 +4,14 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-07",
   "observability": { "enabled": true },
-  "vars": { "OPEN_METEO_BASE_URL": "https://api.open-meteo.com/v1/forecast" },
+  "vars": {
+    "OPEN_METEO_BASE_URL": "https://api.open-meteo.com/v1/forecast",
+    "WEEKLY_CONTEXTUAL_SLIDES_ENABLED": "true",
+    "WEEKLY_ENABLED": "true",
+    "WEEKLY_PROGRESSIVE_PUBLICATION_ENABLED": "true",
+    "WEEKLY_PROGRESSIVE_ROLLBACK": "false",
+    "WEEKLY_PROGRESSIVE_SHADOW_MODE": "false"
+  },
   "triggers": {
     "crons": [
       "45 3 * * *",
