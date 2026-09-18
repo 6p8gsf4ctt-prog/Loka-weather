@@ -26,6 +26,13 @@ export interface WeeklyRunResult {
 
 export function applyWeeklyManualSelection(generated: GeneratedWeekly, signalIds: string[]): GeneratedWeekly {
   const contextual = buildWeeklyContextualSelection(generated.contextual, generated.profiles, signalIds);
+  if (signalIds.length > 0 && (!contextual.preflight.ok || !contextual.preflight.comprehensive)) {
+    const failed = contextual.preflight.checks
+      .filter((item) => !item.ok)
+      .map((item) => `${item.id}:${item.detail}`)
+      .join("|");
+    throw new Error(`weekly_manual_selection_preflight_blocked:${failed || "unknown"}`);
+  }
   const publication = buildSafeWeeklyPublication(generated.editorial, contextual);
   const activation = validateWeeklyActivation(publication.editorial, publication.carousel);
   if (!activation.ok) throw new Error(`weekly_manual_selection_blocked:${activation.checks.filter((item) => !item.ok).map((item) => item.id).join(",")}`);
