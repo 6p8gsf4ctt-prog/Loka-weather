@@ -1,21 +1,20 @@
-# LOKA — slides éditoriales en boxes v3
+# LOKA — slides éditoriales en trois boxes v4
 
-Ce ZIP est différentiel. Remplacez les fichiers qu’il contient à la racine du dépôt GitHub, en conservant les dossiers `src/` et `tests/`.
+Ce ZIP remplace la version v3. Il est différentiel : copiez son contenu à la racine du dépôt GitHub en conservant les dossiers `src/` et `tests/`.
 
-## Ce qui change
+## Composition finale des slides 2 à 4
 
-- La slide 1 reste inchangée.
-- Les slides 2, 3 et 4 gardent son en-tête, sa box titre, ses coordonnées et sa signature.
-- Elles adoptent désormais trois boxes intérieures :
-  1. pictogramme, chiffre clé et sous-titre ;
-  2. informations de comparaison ou repère ;
-  3. phrase éditoriale unique.
-- Les trois boxes se terminent à la même ligne basse que la slide 1.
-- L’aperçu de chaque candidate reprend ce même schéma avant publication.
+1. Box titre ;
+2. grande box contenu : pictogramme, chiffre clé, sous-titre et données de comparaison ;
+3. box éditoriale : une seule phrase.
+
+La slide 1 est inchangée. L’en-tête, la box titre, la ligne basse et la signature sont toujours fournis par le même moteur graphique.
+
+L’aperçu de candidate reprend également cette structure avant la publication.
 
 ## Déploiement
 
-Aucune migration D1, variable Cloudflare ou commande supplémentaire n’est requise. Validez les fichiers dans GitHub : le déploiement Cloudflare habituel suffit.
+Aucune migration D1, variable Cloudflare ou commande supplémentaire n’est requise. Validez les fichiers dans GitHub pour déclencher le déploiement habituel.
 
 ## Vérifications
 
