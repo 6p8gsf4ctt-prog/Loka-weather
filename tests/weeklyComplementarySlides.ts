@@ -73,4 +73,16 @@ ok(rejectedBlocked, "rejected_or_unranked_signal_cannot_reach_a_slide");
 const empty = buildWeeklyComplementarySlides([]);
 ok(empty.slides.length === 0 && empty.omittedSignalIds.length === 0, "calm_week_creates_no_complementary_slide");
 
-console.log(`WEEKLY_COMPLEMENTARY_SLIDES ${passed}/12 PASS`);
+const anomaly = candidate({ id: "anomaly", detector: "CLIMATE_ANOMALY", family: "CLIMATE_NORMAL", metric: "TEMPERATURE", dayIndex: 3, date: "2026-09-24", value: 28.5, reference: 22.6, facts: { anomalyC: 5.9, referenceMeanC: 22.6, sampleSize: 500 } });
+const anomalyScored = scoreWeeklySignalCandidate(anomaly);
+const anomalySlide = buildWeeklyComplementarySlides([{ ...anomalyScored, eligible: true, rejectionReasons: [], rank: 1 }]).slides[0]!;
+ok(anomalySlide.presentation?.headline === "+5,9 °C" && anomalySlide.presentation.subtitle === "AU-DESSUS DE LA NORMALE À TARNOS" && anomalySlide.presentation.comparison?.left.value === "28,5 °C" && anomalySlide.presentation.comparison.right.value === "22,6 °C", "anomaly_promotes_the_difference_and_keeps_raw_values_as_comparison");
+
+const amplitude = candidate({ id: "amplitude", detector: "INTRADAY_CHANGE", family: "INTRADAY_CHANGE", metric: "TEMPERATURE", dayIndex: 3, date: "2026-09-24", value: 15.3, reference: 12, facts: { change: "AMPLITUDE", minC: 14.7, maxC: 30 } });
+const amplitudeScored = scoreWeeklySignalCandidate(amplitude);
+const amplitudeSlide = buildWeeklyComplementarySlides([{ ...amplitudeScored, eligible: true, rejectionReasons: [], rank: 1 }]).slides[0]!;
+ok(amplitudeSlide.presentation?.headline === "15,3 °C" && amplitudeSlide.presentation.subtitle.includes("MATIN") && amplitudeSlide.presentation.comparison?.left.value === "14,7 °C" && amplitudeSlide.presentation.comparison.right.value === "30 °C", "amplitude_explains_the_story_with_morning_and_afternoon_values");
+
+ok([anomalySlide, amplitudeSlide].every((slide) => (slide.presentation?.editorialLine.split(/\s+/).length ?? 99) <= 25 && !slide.presentation?.editorialLine.includes("\n")), "social_slides_keep_one_short_editorial_sentence");
+
+console.log(`WEEKLY_COMPLEMENTARY_SLIDES ${passed}/15 PASS`);

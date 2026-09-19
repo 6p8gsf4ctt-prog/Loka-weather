@@ -36,8 +36,8 @@ export { rankAndDeduplicateWeeklySignals, scoreWeeklySignalCandidate, WEEKLY_SIG
 export type { RankedWeeklySignalCandidate, WeeklySignalRankingResult, WeeklySignalRejectionReason, WeeklySignalScoreDimension, WeeklySignalScores } from "./signalRanking";
 export { buildWeeklySignalCopies, buildWeeklySignalCopy, WEEKLY_SIGNAL_COPY_VERSION } from "./signalCopy";
 export type { WeeklySignalClaimStatus, WeeklySignalCopy } from "./signalCopy";
-export { buildWeeklyComplementarySlides, WEEKLY_COMPLEMENTARY_SLIDES_VERSION } from "./complementarySlides";
-export type { WeeklyComplementarySlide, WeeklyComplementarySlidePlan, WeeklyComplementarySlideRole, WeeklyComplementaryTheme, WeeklyComplementaryVisual } from "./complementarySlides";
+export { buildWeeklyComplementaryPresentation, buildWeeklyComplementarySlides, WEEKLY_COMPLEMENTARY_SLIDES_VERSION } from "./complementarySlides";
+export type { WeeklyComplementaryComparisonItem, WeeklyComplementaryLayout, WeeklyComplementaryPresentation, WeeklyComplementarySlide, WeeklyComplementarySlidePlan, WeeklyComplementarySlideRole, WeeklyComplementaryTheme, WeeklyComplementaryVisual } from "./complementarySlides";
 export { buildWeeklyContextualPipeline, buildWeeklyContextualSelection, WEEKLY_CONTEXTUAL_PIPELINE_VERSION } from "./contextualPipeline";
 export type { WeeklyContextualInput, WeeklyContextualPipelineResult } from "./contextualPipeline";
 export { assertWeeklyComplementaryPreflight, preflightWeeklyComplementarySlides, weeklyComplementaryPlanFingerprint, WEEKLY_COMPLEMENTARY_PREFLIGHT_VERSION } from "./complementaryPreflight";

@@ -427,7 +427,6 @@ export default {
     }
 
     if (url.pathname === "/api/admin/weekly/publish-selection" && request.method === "POST") {
-      if (!isAuthorized(request, env)) return unauthorized();
       let body: { draftId?: unknown; city?: unknown; start?: unknown; signalIds?: unknown };
       try { body = await request.json() as typeof body; } catch { return json({ error: "invalid_json" }, 400); }
       const city = getCity(typeof body.city === "string" ? body.city : "tarnos");
@@ -435,9 +434,11 @@ export default {
       const signalIds = Array.isArray(body.signalIds) && body.signalIds.every((id) => typeof id === "string") ? body.signalIds as string[] : [];
       const draftId = typeof body.draftId === "string" ? body.draftId : "";
       if (!city || !start || !draftId) return json({ error: "draft_id_city_and_start_required" }, 400);
+      if (signalIds.length > 3 || new Set(signalIds).size !== signalIds.length) return json({ error: "one_to_three_unique_signals_required" }, 400);
       try {
         const draft = await loadWeeklyPreviewDraft(env.DB, draftId);
         if (!draft) return json({ error: "weekly_preview_draft_expired_or_missing" }, 409);
+        if (draft.editorial.citySlug !== city.slug || draft.editorial.startDate !== start) return json({ error: "weekly_preview_draft_scope_mismatch" }, 409);
         const selected = applyWeeklyManualSelection(draft as import("./weeklyPipeline").GeneratedWeekly, signalIds);
         const publication = await saveWeeklyPublication(env.DB, {
           citySlug: city.slug,

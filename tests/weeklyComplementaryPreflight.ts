@@ -38,7 +38,7 @@ const wrongPictogram = preflightWeeklyComplementarySlides({ ...valid, slides: [{
 ok(!wrongPictogram.ok && !wrongPictogram.checks.find((item) => item.id === "pictograms")?.ok, "pictogram_must_be_official_and_match_its_theme");
 
 const canvasOverflow = preflightWeeklyComplementarySlides({ ...valid, slides: [{ ...valid.slides[0]!, primaryLine: "W".repeat(80) }] });
-ok(!canvasOverflow.ok && canvasOverflow.checks.find((item) => item.id === "copy")?.ok === true && !canvasOverflow.checks.find((item) => item.id === "overflow")?.ok, "canvas_width_blocks_unbreakable_copy_even_inside_character_limit");
+ok(!canvasOverflow.ok && canvasOverflow.checks.find((item) => item.id === "copy")?.ok === false && !canvasOverflow.checks.find((item) => item.id === "overflow")?.ok, "social_copy_and_canvas_both_block_unbreakable_text");
 
 let fingerprintBlocked = false;
 try {

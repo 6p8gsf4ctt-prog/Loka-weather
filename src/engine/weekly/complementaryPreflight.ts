@@ -2,6 +2,7 @@ import { validateWeeklyEditorialSignal } from "./editorialSignals";
 import type { WeeklyEditorialMetric, WeeklySignalMeasurement } from "./editorialSignals";
 import { complementaryPictogramIsOfficial } from "./complementaryPictograms";
 import type { WeeklyComplementarySlide, WeeklyComplementarySlidePlan } from "./complementarySlides";
+import type { WeeklyComplementaryPresentation } from "./complementarySlides";
 import type { WeeklyProfileSet } from "./profiles";
 import type { RankedWeeklySignalCandidate, WeeklySignalRankingResult } from "./signalRanking";
 import { WEEKLY_CLIMATE_REFERENCE_VERSION, WEEKLY_CLIMATE_STATION_ID } from "./climateReferences";
@@ -52,18 +53,44 @@ function check(id: WeeklyComplementaryPreflightCheckId, ok: boolean, detail: str
   return { id, ok, detail };
 }
 
+function presentationOf(slide: WeeklyComplementarySlide): WeeklyComplementaryPresentation {
+  return slide.presentation ?? {
+    layout: "SINGLE_STAT",
+    headline: slide.displayValue,
+    subtitle: slide.primaryLine,
+    editorialLine: slide.secondaryLine,
+    comparison: null
+  };
+}
+
 export function weeklyComplementaryPlanFingerprint(plan: WeeklyComplementarySlidePlan): string {
-  return plan.slides.map((slide) => [
+  return plan.slides.map((slide) => {
+    const presentation = presentationOf(slide);
+    return [
     slide.position, slide.role, slide.title, slide.signalId, slide.detector, slide.theme,
     slide.visual, compact(slide.displayValue), compact(slide.primaryLine),
-    compact(slide.secondaryLine), slide.claimStatus, compact(slide.sourceNote), slide.frame
-  ].join("|")).join("||");
+    compact(slide.secondaryLine), presentation.layout, compact(presentation.headline),
+    compact(presentation.subtitle), compact(presentation.editorialLine),
+    presentation.comparison ? `${compact(presentation.comparison.left.value)}:${compact(presentation.comparison.left.label)}:${compact(presentation.comparison.right.value)}:${compact(presentation.comparison.right.label)}` : "no-comparison",
+    slide.claimStatus, compact(slide.sourceNote), slide.frame
+  ].join("|");
+  }).join("||");
 }
 
 function copyFitsContract(slide: WeeklyComplementarySlide): boolean {
+  const presentation = presentationOf(slide);
+  const wordCount = compact(presentation.editorialLine).split(" ").filter(Boolean).length;
+  const cityMentions = (presentation.subtitle.match(/TARNOS/gi)?.length ?? 0) + (presentation.editorialLine.match(/Tarnos/gi)?.length ?? 0);
   return compact(slide.displayValue).length > 0 && compact(slide.displayValue).length <= 32
     && compact(slide.primaryLine).length > 0 && compact(slide.primaryLine).length <= 80
-    && compact(slide.secondaryLine).length > 0 && compact(slide.secondaryLine).length <= 120;
+    && compact(slide.secondaryLine).length > 0 && compact(slide.secondaryLine).length <= 120
+    && compact(presentation.headline).length > 0 && compact(presentation.headline).length <= 32
+    && compact(presentation.subtitle).length > 0 && compact(presentation.subtitle).length <= 58
+    && wordCount >= 3 && wordCount <= 25
+    && !/[\r\n]/.test(presentation.editorialLine)
+    && cityMentions <= 1
+    && !/\b(amplitude thermique journalière|anomalie positive|percentile)\b/i.test(`${presentation.subtitle} ${presentation.editorialLine}`)
+    && (presentation.layout === "COMPARISON" ? presentation.comparison !== null : presentation.comparison === null);
 }
 
 function claimIsCoherent(slide: WeeklyComplementarySlide): boolean {
@@ -107,10 +134,17 @@ function fitsWrapped(value: string, maxWidth: number, maximumLines: number, mini
 }
 
 function canvasCopyFits(slide: WeeklyComplementarySlide): boolean {
+  const presentation = presentationOf(slide);
   return fitsSingleLine(slide.title, 870, 44)
-    && fitsSingleLine(slide.displayValue, 870, 64)
-    && fitsWrapped(slide.primaryLine, 838, 2, 23)
-    && fitsWrapped(slide.secondaryLine, 838, 2, 18);
+    && fitsSingleLine(presentation.headline, 870, 64)
+    && fitsWrapped(presentation.subtitle, 880, 2, 25)
+    && fitsWrapped(presentation.editorialLine, 838, 2, 24)
+    && (!presentation.comparison || (
+      fitsSingleLine(presentation.comparison.left.value, 390, 42)
+      && fitsSingleLine(presentation.comparison.right.value, 390, 42)
+      && fitsWrapped(presentation.comparison.left.label, 390, 2, 18)
+      && fitsWrapped(presentation.comparison.right.label, 390, 2, 18)
+    ));
 }
 
 function rankedForSlide(slide: WeeklyComplementarySlide, context: WeeklyComplementaryPreflightContext): RankedWeeklySignalCandidate | null {
