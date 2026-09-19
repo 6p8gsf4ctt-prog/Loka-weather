@@ -1,6 +1,6 @@
-# LOKA — slides hebdomadaires : architecture verrouillée V5
+# LOKA — continuité graphique de la slide 1 — V6
 
-Ce paquet remplace les mises à jour précédentes V3 et V4. Importez **tous** les fichiers en conservant exactement leur arborescence, puis redéployez le Worker.
+Cette mise à jour remplace la V5. Elle ne modifie pas la slide 1.
 
 ## Fichiers à remplacer
 
@@ -8,6 +8,8 @@ Ce paquet remplace les mises à jour précédentes V3 et V4. Importez **tous** l
 - `src/engine/weekly/index.ts`
 - `src/ui/weeklyPreview.ts`
 - `tests/weeklyCarousel.ts`
+
+Le fichier `index.ts` reste fonctionnellement identique à celui de la V5 ; il est conservé pour fournir un paquet d'intégration cohérent.
 
 ## Règle graphique définitive
 
@@ -21,24 +23,32 @@ Les positions et dimensions sont communes à toutes les slides 2, 3 et 4 ; seul 
 
 ## Ajustements inclus
 
-- box éditoriale : 210 px de haut, soit une réduction de 27,6 % par rapport à l'ancienne hauteur de 290 px ;
-- valeurs secondaires de comparaison : réduction d'environ 9 % ;
-- séparateur vertical : raccourci à 122 px ;
-- comparaisons : remontées dans la box information, plus près du chiffre principal ;
-- espace redistribué dans la box information, avec une composition plus dense ;
-- en-tête, pied de page, box titre et trait doré de la troisième box préservés selon le cadre partagé de la slide 1.
+- en-tête, box titre et footer strictement inchangés ;
+- box information : `x 50`, `y 336`, `980 × 690 px` ;
+- box éditoriale : `x 50`, `y 1056`, `980 × 175 px`, soit exactement la hauteur éditoriale de la slide 1 ;
+- espacement entre les deux boxes : 30 px, comme sur la slide 1 ;
+- box information basée sur le style des cartes statistiques de la slide 1 ;
+- box éditoriale basée sur le style de synthèse de la slide 1 ;
+- pictogramme cadré dans une zone de `155 × 140 px` ;
+- chiffre principal allégé à une graisse 720 ;
+- sous-titre limité à 22–27 px, graisse 700 ;
+- valeurs comparatives limitées à 35–48 px, graisse 700 ;
+- labels comparatifs limités à 17–19 px ;
+- séparateur vertical ramené à 86 px et 1,25 px d'épaisseur ;
+- traits dorés internes harmonisés à `52 × 3 px` ;
+- phrase éditoriale centrée automatiquement sur une ou deux lignes ;
+- dimensions strictement communes aux slides 2, 3 et 4 ;
+- aperçu individuel des candidates aligné sur les nouvelles proportions.
 
-## Vérification locale
+## Vérification
 
 ```bash
 npm run typecheck
 npm run test:weekly
 ```
 
-Résultat attendu : `WEEKLY_CAROUSEL 92/92 PASS`.
+Résultat de référence : `WEEKLY_CAROUSEL 92/92 PASS`.
 
 ## Déploiement
 
-```bash
-npm run deploy
-```
+Après avoir remplacé les fichiers dans GitHub, utilisez votre procédure Cloudflare habituelle. Aucune migration D1 et aucune nouvelle variable ne sont nécessaires.
