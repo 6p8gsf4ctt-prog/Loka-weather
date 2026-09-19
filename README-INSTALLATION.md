@@ -1,36 +1,25 @@
-# LOKA — mise à jour éditoriale hebdomadaire v2
+# LOKA — slides éditoriales en boxes v3
 
-Ce ZIP est différentiel : il contient uniquement les fichiers à remplacer dans le dépôt GitHub existant.
+Ce ZIP est différentiel. Remplacez les fichiers qu’il contient à la racine du dépôt GitHub, en conservant les dossiers `src/` et `tests/`.
 
-## Installation
+## Ce qui change
 
-1. Décompresser le ZIP.
-2. Copier son contenu à la racine du dépôt en conservant les dossiers `src/` et `tests/`.
-3. Accepter le remplacement des fichiers existants.
-4. Valider les changements dans GitHub pour déclencher le déploiement Cloudflare habituel.
+- La slide 1 reste inchangée.
+- Les slides 2, 3 et 4 gardent son en-tête, sa box titre, ses coordonnées et sa signature.
+- Elles adoptent désormais trois boxes intérieures :
+  1. pictogramme, chiffre clé et sous-titre ;
+  2. informations de comparaison ou repère ;
+  3. phrase éditoriale unique.
+- Les trois boxes se terminent à la même ligne basse que la slide 1.
+- L’aperçu de chaque candidate reprend ce même schéma avant publication.
 
-Aucune nouvelle migration D1 et aucune nouvelle variable Cloudflare ne sont nécessaires.
+## Déploiement
 
-## Contenu fonctionnel
-
-- slide 1 strictement inchangée ;
-- cadre graphique unique partagé par les slides 1 à 4 ;
-- mêmes coordonnées pour l’en-tête, la box du titre, la limite inférieure et la signature ;
-- anomalie présentée par l’écart remarquable, avec prévision et valeur habituelle en comparaison ;
-- amplitude présentée avec les températures du matin et de l’après-midi ;
-- une seule phrase éditoriale, limitée à 25 mots ;
-- compositions adaptées aux anomalies, amplitudes, durées, séries, percentiles, records et phénomènes ;
-- suppression de la génération de l’ancienne slide `WEEKLY_NUMBER` ;
-- aperçu des candidates aligné sur la composition finale ;
-- choix de zéro à trois données, sans exclusion automatique ;
-- génération sans mot de passe depuis un brouillon D1 temporaire et limité à la ville/semaine affichée ;
-- lien immédiat vers le carrousel enregistré.
+Aucune migration D1, variable Cloudflare ou commande supplémentaire n’est requise. Validez les fichiers dans GitHub : le déploiement Cloudflare habituel suffit.
 
 ## Vérifications
 
-- TypeScript : validé ;
-- suite hebdomadaire : validée ;
-- `WEEKLY_COMPLEMENTARY_SLIDES` : 15/15 ;
-- `WEEKLY_COMPLEMENTARY_PREFLIGHT` : 16/16 ;
-- `WEEKLY_CAROUSEL` : 91/91 ;
-- validation hebdomadaire de production : validée.
+- TypeScript validé ;
+- `WEEKLY_CAROUSEL` : 92/92 ;
+- validation hebdomadaire de production validée ;
+- archive ZIP contrôlée sans erreur.
