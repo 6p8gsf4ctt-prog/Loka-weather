@@ -103,7 +103,10 @@ export function buildWeeklyContextualSelection(
     selected: manualSelected,
     all: manualSelected
   };
-  const slides = buildWeeklyComplementarySlides(ranking.selected, { allowRepeatedThemes: true });
+  const slides = buildWeeklyComplementarySlides(ranking.selected, {
+    allowRepeatedThemes: true,
+    preserveSelectionOrder: true
+  });
   const preflight = preflightWeeklyComplementarySlides(slides, { profiles, ranking, climateStatus: base.climateStatus, allowRepeatedThemes: true });
   return { ...base, ranking, slides, preflight };
 }

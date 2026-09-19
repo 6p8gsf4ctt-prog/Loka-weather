@@ -1,54 +1,42 @@
-# LOKA — continuité graphique de la slide 1 — V6
+# LOKA — retour à la version éditoriale stable V2
 
-Cette mise à jour remplace la V5. Elle ne modifie pas la slide 1.
+Ce paquet annule les architectures graphiques V3, V5 et V6. Il restaure le rendu validé avec une seule grande box éditoriale sous la box titre, tel qu'il apparaît sur les deux images de référence fournies.
 
-## Fichiers à remplacer
+## Installation
 
-- `src/engine/weekly/carousel.ts`
-- `src/engine/weekly/index.ts`
-- `src/ui/weeklyPreview.ts`
-- `tests/weeklyCarousel.ts`
+1. Ouvrir le dépôt GitHub actuel.
+2. Copier tous les fichiers de ce ZIP à la racine du dépôt.
+3. Conserver exactement les dossiers `src/` et `tests/`.
+4. Accepter le remplacement de tous les fichiers portant le même nom.
+5. Valider les changements pour déclencher le déploiement Cloudflare habituel.
 
-Le fichier `index.ts` reste fonctionnellement identique à celui de la V5 ; il est conservé pour fournir un paquet d'intégration cohérent.
+N'installez pas ensuite les ZIP V3, V5 ou V6 : ils réappliqueraient les structures abandonnées.
 
-## Règle graphique définitive
+## Rendu restauré
 
-Les slides éditoriales 2, 3 et 4 utilisent dorénavant une structure immuable de **trois boxes** :
+- slide 1 strictement inchangée ;
+- en-tête, box titre et footer communs au moteur de la slide 1 ;
+- une seule grande box sous le titre pour les slides 2, 3 et 4 ;
+- pictogramme, chiffre principal, sous-titre, comparaisons et phrase éditoriale réunis dans cette box ;
+- hiérarchie et espacements correspondant aux visuels de référence ;
+- suppression du découpage en trois boxes introduit ensuite.
 
-1. box titre ;
-2. box information (pictogramme, chiffre clé, sous-titre et comparaison) ;
-3. box phrase éditoriale.
+## Sélection manuelle sécurisée
 
-Les positions et dimensions sont communes à toutes les slides 2, 3 et 4 ; seul leur contenu varie. La slide 1 n'est pas modifiée.
+- toutes les candidates détectées restent affichées ;
+- une, deux ou trois données peuvent être cochées ;
+- chaque donnée cochée produit exactement une slide complémentaire ;
+- l'ordre des choix est conservé ;
+- plusieurs données de même thème ou de même type ne sont plus supprimées lors de la génération ;
+- le lien du carrousel est renvoyé après génération, sans mot de passe.
 
-## Ajustements inclus
+## Vérifications réalisées
 
-- en-tête, box titre et footer strictement inchangés ;
-- box information : `x 50`, `y 336`, `980 × 690 px` ;
-- box éditoriale : `x 50`, `y 1056`, `980 × 175 px`, soit exactement la hauteur éditoriale de la slide 1 ;
-- espacement entre les deux boxes : 30 px, comme sur la slide 1 ;
-- box information basée sur le style des cartes statistiques de la slide 1 ;
-- box éditoriale basée sur le style de synthèse de la slide 1 ;
-- pictogramme cadré dans une zone de `155 × 140 px` ;
-- chiffre principal allégé à une graisse 720 ;
-- sous-titre limité à 22–27 px, graisse 700 ;
-- valeurs comparatives limitées à 35–48 px, graisse 700 ;
-- labels comparatifs limités à 17–19 px ;
-- séparateur vertical ramené à 86 px et 1,25 px d'épaisseur ;
-- traits dorés internes harmonisés à `52 × 3 px` ;
-- phrase éditoriale centrée automatiquement sur une ou deux lignes ;
-- dimensions strictement communes aux slides 2, 3 et 4 ;
-- aperçu individuel des candidates aligné sur les nouvelles proportions.
+- TypeScript : validé ;
+- suite hebdomadaire : validée ;
+- slides complémentaires : `16/16 PASS` ;
+- pipeline contextuel : `8/8 PASS` ;
+- carrousel : `91/91 PASS` ;
+- test explicite : trois données sélectionnées produisent la slide 1 plus trois slides complémentaires.
 
-## Vérification
-
-```bash
-npm run typecheck
-npm run test:weekly
-```
-
-Résultat de référence : `WEEKLY_CAROUSEL 92/92 PASS`.
-
-## Déploiement
-
-Après avoir remplacé les fichiers dans GitHub, utilisez votre procédure Cloudflare habituelle. Aucune migration D1 et aucune nouvelle variable ne sont nécessaires.
+Aucune migration D1 et aucune nouvelle variable Cloudflare ne sont nécessaires.

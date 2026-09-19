@@ -281,11 +281,25 @@ function slide(position: 2 | 3 | 4, role: WeeklyComplementarySlideRole, ranked: 
 }
 
 /**
- * N7 creates at most three complementary slides. It never creates a slide to
- * fill a vacant role, and it never repeats a meteorological theme.
+ * N7 creates at most three complementary slides. Automatic selection keeps
+ * its role and theme safeguards. Manual selection may instead preserve every
+ * explicit choice, in order, because the editor has final authority.
  */
-export function buildWeeklyComplementarySlides(rankedCandidates: RankedWeeklySignalCandidate[], options: { allowRepeatedThemes?: boolean } = {}): WeeklyComplementarySlidePlan {
+export function buildWeeklyComplementarySlides(
+  rankedCandidates: RankedWeeklySignalCandidate[],
+  options: { allowRepeatedThemes?: boolean; preserveSelectionOrder?: boolean } = {}
+): WeeklyComplementarySlidePlan {
   const candidates = selectedOnly(rankedCandidates);
+  if (options.preserveSelectionOrder) {
+    const roles: WeeklyComplementarySlideRole[] = ["NUMBER", "PRACTICAL", "DETAIL"];
+    const slides = candidates.slice(0, 3).map((candidate, index) => slide((index + 2) as 2 | 3 | 4, roles[index]!, candidate));
+    return {
+      version: WEEKLY_COMPLEMENTARY_SLIDES_VERSION,
+      inputSignals: candidates.length,
+      slides,
+      omittedSignalIds: candidates.slice(3).map((item) => item.candidate.signal.id)
+    };
+  }
   const usedIds = new Set<string>();
   const usedThemes = new Set<WeeklyComplementaryTheme>();
   const slides: WeeklyComplementarySlide[] = [];

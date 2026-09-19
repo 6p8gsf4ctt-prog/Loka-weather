@@ -1,5 +1,5 @@
 import { CITIES } from "../src/config/cities";
-import { generateWeeklyContextualVisualPreview } from "../src/weeklyPipeline";
+import { applyWeeklyManualSelection, generateWeeklyContextualVisualPreview } from "../src/weeklyPipeline";
 
 let passed = 0;
 function ok(value: boolean, label: string): void {
@@ -16,4 +16,8 @@ ok(generated.carousel.slides.map((slide) => slide.kind).join(",") === "OVERVIEW,
 ok(generated.carousel.slides.slice(1).every((slide) => slide.backgroundUrl === "/masters24/weekly/SEMAINE_HOMOGENE.jpeg" && slide.complementary?.frame === "WEEKLY_SHARED_V1"), "all_contextual_slides_keep_the_validated_shared_frame");
 ok(generated.activation.ok, "integrated_preview_still_passes_weekly_activation");
 
-console.log(`WEEKLY_CONTEXTUAL_PIPELINE ${passed}/7 PASS`);
+const manualIds = generated.contextual.ranking.all.slice(0, 3).map((item) => item.candidate.signal.id);
+const manual = applyWeeklyManualSelection(generated, manualIds);
+ok(manualIds.length === 3 && manual.contextual.slides.slides.length === 3 && manual.carousel.slides.length === 4 && manual.contextual.slides.slides.map((item) => item.signalId).join(",") === manualIds.join(","), "three_manual_choices_create_three_complementary_slides_in_order");
+
+console.log(`WEEKLY_CONTEXTUAL_PIPELINE ${passed}/8 PASS`);

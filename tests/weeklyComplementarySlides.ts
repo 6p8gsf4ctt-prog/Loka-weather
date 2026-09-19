@@ -61,6 +61,14 @@ const onlyPractical = rankAndDeduplicateWeeklySignals([practical]);
 const onlyPracticalPlan = buildWeeklyComplementarySlides(onlyPractical.selected);
 ok(onlyPracticalPlan.slides.length === 1 && onlyPracticalPlan.slides[0].position === 2 && onlyPracticalPlan.slides[0].role === "NUMBER", "single_important_phenomenon_becomes_adaptive_number_slide");
 
+const manualPhenomena = [
+  practical,
+  candidate({ id: "manual-heat", detector: "IMPACT_PHENOMENON", family: "PHENOMENON", metric: "TEMPERATURE", dayIndex: 1, date: "2026-09-22", value: 32, reference: 30, facts: { phenomenon: "HEAT" }, evidenceKind: "PHENOMENON" }),
+  candidate({ id: "manual-wind", detector: "IMPACT_PHENOMENON", family: "PHENOMENON", metric: "WIND_GUST", dayIndex: 4, date: "2026-09-25", value: 78, reference: 70, facts: { phenomenon: "STRONG_WIND" }, evidenceKind: "PHENOMENON" })
+].map((item, index) => ({ ...scoreWeeklySignalCandidate(item), eligible: true, rejectionReasons: [], rank: index + 1 }));
+const manualPlan = buildWeeklyComplementarySlides(manualPhenomena, { allowRepeatedThemes: true, preserveSelectionOrder: true });
+ok(manualPlan.slides.map((item) => item.signalId).join(",") === "practical-rain,manual-heat,manual-wind" && manualPlan.omittedSignalIds.length === 0, "manual_selection_preserves_every_explicit_choice_in_order");
+
 const signatureAndDetail = rankAndDeduplicateWeeklySignals([signature, detail]);
 const compactPlan = buildWeeklyComplementarySlides(signatureAndDetail.selected);
 ok(compactPlan.slides.map((slide) => `${slide.position}:${slide.role}`).join(",") === "2:NUMBER,3:DETAIL", "detail_moves_up_when_no_practical_signal_exists");
@@ -85,4 +93,4 @@ ok(amplitudeSlide.presentation?.headline === "15,3 °C" && amplitudeSlide.presen
 
 ok([anomalySlide, amplitudeSlide].every((slide) => (slide.presentation?.editorialLine.split(/\s+/).length ?? 99) <= 25 && !slide.presentation?.editorialLine.includes("\n")), "social_slides_keep_one_short_editorial_sentence");
 
-console.log(`WEEKLY_COMPLEMENTARY_SLIDES ${passed}/15 PASS`);
+console.log(`WEEKLY_COMPLEMENTARY_SLIDES ${passed}/16 PASS`);
