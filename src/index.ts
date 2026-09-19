@@ -9,7 +9,7 @@ import { annualSceneReport, promoteVerifiedGeneration } from "./storage/dailySce
 import { editorialFeedbackForOfficial, saveEditorialFeedback } from "./storage/editorialFeedback";
 import { buildEditorialLearningExport } from "./storage/editorialFeedbackExport";
 import { saveWeeklyPublication, weeklyPublicationForRange } from "./storage/weeklyPublications";
-import { consumeWeeklyPreviewDraft, loadWeeklyPreviewDraft, saveWeeklyPreviewDraft } from "./storage/weeklyPreviewDrafts";
+import { loadWeeklyPreviewDraft, saveWeeklyPreviewDraft } from "./storage/weeklyPreviewDrafts";
 import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
 import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
@@ -394,7 +394,8 @@ export default {
           draftId,
           candidates: generated.contextual.ranking.all
         });
-        const html = renderWeeklyCarousel(previewSource.editorial, previewOptions).replace('<section class="carousel"', selectionPanel + '<section class="carousel"');
+        const html = renderWeeklyCarousel(previewSource.editorial, { ...previewOptions, includeSlides: false, includeStory: false })
+          .replace('</main>', selectionPanel + '</main>');
         return new Response(html, {
           headers: {
             "content-type": "text/html; charset=utf-8",
@@ -416,6 +417,7 @@ export default {
     }
 
     if (url.pathname === "/api/admin/weekly/publish-selection" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
       let body: { draftId?: unknown; city?: unknown; start?: unknown; signalIds?: unknown };
       try { body = await request.json() as typeof body; } catch { return json({ error: "invalid_json" }, 400); }
       const city = getCity(typeof body.city === "string" ? body.city : "tarnos");
@@ -438,8 +440,7 @@ export default {
           editorial: selected.editorial,
           carousel: selected.carousel
         });
-        await consumeWeeklyPreviewDraft(env.DB, draftId);
-        return json({ ok: true, publicationId: publication.id, startDate: publication.startDate, endDate: publication.endDate, publicationUrl: `/weekly?city=${encodeURIComponent(city.slug)}&start=${encodeURIComponent(publication.startDate)}`, selectedSignalIds: selected.contextual.slides.slides.map((slide) => slide.signalId) });
+        return json({ ok: true, publicationId: publication.id, startDate: publication.startDate, endDate: publication.endDate, selectedSignalIds: selected.contextual.slides.slides.map((slide) => slide.signalId) });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return json({ error: message }, 409);
@@ -471,7 +472,7 @@ export default {
       if (!await masterAvailable(request, env, result.publication.editorial.overview.scene.masterUrl)) return unavailable("weekly_master_graphic_unavailable");
       const surface = resolveWeeklyPublicSurface(env, result.publication.editorial, result.publication.carousel);
       logWeeklyProgressivePublication(surface.rollout, { citySlug: result.publication.citySlug, startDate: result.publication.startDate, endDate: result.publication.endDate });
-      return new Response(renderWeeklyCarousel(surface.editorial, surface.renderOptions), {
+      return new Response(renderWeeklyCarousel(surface.editorial, { ...surface.renderOptions, includeStory: false }), {
         headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
       });
     }

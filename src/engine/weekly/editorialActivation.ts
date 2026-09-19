@@ -14,6 +14,7 @@ import {
   detectClimateDeparture,
   detectHistoricalExtreme,
   detectProjectedSeries,
+  detectRecentExtreme,
   detectSeasonalFirst,
   detectWeeklyRainfallDeparture
 } from "./signalDetectors";
@@ -228,6 +229,23 @@ function seriesCandidates(profiles: WeeklyProfileSet, archive: ClimateDailyObser
   return candidates;
 }
 
+function recentExtremeCandidates(profiles: WeeklyProfileSet, archive: ClimateDailyObservation[]): WeeklySignalCandidate[] {
+  const candidates: WeeklySignalCandidate[] = [];
+  for (const day of profiles.days) {
+    const facts: ForecastDailyFact[] = [
+      { date: day.date, dayIndex: day.dayIndex, metric: "tminC", value: day.fullDay.minTemperatureC, confidence: confidence(day) },
+      { date: day.date, dayIndex: day.dayIndex, metric: "tmaxC", value: day.fullDay.maxTemperatureC, confidence: confidence(day) },
+      { date: day.date, dayIndex: day.dayIndex, metric: "rainMm", value: day.fullDay.precipitation.totalMm, confidence: confidence(day) },
+      { date: day.date, dayIndex: day.dayIndex, metric: "gust3sMs", value: day.fullDay.wind.maxGustKmh / 3.6, confidence: confidence(day) }
+    ];
+    for (const fact of facts) {
+      const candidate = detectRecentExtreme(fact, archive);
+      if (candidate) candidates.push(candidate);
+    }
+  }
+  return candidates;
+}
+
 /** Activates every archive-backed N2 detector through one validated path. */
 export function activateWeeklyEditorialSignals(
   profiles: WeeklyProfileSet,
@@ -238,7 +256,8 @@ export function activateWeeklyEditorialSignals(
     ...temperatureCandidates(profiles, archive),
     ...rainfallCandidate(profiles, archive),
     ...seasonalCandidates(profiles, archive),
-    ...seriesCandidates(profiles, archive)
+    ...seriesCandidates(profiles, archive),
+    ...recentExtremeCandidates(profiles, archive)
   ];
   const resourceCount = new Set(archive.map((row) => row.provenance.resourceId)).size;
   const candidates = rawCandidates.map((candidate) => ({

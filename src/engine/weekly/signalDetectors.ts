@@ -25,6 +25,7 @@ export const WEEKLY_SIGNAL_DETECTOR_VERSION = "1.0.0" as const;
 
 export type WeeklySignalDetectorKind =
   | "HISTORICAL_SINCE"
+  | "RECENT_EXTREME"
   | "RECORD_PROXIMITY"
   | "CLIMATE_ANOMALY"
   | "EXTREME_PERCENTILE"
@@ -92,6 +93,13 @@ const INTRADAY_THRESHOLDS = {
   fourHourDropC: 7
 } as const;
 
+const RECENT_EXTREME_THRESHOLDS = {
+  minimumGapDays: 14,
+  lookbackDays: 365,
+  minimumRainMm: 5,
+  minimumGustKmh: 40
+} as const;
+
 function assertIsoDate(value: string): void {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`))) throw new Error("weekly_signal_detector_invalid_date");
 }
@@ -112,7 +120,7 @@ function archiveValue(row: ClimateDailyObservation, metric: ClimateDailyMetric):
 function measurement(fact: ForecastDailyFact): WeeklySignalMeasurement {
   assertIsoDate(fact.date);
   const contract = metricContract(fact.metric);
-  return { metric: contract.metric, value: fact.value, unit: contract.unit, window: { startDate: fact.date, endDate: fact.date, basis: contract.basis } };
+  return { metric: contract.metric, value: fact.metric === "gust3sMs" ? fact.value * 3.6 : fact.value, unit: contract.unit, window: { startDate: fact.date, endDate: fact.date, basis: contract.basis } };
 }
 
 function candidate(args: {
@@ -171,6 +179,41 @@ export function detectHistoricalExtreme(forecast: ForecastDailyFact, archive: Cl
     confidence: forecast.confidence, representativeDayIndex: forecast.dayIndex, forecast: predicted,
     evidence: [{ kind: "RECORD_PROXIMITY", source: "LOCAL_ARCHIVE", reference: { metric: contract.metric, value: extreme.value, unit: contract.unit, window: { startDate: extreme.row.date, endDate: extreme.row.date, basis: contract.basis } }, explanation: `Extrême observé dans l'archive disponible : ${extreme.row.date}.` }],
     facts: { direction, recordDate: extreme.row.date, recordValue: extreme.value, forecastBeyondRecord: true, archiveSize: comparable.length }
+  });
+}
+
+/** Finds recent local observations beaten by a forecast, with a variable lookback. */
+export function detectRecentExtreme(forecast: ForecastDailyFact, archive: ClimateDailyObservation[]): WeeklySignalCandidate | null {
+  const forecastMeasurement = measurement(forecast);
+  const forecastValue = forecastMeasurement.value;
+  const cutoff = new Date(`${forecast.date}T00:00:00Z`);
+  cutoff.setUTCDate(cutoff.getUTCDate() - RECENT_EXTREME_THRESHOLDS.lookbackDays);
+  const comparable = archive
+    .filter((row) => row.date < forecast.date && row.date >= cutoff.toISOString().slice(0, 10))
+    .map((row) => ({ row, value: archiveValue(row, forecast.metric) }))
+    .filter((item): item is { row: ClimateDailyObservation; value: number } => item.value !== null)
+    .sort((a, b) => a.row.date.localeCompare(b.row.date));
+  if (comparable.length < 14) return null;
+  const minimumValue = Math.min(...comparable.map((item) => item.value));
+  const maximumValue = Math.max(...comparable.map((item) => item.value));
+  const direction: "HIGH" | "LOW" = forecast.metric === "tminC" ? "LOW" : "HIGH";
+  const beatsRecentExtreme = direction === "LOW" ? forecastValue < minimumValue : forecastValue > maximumValue;
+  if (!beatsRecentExtreme) return null;
+  if (forecast.metric === "rainMm" && forecastValue < RECENT_EXTREME_THRESHOLDS.minimumRainMm) return null;
+  if (forecast.metric === "gust3sMs" && forecastValue < RECENT_EXTREME_THRESHOLDS.minimumGustKmh) return null;
+  const lastComparable = [...comparable].reverse().find((item) => direction === "LOW" ? item.value <= forecastValue : item.value >= forecastValue);
+  const reference = lastComparable ?? comparable[0];
+  const lowerBound = !lastComparable;
+  if (!reference) return null;
+  const daysSince = Math.floor((Date.parse(`${forecast.date}T00:00:00Z`) - Date.parse(`${reference.row.date}T00:00:00Z`)) / 86_400_000);
+  if (daysSince < RECENT_EXTREME_THRESHOLDS.minimumGapDays) return null;
+  const label = direction === "LOW" ? "minimum" : "maximum";
+  return candidate({
+    detector: "RECENT_EXTREME", role: "NUMBER", family: "RECENT_CONTEXT",
+    topicKey: `${forecast.metric}:recent-${direction.toLowerCase()}:${forecast.date}`,
+    confidence: forecast.confidence, representativeDayIndex: forecast.dayIndex, forecast: forecastMeasurement,
+    evidence: [{ kind: "RECENT_EXTREME", source: "LOCAL_ARCHIVE", reference: { ...forecastMeasurement, value: reference.value, window: { ...forecastMeasurement.window, startDate: reference.row.date, endDate: reference.row.date } }, explanation: lowerBound ? `Aucune valeur comparable n'a atteint le ${label} prévu depuis le début de la fenêtre récente : ${reference.row.date}.` : `Dernière valeur comparable atteignant le ${label} récent : ${reference.row.date}.` }],
+    facts: { direction, referenceDate: reference.row.date, referenceValue: reference.value, daysSince, lowerBound, recentWindowDays: RECENT_EXTREME_THRESHOLDS.lookbackDays, archiveSize: comparable.length, minimumGapDays: RECENT_EXTREME_THRESHOLDS.minimumGapDays }
   });
 }
 
@@ -365,4 +408,4 @@ export function detectWeeklySignalCandidates(args: {
   ];
 }
 
-export { INTRADAY_THRESHOLDS, PHENOMENON_THRESHOLDS, REGIME_THRESHOLDS };
+export { INTRADAY_THRESHOLDS, PHENOMENON_THRESHOLDS, RECENT_EXTREME_THRESHOLDS, REGIME_THRESHOLDS };

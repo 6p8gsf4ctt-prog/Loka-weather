@@ -17,6 +17,7 @@ export type WeeklyEditorialSignalFamily =
   | "PHENOMENON"
   | "REGIME_CHANGE"
   | "SERIES"
+  | "RECENT_CONTEXT"
   | "INTRADAY_CHANGE";
 
 export type WeeklyEditorialMetric =
@@ -39,6 +40,7 @@ export type WeeklyEditorialEvidenceKind =
   | "PERCENTILE"
   | "SEASONAL_FIRST"
   | "SERIES"
+  | "RECENT_EXTREME"
   | "INTRADAY_CHANGE"
   | "PHENOMENON"
   | "REGIME_CHANGE";

@@ -114,6 +114,24 @@ function recordCopy(ranked: RankedWeeklySignalCandidate, claimStatus: WeeklySign
   );
 }
 
+function recentExtremeCopy(ranked: RankedWeeklySignalCandidate, claimStatus: WeeklySignalClaimStatus): LokaEditorialCopy {
+  const signal = ranked.candidate.signal;
+  const daysSince = factNumber(ranked.candidate, "daysSince") ?? 0;
+  const direction = factString(ranked.candidate, "direction");
+  const day = weekday(signal.forecast.window.startDate, true);
+  const interval = ranked.candidate.facts.lowerBound === true ? `au moins ${daysSince} jours` : `${daysSince} jours`;
+  const prefix = signal.forecast.metric === "PRECIPITATION"
+    ? `${day} pourrait être la journée la plus pluvieuse`
+    : signal.forecast.metric === "WIND_GUST"
+      ? `${day} pourrait connaître les rafales les plus fortes`
+      : direction === "LOW"
+        ? `${day} matin pourrait être le plus frais`
+        : `${day} pourrait être le plus chaud`;
+  const primary = `${prefix} depuis ${interval}.`;
+  const secondary = `${valueText(signal.forecast.metric, signal.forecast.value, signal.forecast.unit)} prévus, dernière valeur comparable le ${longDate(factString(ranked.candidate, "referenceDate") ?? signal.forecast.window.startDate)}.`;
+  return buildLokaEditorialCopy(primary, secondary);
+}
+
 function anomalyCopy(ranked: RankedWeeklySignalCandidate, claimStatus: WeeklySignalClaimStatus): LokaEditorialCopy {
   const candidate = ranked.candidate;
   const signal = candidate.signal;
@@ -218,6 +236,7 @@ function write(ranked: RankedWeeklySignalCandidate, claimStatus: WeeklySignalCla
   const detector = ranked.candidate.detector;
   if (detector === "HISTORICAL_SINCE") return historicalCopy(ranked, claimStatus);
   if (detector === "RECORD_PROXIMITY") return recordCopy(ranked, claimStatus);
+  if (detector === "RECENT_EXTREME") return recentExtremeCopy(ranked, claimStatus);
   if (detector === "CLIMATE_ANOMALY") return anomalyCopy(ranked, claimStatus);
   if (detector === "EXTREME_PERCENTILE") return percentileCopy(ranked, claimStatus);
   if (detector === "SEASONAL_FIRST") return seasonalCopy(ranked, claimStatus);

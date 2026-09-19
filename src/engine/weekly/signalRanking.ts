@@ -62,7 +62,7 @@ function factString(candidate: WeeklySignalCandidate, key: string): string | nul
 function priorityTier(detector: WeeklySignalDetectorKind): 1 | 2 | 3 | 4 {
   if (detector === "IMPACT_PHENOMENON" || detector === "REGIME_CHANGE") return 1;
   if (detector === "RECORD_PROXIMITY" || detector === "EXTREME_PERCENTILE") return 2;
-  if (detector === "HISTORICAL_SINCE" || detector === "CLIMATE_ANOMALY" || detector === "SEASONAL_FIRST" || detector === "REMARKABLE_SERIES") return 3;
+  if (detector === "HISTORICAL_SINCE" || detector === "RECENT_EXTREME" || detector === "CLIMATE_ANOMALY" || detector === "SEASONAL_FIRST" || detector === "REMARKABLE_SERIES") return 3;
   return 4;
 }
 
@@ -76,7 +76,7 @@ function importance(candidate: WeeklySignalCandidate): { value: number; reason: 
   if (candidate.detector === "RECORD_PROXIMITY") return { value: 4, reason: "Extrême de l'archive potentiellement dépassé." };
   if (candidate.detector === "SEASONAL_FIRST") return { value: 3, reason: "Étape saisonnière identifiable." };
   if (candidate.detector === "REMARKABLE_SERIES") return { value: 3, reason: "Séquence durable plutôt qu'une valeur isolée." };
-  if (candidate.detector === "HISTORICAL_SINCE" || candidate.detector === "EXTREME_PERCENTILE") return { value: 3, reason: "Mise en perspective historique ou statistique forte." };
+  if (candidate.detector === "HISTORICAL_SINCE" || candidate.detector === "RECENT_EXTREME" || candidate.detector === "EXTREME_PERCENTILE") return { value: 3, reason: "Mise en perspective historique ou statistique forte." };
   if (candidate.detector === "CLIMATE_ANOMALY") return { value: 2, reason: "Écart climatique sans conséquence pratique automatique." };
   return { value: 2, reason: "Curiosité intrajournalière démontrée." };
 }
@@ -87,6 +87,10 @@ function rarity(candidate: WeeklySignalCandidate): { value: number; reason: stri
     const days = factNumber(candidate, "daysSince") ?? 0;
     const value = days >= 365 ? 5 : days >= 180 ? 4 : days >= 90 ? 3 : days >= 30 ? 2 : 1;
     return { value, reason: `${days} jours depuis la dernière valeur comparable.` };
+  }
+  if (candidate.detector === "RECENT_EXTREME") {
+    const days = factNumber(candidate, "daysSince") ?? 0;
+    return { value: days >= 90 ? 5 : days >= 45 ? 4 : 3, reason: `${days} jours depuis la dernière valeur comparable récente.` };
   }
   if (candidate.detector === "EXTREME_PERCENTILE") {
     const percentile = factNumber(candidate, "percentile") ?? 95;
@@ -115,7 +119,7 @@ function anomaly(candidate: WeeklySignalCandidate): { value: number; reason: str
   }
   if (candidate.detector === "EXTREME_PERCENTILE") return { value: 4, reason: "Valeur dans une queue extrême de la distribution." };
   if (candidate.detector === "RECORD_PROXIMITY") return { value: 5, reason: "Dépassement potentiel de l'extrême observé." };
-  if (candidate.detector === "HISTORICAL_SINCE") return { value: 3, reason: "Niveau suffisamment inhabituel pour nécessiter une recherche historique." };
+  if (candidate.detector === "HISTORICAL_SINCE" || candidate.detector === "RECENT_EXTREME") return { value: 3, reason: "Comparaison directe avec les observations récentes." };
   if (candidate.detector === "REMARKABLE_SERIES") return { value: 4, reason: "Durée projetée supérieure à la référence fournie." };
   if (candidate.detector === "SEASONAL_FIRST") return { value: 3, reason: "Franchissement saisonnier explicite." };
   const threshold = candidate.signal.evidence[0]?.reference.value ?? 0;
@@ -147,6 +151,7 @@ function referenceGate(candidate: WeeklySignalCandidate): WeeklySignalRejectionR
   if (candidate.detector === "SEASONAL_FIRST" && (seasons === null || seasons < 20)) reasons.push("INSUFFICIENT_REFERENCE_DEPTH");
   if (candidate.detector === "REMARKABLE_SERIES" && (factNumber(candidate, "referenceDays") ?? 0) < 3650) reasons.push("INSUFFICIENT_REFERENCE_DEPTH");
   if (candidate.detector === "HISTORICAL_SINCE" && (factNumber(candidate, "daysSince") ?? 0) < 30) reasons.push("TRIVIAL_HISTORICAL_INTERVAL");
+  if (candidate.detector === "RECENT_EXTREME" && (factNumber(candidate, "daysSince") ?? 0) < (factNumber(candidate, "minimumGapDays") ?? 14)) reasons.push("TRIVIAL_HISTORICAL_INTERVAL");
   return reasons;
 }
 

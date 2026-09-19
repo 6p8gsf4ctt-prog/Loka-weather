@@ -58,7 +58,7 @@ function visual(candidate: RankedWeeklySignalCandidate): WeeklyComplementaryVisu
 
 function detailSuitable(detector: WeeklySignalDetectorKind): boolean {
   return detector === "SEASONAL_FIRST" || detector === "REMARKABLE_SERIES" || detector === "INTRADAY_CHANGE"
-    || detector === "HISTORICAL_SINCE" || detector === "EXTREME_PERCENTILE";
+    || detector === "HISTORICAL_SINCE" || detector === "RECENT_EXTREME" || detector === "EXTREME_PERCENTILE";
 }
 
 function practicalSuitable(detector: WeeklySignalDetectorKind): boolean {
