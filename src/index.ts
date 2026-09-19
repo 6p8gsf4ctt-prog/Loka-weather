@@ -392,7 +392,17 @@ export default {
           startDate: generated.editorial.startDate,
           endDate: generated.editorial.endDate,
           draftId,
-          candidates: generated.contextual.ranking.all
+          candidates: generated.contextual.ranking.all,
+          research: {
+            rawCandidateCount: generated.contextual.candidates.length,
+            displayedCandidateCount: generated.contextual.ranking.all.length,
+            automaticSelectedCount: generated.contextual.ranking.selected.length,
+            automaticallyClassifiedCount: generated.contextual.ranking.all.length,
+            detectorCounts: generated.contextual.candidates.reduce<Record<string, number>>((counts, item) => {
+              counts[item.detector] = (counts[item.detector] ?? 0) + 1;
+              return counts;
+            }, {})
+          }
         });
         const html = renderWeeklyCarousel(previewSource.editorial, { ...previewOptions, includeSlides: false, includeStory: false })
           .replace('</main>', selectionPanel + '</main>');
@@ -440,7 +450,8 @@ export default {
           editorial: selected.editorial,
           carousel: selected.carousel
         });
-        return json({ ok: true, publicationId: publication.id, startDate: publication.startDate, endDate: publication.endDate, selectedSignalIds: selected.contextual.slides.slides.map((slide) => slide.signalId) });
+        const publicationUrl = `/weekly?city=${encodeURIComponent(city.slug)}&start=${encodeURIComponent(publication.startDate)}`;
+        return json({ ok: true, publicationId: publication.id, startDate: publication.startDate, endDate: publication.endDate, publicationUrl, selectedSignalIds: selected.contextual.slides.slides.map((slide) => slide.signalId) });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return json({ error: message }, 409);
