@@ -5,6 +5,7 @@ Cette mise à jour conserve l’architecture maître validée des scènes 1 et 2
 Modifications appliquées :
 
 - suppression de la petite barre jaune placée avant le commentaire final des scènes éditoriales ;
+- opacité légèrement renforcée de la grande box commune, pour mieux détacher les informations du fond ;
 - maintien strict de la position, du texte et de la typographie du commentaire ;
 - renforcement mesuré des graisses typographiques afin de retrouver la densité des maquettes ;
 - renforcement léger des séparateurs internes, sans modifier leurs coordonnées ;
