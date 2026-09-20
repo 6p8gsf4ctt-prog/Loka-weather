@@ -1,42 +1,32 @@
-# LOKA — retour à la version éditoriale stable V2
+# LOKA — scènes éditoriales 2 et 3 · maquette v1
 
-Ce paquet annule les architectures graphiques V3, V5 et V6. Il restaure le rendu validé avec une seule grande box éditoriale sous la box titre, tel qu'il apparaît sur les deux images de référence fournies.
+Ce ZIP est une mise à jour différentielle à installer après le retour stable V2.
+Il contient uniquement les deux fichiers à remplacer.
 
-## Installation
+## Installation dans GitHub
 
-1. Ouvrir le dépôt GitHub actuel.
-2. Copier tous les fichiers de ce ZIP à la racine du dépôt.
-3. Conserver exactement les dossiers `src/` et `tests/`.
-4. Accepter le remplacement de tous les fichiers portant le même nom.
+1. Décompresser le ZIP.
+2. Importer son contenu à la racine du dépôt.
+3. Conserver l’arborescence `src/` et `tests/`.
+4. Accepter le remplacement des deux fichiers existants.
 5. Valider les changements pour déclencher le déploiement Cloudflare habituel.
 
-N'installez pas ensuite les ZIP V3, V5 ou V6 : ils réappliqueraient les structures abandonnées.
+Aucune commande de terminal, migration D1 ou variable Cloudflare supplémentaire n’est nécessaire.
 
-## Rendu restauré
+## Modification graphique
 
 - slide 1 strictement inchangée ;
-- en-tête, box titre et footer communs au moteur de la slide 1 ;
-- une seule grande box sous le titre pour les slides 2, 3 et 4 ;
-- pictogramme, chiffre principal, sous-titre, comparaisons et phrase éditoriale réunis dans cette box ;
-- hiérarchie et espacements correspondant aux visuels de référence ;
-- suppression du découpage en trois boxes introduit ensuite.
+- en-tête, fond, box titre, grande box, marges, ligne inférieure et footer inchangés ;
+- conservation du moteur graphique commun et du rendu stable V2 ;
+- phrase éditoriale maintenue à l’intérieur de la grande box ;
+- ajout d’un repère éditorial interne : disque translucide, pictogramme doré et séparateur vertical court ;
+- aucun quatrième bloc et aucune box supplémentaire ;
+- composition appliquée à toutes les slides complémentaires pour garantir la continuité des scènes 2, 3 et 4 ;
+- moteur de détection, classement et sélection manuelle inchangé.
 
-## Sélection manuelle sécurisée
-
-- toutes les candidates détectées restent affichées ;
-- une, deux ou trois données peuvent être cochées ;
-- chaque donnée cochée produit exactement une slide complémentaire ;
-- l'ordre des choix est conservé ;
-- plusieurs données de même thème ou de même type ne sont plus supprimées lors de la génération ;
-- le lien du carrousel est renvoyé après génération, sans mot de passe.
-
-## Vérifications réalisées
+## Vérifications
 
 - TypeScript : validé ;
-- suite hebdomadaire : validée ;
-- slides complémentaires : `16/16 PASS` ;
-- pipeline contextuel : `8/8 PASS` ;
-- carrousel : `91/91 PASS` ;
-- test explicite : trois données sélectionnées produisent la slide 1 plus trois slides complémentaires.
-
-Aucune migration D1 et aucune nouvelle variable Cloudflare ne sont nécessaires.
+- suite hebdomadaire complète : validée ;
+- `WEEKLY_CAROUSEL` : 92/92 ;
+- contrôle ajouté pour interdire la création d’une box éditoriale séparée.
