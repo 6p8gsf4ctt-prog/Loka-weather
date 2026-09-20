@@ -287,7 +287,7 @@ const adaptiveLayout = adaptiveLayoutRuntime.layout(renderedModel!.slide1, {
   restore: () => undefined,
   measureText: (value: string) => ({ width: [...value].reduce((total, character) => total + measuredFontSize * (character === " " ? 0.28 : 0.52), 0) })
 });
-ok(adaptiveLayout.length === 3 && adaptiveLayout[0]?.x === 50 && adaptiveLayout[1]?.x === (adaptiveLayout[0]?.x ?? 0) + (adaptiveLayout[0]?.width ?? 0) + 10 && adaptiveLayout[2]?.x === (adaptiveLayout[1]?.x ?? 0) + (adaptiveLayout[1]?.width ?? 0) + 10 && Math.abs(adaptiveLayout.reduce((total, card) => total + card.width, 0) - 960) < .001 && adaptiveLayout.every((card) => Math.abs(card.width - 320) < .001), "slide1_fact_layout_uses_three_identical_card_columns");
+ok(adaptiveLayout.length === 3 && adaptiveLayout[0]?.x === 50 && adaptiveLayout[1]?.x === (adaptiveLayout[0]?.x ?? 0) + (adaptiveLayout[0]?.width ?? 0) && adaptiveLayout[2]?.x === (adaptiveLayout[1]?.x ?? 0) + (adaptiveLayout[1]?.width ?? 0) && Math.abs(adaptiveLayout.reduce((total, card) => total + card.width, 0) - 980) < .001 && adaptiveLayout.every((card) => Math.abs(card.width - 980 / 3) < .001), "slide1_fact_layout_uses_three_identical_contiguous_columns");
 
 let summaryFontSize = 16;
 const shortSummary = {
@@ -317,6 +317,7 @@ const slide1FactsRenderer = script.split("\n").find((line) => line.startsWith("f
 const slide1TemperatureRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide1TemperatureFact(")) ?? "";
 const slide1DaylightRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide1DaylightFact(")) ?? "";
 const slide1FactLayoutRenderer = script.split("\n").find((line) => line.startsWith("function slide1FactLayout(")) ?? "";
+const slide1VerticalSeparatorRenderer = script.split("\n").find((line) => line.startsWith("function slide1VerticalSeparator(")) ?? "";
 const slide1SummaryRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide1Summary(")) ?? "";
 const slide1FeedSignatureRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide1FeedSignature(")) ?? "";
 const slide2NumberRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide2Number(")) ?? "";
@@ -342,7 +343,8 @@ ok(complementaryContentRenderer.includes("drawComplementaryEditorialCue(visual.e
 ok(slide1FactsRenderer.includes("content.coldestMorning") && slide1FactsRenderer.includes("content.hottestDay") && slide1FactsRenderer.includes("content.daylight"), "slide1_draws_the_three_fixed_weekly_facts");
 ok(slide1TemperatureRenderer.includes("fact.label") && slide1TemperatureRenderer.includes("fact.dateLabel") && slide1TemperatureRenderer.includes("fact.temperatureLabel") && !slide1TemperatureRenderer.includes("fact.timeLabel"), "slide1_temperature_fact_keeps_only_the_essential_day_and_temperature");
 ok(slide1FactsRenderer.includes("cards=slide1FactLayout(content,x,w)") && slide1FactsRenderer.includes("cards[0].x") && slide1FactsRenderer.includes("cards[1].x") && slide1FactsRenderer.includes("cards[2].x") && slide1TemperatureRenderer.includes("plainText(fact.temperatureLabel"), "slide1_temperature_facts_use_optically_balanced_loka_icons_and_common_card_centers");
-ok(slide1FactLayoutRenderer.includes("cardWidth=(totalWidth-gap*2)/3") && !slide1FactLayoutRenderer.includes("trackedMeasure(content.coldestMorning") && !slide1FactLayoutRenderer.includes("requiredWidths"), "slide1_fact_boxes_share_exactly_the_same_geometry");
+ok(slide1FactLayoutRenderer.includes("cardWidth=totalWidth/3") && !slide1FactLayoutRenderer.includes("gap=") && !slide1FactLayoutRenderer.includes("requiredWidths"), "slide1_fact_columns_share_exactly_the_same_geometry_without_inter_box_gaps");
+ok(slide1FactsRenderer.includes("slide1MetricBox(x,y,w,h)") && slide1FactsRenderer.includes("slide1VerticalSeparator(cards[1].x") && slide1FactsRenderer.includes("slide1VerticalSeparator(cards[2].x") && !slide1TemperatureRenderer.includes("slide1MetricBox(") && !slide1DaylightRenderer.includes("slide1MetricBox(") && slide1DayStripRenderer.includes("slide1VerticalSeparator(x+columnWidth*index") && slide1VerticalSeparatorRenderer.includes("rgba(6,31,76,.14)"), "slide1_facts_use_one_box_and_reuse_the_existing_weekly_vertical_separator");
 ok(slide1TemperatureRenderer.includes("const labelSize=fittedSize(fact.label,w-44,19,15,700)") && slide1DaylightRenderer.includes("const labelSize=fittedSize(content.label,w-44,19,15,700)") && slide1DaylightRenderer.includes("trackedText(content.label,x+w/2,y+92,labelSize,700,slide1Ink,.35,'center')") && slide1DaylightRenderer.includes("plainText(content.periodLabel,x+w/2,y+329,periodSize,560,slide1Ink,'center')") && slide1DaylightRenderer.includes("plainText(deltaValue,x+w/2,y+430") && !slide1DaylightRenderer.includes("sunriseLabel") && !slide1DaylightRenderer.includes("sunsetLabel"), "slide1_daylight_fact_uses_the_same_title_icon_period_value_structure_as_temperature_cards");
 ok(slide1SummaryRenderer.includes("const x=50,y=856,w=980,h=175") && slide1SummaryRenderer.includes("visual=content.synthesis") && slide1SummaryRenderer.includes("visual.primaryLine") && slide1SummaryRenderer.includes("visual.secondaryLine") && slide1SummaryRenderer.includes("slide1EditorialGold") && slide1SummaryRenderer.includes("'left'") && !slide1SummaryRenderer.includes("EN BREF"), "slide1_uses_the_daily_two_line_editorial_hierarchy");
 ok(slide1SummaryRenderer.includes("fitSlide1EditorialLines") && slide1SummaryRenderer.includes("visual.secondaryMaximumLines") && !slide1SummaryRenderer.includes("weekly_slide1_synthesis_does_not_fit"), "slide1_never_cuts_a_weekly_editorial_line_mid_sentence");
@@ -380,4 +382,4 @@ const pilotHtml = renderWeeklyCarousel(editorial(events), {
 });
 ok(pilotHtml.includes("Pilote éditorial · PASS") && pilotHtml.includes("Pilote valide."), "preview_shows_pilot_result_outside_publication_canvas");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/92 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/93 PASS`);

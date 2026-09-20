@@ -1,7 +1,7 @@
-# LOKA — scènes éditoriales 2 et 3 · maquette v1
+# LOKA — slide 1 · box statistique unique
 
-Ce ZIP est une mise à jour différentielle à installer après le retour stable V2.
-Il contient uniquement les deux fichiers à remplacer.
+Cette mise à jour différentielle s’installe après `LOKA-weekly-scenes23-maquette-v1-direct`.
+Elle contient uniquement les deux fichiers à remplacer.
 
 ## Installation dans GitHub
 
@@ -15,18 +15,17 @@ Aucune commande de terminal, migration D1 ou variable Cloudflare supplémentaire
 
 ## Modification graphique
 
-- slide 1 strictement inchangée ;
-- en-tête, fond, box titre, grande box, marges, ligne inférieure et footer inchangés ;
-- conservation du moteur graphique commun et du rendu stable V2 ;
-- phrase éditoriale maintenue à l’intérieur de la grande box ;
-- ajout d’un repère éditorial interne : disque translucide, pictogramme doré et séparateur vertical court ;
-- aucun quatrième bloc et aucune box supplémentaire ;
-- composition appliquée à toutes les slides complémentaires pour garantir la continuité des scènes 2, 3 et 4 ;
-- moteur de détection, classement et sélection manuelle inchangé.
+- une seule box pour les trois données principales de la slide 1 ;
+- trois colonnes de largeur strictement identique ;
+- suppression des espaces et contours entre les anciennes petites boxes ;
+- deux séparateurs verticaux utilisant le séparateur déjà présent dans la frise hebdomadaire ;
+- contenu, pictogrammes, tailles, alignements et hauteur du bloc conservés ;
+- box éditoriale, frise, en-tête, titre et footer inchangés ;
+- scènes 2, 3 et 4 inchangées.
 
 ## Vérifications
 
 - TypeScript : validé ;
 - suite hebdomadaire complète : validée ;
-- `WEEKLY_CAROUSEL` : 92/92 ;
-- contrôle ajouté pour interdire la création d’une box éditoriale séparée.
+- `WEEKLY_CAROUSEL` : 93/93 ;
+- contrôle automatique : une seule box et réutilisation du séparateur commun.
