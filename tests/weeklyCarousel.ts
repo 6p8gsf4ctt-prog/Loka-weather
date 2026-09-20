@@ -1,4 +1,4 @@
-import { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID, WEEKLY_EDITORIAL_MASTER_GRID, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_SLIDE1_DAILY_FEED_GRID, WEEKLY_SLIDE2_DAILY_FEED_GRID } from "../src/engine/weekly";
+import { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID, WEEKLY_EDITORIAL_MASTER_GRID, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_SLIDE1_DAILY_FEED_GRID, WEEKLY_SLIDE2_DAILY_FEED_GRID, WEEKLY_STORY_MASTER_GRID } from "../src/engine/weekly";
 import { LOKA_DAILY_FEED_FRAME } from "../src/ui/feedFrame";
 import type { WeeklyEditorial, WeeklySceneReference } from "../src/engine/weekly";
 
@@ -220,10 +220,11 @@ ok(crossMonthPlan.headerDateCompact.line1 === "28 SEPT. —" && crossMonthPlan.h
 ok(crossMonthPlan.headerDateFeed === "28 SEPT. — 4 OCTOBRE", "slide1_header_keeps_a_single_line_cross_month_feed_date");
 
 const html = renderWeeklyCarousel(editorial(events));
-ok(html.includes("carousel-canvas") && html.includes("story-relay"), "renderer_contains_carousel_and_story");
+ok(html.includes('data-weekly-format="publication"') && html.includes('data-weekly-format="story"'), "renderer_contains_slide1_publication_and_story");
 ok(!html.includes("data-slide-index=\"1\""), "renderer_keeps_only_the_validated_overview");
 ok(!html.includes("data-event-id=\"wind:2026-09-09\""), "renderer_does_not_publish_the_legacy_event_slide");
-ok(html.includes("RELAIS DE LA PUBLICATION"), "renderer_labels_story_as_relay");
+ok(!html.includes('id="story-relay"') && !html.includes("RELAIS DE LA PUBLICATION"), "renderer_removes_the_legacy_story_relay");
+ok(html.includes('width="1080" height="1440"') && html.includes('width="1080" height="1920"'), "renderer_exports_daily_feed_and_story_dimensions");
 ok(html.includes("strokeText(label"), "renderer_uses_daily_full_text_draw");
 ok(html.includes("Helvetica Neue"), "renderer_reuses_daily_font_stack");
 ok(html.includes("function trackedText(value,x,y,size,weight,color,tracking"), "renderer_reuses_daily_tracked_city_wordmark");
@@ -264,7 +265,7 @@ let scriptValid = true;
 try { new Function(script); } catch { scriptValid = false; }
 ok(scriptValid, "renderer_browser_script_is_valid");
 
-const slide1RuntimeSource = script.slice(0, script.indexOf("Promise.all(plan.slides.map"));
+const slide1RuntimeSource = script.slice(0, script.indexOf("Promise.all(publicationCanvases.map"));
 const adaptiveLayoutRuntime = new Function("document", `${slide1RuntimeSource};return{layout:function(content,context){ctx=context;return slide1FactLayout(content,50,980);},summary:function(content,context){ctx=context;return fitSlide1EditorialLines(content.synthesis.secondaryLine,844,21,17,550,content.synthesis.secondaryMaximumLines);}};`)({
   querySelectorAll: () => [],
   getElementById: () => null
@@ -332,7 +333,13 @@ const weeklyAccentRenderer = script.split("\n").find((line) => line.startsWith("
 const metricValueRenderer = script.split("\n").find((line) => line.startsWith("function drawMetricValue(")) ?? "";
 const editorialBlockRenderer = script.split("\n").find((line) => line.startsWith("function drawWeeklyEditorialBlock(")) ?? "";
 const publicationSlideRenderer = script.split("\n").find((line) => line.startsWith("function drawPublicationSlide(")) ?? "";
-const publicationLaunch = script.split("\n").find((line) => line.startsWith("Promise.all(plan.slides.map")) ?? "";
+const publicationLaunch = script.split("\n").find((line) => line.startsWith("Promise.all(publicationCanvases.map")) ?? "";
+const storyFrameRenderer = script.split("\n").find((line) => line.startsWith("function drawWeeklyStoryFrame(")) ?? "";
+const storyHeaderRenderer = script.split("\n").find((line) => line.startsWith("function drawWeeklyStoryHeader(")) ?? "";
+const slide1OverviewStoryRenderer = script.split("\n").find((line) => line.startsWith("function drawSlide1OverviewStory(")) ?? "";
+const complementaryStoryRenderer = script.split("\n").find((line) => line.startsWith("function drawComplementaryStory(")) ?? "";
+const storySlideRenderer = script.split("\n").find((line) => line.startsWith("function drawWeeklyStorySlide(")) ?? "";
+const storyLaunch = script.split("\n").find((line) => line.startsWith("Promise.all(storyCanvases.map")) ?? "";
 ok(slide1OverviewRenderer.includes("drawWeeklySharedFrame(canvas,background,logo,plan.overviewTitle)") && sharedFrameRenderer.includes("box(50,160,980,150);drawOverviewTitle(titleContent)") && slide1OverviewRenderer.includes("weeklyMainBox(50,336,980,969)") && slide1OverviewRenderer.includes("drawSlide1Summary(plan.slide1)") && slide1OverviewRenderer.includes("drawSlide1DayStrip(plan.slide1.dailyStrip") && !slide1OverviewRenderer.includes("slide1StripBox") && !slide1OverviewRenderer.includes("slide1SummaryBox"), "slide1_uses_one_master_glass_box_for_facts_editorial_and_seven_days");
 ok(!slide1OverviewRenderer.includes("slide.scene.displayTitle") && !slide1OverviewRenderer.includes("dailyCardDetails"), "slide1_does_not_render_the_previous_daily_cards");
 ok(sharedFrameRenderer.includes("drawOverviewTitle(titleContent)") && overviewTitleRenderer.includes("content.title") && !overviewTitleRenderer.includes("subtitle") && overviewTitleRenderer.includes("870,56,44,760") && overviewTitleRenderer.includes("ctx.strokeStyle=slide1EditorialGold"), "slide1_draws_a_more_discreet_single_week_title_with_reference_palette");
@@ -355,7 +362,11 @@ ok(slide1DayStripRenderer.includes("const x=50,y=970,w=980,h=290") && slide1DayS
 ok(weeklyMainBoxRenderer.includes("box(x,y,w,h)") && weeklyMainBoxRenderer.includes("rgba(255,255,255,.055)") && weeklyMainBoxRenderer.includes("rr(x+1,y+1,w-2,h-2,35)") && weeklySeparatorRenderer.includes("variant==='GLASS'") && weeklyAccentRenderer.includes("slide1EditorialGold"), "master_template_reuses_one_glass_box_separator_and_accent_token_set");
 ok(weeklySeparatorRenderer.includes(".82") && weeklySeparatorRenderer.includes(".20") && weeklySeparatorRenderer.includes("1.5:1.2") && metricValueRenderer.includes("weight=800") && complementaryContentRenderer.includes("visual.headline,x+w/2,y+372,w-130,124,82,820"), "definitive_render_uses_the_denser_mockup_stroke_and_type_weights");
 ok(publicationSlideRenderer.includes("slide.kind==='WEEKLY_NUMBER'") && publicationSlideRenderer.includes("model.weeklyNumberPictogram") && publicationSlideRenderer.includes("plan.slide1.dailyStrip.map") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.daylight") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.thermometer") && publicationSlideRenderer.includes("drawSlide1Overview"), "slide1_and_slide2_load_their_official_loka_pictograms");
-ok(publicationLaunch.includes("drawPublicationSlide(slideCanvases[index],slide)"), "publication_renderer_uses_the_new_slide1_visual_path");
+ok(publicationLaunch.includes("drawPublicationSlide(canvas,slide)") && publicationLaunch.includes("canvas.dataset.slideIndex"), "publication_renderer_uses_the_new_slide1_visual_path");
+ok(WEEKLY_STORY_MASTER_GRID.width === 1080 && WEEKLY_STORY_MASTER_GRID.height === 1920 && WEEKLY_STORY_MASTER_GRID.header.logoCenterY === 144 && WEEKLY_STORY_MASTER_GRID.header.cityBaseline === 158 && WEEKLY_STORY_MASTER_GRID.title.y === 200 && WEEKLY_STORY_MASTER_GRID.main.y === 396 && WEEKLY_STORY_MASTER_GRID.signature.baseline === 1810, "weekly_story_reuses_the_exact_daily_story_safe_area");
+ok(storyHeaderRenderer.includes("logo,50,144,190,64") && storyHeaderRenderer.includes("540,158,25,680") && storyHeaderRenderer.includes("1030,158,22,540") && storyFrameRenderer.includes("box(44,200,992,150)") && storyFrameRenderer.includes("cover(background,1080,1920)"), "story_header_and_first_box_match_the_daily_story_renderer");
+ok(slide1OverviewStoryRenderer.includes("weeklyMainBox(44,396,992,1338)") && slide1OverviewStoryRenderer.includes("drawStorySlide1Facts") && slide1OverviewStoryRenderer.includes("drawStorySlide1DayStrip") && slide1OverviewStoryRenderer.includes("drawWeeklyStorySignature"), "slide1_story_preserves_the_master_template_in_9_16");
+ok(complementaryStoryRenderer.includes("drawWeeklyStoryFrame") && complementaryStoryRenderer.includes("weeklyMainBox(x,y,w,h)") && storySlideRenderer.includes("drawComplementaryStory") && storyLaunch.includes("drawWeeklyStorySlide(canvas,slide)"), "slides2_and_3_render_natively_as_stories");
 
 const complementarySlides = {
   version: "1.0.0" as const,
@@ -373,9 +384,11 @@ ok(WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID === WEEKLY_SLIDE2_DAILY_FEED_GRID && WEE
 const contextualHtml = renderWeeklyCarousel(editorial(events), { complementarySlides });
 ok(contextualHtml.includes("drawComplementarySlide") && contextualHtml.includes("COMPLEMENTARY_PRACTICAL") && contextualHtml.includes("weekly_shared_frame_required"), "renderer_draws_contextual_slides_only_inside_shared_frame");
 ok(contextualHtml.includes("complementaryPictogramUrl") && contextualHtml.includes("contextual_pictogram"), "renderer_binds_only_official_loka_contextual_pictograms");
+ok((contextualHtml.match(/<canvas[^>]+data-weekly-format="publication"/g) ?? []).length === 1 && (contextualHtml.match(/<canvas[^>]+data-weekly-format="story"/g) ?? []).length === 3, "slide1_has_two_formats_while_slides2_and_3_are_story_only");
 const editorialDemoHtml = renderWeeklyCarousel(editorial(events), { complementarySlides, surface: "CONTEXTUAL_DEMO" });
 ok(!editorialDemoHtml.includes('data-slide-index="0"') && editorialDemoHtml.includes('data-slide-index="1"') && editorialDemoHtml.includes('data-slide-index="2"'), "editorial_demo_excludes_validated_slide1");
 ok(!editorialDemoHtml.includes('id="story-relay"') && !editorialDemoHtml.includes("Télécharger le relais Story") && editorialDemoHtml.includes("Démo · slides éditoriales"), "editorial_demo_excludes_legacy_story_relay");
+ok(!editorialDemoHtml.match(/<canvas[^>]+data-weekly-format="publication"/) && (editorialDemoHtml.match(/<canvas[^>]+data-weekly-format="story"/g) ?? []).length === 2, "editorial_demo_previews_only_the_story_outputs");
 const pilotHtml = renderWeeklyCarousel(editorial(events), {
   complementarySlides,
   pilot: {
@@ -385,4 +398,4 @@ const pilotHtml = renderWeeklyCarousel(editorial(events), {
 });
 ok(pilotHtml.includes("Pilote éditorial · PASS") && pilotHtml.includes("Pilote valide."), "preview_shows_pilot_result_outside_publication_canvas");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/94 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/101 PASS`);
