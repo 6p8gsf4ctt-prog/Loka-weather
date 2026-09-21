@@ -1,31 +1,23 @@
-# LOKA — slide 1 · box statistique unique
+# LOKA — slide 1 hebdomadaire · Story + Publication
 
-Cette mise à jour différentielle s’installe après `LOKA-weekly-scenes23-maquette-v1-direct`.
-Elle contient uniquement les deux fichiers à remplacer.
+Ce ZIP est différentiel. Remplacez les fichiers qu’il contient à la racine du dépôt GitHub, en conservant les dossiers `src/` et `tests/`.
 
-## Installation dans GitHub
+## Ce qui change
 
-1. Décompresser le ZIP.
-2. Importer son contenu à la racine du dépôt.
-3. Conserver l’arborescence `src/` et `tests/`.
-4. Accepter le remplacement des deux fichiers existants.
-5. Valider les changements pour déclencher le déploiement Cloudflare habituel.
+- La slide 1 Publication reprend la maquette validée : cartouche titre, trois cartes de faits séparées, box éditoriale et frise hebdomadaire.
+- La slide 1 Story est générée nativement en 1080 × 1920 avec le même header, les mêmes tokens de verre, les mêmes séparateurs, la même hiérarchie et le même footer.
+- Les slides éditoriales complémentaires sont proposées en Story uniquement dans l’aperçu.
+- Les séparateurs, pictogrammes, températures, repères, textes, données métier et sources restent inchangés.
+- L’ancien relais Story séparé n’est plus généré.
+- Les sorties restent pilotées par les données du moteur : un changement de semaine ne demande aucune intervention graphique.
 
-Aucune commande de terminal, migration D1 ou variable Cloudflare supplémentaire n’est nécessaire.
+## Déploiement
 
-## Modification graphique
-
-- une seule box pour les trois données principales de la slide 1 ;
-- trois colonnes de largeur strictement identique ;
-- suppression des espaces et contours entre les anciennes petites boxes ;
-- deux séparateurs verticaux utilisant le séparateur déjà présent dans la frise hebdomadaire ;
-- contenu, pictogrammes, tailles, alignements et hauteur du bloc conservés ;
-- box éditoriale, frise, en-tête, titre et footer inchangés ;
-- scènes 2, 3 et 4 inchangées.
+Aucune migration D1, variable Cloudflare ou commande supplémentaire n’est requise. Validez les fichiers dans GitHub : le déploiement Cloudflare habituel suffit.
 
 ## Vérifications
 
-- TypeScript : validé ;
-- suite hebdomadaire complète : validée ;
-- `WEEKLY_CAROUSEL` : 93/93 ;
-- contrôle automatique : une seule box et réutilisation du séparateur commun.
+- TypeScript validé ;
+- `WEEKLY_CAROUSEL` : 92/92 ;
+- validation hebdomadaire de production validée ;
+- archive ZIP contrôlée sans erreur.
