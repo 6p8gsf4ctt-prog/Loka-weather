@@ -484,7 +484,7 @@ export default {
       if (!await masterAvailable(request, env, result.publication.editorial.overview.scene.masterUrl)) return unavailable("weekly_master_graphic_unavailable");
       const surface = resolveWeeklyPublicSurface(env, result.publication.editorial, result.publication.carousel);
       logWeeklyProgressivePublication(surface.rollout, { citySlug: result.publication.citySlug, startDate: result.publication.startDate, endDate: result.publication.endDate });
-      return new Response(renderWeeklyCarousel(surface.editorial, { ...surface.renderOptions, includeStory: false }), {
+      return new Response(renderWeeklyCarousel(surface.editorial, surface.renderOptions), {
         headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
       });
     }

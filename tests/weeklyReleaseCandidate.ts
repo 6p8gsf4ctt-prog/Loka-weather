@@ -125,6 +125,7 @@ for (const count of [0, 1, 2, 3, 4]) {
   ok(plan.slides.length === 1, `no_raw_slide2_count_${count}`);
   ok(validation.ok, `activation_ready_${count}`);
   ok(canvasCount === 1, `preview_canvas_count_${count}`);
+  ok(html.includes('id="story-relay"') && html.includes('Télécharger le relais Story'), `story_canvas_is_present_${count}`);
   ok(html.includes('"source":"CAROUSEL"'), `story_source_${count}`);
   ok(!html.includes(`data-event-id="wind:${nextDate(0)}"`) && !html.includes("data-slide-index=\"1\""), `preview_identity_${count}`);
 }
@@ -135,4 +136,4 @@ ok(!fiveValidation.ok, "fifth_event_is_blocked");
 ok(fiveValidation.checks.find((check) => check.id === "publication_limit")?.ok === false, "fifth_event_limit_is_explicit");
 ok(fiveValidation.checks.every((check) => check.id !== "story_relay" || check.ok), "relay_remains_valid_when_limit_blocks");
 
-console.log(`WEEKLY_RELEASE_CANDIDATE ${passed}/28 PASS`);
+console.log(`WEEKLY_RELEASE_CANDIDATE ${passed}/33 PASS`);
