@@ -125,7 +125,7 @@ for (const count of [0, 1, 2, 3, 4]) {
   ok(plan.slides.length === 1, `no_raw_slide2_count_${count}`);
   ok(validation.ok, `activation_ready_${count}`);
   ok(canvasCount === 1, `preview_canvas_count_${count}`);
-  ok(html.includes('id="story-relay"') && html.includes('Télécharger le relais Story'), `story_canvas_is_present_${count}`);
+  ok(html.includes('id="slide1-story"') && html.includes('Enregistrer / partager la Story'), `slide1_story_canvas_is_present_${count}`);
   ok(html.includes('"source":"CAROUSEL"'), `story_source_${count}`);
   ok(!html.includes(`data-event-id="wind:${nextDate(0)}"`) && !html.includes("data-slide-index=\"1\""), `preview_identity_${count}`);
 }
