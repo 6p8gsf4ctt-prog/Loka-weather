@@ -3,4 +3,5 @@ export const LOKA_LOGO_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgA
 
 export const LOKA_BRAND_VERSION = "LOKA_PREMIUM_1.2" as const;
 export const LOKA_CANVAS_FONT = '"Helvetica Neue",Arial,sans-serif' as const;
+export const LOKA_SLOGAN_DAILY = "Ici, aujourd’hui." as const;
 export const LOKA_SLOGAN_WEEKLY = "Ici, cette semaine." as const;

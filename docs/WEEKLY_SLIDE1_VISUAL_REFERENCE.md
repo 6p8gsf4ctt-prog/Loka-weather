@@ -10,13 +10,12 @@ partagent maintenant le même cadre de feed. Il complète le
 cahier des charges fonctionnel sans modifier les calculs météo, le rendu
 visuel quotidien ou les 24 scènes.
 
-## Statut graphique V1 — verrouillé
+## Statut graphique — cadre verrouillé, contenu adaptatif
 
-Cette maquette est la référence graphique de la publication hebdomadaire.
-Toute évolution ultérieure doit préserver les coordonnées, dimensions,
-proportions, fond, trois cartes, box éditoriale, frise et signature décrits
-ci-dessous. Les ajustements V19 concernent exclusivement les données,
-l’éditorial et les contrôles avant export.
+La PUBLICATION journalière est désormais la référence graphique unique. La
+slide hebdomadaire préserve son cadre, sa box titre et sa signature ; les box
+de contenu variable suivent les règles décrites dans
+`docs/PUBLICATION_IDENTITY_SYSTEM.md`.
 
 ## Repères repris de la publication quotidienne
 
@@ -57,7 +56,7 @@ boxes intérieures, pas dans la frise.
 
 | Élément | Taille cible | Graisse | Alignement |
 |---|---:|---:|---|
-| Titre principal | 56 px maximum | 760 | gauche |
+| Titre principal | 48 px maximum | 800 | gauche |
 | Libellé d’un repère | 19 px | 700 | centré, légèrement espacé |
 | Jour du repère | 30 px | 560 | centré, sans contour |
 | Température principale | 70 px maximum | 700 | centrée, bleu marine |
@@ -101,13 +100,12 @@ de 100 à 110 px pour chacun des trois pictogrammes.
   trait doré que la publication quotidienne. Elles ne contiennent ni conseil,
   ni intertitre, ni les mots de remplissage « globalement » ou
   « progressivement ».
-- Le bleu marine éditorial de la slide est `#061F4C`. Les températures froides,
+- Le bleu marine éditorial de la slide est `#12264A`. Les températures froides,
   chaudes et celles de la frise utilisent toutes cette même couleur.
-- Le jaune météo `#FDB515` est réservé aux pictogrammes et au cadre chaud. Le
-  soulignement utilise le doré éditorial plus feutré `#C49A3A`.
-- La frise utilise un fond blanc translucide à 74 % afin de
-  préserver les pictogrammes sur la partie sombre de la scène.
-- Les cartes utilisent un blanc à 36 % et la synthèse un blanc à 46 %.
+- Le jaune météo `#FDB515` est utilisé par les pictogrammes, le cadre chaud et
+  les traits d’accent.
+- La frise, les cartes et la synthèse utilisent toutes la primitive de verre
+  commune aux PUBLICATIONS journalières et hebdomadaires.
 - Les jours extrêmes sont encadrés avec un retrait identique de 8 px, un rayon
   de 12 px et un trait de 1,5 px : doré pour le maximum, bleu pour le minimum.
 - En cas d’égalité brute, tous les jours concernés sont encadrés et les deux

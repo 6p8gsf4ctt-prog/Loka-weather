@@ -9,6 +9,10 @@ function escapeHtml(value: string): string {
 
 import { buildWeeklyComplementaryPresentation, buildWeeklySignalCopy } from "../engine/weekly";
 import type { RankedWeeklySignalCandidate, WeeklyComplementaryPresentation } from "../engine/weekly";
+import { complementaryPictogramDataUrl } from "../engine/weekly/complementaryPictograms";
+import type { WeeklyComplementaryVisual } from "../engine/weekly/complementarySlides";
+import { LOKA_CANVAS_FONT, LOKA_LOGO_DATA_URL, LOKA_SLOGAN_WEEKLY } from "./lokaBrand";
+import { PICTOGRAM_STYLE } from "./pictogramLibrary";
 
 function detectorLabel(detector: string): string {
   const labels: Record<string, string> = {
@@ -32,12 +36,24 @@ const DETECTOR_ORDER = [
   "SEASONAL_FIRST", "REMARKABLE_SERIES"
 ] as const;
 
-function candidatePreview(item: RankedWeeklySignalCandidate): { value: string; primary: string; secondary: string; source: string; presentation: WeeklyComplementaryPresentation | null } {
+function candidateVisual(item: RankedWeeklySignalCandidate): WeeklyComplementaryVisual {
+  const metric = item.candidate.signal.forecast.metric;
+  if (metric === "TEMPERATURE" || metric === "FROST") return "THERMOMETER";
+  if (metric === "PRECIPITATION") return "RAIN";
+  if (metric === "THUNDER") return "THUNDER";
+  if (metric === "WIND_GUST" || metric === "WIND_SPEED") return "WIND";
+  if (metric === "VISIBILITY") return "FOG";
+  if (metric === "SUNLIGHT" || metric === "DAYLIGHT") return "SUN";
+  return "TREND";
+}
+
+function candidatePreview(item: RankedWeeklySignalCandidate): { value: string; primary: string; secondary: string; source: string; presentation: WeeklyComplementaryPresentation | null; visual: WeeklyComplementaryVisual } {
+  const visual = candidateVisual(item);
   try {
     const selectable = { ...item, eligible: true, rejectionReasons: [], rank: item.rank ?? 1 };
     const copy = buildWeeklySignalCopy(selectable);
     const presentation = buildWeeklyComplementaryPresentation(selectable, copy);
-    return { value: presentation.headline, primary: presentation.subtitle, secondary: presentation.editorialLine, source: copy.sourceNote, presentation };
+    return { value: presentation.headline, primary: presentation.subtitle, secondary: presentation.editorialLine, source: copy.sourceNote, presentation, visual };
   } catch { /* The card remains visible even when its copy contract is not publishable. */ }
   const signal = item.candidate.signal;
   const value = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(signal.forecast.value);
@@ -47,7 +63,8 @@ function candidatePreview(item: RankedWeeklySignalCandidate): { value: string; p
     primary: "Cette information a été détectée et reste disponible pour votre choix.",
     secondary: `Contrôle automatique : ${item.rejectionReasons.join(", ") || "à vérifier au prévol"}.`,
     source: "Candidate conservée dans le classement complet.",
-    presentation: null
+    presentation: null,
+    visual
   };
 }
 
@@ -68,6 +85,7 @@ function candidatePreviewHref(input: { startDate: string }, item: RankedWeeklySi
     params.set("rightValue", copy.presentation.comparison.right.value);
     params.set("rightLabel", copy.presentation.comparison.right.label);
   }
+  params.set("visual", copy.visual);
   return `/weekly-candidate-preview?${params.toString()}`;
 }
 
@@ -98,10 +116,14 @@ export function renderWeeklyCandidatePreview(params: URLSearchParams): string {
   const status = read("status", "Aperçu éditorial");
   const leftValue = read("leftValue", ""); const leftLabel = read("leftLabel", "");
   const rightValue = read("rightValue", ""); const rightLabel = read("rightLabel", "");
+  const requestedVisual = read("visual", "TREND");
+  const allowedVisuals = new Set<WeeklyComplementaryVisual>(["THERMOMETER", "RAIN", "WIND", "THUNDER", "FOG", "SUN", "TREND"]);
+  const visual = allowedVisuals.has(requestedVisual as WeeklyComplementaryVisual) ? requestedVisual as WeeklyComplementaryVisual : "TREND";
+  const pictogramUrl = complementaryPictogramDataUrl(visual);
   const secondaryBox = leftValue && rightValue
     ? `<div class="secondary-box comparison"><div><b>${escapeHtml(leftValue)}</b><span>${escapeHtml(leftLabel)}</span></div><i></i><div><b>${escapeHtml(rightValue)}</b><span>${escapeHtml(rightLabel)}</span></div></div>`
     : `<div class="secondary-box reference"><small>REPÈRE</small><p>${escapeHtml(source)}</p></div>`;
-  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aperçu · LOKA</title><style>:root{--ink:#061f4c;--gold:#c49a3a;--paper:#efeee9;--glass:rgba(255,255,255,.5)}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% 0,#fff 0,var(--paper) 56%);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;display:grid;place-items:center;padding:24px}.page{width:min(100%,620px)}.back{display:inline-flex;align-items:center;gap:8px;margin:0 0 14px;color:var(--ink);font-size:14px;font-weight:760;text-decoration:none}.slide{aspect-ratio:3/4;background:linear-gradient(145deg,#f7f3e8 0%,#dce9f1 49%,#20466e 100%);border-radius:30px;padding:30px;box-shadow:0 30px 80px rgba(6,31,76,.22);position:relative;overflow:hidden}.slide:before{content:"";position:absolute;inset:-20%;background:radial-gradient(ellipse at 18% 13%,rgba(255,255,255,.98),transparent 36%),radial-gradient(ellipse at 80% 52%,rgba(255,255,255,.46),transparent 36%);transform:rotate(-7deg)}.slide:after{content:"";position:absolute;inset:auto -15% -24% 20%;height:48%;background:radial-gradient(ellipse,rgba(7,28,63,.26),transparent 68%)}.content{position:relative;z-index:1;height:100%;display:flex;flex-direction:column}.header{display:flex;justify-content:space-between;align-items:center}.logo{font-size:25px;font-weight:900;letter-spacing:.14em}.logo span{color:#f2b317}.date{font-size:11px;font-weight:800;letter-spacing:.1em}.title,.primary-box,.secondary-box,.editorial-box{border:1px solid rgba(255,255,255,.9);border-radius:20px;background:linear-gradient(145deg,rgba(255,255,255,.57),rgba(255,255,255,.24));box-shadow:0 12px 28px rgba(6,31,76,.08),inset 0 1px rgba(255,255,255,.72)}.title{margin-top:28px;padding:13px 20px 15px}.eyebrow{font-size:9px;font-weight:850;letter-spacing:.18em;opacity:.62}.title strong{display:block;margin-top:5px;font-size:20px;line-height:1.1}.title:after,.accent{content:"";display:block;width:54px;height:3px;border-radius:3px;background:var(--gold);margin-top:11px}.primary-box{margin-top:14px;height:31%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px}.signal-mark{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.72);box-shadow:0 9px 22px rgba(6,31,76,.14);display:grid;place-items:center}.signal-mark:before{content:"";width:20px;height:20px;border:3px solid var(--ink);border-radius:50%}.signal-mark i{position:absolute;width:7px;height:7px;background:#f2b317;border-radius:50%}.value{margin-top:10px;font-size:clamp(48px,11vw,76px);font-weight:900;letter-spacing:-.04em;line-height:.95}.primary{max-width:92%;margin-top:9px;font-size:clamp(15px,3.2vw,21px);font-weight:850;line-height:1.13}.accent{margin:12px auto 0}.secondary-box{margin-top:12px;height:20%;padding:15px 20px}.comparison{display:grid;grid-template-columns:1fr 1px 1fr;align-items:center;text-align:center;gap:14px}.comparison i{width:1px;height:58px;background:rgba(6,31,76,.2)}.comparison div{display:grid;gap:5px}.comparison b{font-size:clamp(21px,5.4vw,34px);letter-spacing:-.025em}.comparison span{font-size:10px;font-weight:800;letter-spacing:.06em}.comparison div:first-child b{color:#a47c20}.reference{display:grid;place-items:center;text-align:center}.reference small{font-weight:850;letter-spacing:.16em}.reference p{margin:7px 0 0;font-size:12px;line-height:1.3}.editorial-box{margin-top:12px;flex:1;padding:19px 23px;display:flex;flex-direction:column}.editorial-label{font-size:9px;font-weight:850;letter-spacing:.18em;opacity:.62}.editorial{margin:10px 0 0;font-size:clamp(15px,3.1vw,19px);line-height:1.28;font-weight:680}.source{margin-top:auto;padding-top:12px;font-size:9px;line-height:1.35;color:#4f6077}.status{margin-top:5px;color:#775819;font-weight:800;text-transform:uppercase;letter-spacing:.035em}@media(max-width:500px){body{padding:14px}.slide{padding:22px;border-radius:24px}.title{margin-top:20px}.source{font-size:8px}}</style></head><body><main class="page"><a class="back" href="/weekly-preview?start=${encodeURIComponent(date)}">← Retour au classement</a><article class="slide"><div class="content"><div class="header"><div class="logo">LOKA<span>!</span></div><div class="date">${escapeHtml(date)}</div></div><div class="title"><span class="eyebrow">SIGNAL DE LA SEMAINE</span><strong>${escapeHtml(title)}</strong></div><div class="primary-box"><div class="signal-mark"><i></i></div><div class="value">${escapeHtml(value)}</div><div class="primary">${escapeHtml(primary)}</div><div class="accent"></div></div>${secondaryBox}<div class="editorial-box"><div class="editorial-label">CE QU’IL FAUT RETENIR</div><p class="editorial">${escapeHtml(secondary)}</p><div class="source">${escapeHtml(source)}<div class="status">${escapeHtml(status)} · aperçu sans publication</div></div></div></div></article></main></body></html>`;
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aperçu · LOKA</title><style>:root{--ink:${PICTOGRAM_STYLE.ink};--gold:${PICTOGRAM_STYLE.gold};--paper:#efeee9}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% 0,#fff 0,var(--paper) 56%);color:var(--ink);font-family:${LOKA_CANVAS_FONT};display:grid;place-items:center;padding:24px}.page{width:min(100%,620px)}.back{display:inline-flex;margin:0 0 14px;color:var(--ink);font-size:14px;font-weight:700;text-decoration:none}.slide{aspect-ratio:3/4;background:url('/masters24/weekly/SEMAINE_HOMOGENE.jpeg') center/cover no-repeat;border-radius:30px;padding:28px;box-shadow:0 30px 80px rgba(7,27,59,.22);overflow:hidden}.content{height:100%;display:flex;flex-direction:column}.header{height:42px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center}.logo{width:100px;height:auto}.city{text-align:center;font-size:12px;font-weight:680;letter-spacing:.32em}.date{text-align:right;font-size:10px;font-weight:540;white-space:nowrap}.glass{border:1.45px solid rgba(255,255,255,.88);border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.19),rgba(255,255,255,.145) 48%,rgba(255,255,255,.105));box-shadow:inset 0 1px rgba(255,255,255,.2)}.title{height:86px;flex:0 0 86px;margin-top:34px;padding:18px 28px}.eyebrow{font-size:9px;font-weight:700;letter-spacing:.18em;opacity:.7}.title strong{display:block;margin-top:8px;font-size:24px;line-height:1;font-weight:800}.accent{display:block;width:30px;height:2px;border-radius:3px;background:var(--gold);margin-top:10px}.boxes{min-height:0;flex:1;display:flex;flex-direction:column;gap:12px;margin-top:14px}.primary-box{flex:1.25;min-height:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px 22px}.signal-mark{width:74px;height:58px;object-fit:contain}.value{margin-top:6px;font-size:clamp(42px,10vw,64px);font-weight:700;line-height:.95}.primary{max-width:94%;margin-top:8px;font-size:clamp(14px,3vw,19px);font-weight:650;line-height:1.16}.secondary-box{flex:.72;min-height:116px;padding:14px 20px}.comparison{display:grid;grid-template-columns:1fr 1px 1fr;align-items:center;text-align:center;gap:14px}.comparison i{width:1px;height:52px;background:rgba(18,38,74,.13)}.comparison div{display:grid;gap:5px}.comparison b{font-size:clamp(21px,5vw,32px);font-weight:700}.comparison span{font-size:10px;font-weight:650;letter-spacing:.06em}.reference{display:grid;place-items:center;text-align:center}.reference small{font-weight:700;letter-spacing:.16em}.reference p{margin:7px 0 0;font-size:12px;line-height:1.3}.editorial-box{flex:.82;min-height:120px;padding:17px 23px;display:flex;flex-direction:column}.editorial-label{font-size:9px;font-weight:700;letter-spacing:.18em;opacity:.7}.editorial{margin:10px 0 0;font-size:clamp(14px,2.9vw,18px);line-height:1.28;font-weight:650}.source{margin-top:auto;padding-top:8px;font-size:8px;line-height:1.3;color:rgba(18,38,74,.78)}.status{margin-top:4px;color:rgba(18,38,74,.8);font-weight:700;text-transform:uppercase}.signature{text-align:center;margin-top:16px;font-size:10px;font-weight:500}.signature:after{content:"";display:block;width:26px;height:1px;border-radius:2px;background:var(--gold);margin:8px auto 0}@media(max-width:500px){body{padding:14px}.slide{padding:22px}.title{margin-top:24px}}</style></head><body><main class="page"><a class="back" href="/weekly-preview?start=${encodeURIComponent(date)}">← Retour au classement</a><article class="slide"><div class="content"><div class="header"><img class="logo" src="${LOKA_LOGO_DATA_URL}" alt="LOKA!"><div class="city">TARNOS</div><div class="date">${escapeHtml(date)}</div></div><div class="title glass"><span class="eyebrow">SIGNAL DE LA SEMAINE</span><strong>${escapeHtml(title)}</strong><span class="accent"></span></div><div class="boxes"><div class="primary-box glass"><img class="signal-mark" src="${escapeHtml(pictogramUrl)}" alt=""><div class="value">${escapeHtml(value)}</div><div class="primary">${escapeHtml(primary)}</div></div>${secondaryBox.replace('secondary-box', 'secondary-box glass')}<div class="editorial-box glass"><div class="editorial-label">CE QU’IL FAUT RETENIR</div><p class="editorial">${escapeHtml(secondary)}</p><div class="source">${escapeHtml(source)}<div class="status">${escapeHtml(status)} · aperçu sans publication</div></div></div></div><div class="signature">${LOKA_SLOGAN_WEEKLY}</div></div></article></main></body></html>`;
 }
 
 function renderWeeklySelectionPanelLegacy(input: {

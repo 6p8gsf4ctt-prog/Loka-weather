@@ -20,6 +20,6 @@ Aucune migration D1, variable Cloudflare ou commande supplémentaire n’est req
 ## Vérifications
 
 - TypeScript validé ;
-- `WEEKLY_CAROUSEL` : 92/92 ;
+- `WEEKLY_CAROUSEL` : 96/96 ;
 - validation hebdomadaire de production validée ;
 - archive ZIP contrôlée sans erreur.
