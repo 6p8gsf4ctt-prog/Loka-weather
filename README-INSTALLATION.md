@@ -1,15 +1,17 @@
-# LOKA — slide 1 hebdomadaire · Story + Publication
+# LOKA — slides éditoriales en boxes v3
 
 Ce ZIP est différentiel. Remplacez les fichiers qu’il contient à la racine du dépôt GitHub, en conservant les dossiers `src/` et `tests/`.
 
 ## Ce qui change
 
-- La slide 1 Publication reprend la maquette validée : cartouche titre, trois cartes de faits séparées, box éditoriale et frise hebdomadaire.
-- La slide 1 Story est générée nativement en 1080 × 1920 avec le même header, les mêmes tokens de verre, les mêmes séparateurs, la même hiérarchie et le même footer.
-- Les slides éditoriales complémentaires sont proposées en Story uniquement dans l’aperçu.
-- Les séparateurs, pictogrammes, températures, repères, textes, données métier et sources restent inchangés.
-- L’ancien relais Story séparé n’est plus généré.
-- Les sorties restent pilotées par les données du moteur : un changement de semaine ne demande aucune intervention graphique.
+- La slide 1 reste inchangée.
+- Les slides 2, 3 et 4 gardent son en-tête, sa box titre, ses coordonnées et sa signature.
+- Elles adoptent désormais trois boxes intérieures :
+  1. pictogramme, chiffre clé et sous-titre ;
+  2. informations de comparaison ou repère ;
+  3. phrase éditoriale unique.
+- Les trois boxes se terminent à la même ligne basse que la slide 1.
+- L’aperçu de chaque candidate reprend ce même schéma avant publication.
 
 ## Déploiement
 
