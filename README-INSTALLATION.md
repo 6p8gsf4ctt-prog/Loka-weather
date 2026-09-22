@@ -1,31 +1,19 @@
-# LOKA — mise à jour STORY et moteur éditorial
+# LOKA — renforcement graphique hebdomadaire
 
 Ce ZIP est différentiel. Copiez son contenu à la racine du dépôt en conservant
 les dossiers `src/`, `tests/` et `docs/`.
 
-## Mise à jour graphique
+## Mise à jour graphique hebdomadaire
 
-- La STORY journalière et la STORY semaine utilisent désormais la PUBLICATION
-  1080 × 1440 comme composition canonique.
-- La grille horizontale reste identique à la PUBLICATION. Sa grille verticale
-  est étendue de 1440 à 1580 px à partir de `y = 170`.
-- Les réserves équilibrées de 170 px réduisent le vide tout en protégeant le
-  visuel des interfaces et hashtags Instagram.
-- Les positions, hauteurs de boxes et espacements suivent un ratio vertical
-  commun de 1,097 ; textes et pictogrammes gagnent 4 % sans déformation.
-- Les anciens renderers STORY parallèles ont été supprimés : toute évolution
-  de la PUBLICATION est désormais héritée automatiquement par la STORY.
-
-## Mise à jour éditoriale
-
-Le vocabulaire des précipitations dépend maintenant de leur distribution :
-
-- un seul jour humide : passage pluvieux possible ;
-- deux jours humides avec un signal suffisant : quelques passages pluvieux ;
-- au moins trois jours humides et six heures pluvieuses : pluies fréquentes.
-
-Le cumul en millimètres ne peut donc plus, à lui seul, déclencher la formule
-« Pluies fréquentes ».
+- La PUBLICATION semaine conserve sa grille 1080 × 1440, mais ses caractères,
+  valeurs et pictogrammes gagnent 6 % de présence visuelle.
+- La STORY semaine utilise une zone de composition de 1630 px à partir de
+  `y = 145`, avec deux réserves équilibrées de 145 px.
+- Ses positions, hauteurs de boxes et espacements suivent un ratio vertical de
+  1,132 ; textes et pictogrammes utilisent une échelle de 1,08.
+- Les largeurs, alignements et composants graphiques restent issus de la
+  PUBLICATION de référence, sans étirement du canvas.
+- La PUBLICATION et la STORY journalières restent inchangées.
 
 ## Déploiement
 
@@ -35,7 +23,6 @@ déploiement Cloudflare habituel suffit après remplacement des fichiers.
 ## Vérifications incluses
 
 - compilation TypeScript ;
-- contrôles de mutualisation PUBLICATION/STORY journaliers ;
-- contrôles de mutualisation PUBLICATION/STORY hebdomadaires ;
-- tests éditoriaux dédiés aux pluies isolées, dispersées et fréquentes ;
-- validation de cohérence des preuves éditoriales avant activation.
+- contrôle de non-régression du profil journalier ;
+- contrôles de hiérarchie et de mutualisation PUBLICATION/STORY hebdomadaires ;
+- validation complète de la chaîne hebdomadaire.

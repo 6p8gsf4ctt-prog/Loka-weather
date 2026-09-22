@@ -1,6 +1,6 @@
 import { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_COMPLEMENTARY_BOX_LAYOUT, WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_SLIDE1_DAILY_FEED_GRID, WEEKLY_SLIDE1_DAILY_STORY_GRID, WEEKLY_SLIDE2_DAILY_FEED_GRID } from "../src/engine/weekly";
 import { LOKA_DAILY_FEED_FRAME } from "../src/ui/feedFrame";
-import { LOKA_DAILY_STORY_FRAME } from "../src/ui/storyFrame";
+import { LOKA_DAILY_STORY_FRAME, LOKA_WEEKLY_STORY_FRAME } from "../src/ui/storyFrame";
 import type { WeeklyEditorial, WeeklySceneReference } from "../src/engine/weekly";
 
 let passed = 0;
@@ -336,7 +336,7 @@ const slide1DayMarkerRenderer = script.split("\n").find((line) => line.startsWit
 const slide1StripBoxRenderer = script.split("\n").find((line) => line.startsWith("function slide1StripBox(")) ?? "";
 const publicationSlideRenderer = script.split("\n").find((line) => line.startsWith("function drawPublicationSlide(")) ?? "";
 const publicationLaunch = script.split("\n").find((line) => line.startsWith("Promise.all(plan.slides.map")) ?? "";
-ok(slide1OverviewRenderer.includes("cover(background,canvas.width,canvas.height)") && slide1OverviewRenderer.includes("drawSlide1PublicationComposition") && slide1PublicationRenderer.includes("box(50,layoutY(160,layout),980,layoutH(150,layout));drawOverviewTitle(plan.overviewTitle,layout)") && slide1PublicationRenderer.includes("drawSlide1Summary(plan.slide1,layout);slide1StripBox(50,layoutY(1065,layout),980,layoutH(240,layout));drawSlide1DayStrip(plan.slide1.dailyStrip"), "slide1_uses_one_responsive_publication_composition");
+ok(script.includes("const FEED_LAYOUT={offsetY:0,scaleY:1,visualScale:1.06}") && slide1OverviewRenderer.includes("cover(background,canvas.width,canvas.height)") && slide1OverviewRenderer.includes("drawSlide1PublicationComposition") && slide1PublicationRenderer.includes("box(50,layoutY(160,layout),980,layoutH(150,layout));drawOverviewTitle(plan.overviewTitle,layout)") && slide1PublicationRenderer.includes("drawSlide1Summary(plan.slide1,layout);slide1StripBox(50,layoutY(1065,layout),980,layoutH(240,layout));drawSlide1DayStrip(plan.slide1.dailyStrip"), "slide1_uses_one_stronger_responsive_publication_composition");
 ok(!slide1OverviewRenderer.includes("slide.scene.displayTitle") && !slide1OverviewRenderer.includes("dailyCardDetails"), "slide1_does_not_render_the_previous_daily_cards");
 ok(sharedFrameRenderer.includes("drawOverviewTitle(titleContent)") && overviewTitleRenderer.includes("content.title") && !overviewTitleRenderer.includes("subtitle") && overviewTitleRenderer.includes("870,48*s,32*s,800") && overviewTitleRenderer.includes("ctx.strokeStyle=gold"), "slide1_title_uses_the_daily_typographic_weight_and_reference_palette");
 ok(sharedFrameRenderer.includes("drawSlide1Header(logo,plan.headerDateFeed,width)") && !slide1HeaderRenderer.includes("date.line1") && !slide1HeaderRenderer.includes("date.line2") && slide1HeaderRenderer.includes("logo,50,layoutY(79,layout),174*s,58*s") && slide1HeaderRenderer.includes("width-50,layoutY(94,layout),19*s,540"), "slide1_header_matches_the_daily_feed_coordinates_with_weekly_copy");
@@ -358,10 +358,11 @@ ok(slide1DayStripRenderer.includes("factMatches(content.coldestMorning)") && sli
 ok(slide1StripBoxRenderer.includes("box(x,y,w,h)") && slide1DayStripRenderer.includes("sourceY=1065,sourceH=240,y=layoutY(sourceY,layout),w=980,h=layoutH(sourceH,layout)") && slide1DayMarkerRenderer.includes("ctx.lineWidth=1.5") && slide1DayMarkerRenderer.includes("markerWidth=Math.round(w-16)") && slide1DayMarkerRenderer.includes("markerHeight=Math.round(h-16)"), "slide1_daily_strip_reuses_the_daily_glass_box_with_responsive_vertical_geometry");
 ok(publicationSlideRenderer.includes("slide.kind==='WEEKLY_NUMBER'") && publicationSlideRenderer.includes("model.weeklyNumberPictogram") && publicationSlideRenderer.includes("plan.slide1.dailyStrip.map") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.daylight") && publicationSlideRenderer.includes("model.slide1UtilityPictograms.thermometer") && publicationSlideRenderer.includes("drawSlide1Overview"), "slide1_and_slide2_load_their_official_loka_pictograms");
 ok(publicationLaunch.includes("drawPublicationSlide(slideCanvases[index],slide)"), "publication_renderer_uses_the_new_slide1_visual_path");
-ok(WEEKLY_SLIDE1_DAILY_STORY_GRID.publication === LOKA_DAILY_STORY_FRAME.publication && WEEKLY_SLIDE1_DAILY_STORY_GRID.safeArea === LOKA_DAILY_STORY_FRAME.safeArea, "weekly_story_uses_the_shared_publication_wrapper");
+ok(WEEKLY_SLIDE1_DAILY_STORY_GRID.publication === LOKA_WEEKLY_STORY_FRAME.publication && WEEKLY_SLIDE1_DAILY_STORY_GRID.safeArea === LOKA_WEEKLY_STORY_FRAME.safeArea, "weekly_story_uses_its_dedicated_publication_wrapper");
 ok(WEEKLY_SLIDE1_DAILY_STORY_GRID.width === 1080 && WEEKLY_SLIDE1_DAILY_STORY_GRID.height === 1920, "weekly_story_keeps_the_instagram_story_dimensions");
-ok(WEEKLY_SLIDE1_DAILY_STORY_GRID.publication.width === LOKA_DAILY_FEED_FRAME.width && WEEKLY_SLIDE1_DAILY_STORY_GRID.publication.sourceHeight === LOKA_DAILY_FEED_FRAME.height && WEEKLY_SLIDE1_DAILY_STORY_GRID.publication.height === 1580, "story_derives_its_expanded_vertical_grid_from_the_publication");
-ok(WEEKLY_SLIDE1_DAILY_STORY_GRID.publication.y === 170 && WEEKLY_SLIDE1_DAILY_STORY_GRID.safeArea.top === 170 && WEEKLY_SLIDE1_DAILY_STORY_GRID.safeArea.bottom === 170, "story_reserves_reduced_equal_instagram_safe_areas");
+ok(WEEKLY_SLIDE1_DAILY_STORY_GRID.publication.width === LOKA_DAILY_FEED_FRAME.width && WEEKLY_SLIDE1_DAILY_STORY_GRID.publication.sourceHeight === LOKA_DAILY_FEED_FRAME.height && WEEKLY_SLIDE1_DAILY_STORY_GRID.publication.height === 1630, "story_derives_its_expanded_vertical_grid_from_the_publication");
+ok(WEEKLY_SLIDE1_DAILY_STORY_GRID.publication.y === 145 && WEEKLY_SLIDE1_DAILY_STORY_GRID.safeArea.top === 145 && WEEKLY_SLIDE1_DAILY_STORY_GRID.safeArea.bottom === 145, "story_reserves_smaller_equal_instagram_safe_areas");
+ok(LOKA_DAILY_STORY_FRAME.safeArea.top === 170 && LOKA_WEEKLY_STORY_FRAME.publication.visualScale === 1.08, "weekly_story_is_stronger_without_changing_the_daily_story_reference");
 ok(slide1PublicationRenderer.includes("drawSlide1Header") && slide1PublicationRenderer.includes("drawSlide1Facts") && slide1PublicationRenderer.includes("drawSlide1Summary") && slide1PublicationRenderer.includes("drawSlide1DayStrip") && slide1PublicationRenderer.includes("drawSlide1FeedSignature"), "publication_composition_owns_every_weekly_visual_module");
 ok(slide1StoryRenderer.includes("cover(background,canvas.width,canvas.height)") && slide1StoryRenderer.includes("drawSlide1PublicationComposition(logo,dailyIcons,daylightIcon,thermometerIcon,STORY_LAYOUT)") && !slide1StoryRenderer.includes("overlay("), "story_uses_the_responsive_publication_layout_on_the_full_background");
 ok(slide1OverviewRenderer.includes("drawSlide1PublicationComposition") && slide1StoryRenderer.includes("drawSlide1PublicationComposition"), "publication_and_story_call_the_same_renderer");
@@ -396,4 +397,4 @@ const pilotHtml = renderWeeklyCarousel(editorial(events), {
 });
 ok(pilotHtml.includes("Pilote éditorial · PASS") && pilotHtml.includes("Pilote valide."), "preview_shows_pilot_result_outside_publication_canvas");
 
-console.log(`WEEKLY_CAROUSEL ${passed}/102 PASS`);
+console.log(`WEEKLY_CAROUSEL ${passed}/103 PASS`);

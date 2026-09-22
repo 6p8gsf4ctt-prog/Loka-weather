@@ -4,7 +4,7 @@ import { PICTOGRAM_LIBRARY_VERSION, PICTOGRAM_STYLE, hourlyConditionToPictogram,
 import type { WeatherPictogramKind } from "../../ui/pictogramLibrary";
 import { LOKA_BRAND_VERSION, LOKA_CANVAS_FONT, LOKA_LOGO_DATA_URL, LOKA_SLOGAN_WEEKLY } from "../../ui/lokaBrand";
 import { LOKA_DAILY_FEED_FRAME, LOKA_PUBLICATION_STYLE } from "../../ui/feedFrame";
-import { LOKA_DAILY_STORY_FRAME } from "../../ui/storyFrame";
+import { LOKA_WEEKLY_STORY_FRAME } from "../../ui/storyFrame";
 import { LOKA_EDITORIAL_SUMMARY_FRAME } from "../../ui/editorialSummaryFrame";
 import { assertWeeklyComplementaryPreflight } from "./complementaryPreflight";
 import type { WeeklyComplementaryPreflight } from "./complementaryPreflight";
@@ -16,8 +16,8 @@ export const WEEKLY_CAROUSEL_VERSION = "0.1.0" as const;
 export const WEEKLY_CAROUSEL_MAX_EVENT_SLIDES = 4 as const;
 export const WEEKLY_CAROUSEL_WIDTH = LOKA_DAILY_FEED_FRAME.width;
 export const WEEKLY_CAROUSEL_HEIGHT = LOKA_DAILY_FEED_FRAME.height;
-export const WEEKLY_STORY_WIDTH = LOKA_DAILY_STORY_FRAME.width;
-export const WEEKLY_STORY_HEIGHT = LOKA_DAILY_STORY_FRAME.height;
+export const WEEKLY_STORY_WIDTH = LOKA_WEEKLY_STORY_FRAME.width;
+export const WEEKLY_STORY_HEIGHT = LOKA_WEEKLY_STORY_FRAME.height;
 
 /**
  * The weekly overview is built inside the exact same 1080 × 1440 frame as
@@ -55,10 +55,10 @@ export const WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID = WEEKLY_SLIDE2_DAILY_FEED_GRI
 
 /** The weekly Story wraps the canonical publication at native scale. */
 export const WEEKLY_SLIDE1_DAILY_STORY_GRID = {
-  width: LOKA_DAILY_STORY_FRAME.width,
-  height: LOKA_DAILY_STORY_FRAME.height,
-  publication: LOKA_DAILY_STORY_FRAME.publication,
-  safeArea: LOKA_DAILY_STORY_FRAME.safeArea
+  width: LOKA_WEEKLY_STORY_FRAME.width,
+  height: LOKA_WEEKLY_STORY_FRAME.height,
+  publication: LOKA_WEEKLY_STORY_FRAME.publication,
+  safeArea: LOKA_WEEKLY_STORY_FRAME.safeArea
 } as const;
 
 /**
@@ -562,8 +562,8 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial, options: Weekly
     "const slide1Ink=ink;",
     "const slide1EditorialGold=gold;",
     "const fontFamily=model.brand.canvasFont;",
-    "const FEED_LAYOUT={offsetY:0,scaleY:1,visualScale:1};",
-    `const STORY_LAYOUT={offsetY:${LOKA_DAILY_STORY_FRAME.publication.y},scaleY:${LOKA_DAILY_STORY_FRAME.publication.verticalScale},visualScale:${LOKA_DAILY_STORY_FRAME.publication.visualScale}};`,
+    "const FEED_LAYOUT={offsetY:0,scaleY:1,visualScale:1.06};",
+    `const STORY_LAYOUT={offsetY:${LOKA_WEEKLY_STORY_FRAME.publication.y},scaleY:${LOKA_WEEKLY_STORY_FRAME.publication.verticalScale},visualScale:${LOKA_WEEKLY_STORY_FRAME.publication.visualScale}};`,
     "function layoutY(value,layout){return layout.offsetY+value*layout.scaleY;}",
     "function layoutH(value,layout){return value*layout.scaleY;}",
     "function load(src,label){return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('weekly_image_load_failed:'+label));image.src=src;});}",

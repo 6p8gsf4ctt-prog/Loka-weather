@@ -23,6 +23,27 @@ export const LOKA_PUBLICATION_STORY_FRAME = {
   }
 } as const;
 
-/** Daily and weekly Stories intentionally share the exact same wrapper. */
+/** The daily Story remains the current reference and is intentionally stable. */
 export const LOKA_DAILY_STORY_FRAME = LOKA_PUBLICATION_STORY_FRAME;
-export const LOKA_WEEKLY_STORY_FRAME = LOKA_PUBLICATION_STORY_FRAME;
+
+/**
+ * Weekly content has a denser hierarchy: smaller safe areas, a taller vertical
+ * grid and a slightly stronger visual scale. Horizontal geometry is unchanged.
+ */
+export const LOKA_WEEKLY_STORY_FRAME = {
+  width: 1080,
+  height: 1920,
+  publication: {
+    x: 0,
+    y: 145,
+    width: 1080,
+    sourceHeight: 1440,
+    height: 1630,
+    verticalScale: 1630 / 1440,
+    visualScale: 1.08
+  },
+  safeArea: {
+    top: 145,
+    bottom: 145
+  }
+} as const;
