@@ -7,10 +7,12 @@ les dossiers `src/`, `tests/` et `docs/`.
 
 - La STORY journalière et la STORY semaine utilisent désormais la PUBLICATION
   1080 × 1440 comme composition canonique.
-- Cette composition est placée sans réduction à `y = 240` dans le canvas STORY
-  1080 × 1920.
-- Les 240 px libres en haut et en bas protègent le visuel des interfaces et
-  hashtags Instagram.
+- La grille horizontale reste identique à la PUBLICATION. Sa grille verticale
+  est étendue de 1440 à 1580 px à partir de `y = 170`.
+- Les réserves équilibrées de 170 px réduisent le vide tout en protégeant le
+  visuel des interfaces et hashtags Instagram.
+- Les positions, hauteurs de boxes et espacements suivent un ratio vertical
+  commun de 1,097 ; textes et pictogrammes gagnent 4 % sans déformation.
 - Les anciens renderers STORY parallèles ont été supprimés : toute évolution
   de la PUBLICATION est désormais héritée automatiquement par la STORY.
 

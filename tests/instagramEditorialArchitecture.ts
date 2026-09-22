@@ -34,10 +34,10 @@ function functionLine(html: string, name: string): string {
 
 const base = renderInstagramOfficial24(payloadFor(21), CITIES.tarnos);
 
-ok(functionLine(base, "renderStory").includes("drawFeedGeneral(mainIcon)") && !base.includes("function drawStoryGeneral("), "story_uses_the_publication_general_renderer");
-ok(base.includes("function drawFeedGeneral(mainIcon){const x=50,y=160,w=980,h=150") && !functionLine(base, "drawFeedGeneral").includes("subtitle"), "feed_general_no_subtitle");
-ok(functionLine(base, "renderStory").includes("drawFeedComments()") && !base.includes("function drawStoryComments("), "story_uses_the_publication_editorial_renderer");
-ok(base.includes("const visual=m.feedVisual||m.visual;const x=50,y=865,w=980,h=210"), "feed_comments_native_visual_slot");
+ok(functionLine(base, "renderStory").includes("drawFeedGeneral(mainIcon,STORY_LAYOUT)") && !base.includes("function drawStoryGeneral("), "story_uses_the_publication_general_renderer");
+ok(base.includes("function drawFeedGeneral(mainIcon,layout=FEED_LAYOUT)") && !functionLine(base, "drawFeedGeneral").includes("subtitle"), "feed_general_no_subtitle");
+ok(functionLine(base, "renderStory").includes("drawFeedComments(STORY_LAYOUT)") && !base.includes("function drawStoryComments("), "story_uses_the_publication_editorial_renderer");
+ok(base.includes("const visual=m.feedVisual||m.visual;const x=50,y=layoutY(865,layout),w=980,h=layoutH(210,layout)"), "feed_comments_native_visual_slot");
 ok(base.includes('id="legendStory"') && functionLine(base, "renderLegendStory").includes("drawLegendPanel()"), "legend_story_native_renderer");
 ok(base.includes("<!--LOKA_EDITORIAL_STYLE_MOUNT-->"), "style_mount_present");
 ok(base.includes("<!--LOKA_EDITORIAL_STUDIO_MOUNT-->"), "studio_mount_present");

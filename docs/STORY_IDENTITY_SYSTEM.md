@@ -2,10 +2,10 @@
 
 ## Principe
 
-La PUBLICATION 1080 × 1440 est l’unique composition graphique de référence.
-La STORY 1080 × 1920 n’est plus un deuxième design : elle dessine le fond
-météo sur toute sa hauteur, puis réutilise la composition de la PUBLICATION à
-son échelle native, centrée verticalement.
+La PUBLICATION 1080 × 1440 reste l’unique composition graphique de référence.
+La STORY 1080 × 1920 n’est pas un deuxième design : elle dessine le fond météo
+sur toute sa hauteur, puis réutilise les mêmes composants avec un profil de
+mise en page vertical dérivé de la PUBLICATION.
 
 Cette règle s’applique de manière identique au journalier et à l’hebdomadaire.
 
@@ -14,16 +14,20 @@ Cette règle s’applique de manière identique au journalier et à l’hebdomad
 | Élément | Valeur |
 |---|---:|
 | Canvas STORY | 1080 × 1920 px |
-| Composition PUBLICATION | 1080 × 1440 px |
-| Position de la PUBLICATION | x 0 · y 240 |
-| Réduction | aucune, échelle 1:1 |
-| Réserve Instagram supérieure | 240 px |
-| Réserve Instagram inférieure | 240 px |
+| Grille source PUBLICATION | 1080 × 1440 px |
+| Zone de composition STORY | 1080 × 1580 px |
+| Position de la composition | x 0 · y 170 |
+| Échelle horizontale | 1:1 |
+| Ratio vertical | 1,0972 |
+| Échelle textes et pictogrammes | 1,04 |
+| Réserve Instagram supérieure | 170 px |
+| Réserve Instagram inférieure | 170 px |
 
 Le fond est rendu une seule fois en 1080 × 1920. La PUBLICATION n’est pas
-collée comme une image et ne redessine pas son fond : seules ses primitives de
-contenu sont exécutées après une translation verticale de 240 px. Il n’existe
-donc ni couture, ni différence de recadrage, ni perte de netteté.
+collée comme une image : le moteur recalcule individuellement les coordonnées
+verticales, les hauteurs de boxes et les espacements. Les textes et
+pictogrammes conservent leurs proportions ; aucun étirement du canvas ou du
+contenu n’est appliqué.
 
 ## Mutualisation
 
@@ -47,13 +51,15 @@ PUBLICATION et de son renderer.
 |---|---|
 | Toute la composition graphique | Canvas 1080 × 1920 |
 | Toute la hiérarchie éditoriale | Fond étendu sur la hauteur |
-| Toutes les box et leurs contenus | Translation verticale de 240 px |
+| Toutes les box et leurs contenus | Profil vertical 1580 px |
 | En-tête et signature | Réserves Instagram haute et basse |
 
 ## Contrôles de régression
 
-- la composition doit être rendue à l’échelle 1:1 ;
-- les réserves haute et basse doivent rester égales à 240 px ;
+- la largeur et la grille horizontale doivent rester à l’échelle 1:1 ;
+- les réserves haute et basse doivent rester égales à 170 px ;
+- positions, boxes et espacements doivent utiliser le même ratio vertical ;
+- textes et pictogrammes ne doivent jamais être étirés verticalement ;
 - aucun renderer parallèle de box STORY ne doit être réintroduit ;
 - le journalier et l’hebdomadaire doivent tous deux appeler leur renderer de
   PUBLICATION depuis leur renderer STORY ;

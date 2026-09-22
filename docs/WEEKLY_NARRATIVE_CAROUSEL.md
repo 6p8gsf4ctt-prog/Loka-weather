@@ -62,10 +62,11 @@ source = CAROUSEL
 ```
 
 Elle utilise la scène de vue d’ensemble et reprend la synthèse validée de la
-première publication. Le moteur dessine le fond en 1080 × 1920, translate le
-contexte à `y=240`, puis appelle le renderer exact de la PUBLICATION semaine
-1080 × 1440. La composition reste à l’échelle 1:1 et libère donc 240 px en
-haut et en bas pour les interfaces Instagram.
+première publication. Le moteur dessine le fond en 1080 × 1920, puis appelle
+le renderer exact de la PUBLICATION semaine avec le profil STORY. La largeur
+reste à l’échelle 1:1 ; les coordonnées et dimensions verticales sont réparties
+sur 1580 px à partir de `y=170`. Les réserves haute et basse restent donc
+équilibrées à 170 px pour les interfaces Instagram.
 
 La Story ne crée pas une seconde ligne éditoriale et ne remplace pas le
 carrousel. Le contrat détaillé est documenté dans
