@@ -69,4 +69,23 @@ const stableSynthesis = buildWeeklySlide1Synthesis(stableProfiles.days, stableFa
 ok(!stableSynthesis.evidence.measuredBrightening && !/Davantage de soleil/.test(stableSynthesis.primaryLine), "no_more_sun_wording_without_measured_progression");
 ok(stableSynthesis.secondaryLine === "Les maximales resteront proches de 24 °C.", "secondary_line_uses_the_factual_temperature_range_only");
 
-console.log(`WEEKLY_SYNTHESIS ${passed}/6 PASS`);
+const isolatedProfiles = buildWeeklyProfiles(city, forecasts({
+  rainAt: (dayIndex, hour) => dayIndex === 6 && hour === 8 ? 12.6 : 0
+}));
+const isolatedSynthesis = buildWeeklySlide1Synthesis(isolatedProfiles.days, buildWeeklyFixedFacts(city, isolatedProfiles));
+ok(isolatedSynthesis.evidence.wetDays === 1 && isolatedSynthesis.evidence.wetDayIndexes.join(",") === "6", "isolated_rain_evidence_tracks_distribution_by_day");
+ok(isolatedSynthesis.primaryLine.startsWith("Un passage pluvieux possible") && !isolatedSynthesis.primaryLine.startsWith("Pluies fréquentes"), "one_wet_day_is_never_called_frequent_rain");
+
+const scatteredProfiles = buildWeeklyProfiles(city, forecasts({
+  rainAt: (dayIndex, hour) => ([1, 4].includes(dayIndex) && [8, 9].includes(hour)) ? .8 : 0
+}));
+const scatteredSynthesis = buildWeeklySlide1Synthesis(scatteredProfiles.days, buildWeeklyFixedFacts(city, scatteredProfiles));
+ok(scatteredSynthesis.evidence.wetDays === 2 && scatteredSynthesis.primaryLine.startsWith("Quelques passages pluvieux"), "two_wet_days_use_scattered_rain_language");
+
+const frequentProfiles = buildWeeklyProfiles(city, forecasts({
+  rainAt: (dayIndex, hour) => ([1, 3, 5].includes(dayIndex) && [8, 9].includes(hour)) ? .8 : 0
+}));
+const frequentSynthesis = buildWeeklySlide1Synthesis(frequentProfiles.days, buildWeeklyFixedFacts(city, frequentProfiles));
+ok(frequentSynthesis.evidence.wetDays === 3 && frequentSynthesis.evidence.wetHours === 6 && frequentSynthesis.primaryLine.startsWith("Pluies fréquentes"), "frequent_rain_requires_three_distributed_wet_days");
+
+console.log(`WEEKLY_SYNTHESIS ${passed}/10 PASS`);

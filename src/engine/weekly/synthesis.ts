@@ -21,6 +21,9 @@ export interface WeeklySynthesisEvidence {
   maximumDayIndexes: number[];
   totalPrecipitationMm: number;
   wetHours: number;
+  wetDays: number;
+  wetDayIndexes: number[];
+  maxDailyPrecipitationMm: number;
   dryWeek: boolean;
   meanBrightFraction: number;
   startBrightFraction: number;
@@ -105,7 +108,12 @@ export function buildWeeklySlide1Synthesis(days: WeeklyDayProfile[], facts: Week
   const meanBrightFraction = average(ordered.map((day) => day.daylight.light.brightFraction));
   const totalPrecipitationMm = ordered.reduce((sum, day) => sum + day.fullDay.precipitation.totalMm, 0);
   const wetHours = ordered.reduce((sum, day) => sum + day.fullDay.precipitation.wetHours, 0);
-  const dryWeek = wetHours === 0 && totalPrecipitationMm <= 0.2;
+  const wetDayIndexes = ordered
+    .filter((day) => day.fullDay.precipitation.wetHours > 0)
+    .map((day) => day.dayIndex);
+  const wetDays = wetDayIndexes.length;
+  const maxDailyPrecipitationMm = Math.max(...ordered.map((day) => day.fullDay.precipitation.totalMm));
+  const dryWeek = wetDays === 0 && wetHours === 0 && totalPrecipitationMm <= 0.2;
   const measuredBrightening = endBrightFraction - startBrightFraction >= 0.2
     && startCloudCoverPct - endCloudCoverPct >= 15;
   const measuredClouding = startBrightFraction - endBrightFraction >= 0.2
@@ -114,6 +122,7 @@ export function buildWeeklySlide1Synthesis(days: WeeklyDayProfile[], facts: Week
   const maximumDays = facts.hottestDay.matches.length ? facts.hottestDay.matches : [facts.hottestDay];
   const maximumDayIndexes = maximumDays.map((match) => match.dayIndex);
   const maximumDayNames = joinFrench(maximumDays.map((match) => weekdayName(match.date)));
+  const wetDayNames = joinFrench(wetDayIndexes.map((dayIndex) => weekdayName(ordered[dayIndex]!.date)));
   const evidence: WeeklySynthesisEvidence = {
     thermalClass,
     maximumTemperatureC,
@@ -121,6 +130,9 @@ export function buildWeeklySlide1Synthesis(days: WeeklyDayProfile[], facts: Week
     maximumDayIndexes,
     totalPrecipitationMm,
     wetHours,
+    wetDays,
+    wetDayIndexes,
+    maxDailyPrecipitationMm,
     dryWeek,
     meanBrightFraction,
     startBrightFraction,
@@ -133,7 +145,9 @@ export function buildWeeklySlide1Synthesis(days: WeeklyDayProfile[], facts: Week
 
   let primaryLine: string;
   let secondaryLine: string;
-  const significantRain = wetHours >= 4 || totalPrecipitationMm >= 2;
+  const frequentRain = wetDays >= 3 && wetHours >= 6;
+  const scatteredRain = !frequentRain && wetDays >= 2 && (wetHours >= 3 || totalPrecipitationMm >= 2);
+  const isolatedRain = !frequentRain && !scatteredRain && wetDays >= 1;
   const solarDominant = dryWeek && meanBrightFraction >= 0.6;
 
   if (thermalClass === "MARKED_HEAT") {
@@ -143,11 +157,17 @@ export function buildWeeklySlide1Synthesis(days: WeeklyDayProfile[], facts: Week
         ? "Chaleur marquée · Soleil bien présent cette semaine"
         : "Chaleur marquée · Des conditions variables selon les journées";
     secondaryLine = `Les températures culmineront à ${Math.round(maximumTemperatureC)} °C ${maximumDayNames}.`;
-  } else if (significantRain) {
+  } else if (frequentRain) {
     primaryLine = measuredClouding
       ? "Pluies fréquentes · Un ciel plus nuageux en fin de semaine"
       : "Pluies fréquentes · Des conditions souvent humides";
-    secondaryLine = `Autour de ${formatMillimetres(totalPrecipitationMm)} mm attendus sur la semaine.`;
+    secondaryLine = `Environ ${formatMillimetres(totalPrecipitationMm)} mm sont possibles sur l’ensemble de la semaine.`;
+  } else if (scatteredRain) {
+    primaryLine = "Quelques passages pluvieux · Une semaine changeante";
+    secondaryLine = `Des précipitations sont possibles ${wetDayNames}, pour environ ${formatMillimetres(totalPrecipitationMm)} mm au total.`;
+  } else if (isolatedRain) {
+    primaryLine = "Un passage pluvieux possible · Des conditions variables";
+    secondaryLine = `Le risque de pluie se concentre ${wetDayNames}, pour environ ${formatMillimetres(totalPrecipitationMm)} mm au total.`;
   } else if (measuredBrightening) {
     primaryLine = `${thermalLead(thermalClass)} · Davantage de soleil en fin de semaine`;
     secondaryLine = rangeSentence(minimumDailyMaximumC, maximumTemperatureC);

@@ -98,6 +98,8 @@ function synthesisEvidenceIsConsistent(slide1: WeeklyEditorial["slide1"]): boole
     evidence.minimumDailyMaximumC,
     evidence.totalPrecipitationMm,
     evidence.wetHours,
+    evidence.wetDays,
+    evidence.maxDailyPrecipitationMm,
     evidence.meanBrightFraction,
     evidence.startBrightFraction,
     evidence.endBrightFraction,
@@ -112,9 +114,15 @@ function synthesisEvidenceIsConsistent(slide1: WeeklyEditorial["slide1"]): boole
     WARM: "Temps chaud",
     MARKED_HEAT: "Chaleur marquée"
   };
-  const heatLanguageIsCorrect = primary.startsWith("Pluies fréquentes") || primary.includes(thermalLanguage[evidence.thermalClass]);
+  const rainLanguage = /^(Pluies fréquentes|Quelques passages pluvieux|Un passage pluvieux possible)/.test(primary);
+  const heatLanguageIsCorrect = rainLanguage || primary.includes(thermalLanguage[evidence.thermalClass]);
   const solarDominant = evidence.dryWeek && evidence.meanBrightFraction >= .6;
-  const significantRain = evidence.wetHours >= 4 || evidence.totalPrecipitationMm >= 2;
+  const frequentRain = evidence.wetDays >= 3 && evidence.wetHours >= 6;
+  const scatteredRain = !frequentRain && evidence.wetDays >= 2 && (evidence.wetHours >= 3 || evidence.totalPrecipitationMm >= 2);
+  const isolatedRain = !frequentRain && !scatteredRain && evidence.wetDays >= 1;
+  const wetDayIndexesAreValid = evidence.wetDays === evidence.wetDayIndexes.length
+    && new Set(evidence.wetDayIndexes).size === evidence.wetDayIndexes.length
+    && evidence.wetDayIndexes.every((dayIndex) => Number.isInteger(dayIndex) && dayIndex >= 0 && dayIndex <= 6);
   const factMaximumMatches = Math.abs(evidence.maximumTemperatureC - slide1.facts.hottestDay.temperatureC) < 1e-9
     && evidence.maximumDayIndexes.length === factMatches(slide1.hottestDay).length
     && evidence.maximumDayIndexes.every((dayIndex, index) => dayIndex === factMatches(slide1.hottestDay)[index]?.dayIndex);
@@ -122,6 +130,7 @@ function synthesisEvidenceIsConsistent(slide1: WeeklyEditorial["slide1"]): boole
   return finiteEvidence
     && evidence.minimumDailyMaximumC <= evidence.maximumTemperatureC
     && evidence.maximumDayIndexes.length > 0
+    && wetDayIndexesAreValid
     && heatLanguageIsCorrect
     && (!/\bTemps doux\b/.test(text) || evidence.thermalClass === "MILD")
     && (!/\bTemps frais\b/.test(text) || evidence.thermalClass === "COOL")
@@ -133,7 +142,9 @@ function synthesisEvidenceIsConsistent(slide1: WeeklyEditorial["slide1"]): boole
     && (!/Plus nuageux/.test(text) || evidence.measuredClouding)
     && (!/\bsec\b/i.test(text) || evidence.dryWeek)
     && (!/Soleil bien présent/.test(text) || solarDominant)
-    && (!/Pluies fréquentes/.test(text) || significantRain)
+    && (!/Pluies fréquentes/.test(text) || frequentRain)
+    && (!/Quelques passages pluvieux/.test(text) || scatteredRain)
+    && (!/Un passage pluvieux possible/.test(text) || isolatedRain)
     && factMaximumMatches;
 }
 

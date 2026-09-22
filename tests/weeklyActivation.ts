@@ -55,7 +55,7 @@ function slide1Content(days: WeeklyEditorial["dailySummaries"]): WeeklyEditorial
       secondaryMaximumLines: 2,
       evidence: {
         thermalClass: "WARM", maximumTemperatureC: 26, minimumDailyMaximumC: 20, maximumDayIndexes: [6],
-        totalPrecipitationMm: 0, wetHours: 0, dryWeek: true, meanBrightFraction: .7,
+        totalPrecipitationMm: 0, wetHours: 0, wetDays: 0, wetDayIndexes: [], maxDailyPrecipitationMm: 0, dryWeek: true, meanBrightFraction: .7,
         startBrightFraction: .6, endBrightFraction: .7, startCloudCoverPct: 30, endCloudCoverPct: 25,
         measuredBrightening: false, measuredClouding: false
       }

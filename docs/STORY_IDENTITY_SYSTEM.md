@@ -1,75 +1,61 @@
 # LOKA — système graphique STORY
 
-Référence : STORY journalière 1080 × 1920  
-Déclinaison : STORY hebdomadaire 1080 × 1920
-
 ## Principe
 
-La STORY journalière est l’unique source de vérité graphique. Le contenu
-hebdomadaire conserve son sens éditorial, mais ne possède plus de cadre, de
-contraste ou de primitives visuelles autonomes.
+La PUBLICATION 1080 × 1440 est l’unique composition graphique de référence.
+La STORY 1080 × 1920 n’est plus un deuxième design : elle dessine le fond
+météo sur toute sa hauteur, puis réutilise la composition de la PUBLICATION à
+son échelle native, centrée verticalement.
 
-Le contrat est centralisé dans `src/ui/storyFrame.ts`. Les deux moteurs
-consomment les mêmes valeurs au lieu de recopier des coordonnées.
+Cette règle s’applique de manière identique au journalier et à l’hebdomadaire.
 
-## Cadre permanent
+## Géométrie commune
 
-| Élément | Valeur commune |
+| Élément | Valeur |
 |---|---:|
-| Canvas | 1080 × 1920 px |
-| Logo | x 50 · centre y 144 · 190 × 64 px max. |
-| Ville | x 540 · ligne de base 158 · 25 px · graisse 680 · approche 8 |
-| Date | x 1030 · ligne de base 158 · 22 px · graisse 540 |
-| Box titre | x 44 · y 200 · 992 × 150 px |
-| Début des contenus | y 396 |
-| Fin des contenus | y 1734 |
-| Signature | x 540 · ligne de base 1810 · 22 px · graisse 500 |
-| Soulignement | x 514–566 · y 1834 · 1,4 px |
+| Canvas STORY | 1080 × 1920 px |
+| Composition PUBLICATION | 1080 × 1440 px |
+| Position de la PUBLICATION | x 0 · y 240 |
+| Réduction | aucune, échelle 1:1 |
+| Réserve Instagram supérieure | 240 px |
+| Réserve Instagram inférieure | 240 px |
 
-## Primitives partagées
+Le fond est rendu une seule fois en 1080 × 1920. La PUBLICATION n’est pas
+collée comme une image et ne redessine pas son fond : seules ses primitives de
+contenu sont exécutées après une translation verticale de 240 px. Il n’existe
+donc ni couture, ni différence de recadrage, ni perte de netteté.
 
-Les deux formats utilisent la même police Helvetica Neue/Arial, le bleu
-`#12264A`, l’or `#FDB515`, la même épaisseur de texte et la primitive de box
-translucide définie par `LOKA_PUBLICATION_STYLE` : rayon, contour, dégradé,
-reflet et séparateurs sont identiques.
+## Mutualisation
 
-Le rendu hebdomadaire ne pose plus de voile sombre supplémentaire sur le fond.
-Son niveau de contraste dépend désormais des mêmes box et des mêmes textes que
-le journalier.
+Pour chaque produit, la PUBLICATION et la STORY appellent le même renderer de
+composition. Sont ainsi strictement identiques :
 
-## Adaptation hebdomadaire
+- logo, ville et date ;
+- box titre ;
+- modules de contenu et leurs dimensions ;
+- pictogrammes, typographies, couleurs et contrastes ;
+- rayons, contours, transparences, traits et séparateurs ;
+- marges, espacements, alignements et signature.
 
-La grille extérieure ne varie jamais. Les trois modules hebdomadaires occupent
-la zone `396–1734` avec les deux espacements issus du journalier : 39 puis
-44 px.
-
-| Module | Hauteur préférée | Hauteur minimale |
-|---|---:|---:|
-| Faits de la semaine | 704 px | 620 px |
-| Synthèse éditoriale | 272 px | 220 px |
-| Bandeau des sept jours | 279 px | 279 px |
-
-La synthèse reçoit de la hauteur supplémentaire lorsque ses lignes en ont
-besoin. Cette hauteur est prélevée uniquement sur la box des faits, jusqu’à sa
-limite minimale. Le bandeau inférieur, les marges, les espacements et la
-signature restent fixes.
+Le fichier `src/ui/storyFrame.ts` ne contient que le contrat de l’enveloppe
+STORY. Les coordonnées graphiques restent la responsabilité du cadre de
+PUBLICATION et de son renderer.
 
 ## Responsabilités
 
-| Partagé | Spécifique à la STORY semaine |
+| Partagé avec la PUBLICATION | Spécifique à la STORY |
 |---|---|
-| Canvas et zones sûres | Trois faits hebdomadaires |
-| En-tête et logo | Synthèse de semaine |
-| Box titre et primitive de verre | Bandeau de sept jours |
-| Police, palette et épaisseur de texte | Marqueurs froid/chaud |
-| Séparateurs et accent or | Calcul des hauteurs utiles |
-| Bornes de contenu et signature | Données météo hebdomadaires |
+| Toute la composition graphique | Canvas 1080 × 1920 |
+| Toute la hiérarchie éditoriale | Fond étendu sur la hauteur |
+| Toutes les box et leurs contenus | Translation verticale de 240 px |
+| En-tête et signature | Réserves Instagram haute et basse |
 
 ## Contrôles de régression
 
-- le TypeScript doit compiler sans erreur ;
-- les tests journaliers doivent conserver les coordonnées historiques ;
-- la suite `WEEKLY_CAROUSEL` contrôle le cadre partagé, l’adaptation des box et
-  l’absence du voile hebdomadaire ;
-- toute modification future des coordonnées STORY doit être faite dans
-  `storyFrame.ts`, puis validée sur les deux formats.
+- la composition doit être rendue à l’échelle 1:1 ;
+- les réserves haute et basse doivent rester égales à 240 px ;
+- aucun renderer parallèle de box STORY ne doit être réintroduit ;
+- le journalier et l’hebdomadaire doivent tous deux appeler leur renderer de
+  PUBLICATION depuis leur renderer STORY ;
+- toute évolution graphique doit être faite sur la PUBLICATION, puis héritée
+  automatiquement par la STORY.

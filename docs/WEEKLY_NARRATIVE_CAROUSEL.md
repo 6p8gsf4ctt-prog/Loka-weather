@@ -62,10 +62,10 @@ source = CAROUSEL
 ```
 
 Elle utilise la scène de vue d’ensemble et reprend la synthèse validée de la
-première publication. Son cadre graphique vient exclusivement de la Story
-journalière : en-tête, box titre, limites de contenu, primitive de verre,
-typographie, séparateurs et signature. Les boxes intérieures peuvent ajuster
-leur hauteur utile, mais restent comprises entre `y=396` et `y=1734`.
+première publication. Le moteur dessine le fond en 1080 × 1920, translate le
+contexte à `y=240`, puis appelle le renderer exact de la PUBLICATION semaine
+1080 × 1440. La composition reste à l’échelle 1:1 et libère donc 240 px en
+haut et en bas pour les interfaces Instagram.
 
 La Story ne crée pas une seconde ligne éditoriale et ne remplace pas le
 carrousel. Le contrat détaillé est documenté dans
@@ -87,8 +87,9 @@ D1.
 
 | Fichier | Rôle |
 |---|---|
-| `src/ui/storyFrame.ts` | Cadre graphique commun aux deux Stories |
-| `src/engine/weekly/carousel.ts` | Plan adaptatif, rendu et exports |
+| `src/ui/storyFrame.ts` | Enveloppe commune des Stories et réserves Instagram |
+| `src/engine/weekly/carousel.ts` | Composition PUBLICATION partagée avec la STORY |
+| `src/engine/weekly/synthesis.ts` | Classification éditoriale des précipitations |
 | `src/engine/weekly/activation.ts` | Garde du plafond et du relais |
 | `src/engine/weekly/index.ts` | Export de la limite de slides |
 | `tests/weeklyCarousel.ts` | Contrôles du carrousel, du calme et des exports |
