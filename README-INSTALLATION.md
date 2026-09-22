@@ -1,17 +1,17 @@
-# LOKA — slides éditoriales en boxes v3
+# LOKA — système graphique STORY unifié
 
 Ce ZIP est différentiel. Remplacez les fichiers qu’il contient à la racine du dépôt GitHub, en conservant les dossiers `src/` et `tests/`.
 
 ## Ce qui change
 
-- La slide 1 reste inchangée.
-- Les slides 2, 3 et 4 gardent son en-tête, sa box titre, ses coordonnées et sa signature.
-- Elles adoptent désormais trois boxes intérieures :
-  1. pictogramme, chiffre clé et sous-titre ;
-  2. informations de comparaison ou repère ;
-  3. phrase éditoriale unique.
-- Les trois boxes se terminent à la même ligne basse que la slide 1.
-- L’aperçu de chaque candidate reprend ce même schéma avant publication.
+- La STORY journalière devient la référence graphique 1080 × 1920.
+- Les deux formats utilisent désormais le même en-tête, la même box titre, les
+  mêmes bornes de contenu et la même signature.
+- La STORY semaine reprend les couleurs, typographies, pictogrammes, contours,
+  transparences, séparateurs et épaisseurs de texte du journalier.
+- Les trois boxes hebdomadaires redistribuent uniquement leur hauteur utile en
+  fonction du texte, sans déplacer la grille extérieure.
+- Le voile de contraste propre à l’ancien rendu hebdomadaire est supprimé.
 
 ## Déploiement
 
@@ -20,6 +20,7 @@ Aucune migration D1, variable Cloudflare ou commande supplémentaire n’est req
 ## Vérifications
 
 - TypeScript validé ;
-- `WEEKLY_CAROUSEL` : 96/96 ;
+- `WEEKLY_CAROUSEL` : 102/102 ;
+- contrôles visuels journaliers ciblés : 68/68 ;
 - validation hebdomadaire de production validée ;
 - archive ZIP contrôlée sans erreur.

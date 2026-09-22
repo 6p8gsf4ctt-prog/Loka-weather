@@ -52,18 +52,24 @@ Le rendu réutilise les éléments existants du moteur :
 La scène n’est jamais choisie par le rendu. Elle vient de la décision V24
 validée à l’étape 9.
 
-## 4. Relais Story
+## 4. Story hebdomadaire
 
-La Story est produite au format 1080 × 1920 et porte explicitement :
+La Story est produite au format 1080 × 1920 et conserve dans son contrat :
 
 ```text
 kind = RELAY
 source = CAROUSEL
 ```
 
-Elle indique que la publication complète est disponible et utilise la scène de
-vue d’ensemble. Elle ne contient pas de résumé jour par jour, ne crée pas une
-seconde ligne éditoriale et ne remplace pas le carrousel.
+Elle utilise la scène de vue d’ensemble et reprend la synthèse validée de la
+première publication. Son cadre graphique vient exclusivement de la Story
+journalière : en-tête, box titre, limites de contenu, primitive de verre,
+typographie, séparateurs et signature. Les boxes intérieures peuvent ajuster
+leur hauteur utile, mais restent comprises entre `y=396` et `y=1734`.
+
+La Story ne crée pas une seconde ligne éditoriale et ne remplace pas le
+carrousel. Le contrat détaillé est documenté dans
+`docs/STORY_IDENTITY_SYSTEM.md`.
 
 ## 5. Prévisualisation et exports
 
@@ -81,6 +87,7 @@ D1.
 
 | Fichier | Rôle |
 |---|---|
+| `src/ui/storyFrame.ts` | Cadre graphique commun aux deux Stories |
 | `src/engine/weekly/carousel.ts` | Plan adaptatif, rendu et exports |
 | `src/engine/weekly/activation.ts` | Garde du plafond et du relais |
 | `src/engine/weekly/index.ts` | Export de la limite de slides |
@@ -92,5 +99,5 @@ D1.
 
 L’étape est validée lorsque le nombre de slides suit exactement le nombre
 d’histoires retenues, que le calme produit une publication courte, que la
-Story est uniquement un relais et que l’univers graphique LOKA est réutilisé
-sans dépendance au moteur quotidien de publication.
+Story conserve son rôle de relais et que les deux Stories consomment le même
+cadre graphique sans dupliquer leurs coordonnées.
