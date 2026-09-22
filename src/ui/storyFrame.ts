@@ -35,15 +35,15 @@ export const LOKA_WEEKLY_STORY_FRAME = {
   height: 1920,
   publication: {
     x: 0,
-    y: 145,
+    y: 120,
     width: 1080,
     sourceHeight: 1440,
-    height: 1630,
-    verticalScale: 1630 / 1440,
+    height: 1680,
+    verticalScale: 1680 / 1440,
     visualScale: 1.08
   },
   safeArea: {
-    top: 145,
-    bottom: 145
+    top: 120,
+    bottom: 120
   }
 } as const;

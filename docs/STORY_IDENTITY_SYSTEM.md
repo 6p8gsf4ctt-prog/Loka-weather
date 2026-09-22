@@ -17,13 +17,13 @@ affirmée adaptée à sa densité d’information.
 |---|---:|---:|
 | Canvas STORY | 1080 × 1920 px | 1080 × 1920 px |
 | Grille source PUBLICATION | 1080 × 1440 px | 1080 × 1440 px |
-| Zone de composition STORY | 1080 × 1580 px | 1080 × 1630 px |
-| Position de la composition | x 0 · y 170 | x 0 · y 145 |
+| Zone de composition STORY | 1080 × 1580 px | 1080 × 1680 px |
+| Position de la composition | x 0 · y 170 | x 0 · y 120 |
 | Échelle horizontale | 1:1 | 1:1 |
-| Ratio vertical | 1,0972 | 1,1319 |
-| Échelle textes et pictogrammes | 1,04 | 1,08 |
-| Réserve Instagram supérieure | 170 px | 145 px |
-| Réserve Instagram inférieure | 170 px | 145 px |
+| Ratio vertical | 1,0972 | 1,1667 |
+| Échelle visuelle de base (avant hiérarchie sélective) | 1,04 | 1,08 |
+| Réserve Instagram supérieure | 170 px | 120 px |
+| Réserve Instagram inférieure | 170 px | 120 px |
 
 Le fond est rendu une seule fois en 1080 × 1920. La PUBLICATION n’est pas
 collée comme une image : le moteur recalcule individuellement les coordonnées

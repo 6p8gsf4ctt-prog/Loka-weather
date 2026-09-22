@@ -65,9 +65,10 @@ Elle utilise la scène de vue d’ensemble et reprend la synthèse validée de l
 première publication. Le moteur dessine le fond en 1080 × 1920, puis appelle
 le renderer exact de la PUBLICATION semaine avec le profil STORY. La largeur
 reste à l’échelle 1:1 ; les coordonnées et dimensions verticales sont réparties
-sur 1630 px à partir de `y=145`. Les réserves haute et basse restent donc
-équilibrées à 145 px pour les interfaces Instagram. La PUBLICATION utilise une
-échelle visuelle de 1,06 et la STORY une échelle de 1,08, sans étirement.
+sur 1680 px à partir de `y=120`. Les réserves haute et basse restent donc
+équilibrées à 120 px pour les interfaces Instagram. La PUBLICATION utilise une
+échelle visuelle de base de 1,06 et la STORY une échelle de base de 1,08,
+complétées par les mêmes coefficients sélectifs de hiérarchie, sans étirement.
 
 La Story ne crée pas une seconde ligne éditoriale et ne remplace pas le
 carrousel. Le contrat détaillé est documenté dans
