@@ -16,6 +16,7 @@ import "./instagramBrandV3";
 import "./sceneDisplayTitles";
 
 import "./instagramLogoRuntimeV4";
+import "./instagramDailyGraphicPreview";
 import "./weeklyIsolation";
 import "./weeklyForecast";
 import "./weeklyProfiles";

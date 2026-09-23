@@ -15,6 +15,7 @@ import { renderAdmin } from "./ui/admin";
 import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
 import { enhanceInstagramWithEditorialPersistence } from "./ui/instagramEditorialPersistence";
 import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExport";
+import { renderInstagramDailyGraphicPreview } from "./ui/instagramDailyGraphicPreview";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
@@ -348,6 +349,29 @@ export default {
       destination.pathname = "/";
       destination.search = "";
       return Response.redirect(destination.toString(), 308);
+    }
+
+    if (url.pathname === "/daily-graphic-preview" && request.method === "GET") {
+      const slug = url.searchParams.get("city") || "tarnos";
+      const result = await safeToday(env, slug);
+      if (!result) return json({ error: "unknown_city" }, 404);
+      if (result.surface.engine === "UNAVAILABLE") {
+        return new Response(renderInstagramRecovery(result.city.slug, result.surface.reason), {
+          headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
+        });
+      }
+      if (!await masterAvailable(request, env, result.surface.payload.scene.masterUrl)) return unavailable("master_graphic_unavailable");
+      const previewHtml = renderInstagramDailyGraphicPreview(result.surface.payload, result.city);
+      const editorialHtml = enhanceInstagramWithEditorialStudio(previewHtml);
+      const persistentHtml = enhanceInstagramWithEditorialPersistence(editorialHtml, result.city.slug);
+      const exportHtml = enhanceInstagramWithEditorialExport(persistentHtml, result.city.slug);
+      return new Response(exportHtml, {
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store",
+          "x-loka-daily-graphic-variant": "weekly-inspired-v1"
+        }
+      });
     }
 
     if (url.pathname === "/weekly-preview") {
