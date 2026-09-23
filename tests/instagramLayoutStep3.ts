@@ -30,27 +30,30 @@ function functionLine(html: string, name: string): string {
 }
 
 const html = renderInstagramOfficial24(payloadFor(21), CITIES.tarnos);
+const storyGeneral = functionLine(html, "drawStoryGeneral");
 const feedGeneral = functionLine(html, "drawFeedGeneral");
-const renderStory = functionLine(html, "renderStory");
 
-ok(html.includes("const STORY_LAYOUT={offsetY:170,scaleY:1.0972222222222223,visualScale:1.04}"), "story_responsive_frame_is_centered");
-ok(renderStory.includes("ctx.clearRect(0,0,1080,1920)") && renderStory.includes("drawCover(bg,1080,1920)"), "story_draws_one_full_height_background");
-ok(!renderStory.includes("ctx.translate") && renderStory.includes("STORY_LAYOUT"), "story_uses_coordinate_based_reflow_without_canvas_distortion");
-ok(renderStory.includes("drawFeedHeader(logo,STORY_LAYOUT)"), "story_reuses_publication_header");
-ok(renderStory.includes("drawFeedGeneral(mainIcon,STORY_LAYOUT)"), "story_reuses_publication_title_box");
-ok(renderStory.includes("drawFeedHours(slots,hourIcons,STORY_LAYOUT)"), "story_reuses_publication_hour_grid");
-ok(renderStory.includes("drawFeedComments(STORY_LAYOUT)"), "story_reuses_publication_editorial_box");
-ok(renderStory.includes("drawFeedSolar(solarIcons,STORY_LAYOUT)"), "story_reuses_publication_solar_box");
-ok(renderStory.includes("drawFeedSignature(STORY_LAYOUT)"), "story_reuses_publication_signature");
-ok(html.includes("function layoutY(value,layout)") && html.includes("function layoutH(value,layout)"), "story_reflows_positions_and_heights_with_shared_helpers");
-ok(!html.includes("function drawStoryGeneral("), "parallel_story_title_renderer_removed");
-ok(!html.includes("function drawStoryHours("), "parallel_story_hour_renderer_removed");
-ok(!html.includes("function drawStoryComments("), "parallel_story_editorial_renderer_removed");
-ok(!html.includes("function drawStorySolar("), "parallel_story_solar_renderer_removed");
-ok(feedGeneral.includes("y=layoutY(160,layout),w=980,h=layoutH(150,layout)"), "title_box_height_is_layout_driven");
-ok(html.includes("function drawFeedHours(slots,icons,layout=FEED_LAYOUT){const x=50,y=layoutY(336,layout),w=980,h=layoutH(500,layout)"), "hour_grid_height_is_layout_driven");
-ok(html.includes("function drawFeedComments(layout=FEED_LAYOUT){const visual=m.feedVisual||m.visual;const x=50,y=layoutY(865,layout),w=980,h=layoutH(210,layout)"), "editorial_box_height_is_layout_driven");
-ok(html.includes("function drawFeedSolar(solarIcons,layout=FEED_LAYOUT)") && html.includes("function drawFeedSignature(layout=FEED_LAYOUT)"), "lower_modules_and_signature_are_layout_driven");
+ok(storyGeneral.includes("x=44,y=200,w=992,h=150"), "story_general_compact_150");
+ok(feedGeneral.includes("x=50,y=160,w=980,h=150"), "feed_general_compact_150");
+ok(!storyGeneral.includes("drawSubtitleBlock") && !feedGeneral.includes("drawSubtitleBlock"), "subtitle_not_drawn_in_general_boxes");
+ok(html.includes("function drawStoryHours(slots,icons){const x=44,y=396,w=992,h=704"), "story_hours_shifted_up_100");
+ok(html.includes("function drawFeedHours(slots,icons){const x=50,y=336,w=980,h=500"), "feed_hours_shifted_up_90");
+ok(html.includes("function drawStoryComments(){const visual=m.storyVisual||m.visual;const x=44,y=1139,w=992,h=272"), "story_comments_expanded_272");
+ok(html.includes("function drawFeedComments(){const visual=m.feedVisual||m.visual;const x=50,y=865,w=980,h=210"), "feed_comments_expanded_210");
+ok(html.includes("function drawStorySolar(solarIcons){const x=44,y=1455,w=992,h=279"), "story_solar_anchor_unchanged");
+ok(html.includes("function drawFeedSolar(solarIcons){const x=50,y=1100,w=980,h=205"), "feed_solar_anchor_unchanged");
+ok(html.includes("function drawStorySignature(){text('Ici, aujourd’hui.',540,1810"), "story_signature_anchor_unchanged");
+ok(html.includes("function drawFeedSignature(){text('Ici, aujourd’hui.',540,1368"), "feed_signature_anchor_unchanged");
+
+const story = { generalY: 200, generalH: 150, hoursY: 396, hoursH: 704, commentsY: 1139, commentsH: 272, solarY: 1455 };
+const feed = { generalY: 160, generalH: 150, hoursY: 336, hoursH: 500, commentsY: 865, commentsH: 210, solarY: 1100 };
+ok(story.hoursY - (story.generalY + story.generalH) === 46, "story_general_hours_gap_preserved");
+ok(story.commentsY - (story.hoursY + story.hoursH) === 39, "story_hours_comments_gap_preserved");
+ok(story.solarY - (story.commentsY + story.commentsH) === 44, "story_comments_solar_gap_preserved");
+ok(feed.hoursY - (feed.generalY + feed.generalH) === 26, "feed_general_hours_gap_preserved");
+ok(feed.commentsY - (feed.hoursY + feed.hoursH) === 29, "feed_hours_comments_gap_preserved");
+ok(feed.solarY - (feed.commentsY + feed.commentsH) === 25, "feed_comments_solar_gap_preserved");
+ok(story.commentsY + story.commentsH === 1411 && feed.commentsY + feed.commentsH === 1075, "lower_layout_anchors_preserved");
 
 if (passed !== 18) throw new Error(`instagram_layout_step3_count_mismatch:${passed}`);
 console.log(`INSTAGRAM_LAYOUT_STEP3 ${passed}/18 PASS`);

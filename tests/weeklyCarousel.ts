@@ -1,6 +1,6 @@
 import { buildWeeklyCarouselPlan, renderWeeklyCarousel, WEEKLY_COMPLEMENTARY_BOX_LAYOUT, WEEKLY_COMPLEMENTARY_DAILY_FEED_GRID, WEEKLY_OVERVIEW_MASTER_URL, WEEKLY_SLIDE1_DAILY_FEED_GRID, WEEKLY_SLIDE1_DAILY_STORY_GRID, WEEKLY_SLIDE2_DAILY_FEED_GRID } from "../src/engine/weekly";
 import { LOKA_DAILY_FEED_FRAME } from "../src/ui/feedFrame";
-import { LOKA_DAILY_STORY_FRAME, LOKA_WEEKLY_STORY_FRAME } from "../src/ui/storyFrame";
+import { LOKA_WEEKLY_STORY_FRAME } from "../src/ui/weeklyStoryFrame";
 import type { WeeklyEditorial, WeeklySceneReference } from "../src/engine/weekly";
 
 let passed = 0;
@@ -363,7 +363,7 @@ ok(WEEKLY_SLIDE1_DAILY_STORY_GRID.publication === LOKA_WEEKLY_STORY_FRAME.public
 ok(WEEKLY_SLIDE1_DAILY_STORY_GRID.width === 1080 && WEEKLY_SLIDE1_DAILY_STORY_GRID.height === 1920, "weekly_story_keeps_the_instagram_story_dimensions");
 ok(WEEKLY_SLIDE1_DAILY_STORY_GRID.publication.width === LOKA_DAILY_FEED_FRAME.width && WEEKLY_SLIDE1_DAILY_STORY_GRID.publication.sourceHeight === LOKA_DAILY_FEED_FRAME.height && WEEKLY_SLIDE1_DAILY_STORY_GRID.publication.height === 1680, "story_derives_its_expanded_vertical_grid_from_the_publication");
 ok(WEEKLY_SLIDE1_DAILY_STORY_GRID.publication.y === 120 && WEEKLY_SLIDE1_DAILY_STORY_GRID.safeArea.top === 120 && WEEKLY_SLIDE1_DAILY_STORY_GRID.safeArea.bottom === 120, "story_reserves_smaller_equal_instagram_safe_areas");
-ok(LOKA_DAILY_STORY_FRAME.safeArea.top === 170 && LOKA_WEEKLY_STORY_FRAME.publication.visualScale === 1.08, "weekly_story_is_stronger_without_changing_the_daily_story_reference");
+ok(LOKA_WEEKLY_STORY_FRAME.publication.visualScale === 1.08, "weekly_story_has_its_own_visual_scale");
 ok(slide1PublicationRenderer.includes("drawSlide1Header") && slide1PublicationRenderer.includes("drawSlide1Facts") && slide1PublicationRenderer.includes("drawSlide1Summary") && slide1PublicationRenderer.includes("drawSlide1DayStrip") && slide1PublicationRenderer.includes("drawSlide1FeedSignature"), "publication_composition_owns_every_weekly_visual_module");
 ok(slide1StoryRenderer.includes("cover(background,canvas.width,canvas.height)") && slide1StoryRenderer.includes("drawSlide1PublicationComposition(logo,dailyIcons,daylightIcon,thermometerIcon,STORY_LAYOUT)") && !slide1StoryRenderer.includes("overlay("), "story_uses_the_responsive_publication_layout_on_the_full_background");
 ok(slide1OverviewRenderer.includes("drawSlide1PublicationComposition") && slide1StoryRenderer.includes("drawSlide1PublicationComposition"), "publication_and_story_call_the_same_renderer");

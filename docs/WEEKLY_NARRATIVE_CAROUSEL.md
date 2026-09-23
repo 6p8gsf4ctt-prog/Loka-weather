@@ -90,7 +90,8 @@ D1.
 
 | Fichier | Rôle |
 |---|---|
-| `src/ui/storyFrame.ts` | Enveloppe commune des Stories et réserves Instagram |
+| `src/ui/weeklyStoryFrame.ts` | Enveloppe exclusive de la STORY hebdomadaire |
+| `src/ui/weeklyPublicationStyle.ts` | Styles graphiques isolés du moteur journalier |
 | `src/engine/weekly/carousel.ts` | Composition PUBLICATION partagée avec la STORY |
 | `src/engine/weekly/synthesis.ts` | Classification éditoriale des précipitations |
 | `src/engine/weekly/activation.ts` | Garde du plafond et du relais |

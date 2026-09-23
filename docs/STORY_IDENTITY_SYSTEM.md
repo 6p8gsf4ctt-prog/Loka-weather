@@ -2,14 +2,15 @@
 
 ## Principe
 
-La PUBLICATION 1080 × 1440 reste l’unique composition graphique de référence.
-La STORY 1080 × 1920 n’est pas un deuxième design : elle dessine le fond météo
-sur toute sa hauteur, puis réutilise les mêmes composants avec un profil de
-mise en page vertical dérivé de la PUBLICATION.
+La PUBLICATION 1080 × 1440 reste la référence du format hebdomadaire. Sa STORY
+1080 × 1920 dessine le fond météo sur toute sa hauteur puis réutilise la
+composition hebdomadaire avec un profil vertical dérivé de cette publication.
 
-Cette règle s’applique aux deux produits, avec deux profils distincts : le
-journalier reste la référence fine ; l’hebdomadaire adopte une présence plus
-affirmée adaptée à sa densité d’information.
+Le moteur journalier est indépendant et figé dans son rendu de référence. Il
+ne lit aucun profil, style ou coefficient créé pour l’hebdomadaire.
+
+L’hebdomadaire adopte une présence plus affirmée adaptée à sa densité
+d’information. Cela n’entraîne aucune évolution du journalier.
 
 ## Géométrie commune
 
@@ -43,9 +44,9 @@ composition. Sont ainsi strictement identiques :
 - rayons, contours, transparences, traits et séparateurs ;
 - marges, espacements, alignements et signature.
 
-Le fichier `src/ui/storyFrame.ts` ne contient que le contrat de l’enveloppe
-STORY. Les coordonnées graphiques restent la responsabilité du cadre de
-PUBLICATION et de son renderer.
+Le fichier `src/ui/weeklyStoryFrame.ts` contient exclusivement le contrat de
+l’enveloppe STORY hebdomadaire. Les coordonnées graphiques restent la
+responsabilité de son renderer de PUBLICATION.
 
 ## Responsabilités
 
@@ -53,7 +54,7 @@ PUBLICATION et de son renderer.
 |---|---|
 | Toute la composition graphique | Canvas 1080 × 1920 |
 | Toute la hiérarchie éditoriale | Fond étendu sur la hauteur |
-| Toutes les box et leurs contenus | Profils verticaux journalier et hebdomadaire |
+| Toutes les box et leurs contenus hebdomadaires | Profil vertical hebdomadaire |
 | En-tête et signature | Réserves Instagram haute et basse |
 
 ## Contrôles de régression
@@ -64,7 +65,6 @@ PUBLICATION et de son renderer.
 - textes et pictogrammes ne doivent jamais être étirés verticalement ;
 - une évolution hebdomadaire ne doit pas modifier le profil journalier ;
 - aucun renderer parallèle de box STORY ne doit être réintroduit ;
-- le journalier et l’hebdomadaire doivent tous deux appeler leur renderer de
-  PUBLICATION depuis leur renderer STORY ;
-- toute évolution graphique doit être faite sur la PUBLICATION, puis héritée
-  automatiquement par la STORY.
+- la STORY hebdomadaire doit appeler son renderer de PUBLICATION ;
+- aucune évolution graphique hebdomadaire ne doit être importée dans le
+  moteur journalier.

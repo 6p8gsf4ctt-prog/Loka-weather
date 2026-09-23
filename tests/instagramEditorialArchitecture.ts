@@ -34,30 +34,30 @@ function functionLine(html: string, name: string): string {
 
 const base = renderInstagramOfficial24(payloadFor(21), CITIES.tarnos);
 
-ok(functionLine(base, "renderStory").includes("drawFeedGeneral(mainIcon,STORY_LAYOUT)") && !base.includes("function drawStoryGeneral("), "story_uses_the_publication_general_renderer");
-ok(base.includes("function drawFeedGeneral(mainIcon,layout=FEED_LAYOUT)") && !functionLine(base, "drawFeedGeneral").includes("subtitle"), "feed_general_no_subtitle");
-ok(functionLine(base, "renderStory").includes("drawFeedComments(STORY_LAYOUT)") && !base.includes("function drawStoryComments("), "story_uses_the_publication_editorial_renderer");
-ok(base.includes("const visual=m.feedVisual||m.visual;const x=50,y=layoutY(865,layout),w=980,h=layoutH(210,layout)"), "feed_comments_native_visual_slot");
+ok(base.includes("function drawStoryGeneral(mainIcon){const x=44,y=200,w=992,h=150") && !functionLine(base, "drawStoryGeneral").includes("subtitle"), "story_general_no_subtitle");
+ok(base.includes("function drawFeedGeneral(mainIcon){const x=50,y=160,w=980,h=150") && !functionLine(base, "drawFeedGeneral").includes("subtitle"), "feed_general_no_subtitle");
+ok(base.includes("const visual=m.storyVisual||m.visual;const x=44,y=1139,w=992,h=272"), "story_comments_native_visual_slot");
+ok(base.includes("const visual=m.feedVisual||m.visual;const x=50,y=865,w=980,h=210"), "feed_comments_native_visual_slot");
 ok(base.includes('id="legendStory"') && functionLine(base, "renderLegendStory").includes("drawLegendPanel()"), "legend_story_native_renderer");
 ok(base.includes("<!--LOKA_EDITORIAL_STYLE_MOUNT-->"), "style_mount_present");
 ok(base.includes("<!--LOKA_EDITORIAL_STUDIO_MOUNT-->"), "studio_mount_present");
 ok(base.includes("<!--LOKA_EDITORIAL_SCRIPT_MOUNT-->"), "script_mount_present");
 
 const rendererLinesBefore = [
-  functionLine(base, "renderStory"),
+  functionLine(base, "drawStoryGeneral"),
   functionLine(base, "drawFeedGeneral"),
+  functionLine(base, "drawStoryComments"),
   functionLine(base, "drawFeedComments"),
-  functionLine(base, "renderLegendStory"),
-  functionLine(base, "drawFeedHeader")
+  functionLine(base, "renderLegendStory")
 ];
 
 const enhanced = enhanceInstagramWithEditorialStudio(base);
 const rendererLinesAfter = [
-  functionLine(enhanced, "renderStory"),
+  functionLine(enhanced, "drawStoryGeneral"),
   functionLine(enhanced, "drawFeedGeneral"),
+  functionLine(enhanced, "drawStoryComments"),
   functionLine(enhanced, "drawFeedComments"),
-  functionLine(enhanced, "renderLegendStory"),
-  functionLine(enhanced, "drawFeedHeader")
+  functionLine(enhanced, "renderLegendStory")
 ];
 
 ok(rendererLinesBefore.every((line, index) => line === rendererLinesAfter[index]), "studio_does_not_rewrite_canvas_functions");

@@ -84,7 +84,7 @@ bougent donc jamais.
 | Élément | Source commune |
 | --- | --- |
 | Dimensions, en-tête, box titre, ligne basse, signature | `src/ui/feedFrame.ts` |
-| Opacités, contours, rayons, séparateurs, épaisseur de texte | `src/ui/feedFrame.ts` (`LOKA_PUBLICATION_STYLE`) |
+| Opacités, contours, rayons, séparateurs, épaisseur de texte hebdomadaires | `src/ui/weeklyPublicationStyle.ts` |
 | Logo, police, slogans | `src/ui/lokaBrand.ts` |
 | Marine, or et pictogrammes | `src/ui/pictogramLibrary.ts` |
 | Hiérarchie de la synthèse éditoriale | `src/ui/editorialSummaryFrame.ts` |

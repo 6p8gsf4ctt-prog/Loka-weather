@@ -3,8 +3,9 @@ import type { WeeklyNumber } from "./weeklyNumber";
 import { PICTOGRAM_LIBRARY_VERSION, PICTOGRAM_STYLE, hourlyConditionToPictogram, solarPictogramDataUrl, temperaturePictogramDataUrl, visualIconToPictogram, weatherPictogramDataUrl } from "../../ui/pictogramLibrary";
 import type { WeatherPictogramKind } from "../../ui/pictogramLibrary";
 import { LOKA_BRAND_VERSION, LOKA_CANVAS_FONT, LOKA_LOGO_DATA_URL, LOKA_SLOGAN_WEEKLY } from "../../ui/lokaBrand";
-import { LOKA_DAILY_FEED_FRAME, LOKA_PUBLICATION_STYLE } from "../../ui/feedFrame";
-import { LOKA_WEEKLY_STORY_FRAME } from "../../ui/storyFrame";
+import { LOKA_DAILY_FEED_FRAME } from "../../ui/feedFrame";
+import { LOKA_WEEKLY_STORY_FRAME } from "../../ui/weeklyStoryFrame";
+import { LOKA_WEEKLY_PUBLICATION_STYLE } from "../../ui/weeklyPublicationStyle";
 import { LOKA_EDITORIAL_SUMMARY_FRAME } from "../../ui/editorialSummaryFrame";
 import { assertWeeklyComplementaryPreflight } from "./complementaryPreflight";
 import type { WeeklyComplementaryPreflight } from "./complementaryPreflight";
@@ -67,9 +68,9 @@ export const WEEKLY_SLIDE1_DAILY_STORY_GRID = {
  * locked to the permanent daily/weekly lower baseline.
  */
 export const WEEKLY_COMPLEMENTARY_BOX_LAYOUT = {
-  top: LOKA_PUBLICATION_STYLE.content.firstY,
-  bottom: LOKA_PUBLICATION_STYLE.content.bottom,
-  gap: LOKA_PUBLICATION_STYLE.content.gap,
+  top: LOKA_WEEKLY_PUBLICATION_STYLE.content.firstY,
+  bottom: LOKA_WEEKLY_PUBLICATION_STYLE.content.bottom,
+  gap: LOKA_WEEKLY_PUBLICATION_STYLE.content.gap,
   primary: { minimumHeight: 330, preferredHeight: 370 },
   secondary: { minimumHeight: 190, preferredHeight: 250 },
   editorial: { minimumHeight: 180, preferredHeight: 245 }
@@ -572,7 +573,7 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial, options: Weekly
     "function normalizeText(value){return String(value??'').normalize('NFC').replace(/\\s+/g,' ').trim();}",
     "function font(size,weight){ctx.font=String(weight)+' '+String(size)+'px '+fontFamily;if('fontKerning' in ctx)ctx.fontKerning='normal';}",
     "function rgba(hex,a){const h=String(hex).replace('#',''),n=parseInt(h,16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}",
-    `function drawFullTextLine(label,x,y,color,align){ctx.fillStyle=color;ctx.strokeStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.lineJoin='${LOKA_PUBLICATION_STYLE.text.lineJoin}';ctx.miterLimit=${LOKA_PUBLICATION_STYLE.text.miterLimit};ctx.lineWidth=${LOKA_PUBLICATION_STYLE.text.strokeWidth};ctx.strokeText(label,x,y);ctx.fillText(label,x,y);}`,
+    `function drawFullTextLine(label,x,y,color,align){ctx.fillStyle=color;ctx.strokeStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.lineJoin='${LOKA_WEEKLY_PUBLICATION_STYLE.text.lineJoin}';ctx.miterLimit=${LOKA_WEEKLY_PUBLICATION_STYLE.text.miterLimit};ctx.lineWidth=${LOKA_WEEKLY_PUBLICATION_STYLE.text.strokeWidth};ctx.strokeText(label,x,y);ctx.fillText(label,x,y);}`,
     "function drawPlainTextLine(label,x,y,color,align){drawFullTextLine(label,x,y,color,align);}",
     "function text(value,x,y,size,weight,color,align='left'){const label=normalizeText(value);ctx.save();font(size,weight);drawFullTextLine(label,x,y,color,align);ctx.restore();}",
     "function plainText(value,x,y,size,weight,color,align='left'){const label=normalizeText(value);ctx.save();font(size,weight);drawPlainTextLine(label,x,y,color,align);ctx.restore();}",
@@ -581,7 +582,7 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial, options: Weekly
     "function fittedSize(value,maxWidth,maxSize,minSize,weight){const label=normalizeText(value);ctx.save();let size=maxSize;while(size>=minSize){font(size,weight);if(ctx.measureText(label).width<=maxWidth){ctx.restore();return size;}size-=1;}while(size>=10){font(size,weight);if(ctx.measureText(label).width<=maxWidth){ctx.restore();return size;}size-=1;}ctx.restore();throw new Error('weekly_text_does_not_fit:'+label);}",
     "function wrap(value,x,y,maxWidth,lineHeight,size,weight,color,align='left',maxLines=3){ctx.save();font(size,weight);const words=normalizeText(value).split(/\\s+/).filter(Boolean);let line='',yy=y,count=0;for(const word of words){const next=line?line+' '+word:word;if(line&&ctx.measureText(next).width>maxWidth){drawFullTextLine(line,x,yy,color,align);count++;if(count>=maxLines){ctx.restore();return;}line=word;yy+=lineHeight;}else line=next;}if(line&&count<maxLines)drawFullTextLine(line,x,yy,color,align);ctx.restore();}",
     "function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}",
-    `function box(x,y,w,h){ctx.save();rr(x,y,w,h,${LOKA_PUBLICATION_STYLE.glassBox.radius});const gradient=ctx.createLinearGradient(x,y,x,y+h);gradient.addColorStop(0,'${LOKA_PUBLICATION_STYLE.glassBox.fillTop}');gradient.addColorStop(${LOKA_PUBLICATION_STYLE.glassBox.sheenRatio},'${LOKA_PUBLICATION_STYLE.glassBox.fillMiddle}');gradient.addColorStop(1,'${LOKA_PUBLICATION_STYLE.glassBox.fillBottom}');ctx.fillStyle=gradient;ctx.fill();ctx.strokeStyle='${LOKA_PUBLICATION_STYLE.glassBox.borderColor}';ctx.lineWidth=${LOKA_PUBLICATION_STYLE.glassBox.borderWidth};ctx.stroke();ctx.save();rr(x+2,y+2,w-4,(h-4)*${LOKA_PUBLICATION_STYLE.glassBox.sheenClipRatio},${LOKA_PUBLICATION_STYLE.glassBox.insetRadius});ctx.clip();const sheen=ctx.createLinearGradient(x,y,x,y+h*${LOKA_PUBLICATION_STYLE.glassBox.sheenRatio});sheen.addColorStop(0,'${LOKA_PUBLICATION_STYLE.glassBox.sheenTop}');sheen.addColorStop(1,'${LOKA_PUBLICATION_STYLE.glassBox.sheenBottom}');ctx.fillStyle=sheen;ctx.fillRect(x+2,y+2,w-4,h*${LOKA_PUBLICATION_STYLE.glassBox.sheenRatio});ctx.restore();ctx.restore();}`,
+    `function box(x,y,w,h){ctx.save();rr(x,y,w,h,${LOKA_WEEKLY_PUBLICATION_STYLE.glassBox.radius});const gradient=ctx.createLinearGradient(x,y,x,y+h);gradient.addColorStop(0,'${LOKA_WEEKLY_PUBLICATION_STYLE.glassBox.fillTop}');gradient.addColorStop(${LOKA_WEEKLY_PUBLICATION_STYLE.glassBox.sheenRatio},'${LOKA_WEEKLY_PUBLICATION_STYLE.glassBox.fillMiddle}');gradient.addColorStop(1,'${LOKA_WEEKLY_PUBLICATION_STYLE.glassBox.fillBottom}');ctx.fillStyle=gradient;ctx.fill();ctx.strokeStyle='${LOKA_WEEKLY_PUBLICATION_STYLE.glassBox.borderColor}';ctx.lineWidth=${LOKA_WEEKLY_PUBLICATION_STYLE.glassBox.borderWidth};ctx.stroke();ctx.save();rr(x+2,y+2,w-4,(h-4)*${LOKA_WEEKLY_PUBLICATION_STYLE.glassBox.sheenClipRatio},${LOKA_WEEKLY_PUBLICATION_STYLE.glassBox.insetRadius});ctx.clip();const sheen=ctx.createLinearGradient(x,y,x,y+h*${LOKA_WEEKLY_PUBLICATION_STYLE.glassBox.sheenRatio});sheen.addColorStop(0,'${LOKA_WEEKLY_PUBLICATION_STYLE.glassBox.sheenTop}');sheen.addColorStop(1,'${LOKA_WEEKLY_PUBLICATION_STYLE.glassBox.sheenBottom}');ctx.fillStyle=sheen;ctx.fillRect(x+2,y+2,w-4,h*${LOKA_WEEKLY_PUBLICATION_STYLE.glassBox.sheenRatio});ctx.restore();ctx.restore();}`,
     "function cover(image,width,height){const iw=Math.max(1,image.naturalWidth||image.width||width),ih=Math.max(1,image.naturalHeight||image.height||height),scale=Math.max(width/iw,height/ih),dw=iw*scale,dh=ih*scale;ctx.drawImage(image,(width-dw)/2,(height-dh)/2,dw,dh);}",
     "function overlay(width,height){const gradient=ctx.createLinearGradient(0,0,0,height);gradient.addColorStop(0,'rgba(255,255,255,.04)');gradient.addColorStop(.54,'rgba(255,255,255,.06)');gradient.addColorStop(1,'rgba(7,21,48,.38)');ctx.fillStyle=gradient;ctx.fillRect(0,0,width,height);}",
     "function drawLokaLogo(logo,x,centerY,maxWidth,maxHeight){const iw=Math.max(1,logo.naturalWidth||logo.width||maxWidth),ih=Math.max(1,logo.naturalHeight||logo.height||maxHeight),scale=Math.min(maxWidth/iw,maxHeight/ih),dw=iw*scale,dh=ih*scale;ctx.drawImage(logo,x,centerY-dh/2,dw,dh);}",
