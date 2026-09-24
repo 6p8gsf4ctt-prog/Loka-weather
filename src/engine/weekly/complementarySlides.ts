@@ -175,26 +175,6 @@ export function buildWeeklyComplementaryPresentation(
     };
   }
 
-  if (detector === "REGIME_CHANGE" && factNumber(ranked, "previousValue") !== null && factNumber(ranked, "currentValue") !== null) {
-    const previous = factNumber(ranked, "previousValue")!;
-    const current = factNumber(ranked, "currentValue")!;
-    const delta = factNumber(ranked, "delta") ?? current - previous;
-    const direction = factString(ranked, "direction");
-    const subtitle = direction === "RAIN_ARRIVAL" ? "DE PLUIE EN PLUS DEPUIS HIER"
-      : direction === "WIND_INCREASE" ? "DE RENFORCEMENT DES RAFALES"
-        : delta < 0 ? "DE BAISSE DEPUIS HIER" : "DE HAUSSE DEPUIS HIER";
-    return {
-      layout: "COMPARISON",
-      headline: `${delta >= 0 ? "+" : "−"}${formatMetric(ranked, Math.abs(delta))}`,
-      subtitle,
-      comparison: {
-        left: { value: formatMetric(ranked, current), label: `PRÉVUS ${day}` },
-        right: { value: formatMetric(ranked, previous), label: "OBSERVÉS HIER" }
-      },
-      editorialLine: sentence(copy.primaryLine)
-    };
-  }
-
   if (detector === "HISTORICAL_SINCE" || detector === "RECENT_EXTREME") {
     const days = factNumber(ranked, "daysSince");
     const direction = factString(ranked, "direction") ?? "HIGH";

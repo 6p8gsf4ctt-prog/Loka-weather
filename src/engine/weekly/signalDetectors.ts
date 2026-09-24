@@ -159,7 +159,7 @@ export function detectHistoricalExtreme(forecast: ForecastDailyFact, archive: Cl
     .map((row) => ({ row, value: archiveValue(row, forecast.metric) }))
     .filter((item): item is { row: ClimateDailyObservation; value: number } => item.value !== null);
   if (!comparable.length) return null;
-  const beatsForecast = (value: number) => direction === "HIGH" ? value >= predicted.value : value <= predicted.value;
+  const beatsForecast = (value: number) => direction === "HIGH" ? value >= forecast.value : value <= forecast.value;
   const matching = comparable.filter((item) => beatsForecast(item.value)).sort((a, b) => b.row.date.localeCompare(a.row.date));
   const contract = metricContract(forecast.metric);
   if (matching.length) {

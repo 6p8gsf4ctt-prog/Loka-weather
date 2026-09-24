@@ -84,18 +84,6 @@ export interface DatedClimateReference {
   provenance: ClimateProvenance[];
 }
 
-export interface DatedDailyMetricReference {
-  kind: "DERIVED_DAILY_METRIC_CLIMATOLOGY";
-  metric: ClimateDailyMetric;
-  targetDate: string;
-  calendarRadiusDays: number;
-  startYear: number;
-  endYear: number;
-  coverage: ClimateCoverageReport;
-  distribution: ClimateDistribution;
-  provenance: ClimateProvenance[];
-}
-
 export interface RainfallReference {
   kind: "DERIVED_ROLLING_RAINFALL";
   targetStartDate: string;
@@ -320,28 +308,6 @@ export function buildDatedTemperatureReference(rows: ClimateDailyObservation[], 
     .map((row) => dailyValue(row, args.metric)).filter((value): value is number => value !== null);
   if (!values.length) throw new Error("climate_daily_window_empty");
   return { kind: "DERIVED_DAILY_CLIMATOLOGY", metric: args.metric, targetDate: args.targetDate, calendarRadiusDays: radius, startYear, endYear, coverage, distribution: distribution(values), provenance };
-}
-
-/** Dated climatology for rain, wind or temperature without changing legacy temperature contracts. */
-export function buildDatedDailyMetricReference(rows: ClimateDailyObservation[], args: {
-  metric: ClimateDailyMetric;
-  targetDate: string;
-  startYear?: number;
-  endYear?: number;
-  calendarRadiusDays?: number;
-}): DatedDailyMetricReference {
-  const startYear = args.startYear ?? WEEKLY_DAILY_REFERENCE_START_YEAR;
-  const endYear = args.endYear ?? WEEKLY_DAILY_REFERENCE_END_YEAR;
-  const radius = args.calendarRadiusDays ?? WEEKLY_CLIMATE_CALENDAR_RADIUS_DAYS;
-  const provenance = referenceProvenance(rows);
-  const coverage = dailyCoverage(rows, args.metric, startYear, endYear);
-  if (!coverage.acceptable) throw new Error("climate_daily_metric_coverage_insufficient");
-  const byDate = new Map(rows.map((row) => [row.date, row]));
-  const values = calendarCandidates(args.targetDate, startYear, endYear, radius)
-    .map((date) => byDate.get(date)).filter((row): row is ClimateDailyObservation => Boolean(row))
-    .map((row) => dailyValue(row, args.metric)).filter((value): value is number => value !== null);
-  if (!values.length) throw new Error("climate_daily_metric_window_empty");
-  return { kind: "DERIVED_DAILY_METRIC_CLIMATOLOGY", metric: args.metric, targetDate: args.targetDate, calendarRadiusDays: radius, startYear, endYear, coverage, distribution: distribution(values), provenance };
 }
 
 export function buildRollingRainfallReference(rows: ClimateDailyObservation[], args: {
