@@ -266,7 +266,7 @@ try { new Function(script); } catch { scriptValid = false; }
 ok(scriptValid, "renderer_browser_script_is_valid");
 
 const slide1RuntimeSource = script.slice(0, script.indexOf("Promise.all(plan.slides.map"));
-ok(script.includes("const WEEKLY_HIERARCHY={logo:1.12,header:1.10,title:1.035,section:1.10,factDate:1.08,metric:1.13,pictogram:1.11,editorialTitle:1.035,editorialDetail:1.10,stripLabel:1.10,stripValue:1.12,stripIcon:1.10,signature:1.14}") && script.includes("const STORY_LAYOUT={offsetY:120,scaleY:1.1666666666666667,visualScale:1.08}"), "weekly_story_and_feed_share_selective_typography_without_changing_the_daily_frame");
+ok(script.includes("const WEEKLY_HIERARCHY={\"logo\":1.12,\"header\":1.1,\"title\":1.035,\"section\":1.1,\"factDate\":1.08,\"metric\":1.13,\"pictogram\":1.11,\"editorialTitle\":1.035,\"editorialDetail\":1.1,\"stripLabel\":1.1,\"stripValue\":1.12,\"stripIcon\":1.1,\"signature\":1.14}") && script.includes("const STORY_LAYOUT={offsetY:120,scaleY:1.1666666666666667,visualScale:1.08}"), "weekly_story_and_feed_share_shared_typography_without_changing_the_daily_frame");
 const adaptiveLayoutRuntime = new Function("document", `${slide1RuntimeSource};return{layout:function(content,context){ctx=context;return slide1FactLayout(content,50,980);},summary:function(content,context){ctx=context;return fitSlide1EditorialLines(content.synthesis.secondaryLine,844,21,17,550,content.synthesis.secondaryMaximumLines);}};`)({
   querySelectorAll: () => [],
   getElementById: () => null

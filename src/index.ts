@@ -21,6 +21,7 @@ import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
 import { renderWeeklyCandidatePreview, renderWeeklyPreviewGate, renderWeeklySelectionPanel } from "./ui/weeklyPreview";
 import { ensureMeteoFranceDailyArchive } from "./weather/meteoFranceClimate";
+import { buildDailyComparisonStory } from "./engine/dailyComparison";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: { "cache-control": "no-store", "access-control-allow-origin": "*" } });
@@ -361,7 +362,11 @@ export default {
         });
       }
       if (!await masterAvailable(request, env, result.surface.payload.scene.masterUrl)) return unavailable("master_graphic_unavailable");
-      const previewHtml = renderInstagramDailyGraphicPreview(result.surface.payload, result.city);
+      const climate = await ensureMeteoFranceDailyArchive(env, new Date());
+      const comparison = climate.observations.length
+        ? buildDailyComparisonStory(result.surface.payload, climate.observations)
+        : null;
+      const previewHtml = renderInstagramDailyGraphicPreview(result.surface.payload, result.city, comparison);
       const editorialHtml = enhanceInstagramWithEditorialStudio(previewHtml);
       const persistentHtml = enhanceInstagramWithEditorialPersistence(editorialHtml, result.city.slug);
       const exportHtml = enhanceInstagramWithEditorialExport(persistentHtml, result.city.slug);
@@ -369,7 +374,7 @@ export default {
         headers: {
           "content-type": "text/html; charset=utf-8",
           "cache-control": "no-store",
-          "x-loka-daily-graphic-variant": "weekly-inspired-v1"
+          "x-loka-daily-graphic-variant": "weekly-inspired-v2-comparison-story"
         }
       });
     }

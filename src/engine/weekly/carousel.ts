@@ -563,9 +563,9 @@ export function renderWeeklyCarousel(editorial: WeeklyEditorial, options: Weekly
     "const slide1Ink=ink;",
     "const slide1EditorialGold=gold;",
     "const fontFamily=model.brand.canvasFont;",
-    "const FEED_LAYOUT={offsetY:0,scaleY:1,visualScale:1.06};",
+    `const FEED_LAYOUT={offsetY:0,scaleY:1,visualScale:${LOKA_WEEKLY_PUBLICATION_STYLE.publicationVisualScale}};`,
     // Weekly-only optical hierarchy; daily renderer and shared glass geometry stay unchanged.
-    "const WEEKLY_HIERARCHY={logo:1.12,header:1.10,title:1.035,section:1.10,factDate:1.08,metric:1.13,pictogram:1.11,editorialTitle:1.035,editorialDetail:1.10,stripLabel:1.10,stripValue:1.12,stripIcon:1.10,signature:1.14};",
+    `const WEEKLY_HIERARCHY=${JSON.stringify(LOKA_WEEKLY_PUBLICATION_STYLE.hierarchy)};`,
     `const STORY_LAYOUT={offsetY:${LOKA_WEEKLY_STORY_FRAME.publication.y},scaleY:${LOKA_WEEKLY_STORY_FRAME.publication.verticalScale},visualScale:${LOKA_WEEKLY_STORY_FRAME.publication.visualScale}};`,
     "function layoutY(value,layout){return layout.offsetY+value*layout.scaleY;}",
     "function layoutH(value,layout){return value*layout.scaleY;}",

@@ -27,7 +27,7 @@ function payloadFor(scene: number): OfficialPublicPayloadV24 {
 }
 
 function modelFrom(html: string): unknown {
-  const raw = html.match(/const m=(\{.*?\});\nconst storyCanvas=/s)?.[1];
+  const raw = html.match(/const m=(\{.*?\});(?:const GS=.*?;)?\nconst storyCanvas=/s)?.[1];
   if (!raw) throw new Error("preview_model_missing");
   return JSON.parse(raw);
 }
@@ -46,10 +46,10 @@ ok(!official.includes("Test graphique · parallèle"), "official_surface_is_not_
 ok(preview.includes('<canvas id="story" width="1080" height="1920">') && preview.includes('<canvas id="feed" width="1080" height="1440">'), "preview_preserves_daily_export_dimensions");
 ok(functionLine(preview, "drawFeedGeneral").includes("x=50,y=160,w=980,h=150"), "feed_title_box_geometry_is_unchanged");
 ok(functionLine(preview, "drawFeedHours").includes("x=50,y=336,w=980,h=500") && functionLine(preview, "drawFeedHours").includes(",40,780,INK"), "hour_grid_keeps_geometry_with_stronger_values");
-ok(functionLine(preview, "drawFeedComments").includes("x=50,y=865,w=980,h=210") && functionLine(preview, "drawFeedComments").includes("32,20,24,17"), "editorial_box_keeps_geometry_with_stronger_hierarchy");
+ok(functionLine(preview, "drawFeedComments").includes("x=50,y=865,w=980,h=210") && functionLine(preview, "drawFeedComments").includes("hier.editorialTitle"), "editorial_box_keeps_geometry_with_shared_hierarchy");
 ok(functionLine(preview, "drawFeedSolar").includes("x=50,y=1100,w=980,h=205") && functionLine(preview, "drawFeedSolar").includes(",31,700,INK"), "solar_box_keeps_geometry_with_stronger_times");
-ok(functionLine(preview, "drawFeedHeader").includes(",195,65") && functionLine(preview, "drawFeedHeader").includes(",25,760,INK"), "preview_header_uses_weekly_inspired_presence");
-ok(functionLine(preview, "drawFeedSignature").includes(",21,680,"), "preview_signature_is_more_legible");
+ok(functionLine(preview, "drawFeedHeader").includes("GS.publicationVisualScale") && functionLine(preview, "drawFeedHeader").includes("h.logo"), "preview_header_uses_the_shared_weekly_hierarchy");
+ok(functionLine(preview, "drawFeedSignature").includes("GS.hierarchy.signature"), "preview_signature_uses_the_shared_weekly_hierarchy");
 
 const script = preview.match(/<script>([\s\S]*)<\/script>/)?.[1] ?? "";
 let scriptValid = true;
