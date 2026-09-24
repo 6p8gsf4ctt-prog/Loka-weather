@@ -135,7 +135,8 @@ export function validateWeeklyEditorialSignal(signal: WeeklyEditorialSignal): We
       issues.push("intraday_must_stay_within_one_day");
     }
     if (proof.kind === "PHENOMENON" || proof.kind === "REGIME_CHANGE" || proof.kind === "INTRADAY_CHANGE") {
-      if (!proof.direct || proof.source !== "CONSENSUS_FORECAST") issues.push(`direct_consensus_proof_required:${proof.kind}`);
+      const observedDayComparison = proof.kind === "REGIME_CHANGE" && proof.source === "LOCAL_ARCHIVE" && proof.direct !== true;
+      if (!observedDayComparison && (!proof.direct || proof.source !== "CONSENSUS_FORECAST")) issues.push(`direct_consensus_proof_required:${proof.kind}`);
     } else if (proof.source === "CONSENSUS_FORECAST") {
       issues.push(`reference_source_required:${proof.kind}`);
     }

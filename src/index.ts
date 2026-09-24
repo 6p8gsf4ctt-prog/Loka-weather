@@ -374,7 +374,7 @@ export default {
         headers: {
           "content-type": "text/html; charset=utf-8",
           "cache-control": "no-store",
-          "x-loka-daily-graphic-variant": "weekly-inspired-v2-comparison-story"
+          "x-loka-daily-graphic-variant": "weekly-inspired-v3-daily-context"
         }
       });
     }
