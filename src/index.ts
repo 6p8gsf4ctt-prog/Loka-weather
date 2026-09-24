@@ -15,13 +15,11 @@ import { renderAdmin } from "./ui/admin";
 import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
 import { enhanceInstagramWithEditorialPersistence } from "./ui/instagramEditorialPersistence";
 import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExport";
-import { renderInstagramDailyGraphicPreview } from "./ui/instagramDailyGraphicPreview";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
 import { renderWeeklyCandidatePreview, renderWeeklyPreviewGate, renderWeeklySelectionPanel } from "./ui/weeklyPreview";
 import { ensureMeteoFranceDailyArchive } from "./weather/meteoFranceClimate";
-import { buildDailyComparisonStory } from "./engine/dailyComparison";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: { "cache-control": "no-store", "access-control-allow-origin": "*" } });
@@ -353,6 +351,14 @@ export default {
     }
 
     if (url.pathname === "/daily-graphic-preview" && request.method === "GET") {
+      // Keep the experimental daily graphic renderer out of the Worker startup
+      // path.  It contains a sizeable canvas program and comparison engine;
+      // loading both eagerly can push the whole Worker over Cloudflare's CPU
+      // startup budget, which would also make unrelated routes unavailable.
+      const [{ renderInstagramDailyGraphicPreview }, { buildDailyComparisonStory }] = await Promise.all([
+        import("./ui/instagramDailyGraphicPreview"),
+        import("./engine/dailyComparison")
+      ]);
       const slug = url.searchParams.get("city") || "tarnos";
       const result = await safeToday(env, slug);
       if (!result) return json({ error: "unknown_city" }, 404);
