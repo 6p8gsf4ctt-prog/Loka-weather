@@ -21,7 +21,6 @@ import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
 import { renderWeeklyCandidatePreview, renderWeeklyPreviewGate, renderWeeklySelectionPanel } from "./ui/weeklyPreview";
 import { ensureMeteoFranceDailyArchive } from "./weather/meteoFranceClimate";
-import { buildDailyComparisonStory } from "./engine/dailyComparison";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: { "cache-control": "no-store", "access-control-allow-origin": "*" } });
@@ -362,10 +361,11 @@ export default {
         });
       }
       if (!await masterAvailable(request, env, result.surface.payload.scene.masterUrl)) return unavailable("master_graphic_unavailable");
-      const climate = await ensureMeteoFranceDailyArchive(env, new Date());
-      const comparison = climate.observations.length
-        ? buildDailyComparisonStory(result.surface.payload, climate.observations)
-        : null;
+      // Do not reconstruct the complete historical D1 archive in an
+      // interactive request: it exceeds Cloudflare's CPU limit (1102).
+      // The primary daily graphic remains available; comparison material is
+      // produced only when a background-prepared reference can be consumed.
+      const comparison = null;
       const previewHtml = renderInstagramDailyGraphicPreview(result.surface.payload, result.city, comparison);
       const editorialHtml = enhanceInstagramWithEditorialStudio(previewHtml);
       const persistentHtml = enhanceInstagramWithEditorialPersistence(editorialHtml, result.city.slug);

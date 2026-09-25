@@ -105,11 +105,17 @@ async function generateWeeklyForRange(
   city: CityConfig,
   source: string,
   expected: WeeklyDateRange,
-  instant = new Date()
+  instant = new Date(),
+  includeClimateReferences = true
 ): Promise<GeneratedWeekly> {
-  const climatePromise = city.slug === "tarnos"
+  const climatePromise = includeClimateReferences && city.slug === "tarnos"
     ? ensureMeteoFranceDailyArchive(env, instant)
-    : Promise.resolve({ status: "UNAVAILABLE" as const, detail: "climate_reference_not_configured_for_city", observations: [], state: null });
+    : Promise.resolve({
+      status: "UNAVAILABLE" as const,
+      detail: includeClimateReferences ? "climate_reference_not_configured_for_city" : "climate_reference_deferred_for_interactive_preview",
+      observations: [],
+      state: null
+    });
   const batch = await fetchWeeklyForecasts(env, city, expected);
   const profiles = buildWeeklyProfiles(city, batch.forecasts);
   if (profiles.startDate !== expected.startDate || profiles.endDate !== expected.endDate) {
@@ -155,7 +161,10 @@ export async function generateWeeklyPreviewCity(
   const startDate = requestedStartDate || nextMondayOrSame(localDate);
   const expected = weeklyRangeForDate(startDate);
   if (expected.startDate !== startDate) throw new Error("weekly_preview_start_requires_monday");
-  return generateWeeklyForRange(env, city, "admin_weekly_preview", expected, instant);
+  // Interactive previews must stay below the Cloudflare request CPU budget.
+  // Historical comparisons are computed by scheduled/background generation;
+  // rebuilding the complete D1 archive while opening the page is prohibited.
+  return generateWeeklyForRange(env, city, "admin_weekly_preview", expected, instant, false);
 }
 
 function dateAt(startDate: string, offset: number): string {
