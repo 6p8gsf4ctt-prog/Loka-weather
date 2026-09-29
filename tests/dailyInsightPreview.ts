@@ -5,6 +5,7 @@ import type { ClimateDailyObservation, ClimateProvenance } from "../src/engine/w
 import { buildCandidateProduct } from "../src/engine/verdict";
 import type { DisplayHour, ModelForecast, OfficialPublicPayloadV24 } from "../src/types";
 import { renderDailyInsightPreview } from "../src/ui/dailyInsightPreview";
+import { buildDailyInsightStoryModel, dailyInsightStoryScenarios, renderDailyInsightScenarioGallery } from "../src/ui/dailyInsightStory";
 import { canonicalPoints } from "./scenes24/fixtures";
 
 let passed = 0;
@@ -99,6 +100,22 @@ const html = renderDailyInsightPreview(payload(), strong, "ready");
 ok(html.includes("Daily Insight Preview") && html.includes("SÉLECTIONNÉ"), "audit_preview_renders_winner");
 ok(html.includes("aucune publication") && !html.includes("canvas id=\"feed\""), "preview_is_not_a_daily_publication");
 const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1];
-ok(script === undefined, "audit_preview_has_no_executable_client_script");
+ok(Boolean(script) && (() => { try { new Function(script!); return true; } catch { return false; } })(), "story_runtime_is_syntactically_valid");
 
-console.log(`DAILY_INSIGHT_PREVIEW ${passed}/14 PASS`);
+const winnerModel = buildDailyInsightStoryModel(payload(), strong.winner!, "winnerStory", "Signal réel");
+ok(winnerModel.canvasId === "winnerStory" && winnerModel.pictogramUrl.startsWith("data:image/"), "winner_maps_to_brand_story_model");
+const scenarios = dailyInsightStoryScenarios(payload());
+ok(scenarios.length === 6, "six_control_scenarios_are_available");
+ok(new Set(scenarios.map((item) => item.format)).size === 5, "four_structures_cover_five_editorial_formats");
+ok(["F1_RARETE_LOCALE", "F2_EVOLUTION_RAPIDE", "F3_SEQUENCE", "F4_REPERE_SAISONNIER", "F5_PHENOMENE_LOCAL"].every((format) => scenarios.some((item) => item.format === format)), "all_editorial_formats_are_tested");
+const gallery = renderDailyInsightScenarioGallery(payload());
+ok((gallery.match(/<canvas /g) ?? []).length === 6 && gallery.includes("Absence de signal pertinent"), "gallery_renders_six_cases_and_editorial_silence");
+const galleryScript = gallery.match(/<script>([\s\S]*)<\/script>/)?.[1];
+ok(Boolean(galleryScript) && (() => { try { new Function(galleryScript!); return true; } catch { return false; } })(), "gallery_runtime_is_syntactically_valid");
+ok(gallery.includes("1080 × 1920") && gallery.includes("aucune publication automatique"), "gallery_declares_story_format_and_shadow_mode");
+ok(!gallery.includes("fetch(") && !gallery.includes("/api/publish"), "gallery_has_no_publication_transport");
+
+const calmHtml = renderDailyInsightPreview(calmPayload, calm, "ready");
+ok(calmHtml.includes("Aucune STORY comparative aujourd’hui") && !calmHtml.includes("id=\"dailyInsightStory\""), "no_signal_produces_no_story_canvas");
+
+console.log(`DAILY_INSIGHT_PREVIEW ${passed}/23 PASS`);

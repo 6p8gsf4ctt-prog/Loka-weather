@@ -20,6 +20,7 @@ import { enhanceInstagramWithEditorialPersistence } from "./ui/instagramEditoria
 import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExport";
 import { renderInstagramDailyGraphicPreview } from "./ui/instagramDailyGraphicPreview";
 import { renderDailyInsightPreview } from "./ui/dailyInsightPreview";
+import { renderDailyInsightScenarioGallery } from "./ui/dailyInsightStory";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
@@ -379,6 +380,24 @@ export default {
           "content-type": "text/html; charset=utf-8",
           "cache-control": "no-store",
           "x-loka-daily-graphic-variant": "weekly-inspired-v2-comparison-story"
+        }
+      });
+    }
+
+    if (url.pathname === "/daily-insight-preview/scenarios" && request.method === "GET") {
+      const slug = url.searchParams.get("city") || "tarnos";
+      const result = await safeToday(env, slug);
+      if (!result) return json({ error: "unknown_city" }, 404);
+      if (result.surface.engine === "UNAVAILABLE") {
+        return new Response(renderInstagramRecovery(result.city.slug, result.surface.reason), {
+          headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
+        });
+      }
+      return new Response(renderDailyInsightScenarioGallery(result.surface.payload), {
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store",
+          "x-loka-daily-insight": "scenario-gallery"
         }
       });
     }

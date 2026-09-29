@@ -249,18 +249,23 @@ function climateCandidates(payload: OfficialPublicPayloadV24, snapshot: DailyIns
   return result;
 }
 
-function strongestHourlyChange(hours: DisplayHour[]): { rise: number; drop: number; riseWindow: [number, number]; dropWindow: [number, number] } {
+function strongestHourlyChange(hours: DisplayHour[]): {
+  rise: number; drop: number;
+  riseWindow: [number, number]; dropWindow: [number, number];
+  riseValues: [number, number]; dropValues: [number, number];
+} {
   let rise = 0, drop = 0;
   let riseWindow: [number, number] = [0, 0], dropWindow: [number, number] = [0, 0];
+  let riseValues: [number, number] = [0, 0], dropValues: [number, number] = [0, 0];
   const ordered = [...hours].sort((a, b) => a.hour - b.hour);
   for (let start = 0; start < ordered.length; start++) for (let end = start + 1; end < ordered.length; end++) {
     const duration = ordered[end].hour - ordered[start].hour;
     if (duration > 4) break;
     const change = ordered[end].temperatureC - ordered[start].temperatureC;
-    if (change > rise) { rise = change; riseWindow = [ordered[start].hour, ordered[end].hour]; }
-    if (-change > drop) { drop = -change; dropWindow = [ordered[start].hour, ordered[end].hour]; }
+    if (change > rise) { rise = change; riseWindow = [ordered[start].hour, ordered[end].hour]; riseValues = [ordered[start].temperatureC, ordered[end].temperatureC]; }
+    if (-change > drop) { drop = -change; dropWindow = [ordered[start].hour, ordered[end].hour]; dropValues = [ordered[start].temperatureC, ordered[end].temperatureC]; }
   }
-  return { rise, drop, riseWindow, dropWindow };
+  return { rise, drop, riseWindow, dropWindow, riseValues, dropValues };
 }
 
 function shiftCandidates(payload: OfficialPublicPayloadV24, snapshot: DailyInsightReferenceSnapshot): DailyInsightCandidate[] {
@@ -274,7 +279,11 @@ function shiftCandidates(payload: OfficialPublicPayloadV24, snapshot: DailyInsig
       claimStatus: statusFor(confidence), valueLabel: `−${Math.round(changes.drop)} °C`,
       line1: `Grosse chute des températures entre ${start} h et ${end} h.`,
       line2: `${Math.round(changes.drop)} °C de moins en seulement ${end - start} heures.`,
-      evidence: [{ kind: "CONSENSUS_FORECAST", label: "Fenêtre", value: `${start} h → ${end} h` }],
+      evidence: [
+        { kind: "CONSENSUS_FORECAST", label: "Fenêtre", value: `${start} h → ${end} h` },
+        { kind: "CONSENSUS_FORECAST", label: "Départ", value: `${Math.round(changes.dropValues[0])} °C` },
+        { kind: "CONSENSUS_FORECAST", label: "Arrivée", value: `${Math.round(changes.dropValues[1])} °C` }
+      ],
       rarity: changes.drop >= 10 ? 22 : 17, magnitude: clamp(changes.drop * 2, 14, 20), utility: 20
     }, confidence));
   }
@@ -285,7 +294,11 @@ function shiftCandidates(payload: OfficialPublicPayloadV24, snapshot: DailyInsig
       claimStatus: statusFor(confidence), valueLabel: `+${Math.round(changes.rise)} °C`,
       line1: `La température grimpera nettement entre ${start} h et ${end} h.`,
       line2: `${Math.round(changes.rise)} °C gagnés en ${end - start} heures.`,
-      evidence: [{ kind: "CONSENSUS_FORECAST", label: "Fenêtre", value: `${start} h → ${end} h` }],
+      evidence: [
+        { kind: "CONSENSUS_FORECAST", label: "Fenêtre", value: `${start} h → ${end} h` },
+        { kind: "CONSENSUS_FORECAST", label: "Départ", value: `${Math.round(changes.riseValues[0])} °C` },
+        { kind: "CONSENSUS_FORECAST", label: "Arrivée", value: `${Math.round(changes.riseValues[1])} °C` }
+      ],
       rarity: changes.rise >= 10 ? 20 : 15, magnitude: clamp(changes.rise * 2, 14, 20), utility: 15
     }, confidence));
   }
@@ -548,4 +561,3 @@ export function buildDailyInsightPreview(
     reference
   };
 }
-
