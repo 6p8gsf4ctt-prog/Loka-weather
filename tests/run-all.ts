@@ -20,6 +20,7 @@ import "./instagramDailyGraphicPreview";
 import "./dailyComparison";
 import "./dailyInsightReference";
 import "./dailyInsightPreview";
+import "./dailyInsightRollout";
 import "./weeklyIsolation";
 import "./weeklyForecast";
 import "./weeklyProfiles";

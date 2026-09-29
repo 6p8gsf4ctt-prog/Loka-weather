@@ -2,6 +2,7 @@ import { CITIES, getCity } from "./config/cities";
 import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
 import { buildDailyInsightPreview } from "./engine/dailyInsight/previewEngine";
+import { evaluateDailyInsightStoryRollout, isDailyInsightStoryEnabled, isDailyInsightStoryRollbackRequested, logDailyInsightStoryRollout } from "./engine/dailyInsight/rollout";
 import { WEEKLY_CLIMATE_STATION_ID } from "./engine/weekly/climateReferences";
 import { isWeeklyEnabled, renderWeeklyCarousel, resolveWeeklyPublicSurface, logWeeklyProgressivePublication } from "./engine/weekly";
 import { applyWeeklyManualSelection, generateWeeklyCalmVisualPreview, generateWeeklyContextualVisualPreview, generateWeeklyCity, generateWeeklyPreviewCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyPreviewRenderOptions, weeklyRangeForDate } from "./weeklyPipeline";
@@ -20,7 +21,7 @@ import { enhanceInstagramWithEditorialPersistence } from "./ui/instagramEditoria
 import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExport";
 import { renderInstagramDailyGraphicPreview } from "./ui/instagramDailyGraphicPreview";
 import { renderDailyInsightPreview } from "./ui/dailyInsightPreview";
-import { renderDailyInsightScenarioGallery } from "./ui/dailyInsightStory";
+import { renderDailyInsightScenarioGallery, renderDailyInsightStoryPage, renderDailyInsightStorySilence } from "./ui/dailyInsightStory";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
@@ -70,7 +71,13 @@ async function masterAvailable(request: Request, env: Env, path: string): Promis
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === "/api/health") return json({ ok: true, engine: "V24", version: "2.0.0", models: MODELS.map((m) => m.id), sceneCount: 24 });
+    if (url.pathname === "/api/health") return json({
+      ok: true, engine: "V24", version: "2.0.0", models: MODELS.map((m) => m.id), sceneCount: 24,
+      dailyInsightStory: {
+        enabled: isDailyInsightStoryEnabled(env),
+        rollback: isDailyInsightStoryRollbackRequested(env)
+      }
+    });
 
     if (url.pathname === "/api/latest") {
       const slug = url.searchParams.get("city") || "tarnos";
@@ -398,6 +405,44 @@ export default {
           "content-type": "text/html; charset=utf-8",
           "cache-control": "no-store",
           "x-loka-daily-insight": "scenario-gallery"
+        }
+      });
+    }
+
+    if (url.pathname === "/daily-insight-story" && request.method === "GET") {
+      const startedAt = performance.now();
+      const slug = url.searchParams.get("city") || "tarnos";
+      const result = await safeToday(env, slug);
+      if (!result) return json({ error: "unknown_city" }, 404);
+      if (result.surface.engine === "UNAVAILABLE") {
+        return new Response(renderInstagramRecovery(result.city.slug, result.surface.reason), {
+          headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
+        });
+      }
+      if (!await masterAvailable(request, env, result.surface.payload.scene.masterUrl)) return unavailable("master_graphic_unavailable");
+      const cacheStartedAt = performance.now();
+      const cache = await loadDailyInsightReference(env.DB, WEEKLY_CLIMATE_STATION_ID);
+      const cacheDurationMs = performance.now() - cacheStartedAt;
+      const engineStartedAt = performance.now();
+      const preview = cache.snapshot ? buildDailyInsightPreview(result.surface.payload, cache.snapshot) : null;
+      const engineDurationMs = performance.now() - engineStartedAt;
+      const decision = evaluateDailyInsightStoryRollout(env, preview, engineDurationMs);
+      logDailyInsightStoryRollout(decision, { citySlug: result.city.slug, date: result.date, cacheStatus: cache.status });
+      const renderStartedAt = performance.now();
+      const html = decision.exposeStory && preview?.winner
+        ? renderDailyInsightStoryPage(result.surface.payload, preview.winner, decision)
+        : renderDailyInsightStorySilence({ city: result.city.name, date: result.date, reason: decision.reason });
+      const renderDurationMs = performance.now() - renderStartedAt;
+      const totalDurationMs = performance.now() - startedAt;
+      return new Response(html, {
+        status: decision.mode === "DISABLED" || decision.mode === "ROLLBACK" ? 404 : 200,
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store",
+          "x-loka-daily-insight-rollout": decision.mode,
+          "x-loka-daily-insight-reason": decision.reason,
+          "x-loka-daily-insight-engine-ms": decision.engineDurationMs.toFixed(2),
+          "server-timing": `cache;dur=${cacheDurationMs.toFixed(2)}, engine;dur=${engineDurationMs.toFixed(2)}, render;dur=${renderDurationMs.toFixed(2)}, total;dur=${totalDurationMs.toFixed(2)}`
         }
       });
     }

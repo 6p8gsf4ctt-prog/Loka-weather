@@ -19,6 +19,12 @@ export interface Env {
   WEEKLY_PROGRESSIVE_SHADOW_MODE?: string;
   /** Immediate kill switch: force the public weekly surface back to slide 1. */
   WEEKLY_PROGRESSIVE_ROLLBACK?: string;
+  /** Explicit exposure gate for the standalone Daily Insight STORY. */
+  DAILY_INSIGHT_STORY_ENABLED?: string;
+  /** Immediate kill switch; takes precedence over the exposure gate. */
+  DAILY_INSIGHT_STORY_ROLLBACK?: string;
+  /** Maximum synchronous Daily Insight calculation time accepted by rollout. */
+  DAILY_INSIGHT_CPU_BUDGET_MS?: string;
 }
 
 export type WeatherFamily =

@@ -5,7 +5,7 @@ import type { ClimateDailyObservation, ClimateProvenance } from "../src/engine/w
 import { buildCandidateProduct } from "../src/engine/verdict";
 import type { DisplayHour, ModelForecast, OfficialPublicPayloadV24 } from "../src/types";
 import { renderDailyInsightPreview } from "../src/ui/dailyInsightPreview";
-import { buildDailyInsightStoryModel, dailyInsightStoryScenarios, renderDailyInsightScenarioGallery } from "../src/ui/dailyInsightStory";
+import { buildDailyInsightStoryModel, dailyInsightStoryScenarios, renderDailyInsightScenarioGallery, renderDailyInsightStoryPage, renderDailyInsightStorySilence } from "../src/ui/dailyInsightStory";
 import { canonicalPoints } from "./scenes24/fixtures";
 
 let passed = 0;
@@ -118,4 +118,12 @@ ok(!gallery.includes("fetch(") && !gallery.includes("/api/publish"), "gallery_ha
 const calmHtml = renderDailyInsightPreview(calmPayload, calm, "ready");
 ok(calmHtml.includes("Aucune STORY comparative aujourd’hui") && !calmHtml.includes("id=\"dailyInsightStory\""), "no_signal_produces_no_story_canvas");
 
-console.log(`DAILY_INSIGHT_PREVIEW ${passed}/23 PASS`);
+const publicStory = renderDailyInsightStoryPage(payload(), strong.winner!, { engineDurationMs: 1.25, cpuBudgetMs: 20 });
+ok(publicStory.includes('<canvas id="dailyInsightPublicStory" width="1080" height="1920">'), "active_surface_preserves_story_export_dimensions");
+ok(publicStory.includes('data-export="dailyInsightPublicStory"') && publicStory.includes("Enregistrer cette STORY"), "active_surface_exposes_manual_png_export");
+const publicScript = publicStory.match(/<script>([\s\S]*)<\/script>/)?.[1];
+ok(Boolean(publicScript) && (() => { try { new Function(publicScript!); return true; } catch { return false; } })() && !publicStory.includes("fetch("), "active_surface_runtime_is_valid_and_has_no_publication_transport");
+const silencePage = renderDailyInsightStorySilence({ city: "Tarnos", date: "2026-08-18", reason: "no_daily_insight" });
+ok(silencePage.includes("Aucune STORY comparative") && !silencePage.includes("<canvas"), "controlled_surface_keeps_editorial_silence_without_export");
+
+console.log(`DAILY_INSIGHT_PREVIEW ${passed}/27 PASS`);
