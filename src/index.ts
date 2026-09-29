@@ -20,7 +20,7 @@ import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
 import { renderWeeklyCandidatePreview, renderWeeklyPreviewGate, renderWeeklySelectionPanel } from "./ui/weeklyPreview";
-import { ensureMeteoFranceDailyArchive } from "./weather/meteoFranceClimate";
+import { ensureDailyInsightBackgroundReference } from "./weather/dailyInsightReference";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: { "cache-control": "no-store", "access-control-allow-origin": "*" } });
@@ -526,13 +526,15 @@ export default {
     const jobs: Promise<unknown>[] = [];
     for (const city of Object.values(CITIES)) {
       const hour = localHour(city.timezone, controller.scheduledTime);
+      if (hour === 4 && city.slug === "tarnos") {
+        // Daily Insight stays isolated from the active Daily generation. Its
+        // historical reference is prepared one hour earlier, in background.
+        jobs.push(ensureDailyInsightBackgroundReference(env, instant));
+      }
       if (hour === 5) jobs.push(runScheduledCity(env, city, "PRIMARY", instant));
       else if (hour === 6) jobs.push(runScheduledCity(env, city, "RETRY", instant));
       if (hour === 5 && isWeeklyEnabled(env) && localDateIsMonday(city.timezone, instant)) {
         jobs.push(runScheduledWeeklyCity(env, city, instant));
-      } else if (hour === 5 && isWeeklyEnabled(env) && city.slug === "tarnos") {
-        // Keep the official local archive warm before Sunday/Monday previews.
-        jobs.push(ensureMeteoFranceDailyArchive(env, instant));
       }
     }
     if (jobs.length) ctx.waitUntil(Promise.allSettled(jobs).then(() => undefined));
