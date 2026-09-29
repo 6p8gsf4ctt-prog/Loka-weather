@@ -19,6 +19,7 @@ import "./instagramLogoRuntimeV4";
 import "./instagramDailyGraphicPreview";
 import "./dailyComparison";
 import "./dailyInsightReference";
+import "./dailyInsightPreview";
 import "./weeklyIsolation";
 import "./weeklyForecast";
 import "./weeklyProfiles";

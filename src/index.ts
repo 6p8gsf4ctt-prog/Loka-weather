@@ -1,6 +1,8 @@
 import { CITIES, getCity } from "./config/cities";
 import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
+import { buildDailyInsightPreview } from "./engine/dailyInsight/previewEngine";
+import { WEEKLY_CLIMATE_STATION_ID } from "./engine/weekly/climateReferences";
 import { isWeeklyEnabled, renderWeeklyCarousel, resolveWeeklyPublicSurface, logWeeklyProgressivePublication } from "./engine/weekly";
 import { applyWeeklyManualSelection, generateWeeklyCalmVisualPreview, generateWeeklyContextualVisualPreview, generateWeeklyCity, generateWeeklyPreviewCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyPreviewRenderOptions, weeklyRangeForDate } from "./weeklyPipeline";
 import { localDate, runManualCity, runScheduledCity } from "./pipeline";
@@ -10,12 +12,14 @@ import { editorialFeedbackForOfficial, saveEditorialFeedback } from "./storage/e
 import { buildEditorialLearningExport } from "./storage/editorialFeedbackExport";
 import { saveWeeklyPublication, weeklyPublicationForRange } from "./storage/weeklyPublications";
 import { loadWeeklyPreviewDraft, saveWeeklyPreviewDraft } from "./storage/weeklyPreviewDrafts";
+import { loadDailyInsightReference } from "./storage/dailyInsightReferences";
 import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
 import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
 import { enhanceInstagramWithEditorialPersistence } from "./ui/instagramEditorialPersistence";
 import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExport";
 import { renderInstagramDailyGraphicPreview } from "./ui/instagramDailyGraphicPreview";
+import { renderDailyInsightPreview } from "./ui/dailyInsightPreview";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
@@ -375,6 +379,26 @@ export default {
           "content-type": "text/html; charset=utf-8",
           "cache-control": "no-store",
           "x-loka-daily-graphic-variant": "weekly-inspired-v2-comparison-story"
+        }
+      });
+    }
+
+    if (url.pathname === "/daily-insight-preview" && request.method === "GET") {
+      const slug = url.searchParams.get("city") || "tarnos";
+      const result = await safeToday(env, slug);
+      if (!result) return json({ error: "unknown_city" }, 404);
+      if (result.surface.engine === "UNAVAILABLE") {
+        return new Response(renderInstagramRecovery(result.city.slug, result.surface.reason), {
+          headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
+        });
+      }
+      const cache = await loadDailyInsightReference(env.DB, WEEKLY_CLIMATE_STATION_ID);
+      const preview = cache.snapshot ? buildDailyInsightPreview(result.surface.payload, cache.snapshot) : null;
+      return new Response(renderDailyInsightPreview(result.surface.payload, preview, cache.detail), {
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store",
+          "x-loka-daily-insight": preview?.status ?? cache.status
         }
       });
     }
