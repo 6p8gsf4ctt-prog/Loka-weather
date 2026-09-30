@@ -1,6 +1,7 @@
 import {
   DAILY_INSIGHT_SELECTION_VERSION,
   validateDailyInsightSelection,
+  type DailyInsightSelectionHistory,
   type DailyInsightSelectionResult
 } from "../engine/dailyInsight/editorialSelection";
 
@@ -81,5 +82,40 @@ export async function loadDailyInsightEditorialDraft(
     return { status: "READY", detail: `daily_insight_editorial_draft_ready:${selection.status}`, selection };
   } catch (error) {
     return { status: "REJECTED", detail: error instanceof Error ? error.message : "daily_insight_editorial_draft_rejected", selection: null };
+  }
+}
+
+/** Rotation input only: malformed historical rows are ignored, never trusted. */
+export async function recentDailyInsightSelectionHistory(
+  db: D1Database | undefined,
+  citySlug: string,
+  beforeDate: string,
+  limit = 7
+): Promise<DailyInsightSelectionHistory[]> {
+  if (!databaseAvailable(db)) return [];
+  const boundedLimit = Math.max(1, Math.min(30, Math.round(limit)));
+  try {
+    const response = await db.prepare(`
+      SELECT payload_json
+      FROM daily_insight_editorial_drafts
+      WHERE city_slug = ? AND target_date < ? AND winner_detector_id IS NOT NULL
+      ORDER BY target_date DESC
+      LIMIT ?
+    `).bind(citySlug, beforeDate, boundedLimit).all<{ payload_json: string }>();
+    return (response.results ?? []).flatMap((row) => {
+      try {
+        const selection = validateDailyInsightSelection(JSON.parse(row.payload_json) as unknown);
+        const winner = selection.winner;
+        return winner ? [{
+          date: selection.targetDate,
+          detectorId: winner.detectorId,
+          topicKey: winner.topicKey,
+          family: winner.family,
+          format: winner.format
+        }] : [];
+      } catch { return []; }
+    }).sort((left, right) => left.date.localeCompare(right.date));
+  } catch {
+    return [];
   }
 }

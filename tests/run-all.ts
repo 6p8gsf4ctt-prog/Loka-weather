@@ -24,6 +24,7 @@ import "./dailyInsightRollout";
 import "./dailyInsightSchedule";
 import "./dailyInsightDataLab";
 import "./dailyInsightEditorialSelection";
+import "./dailyInsightLabPreview";
 import "./weeklyIsolation";
 import "./weeklyForecast";
 import "./weeklyProfiles";
