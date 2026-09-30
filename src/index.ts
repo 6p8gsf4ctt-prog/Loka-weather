@@ -91,14 +91,21 @@ export default {
     }
     if (url.pathname === "/api/admin/daily-insight/rebuild-reference" && request.method === "POST") {
       if (!isAuthorized(request, env)) return unauthorized();
-      const rebuild = ensureDailyInsightBackgroundReference(env, new Date()).then((result) => {
+      try {
+        // A first climate import can exceed the short lifetime granted to an
+        // HTTP waitUntil task. Keep the request open so Cloudflare cannot stop
+        // the archive import before the reference cache is committed.
+        const result = await ensureDailyInsightBackgroundReference(env, new Date());
         console.info("LOKA_DAILY_INSIGHT_MANUAL_REBUILD", JSON.stringify({ status: result.status, detail: result.detail, rebuilt: result.rebuilt }));
-      }).catch((error) => {
-        console.error("LOKA_DAILY_INSIGHT_MANUAL_REBUILD_FAILED", error instanceof Error ? error.message : String(error));
-      });
-      if (ctx) ctx.waitUntil(rebuild);
-      else await rebuild;
-      return json({ ok: true, status: "accepted", detail: "daily_insight_reference_rebuild_started" }, 202);
+        if (result.status !== "READY") {
+          return json({ ok: false, error: result.detail, status: result.status, rebuilt: result.rebuilt }, 503);
+        }
+        return json({ ok: true, status: result.status, detail: result.detail, rebuilt: result.rebuilt });
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        console.error("LOKA_DAILY_INSIGHT_MANUAL_REBUILD_FAILED", detail);
+        return json({ ok: false, error: detail, status: "FAILED", rebuilt: false }, 503);
+      }
     }
     if (url.pathname === "/daily-insight-control" && request.method === "GET") {
       return new Response(renderDailyInsightControl(), {
