@@ -1,7 +1,9 @@
 export const DAILY_INSIGHT_BOOTSTRAP_CRON = "15 * * * *" as const;
 const DAILY_INSIGHT_REFRESH_CRONS = new Set(["45 2 * * *", "45 3 * * *"]);
+const DAILY_INSIGHT_OP5_CRONS = new Set(["45 4 * * *", "45 5 * * *"]);
 
 export type DailyInsightScheduledAction = "REFRESH" | "BOOTSTRAP_CHECK" | "NONE";
+export type DailyInsightOp5ScheduledAction = "GENERATE" | "NONE";
 
 function hourInTimezone(timezone: string, epochMs: number): number {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -10,6 +12,12 @@ function hourInTimezone(timezone: string, epochMs: number): number {
     hourCycle: "h23"
   }).formatToParts(new Date(epochMs));
   return Number(parts.find((part) => part.type === "hour")?.value ?? -1);
+}
+
+/** Prepare one V2 editorial draft at 06:45 local time across DST. */
+export function dailyInsightOp5ScheduledAction(cron: string, timezone: string, epochMs: number): DailyInsightOp5ScheduledAction {
+  if (!DAILY_INSIGHT_OP5_CRONS.has(cron)) return "NONE";
+  return hourInTimezone(timezone, epochMs) === 6 ? "GENERATE" : "NONE";
 }
 
 /**

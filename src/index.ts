@@ -3,7 +3,8 @@ import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
 import { buildDailyInsightPreview } from "./engine/dailyInsight/previewEngine";
 import { evaluateDailyInsightStoryRollout, isDailyInsightStoryEnabled, isDailyInsightStoryRollbackRequested, logDailyInsightStoryRollout } from "./engine/dailyInsight/rollout";
-import { DAILY_INSIGHT_BOOTSTRAP_CRON, dailyInsightScheduledAction } from "./engine/dailyInsight/schedule";
+import { evaluateDailyInsightOp5, isDailyInsightOp5Enabled, isDailyInsightOp5RollbackRequested } from "./engine/dailyInsight/op5Rollout";
+import { DAILY_INSIGHT_BOOTSTRAP_CRON, dailyInsightOp5ScheduledAction, dailyInsightScheduledAction } from "./engine/dailyInsight/schedule";
 import { generateDailyInsightLabPreview } from "./dailyInsightLab";
 import { WEEKLY_CLIMATE_STATION_ID } from "./engine/weekly/climateReferences";
 import { isWeeklyEnabled, renderWeeklyCarousel, resolveWeeklyPublicSurface, logWeeklyProgressivePublication } from "./engine/weekly";
@@ -16,6 +17,7 @@ import { buildEditorialLearningExport } from "./storage/editorialFeedbackExport"
 import { saveWeeklyPublication, weeklyPublicationForRange } from "./storage/weeklyPublications";
 import { loadWeeklyPreviewDraft, saveWeeklyPreviewDraft } from "./storage/weeklyPreviewDrafts";
 import { loadDailyInsightReference } from "./storage/dailyInsightReferences";
+import { loadDailyInsightEditorialDraft } from "./storage/dailyInsightEditorialDrafts";
 import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
 import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
@@ -25,6 +27,7 @@ import { renderInstagramDailyGraphicPreview } from "./ui/instagramDailyGraphicPr
 import { renderDailyInsightPreview } from "./ui/dailyInsightPreview";
 import { renderDailyInsightLabPreview } from "./ui/dailyInsightLabPreview";
 import { renderDailyInsightOp4Gallery } from "./ui/dailyInsightOp4Gallery";
+import { renderDailyInsightOp5Story } from "./ui/dailyInsightOp5Story";
 import { renderDailyInsightScenarioGallery, renderDailyInsightStoryPage, renderDailyInsightStorySilence } from "./ui/dailyInsightStory";
 import { renderDailyInsightControl } from "./ui/dailyInsightControl";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
@@ -80,13 +83,19 @@ export default {
       ok: true, engine: "V24", version: "2.0.0", models: MODELS.map((m) => m.id), sceneCount: 24,
       dailyInsightStory: {
         enabled: isDailyInsightStoryEnabled(env),
-        rollback: isDailyInsightStoryRollbackRequested(env)
+        rollback: isDailyInsightStoryRollbackRequested(env),
+        op5: { enabled: isDailyInsightOp5Enabled(env), rollback: isDailyInsightOp5RollbackRequested(env) }
       }
     });
     if (url.pathname === "/api/daily-insight/status" && request.method === "GET") {
       const cache = await loadDailyInsightReference(env.DB, WEEKLY_CLIMATE_STATION_ID);
+      const city = CITIES.tarnos;
+      const targetDate = localDate(city.timezone);
+      const draft = await loadDailyInsightEditorialDraft(env.DB, city.slug, targetDate);
+      const op5 = evaluateDailyInsightOp5(env, draft, new Date());
       return json({
         story: { enabled: isDailyInsightStoryEnabled(env), rollback: isDailyInsightStoryRollbackRequested(env) },
+        op5: { enabled: isDailyInsightOp5Enabled(env), rollback: isDailyInsightOp5RollbackRequested(env), mode: op5.mode, reason: op5.reason, targetDate, draftStatus: draft.status },
         cache: { status: cache.status, detail: cache.detail }
       });
     }
@@ -493,6 +502,34 @@ export default {
           headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
         });
       }
+      const op5DraftStartedAt = performance.now();
+      const op5Draft = await loadDailyInsightEditorialDraft(env.DB, result.city.slug, result.date);
+      const op5Decision = evaluateDailyInsightOp5(env, op5Draft, new Date());
+      const op5DraftDurationMs = performance.now() - op5DraftStartedAt;
+      console.info("LOKA_DAILY_INSIGHT_OP5", JSON.stringify({ citySlug: result.city.slug, date: result.date, mode: op5Decision.mode, reason: op5Decision.reason, draftStatus: op5Draft.status }));
+      if (op5Decision.mode === "ACTIVE" && op5Decision.selection?.winner) {
+        return new Response(renderDailyInsightOp5Story(result.city, result.date, op5Decision), {
+          headers: {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store",
+            "x-loka-daily-insight-op5": op5Decision.mode,
+            "x-loka-daily-insight-op5-reason": op5Decision.reason,
+            "server-timing": `draft;dur=${op5DraftDurationMs.toFixed(2)}, total;dur=${(performance.now() - startedAt).toFixed(2)}`
+          }
+        });
+      }
+      if (op5Decision.mode === "EDITORIAL_SILENCE") {
+        return new Response(renderDailyInsightStorySilence({ city: result.city.name, date: result.date, reason: op5Decision.reason }), {
+          headers: {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store",
+            "x-loka-daily-insight-op5": op5Decision.mode,
+            "x-loka-daily-insight-op5-reason": op5Decision.reason
+          }
+        });
+      }
+      // OP5 is unavailable, disabled or rolled back: preserve the previous
+      // Daily Insight implementation as the immediate operational fallback.
       if (!await masterAvailable(request, env, result.surface.payload.scene.masterUrl)) return unavailable("master_graphic_unavailable");
       const cacheStartedAt = performance.now();
       const cache = await loadDailyInsightReference(env.DB, WEEKLY_CLIMATE_STATION_ID);
@@ -515,6 +552,8 @@ export default {
           "cache-control": "no-store",
           "x-loka-daily-insight-rollout": decision.mode,
           "x-loka-daily-insight-reason": decision.reason,
+          "x-loka-daily-insight-op5": op5Decision.mode,
+          "x-loka-daily-insight-op5-reason": op5Decision.reason,
           "x-loka-daily-insight-engine-ms": decision.engineDurationMs.toFixed(2),
           "server-timing": `cache;dur=${cacheDurationMs.toFixed(2)}, engine;dur=${engineDurationMs.toFixed(2)}, render;dur=${renderDurationMs.toFixed(2)}, total;dur=${totalDurationMs.toFixed(2)}`
         }
@@ -699,6 +738,22 @@ export default {
         // Daily Insight stays isolated from the active Daily generation. Its
         // historical reference is prepared one hour earlier, in background.
         jobs.push(ensureDailyInsightBackgroundReference(env, instant));
+      }
+      if (city.slug === "tarnos" && dailyInsightOp5ScheduledAction(controller.cron, city.timezone, controller.scheduledTime) === "GENERATE") {
+        // OP5 writes only its independent data bundle and editorial draft.
+        // It never promotes or mutates the active Daily forecast product.
+        jobs.push(generateDailyInsightLabPreview(env, city, localDate(city.timezone, instant), instant).then((preview) => {
+          console.info("LOKA_DAILY_INSIGHT_OP5_GENERATION", JSON.stringify({
+            citySlug: city.slug,
+            targetDate: preview.targetDate,
+            status: preview.status,
+            selection: preview.selection?.status ?? null,
+            winner: preview.selection?.winner?.detectorId ?? null,
+            durationMs: preview.timings.totalMs,
+            persisted: preview.persistence.draftSaved
+          }));
+          return preview;
+        }));
       }
       if (hour === 5) jobs.push(runScheduledCity(env, city, "PRIMARY", instant));
       else if (hour === 6) jobs.push(runScheduledCity(env, city, "RETRY", instant));

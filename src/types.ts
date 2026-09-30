@@ -25,6 +25,12 @@ export interface Env {
   DAILY_INSIGHT_STORY_ROLLBACK?: string;
   /** Maximum synchronous Daily Insight calculation time accepted by rollout. */
   DAILY_INSIGHT_CPU_BUDGET_MS?: string;
+  /** Controlled OP5 exposure gate for the cached V2 editorial selection. */
+  DAILY_INSIGHT_OP5_ENABLED?: string;
+  /** Immediate OP5 rollback to the already deployed Daily Insight story. */
+  DAILY_INSIGHT_OP5_ROLLBACK?: string;
+  /** Maximum age accepted for a background-prepared OP5 draft. */
+  DAILY_INSIGHT_OP5_MAX_DRAFT_AGE_HOURS?: string;
 }
 
 export type WeatherFamily =
