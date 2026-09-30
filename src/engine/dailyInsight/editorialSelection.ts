@@ -9,6 +9,17 @@ export const DAILY_INSIGHT_SELECTION_VERSION = "1.0.0" as const;
 export const DAILY_INSIGHT_SELECTION_MODE = "LAB_ONLY" as const;
 export const DAILY_INSIGHT_PUBLICATION_THRESHOLD = 70;
 
+/**
+ * A technically valid signal is not automatically Instagram-worthy. Generic
+ * atmospheric shifts and historical analogues therefore need a higher
+ * editorial score than an immediately perceptible local event.
+ */
+export function dailyInsightEditorialInterestFloor(detectorId: string): number {
+  if (detectorId === "A01") return 80;
+  if (detectorId === "H01") return 78;
+  return DAILY_INSIGHT_PUBLICATION_THRESHOLD;
+}
+
 export type DailyInsightPriorityV2 = "P0" | "P1" | "P2" | "P3";
 export type DailyInsightFamilyV2 = "TEMPERATURE" | "RAIN" | "WIND" | "VISIBILITY" | "ATMOSPHERE" | "MARINE" | "CALENDAR" | "HISTORY";
 export type DailyInsightFormatV2 = "F1_RARETE_LOCALE" | "F2_EVOLUTION_RAPIDE" | "F3_SEQUENCE" | "F4_REPERE_SAISONNIER" | "F5_PHENOMENE_LOCAL";
@@ -441,7 +452,11 @@ function finalizeCandidate(draft: CandidateDraft, input: DailyInsightSelectionIn
   const penalties = repetitionPenalties(draft, input.recentSelections ?? []);
   const base = Object.values(scoreParts).reduce((sum, value) => sum + value, 0);
   const final = Math.max(0, base - penalties.reduce((sum, penalty) => sum + penalty.value, 0));
-  if (final < DAILY_INSIGHT_PUBLICATION_THRESHOLD) rejections.push("SCORE_BELOW_THRESHOLD");
+  const interestFloor = dailyInsightEditorialInterestFloor(draft.detectorId);
+  if (final < interestFloor) {
+    rejections.push("SCORE_BELOW_THRESHOLD");
+    if (interestFloor > DAILY_INSIGHT_PUBLICATION_THRESHOLD) rejections.push(`EDITORIAL_INTEREST_FLOOR_${interestFloor}`);
+  }
   const id = `${draft.detectorId}:${input.bundle.targetDate}:${draft.topicKey}`;
   return {
     ...publicDraft,

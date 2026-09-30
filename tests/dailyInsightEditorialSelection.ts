@@ -137,7 +137,11 @@ const missing = selectDailyInsightEditorial({ bundle: fixture({ coreReady: false
 ok(missing.status === "DATA_NOT_READY" && missing.winner === null, "incomplete_core_data_blocks_selection");
 
 const calm = selectDailyInsightEditorial({ bundle: fixture() });
-ok(calm.status === "SELECTED" && calm.winner?.detectorId === "H01" && calm.winner.priority === "P3", "close_local_analogue_provides_controlled_fallback");
+ok(calm.status === "NO_ELIGIBLE_CANDIDATE" && calm.winner === null, "weak_local_analogue_preserves_editorial_silence");
 ok(validateDailyInsightSelection(JSON.parse(JSON.stringify(calm))).bundleId === calm.bundleId, "serialized_selection_validates");
 
-console.log(`DAILY_INSIGHT_EDITORIAL_SELECTION ${passed}/12 PASS`);
+const technicalOnly = selectDailyInsightEditorial({ bundle: fixture({ pressureChange: 8.6 }) });
+const pressureCandidate = technicalOnly.candidates.find((candidate) => candidate.detectorId === "A01");
+ok(technicalOnly.winner === null && pressureCandidate?.rejectionReasons.includes("EDITORIAL_INTEREST_FLOOR_80") === true, "technical_pressure_shift_is_not_automatically_instagrammable");
+
+console.log(`DAILY_INSIGHT_EDITORIAL_SELECTION ${passed}/13 PASS`);

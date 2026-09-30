@@ -24,6 +24,7 @@ import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExpo
 import { renderInstagramDailyGraphicPreview } from "./ui/instagramDailyGraphicPreview";
 import { renderDailyInsightPreview } from "./ui/dailyInsightPreview";
 import { renderDailyInsightLabPreview } from "./ui/dailyInsightLabPreview";
+import { renderDailyInsightOp4Gallery } from "./ui/dailyInsightOp4Gallery";
 import { renderDailyInsightScenarioGallery, renderDailyInsightStoryPage, renderDailyInsightStorySilence } from "./ui/dailyInsightStory";
 import { renderDailyInsightControl } from "./ui/dailyInsightControl";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
@@ -129,6 +130,25 @@ export default {
           "cache-control": "no-store",
           "x-loka-daily-insight-lab": preview.status,
           "server-timing": `reference;dur=${preview.timings.referenceMs}, forecast;dur=${preview.timings.forecastMs}, enrichment;dur=${preview.timings.enrichmentMs}, selection;dur=${preview.timings.selectionMs}, persistence;dur=${preview.timings.persistenceMs}, total;dur=${preview.timings.totalMs}`
+        }
+      });
+    }
+
+    if (url.pathname === "/daily-insight-op4-gallery" && request.method === "GET") {
+      const slug = url.searchParams.get("city") || "tarnos";
+      const city = getCity(slug);
+      if (!city) return json({ error: "unknown_city" }, 404);
+      const targetDate = url.searchParams.get("date") || localDate(city.timezone);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate) || Number.isNaN(Date.parse(`${targetDate}T00:00:00Z`))) {
+        return json({ error: "invalid_date" }, 400);
+      }
+      const preview = await generateDailyInsightLabPreview(env, city, targetDate, new Date());
+      return new Response(renderDailyInsightOp4Gallery(city, targetDate, preview), {
+        status: preview.status === "READY" ? 200 : 503,
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store",
+          "x-loka-daily-insight-op4": preview.status
         }
       });
     }
