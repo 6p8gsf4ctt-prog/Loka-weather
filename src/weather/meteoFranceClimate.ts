@@ -183,7 +183,15 @@ async function bundledHistoricalRows(
   if (!env.ASSETS || resourcePeriodPriority(resource.title) !== 1) return null;
   try {
     const response = await env.ASSETS.fetch(new Request(`https://loka-assets.local${METEO_FRANCE_CLIMATE_BOOTSTRAP_PATH}`));
-    return await readMeteoFranceClimateBootstrap(response, provenance, resource);
+    // Météo-France refreshes the resource timestamp when historical quality
+    // corrections are published, even when the stable title and URL remain
+    // unchanged. The compact LOKA snapshot is integrity-checked internally;
+    // requiring the remote timestamp to stay identical would reject it and
+    // force a very large departmental download during an HTTP request.
+    return await readMeteoFranceClimateBootstrap(response, provenance, {
+      title: resource.title,
+      url: resource.url
+    });
   } catch (error) {
     console.warn("meteo_france_historical_bootstrap_unavailable", error instanceof Error ? error.message : String(error));
     return null;
