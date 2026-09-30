@@ -3,6 +3,7 @@ import { MODELS } from "./config/models";
 import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
 import { buildDailyInsightPreview } from "./engine/dailyInsight/previewEngine";
 import { evaluateDailyInsightStoryRollout, isDailyInsightStoryEnabled, isDailyInsightStoryRollbackRequested, logDailyInsightStoryRollout } from "./engine/dailyInsight/rollout";
+import { DAILY_INSIGHT_BOOTSTRAP_CRON, dailyInsightScheduledAction } from "./engine/dailyInsight/schedule";
 import { WEEKLY_CLIMATE_STATION_ID } from "./engine/weekly/climateReferences";
 import { isWeeklyEnabled, renderWeeklyCarousel, resolveWeeklyPublicSurface, logWeeklyProgressivePublication } from "./engine/weekly";
 import { applyWeeklyManualSelection, generateWeeklyCalmVisualPreview, generateWeeklyContextualVisualPreview, generateWeeklyCity, generateWeeklyPreviewCity, localDateIsMonday, runManualWeeklyCity, runScheduledWeeklyCity, weeklyPreviewRenderOptions, weeklyRangeForDate } from "./weeklyPipeline";
@@ -22,6 +23,7 @@ import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExpo
 import { renderInstagramDailyGraphicPreview } from "./ui/instagramDailyGraphicPreview";
 import { renderDailyInsightPreview } from "./ui/dailyInsightPreview";
 import { renderDailyInsightScenarioGallery, renderDailyInsightStoryPage, renderDailyInsightStorySilence } from "./ui/dailyInsightStory";
+import { renderDailyInsightControl } from "./ui/dailyInsightControl";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
 import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
@@ -69,7 +71,7 @@ async function masterAvailable(request: Request, env: Env, path: string): Promis
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/api/health") return json({
       ok: true, engine: "V24", version: "2.0.0", models: MODELS.map((m) => m.id), sceneCount: 24,
@@ -78,6 +80,29 @@ export default {
         rollback: isDailyInsightStoryRollbackRequested(env)
       }
     });
+    if (url.pathname === "/api/daily-insight/status" && request.method === "GET") {
+      const cache = await loadDailyInsightReference(env.DB, WEEKLY_CLIMATE_STATION_ID);
+      return json({
+        story: { enabled: isDailyInsightStoryEnabled(env), rollback: isDailyInsightStoryRollbackRequested(env) },
+        cache: { status: cache.status, detail: cache.detail }
+      });
+    }
+    if (url.pathname === "/api/admin/daily-insight/rebuild-reference" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+      const rebuild = ensureDailyInsightBackgroundReference(env, new Date()).then((result) => {
+        console.info("LOKA_DAILY_INSIGHT_MANUAL_REBUILD", JSON.stringify({ status: result.status, detail: result.detail, rebuilt: result.rebuilt }));
+      }).catch((error) => {
+        console.error("LOKA_DAILY_INSIGHT_MANUAL_REBUILD_FAILED", error instanceof Error ? error.message : String(error));
+      });
+      if (ctx) ctx.waitUntil(rebuild);
+      else await rebuild;
+      return json({ ok: true, status: "accepted", detail: "daily_insight_reference_rebuild_started" }, 202);
+    }
+    if (url.pathname === "/daily-insight-control" && request.method === "GET") {
+      return new Response(renderDailyInsightControl(), {
+        headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
+      });
+    }
 
     if (url.pathname === "/api/latest") {
       const slug = url.searchParams.get("city") || "tarnos";
@@ -612,9 +637,16 @@ export default {
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     const instant = new Date(controller.scheduledTime);
     const jobs: Promise<unknown>[] = [];
+    if (controller.cron === DAILY_INSIGHT_BOOTSTRAP_CRON) {
+      jobs.push(loadDailyInsightReference(env.DB, WEEKLY_CLIMATE_STATION_ID).then((cache) => {
+        if (cache.status === "READY") return cache;
+        console.warn("LOKA_DAILY_INSIGHT_BOOTSTRAP", JSON.stringify({ status: cache.status, detail: cache.detail }));
+        return ensureDailyInsightBackgroundReference(env, instant);
+      }));
+    }
     for (const city of Object.values(CITIES)) {
       const hour = localHour(city.timezone, controller.scheduledTime);
-      if (hour === 4 && city.slug === "tarnos") {
+      if (city.slug === "tarnos" && dailyInsightScheduledAction(controller.cron, city.timezone, controller.scheduledTime) === "REFRESH") {
         // Daily Insight stays isolated from the active Daily generation. Its
         // historical reference is prepared one hour earlier, in background.
         jobs.push(ensureDailyInsightBackgroundReference(env, instant));
