@@ -22,7 +22,7 @@ const actual = {
   generatedAt: `${date}T05:00:00.000Z`, status: "READY", detail: "no_eligible_candidate",
   bundle: null,
   selection: {
-    version: "1.0.0", mode: "LAB_ONLY", citySlug: "tarnos", targetDate: date,
+    version: "1.1.0", mode: "LAB_ONLY", citySlug: "tarnos", targetDate: date,
     generatedAt: `${date}T05:00:00.000Z`, bundleId: "bundle-op4", status: "NO_ELIGIBLE_CANDIDATE",
     publicationThreshold: 70, winner: null, candidates: [],
     audit: { generated: 2, eligible: 0, rejected: 2, rejectionCounts: { SCORE_BELOW_THRESHOLD: 2 }, appliedRotationPenalties: 0 }

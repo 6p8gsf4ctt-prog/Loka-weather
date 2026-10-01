@@ -35,6 +35,7 @@ import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
 import { renderWeeklyCandidatePreview, renderWeeklyPreviewGate, renderWeeklySelectionPanel } from "./ui/weeklyPreview";
 import { ensureDailyInsightBackgroundReference } from "./weather/dailyInsightReference";
+import { normalizeWorkerPathname } from "./http/normalizePathname";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: { "cache-control": "no-store", "access-control-allow-origin": "*" } });
@@ -79,6 +80,7 @@ async function masterAvailable(request: Request, env: Env, path: string): Promis
 export default {
   async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    url.pathname = normalizeWorkerPathname(url.pathname);
     if (url.pathname === "/api/health") return json({
       ok: true, engine: "V24", version: "2.0.0", models: MODELS.map((m) => m.id), sceneCount: 24,
       dailyInsightStory: {
@@ -507,6 +509,22 @@ export default {
       const op5Decision = evaluateDailyInsightOp5(env, op5Draft, new Date());
       const op5DraftDurationMs = performance.now() - op5DraftStartedAt;
       console.info("LOKA_DAILY_INSIGHT_OP5", JSON.stringify({ citySlug: result.city.slug, date: result.date, mode: op5Decision.mode, reason: op5Decision.reason, draftStatus: op5Draft.status }));
+      if (op5Decision.mode === "LEGACY_FALLBACK" && isDailyInsightOp5Enabled(env) && !isDailyInsightOp5RollbackRequested(env)
+        && op5Draft.status !== "READY" && ctx) {
+        // A new editorial engine version invalidates the previous draft. The
+        // first story request prepares its replacement out of band while the
+        // already deployed legacy story remains available for this response.
+        ctx.waitUntil(generateDailyInsightLabPreview(env, result.city, result.date, new Date()).then((preview) => {
+          console.info("LOKA_DAILY_INSIGHT_OP5_LAZY_REFRESH", JSON.stringify({
+            citySlug: result.city.slug,
+            targetDate: result.date,
+            status: preview.status,
+            selection: preview.selection?.status ?? null,
+            winner: preview.selection?.winner?.detectorId ?? null,
+            persisted: preview.persistence.draftSaved
+          }));
+        }));
+      }
       if (op5Decision.mode === "ACTIVE" && op5Decision.selection?.winner) {
         return new Response(renderDailyInsightOp5Story(result.city, result.date, op5Decision), {
           headers: {

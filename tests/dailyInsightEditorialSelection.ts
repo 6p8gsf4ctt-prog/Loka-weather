@@ -137,11 +137,25 @@ const missing = selectDailyInsightEditorial({ bundle: fixture({ coreReady: false
 ok(missing.status === "DATA_NOT_READY" && missing.winner === null, "incomplete_core_data_blocks_selection");
 
 const calm = selectDailyInsightEditorial({ bundle: fixture() });
-ok(calm.status === "NO_ELIGIBLE_CANDIDATE" && calm.winner === null, "weak_local_analogue_preserves_editorial_silence");
+ok(calm.status === "SELECTED" && calm.winner?.priority === "P3", "ordinary_day_receives_a_useful_daily_rendezvous");
+ok(calm.winner?.detectorId.startsWith("P3") === true && (calm.winner?.evidence.length ?? 0) >= 2, "daily_rendezvous_is_evidenced_and_explicit");
 ok(validateDailyInsightSelection(JSON.parse(JSON.stringify(calm))).bundleId === calm.bundleId, "serialized_selection_validates");
 
 const technicalOnly = selectDailyInsightEditorial({ bundle: fixture({ pressureChange: 8.6 }) });
 const pressureCandidate = technicalOnly.candidates.find((candidate) => candidate.detectorId === "A01");
-ok(technicalOnly.winner === null && pressureCandidate?.rejectionReasons.includes("EDITORIAL_INTEREST_FLOOR_80") === true, "technical_pressure_shift_is_not_automatically_instagrammable");
+ok(technicalOnly.winner?.priority === "P3" && pressureCandidate?.rejectionReasons.includes("EDITORIAL_INTEREST_FLOOR_80") === true, "technical_pressure_shift_is_rejected_without_blocking_the_daily_rendezvous");
 
-console.log(`DAILY_INSIGHT_EDITORIAL_SELECTION ${passed}/13 PASS`);
+const sevenDayFallbackHistory: DailyInsightSelectionHistory[] = [
+  { date: "2026-09-23", detectorId: "P301", topicKey: "pivot", family: "TEMPERATURE", format: "F2_EVOLUTION_RAPIDE" },
+  { date: "2026-09-24", detectorId: "P302", topicKey: "window", family: "ATMOSPHERE", format: "F5_PHENOMENE_LOCAL" },
+  { date: "2026-09-25", detectorId: "P303", topicKey: "dry", family: "RAIN", format: "F3_SEQUENCE" },
+  { date: "2026-09-26", detectorId: "P304", topicKey: "rhythm", family: "HISTORY", format: "F5_PHENOMENE_LOCAL" },
+  { date: "2026-09-27", detectorId: "P301", topicKey: "pivot2", family: "TEMPERATURE", format: "F2_EVOLUTION_RAPIDE" },
+  { date: "2026-09-28", detectorId: "P302", topicKey: "window2", family: "ATMOSPHERE", format: "F5_PHENOMENE_LOCAL" },
+  { date: "2026-09-29", detectorId: "P303", topicKey: "dry2", family: "RAIN", format: "F3_SEQUENCE" }
+];
+const rotatedFallback = selectDailyInsightEditorial({ bundle: fixture(), recentSelections: sevenDayFallbackHistory });
+ok(rotatedFallback.status === "SELECTED" && rotatedFallback.winner?.priority === "P3", "rotation_never_removes_every_daily_rendezvous");
+ok(rotatedFallback.winner?.detectorId !== "P303", "rotation_prefers_another_daily_family_than_yesterday");
+
+console.log(`DAILY_INSIGHT_EDITORIAL_SELECTION ${passed}/16 PASS`);

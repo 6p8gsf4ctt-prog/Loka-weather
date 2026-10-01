@@ -56,3 +56,24 @@ DAILY_INSIGHT_OP5_ROLLBACK=false
 | `LEGACY_FALLBACK` | L’ancien moteur comparatif prend automatiquement le relais. |
 
 La suppression du moteur Weekly comparatif n’est pas incluse dans cette étape. Elle ne devra intervenir qu’après plusieurs jours de stabilité vérifiée de l’OP5.
+
+## Correctif P3 quotidien — version éditoriale 1.1.0
+
+Le correctif ajoute quatre rendez-vous de secours fondés sur les données :
+
+- `P301` : changement thermique principal du jour ;
+- `P302` : meilleur créneau local de trois heures ;
+- `P303` : plus longue fenêtre sèche ;
+- `P304` : rythme thermique quotidien.
+
+Ces contenus restent derrière les signaux P0 à P2 et ne revendiquent jamais un
+record. Leurs seuils et leurs pénalités de rotation leur sont propres afin de
+garantir un contenu utile sans affaiblir les exigences appliquées aux faits rares.
+
+Le silence éditorial reste possible uniquement lorsque les données essentielles
+ne sont pas prêtes ou que le consensus météo est insuffisamment fiable.
+
+Les routes du Worker acceptent désormais indifféremment un chemin avec ou sans
+slash final. Lors du premier accès après déploiement, l’ancien brouillon 1.0.0
+est invalidé et le brouillon 1.1.0 est préparé en arrière-plan. Le premier rendu
+peut utiliser brièvement l’ancien moteur ; il suffit alors de rafraîchir la page.

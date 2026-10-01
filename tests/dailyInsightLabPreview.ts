@@ -32,7 +32,7 @@ const candidate: DailyInsightCandidateV2 = {
 };
 
 const selection: DailyInsightSelectionResult = {
-  version: "1.0.0",
+  version: "1.1.0",
   mode: "LAB_ONLY",
   citySlug: "tarnos",
   targetDate: "2026-09-30",

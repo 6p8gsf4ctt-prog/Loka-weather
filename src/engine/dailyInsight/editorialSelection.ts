@@ -5,7 +5,7 @@ import {
 } from "./dataBundle";
 import type { DailyInsightRecentTuple } from "./referenceData";
 
-export const DAILY_INSIGHT_SELECTION_VERSION = "1.0.0" as const;
+export const DAILY_INSIGHT_SELECTION_VERSION = "1.1.0" as const;
 export const DAILY_INSIGHT_SELECTION_MODE = "LAB_ONLY" as const;
 export const DAILY_INSIGHT_PUBLICATION_THRESHOLD = 70;
 
@@ -17,6 +17,9 @@ export const DAILY_INSIGHT_PUBLICATION_THRESHOLD = 70;
 export function dailyInsightEditorialInterestFloor(detectorId: string): number {
   if (detectorId === "A01") return 80;
   if (detectorId === "H01") return 78;
+  // P3 is not a weakened record claim. It is a separate utility tier whose
+  // value comes from a concrete local time window or daily rhythm.
+  if (detectorId.startsWith("P3")) return 58;
   return DAILY_INSIGHT_PUBLICATION_THRESHOLD;
 }
 
@@ -430,15 +433,113 @@ function historicalAnalogueCandidate(bundle: DailyInsightDataBundle, claim: Dail
   };
 }
 
+function longestDryWindow(points: DailyInsightHourlyPoint[]): { start: DailyInsightHourlyPoint; end: DailyInsightHourlyPoint; count: number } | null {
+  let best: { start: DailyInsightHourlyPoint; end: DailyInsightHourlyPoint; count: number } | null = null;
+  let start: DailyInsightHourlyPoint | null = null;
+  let previous: DailyInsightHourlyPoint | null = null;
+  let count = 0;
+  for (const point of points) {
+    if (point.precipitationMm < 0.1) {
+      if (!start) start = point;
+      previous = point;
+      count++;
+      if (!best || count > best.count) best = { start, end: previous, count };
+    } else {
+      start = null;
+      previous = null;
+      count = 0;
+    }
+  }
+  return best;
+}
+
+function bestUsefulWindow(points: DailyInsightHourlyPoint[]): { start: DailyInsightHourlyPoint; end: DailyInsightHourlyPoint; cloud: number; gust: number; rain: number } | null {
+  const daylight = points.filter((point) => hour(point) >= 7 && hour(point) <= 20);
+  if (daylight.length < 3) return null;
+  const windows = daylight.slice(0, -2).map((start, index) => {
+    const slice = daylight.slice(index, index + 3);
+    const rain = slice.reduce((sum, point) => sum + point.precipitationMm, 0);
+    const cloud = slice.reduce((sum, point) => sum + point.cloudCoverPct, 0) / slice.length;
+    const gust = Math.max(...slice.map((point) => point.windGustKmh));
+    const radiation = slice.reduce((sum, point) => sum + (point.shortwaveRadiationWm2 ?? 0), 0) / slice.length;
+    const score = radiation / 20 - rain * 35 - cloud * .25 - gust * .12;
+    return { start, end: slice.at(-1)!, cloud, gust, rain, score };
+  });
+  return windows.sort((left, right) => right.score - left.score || hour(left.start) - hour(right.start))[0] ?? null;
+}
+
+/**
+ * Daily rendez-vous: these candidates are only reached after P0-P2 because of
+ * their priority. They describe useful, evidenced local structure without
+ * pretending that an ordinary day is rare or record-breaking.
+ */
+function dailyFallbackCandidates(bundle: DailyInsightDataBundle, claim: DailyInsightClaimV2): CandidateDraft[] {
+  const result: CandidateDraft[] = [];
+  const change = strongestTemperatureChange(bundle.hourly);
+  const isDrop = change.drop >= change.rise;
+  const delta = isDrop ? change.drop : change.rise;
+  const pair = isDrop ? change.dropPair : change.risePair;
+  if (delta >= 1.5 && pair[0] !== pair[1]) {
+    const duration = hour(pair[1]) - hour(pair[0]);
+    result.push({
+      detectorId: "P301", topicKey: `DAILY_PIVOT:${isDrop ? "DROP" : "RISE"}:${hour(pair[0])}-${hour(pair[1])}`, family: "TEMPERATURE", priority: "P3", format: "F2_EVOLUTION_RAPIDE", claim,
+      valueLabel: `${isDrop ? "−" : "+"}${Math.round(delta)} °C`,
+      headline: `Le principal changement du jour se jouera entre ${hour(pair[0])} h et ${hour(pair[1])} h.`,
+      proofLine: `La température ${expectedVerb(claim)} ${isDrop ? "perdre" : "gagner"} ${round(delta)} °C en ${duration} heures.`,
+      evidence: [metricEvidence("temperature", pair[0].temperatureC, "°C", pair[0].time, "Début du changement principal."), metricEvidence("temperature", pair[1].temperatureC, "°C", pair[1].time, "Fin du changement principal.")],
+      trace: { threshold: "largest intraday change>=1.5C within<=4h", observed: `${round(delta)}C/${duration}h`, sourceKeys: ["hourly.temperatureC"] },
+      scoreParts: { rarity: 7, magnitude: clamp(delta * 2, 6, 14), utility: 20, localSpecificity: 15, clarity: 10, confidence: claim === "EXPECTED_HIGH" ? 10 : 7 }
+    });
+  }
+
+  const useful = bestUsefulWindow(bundle.hourly);
+  if (useful) {
+    const start = hour(useful.start), end = hour(useful.end) + 1;
+    result.push({
+      detectorId: "P302", topicKey: `BEST_WINDOW:${start}-${end}`, family: "ATMOSPHERE", priority: "P3", format: "F5_PHENOMENE_LOCAL", claim,
+      valueLabel: `${start} H — ${end} H`, headline: "Voici le créneau le plus favorable de la journée.",
+      proofLine: useful.rain < .1 ? `Une fenêtre sèche, avec environ ${Math.round(useful.cloud)} % de couverture nuageuse.` : `Le meilleur compromis prévu malgré environ ${round(useful.rain)} mm de pluie.`,
+      evidence: [metricEvidence("precipitation", useful.rain, "mm", `${useful.start.time}/${useful.end.time}`, "Cumul sur le créneau."), metricEvidence("cloud cover", useful.cloud, "%", `${useful.start.time}/${useful.end.time}`, "Couverture nuageuse moyenne."), metricEvidence("wind gust", useful.gust, "km/h", `${useful.start.time}/${useful.end.time}`, "Rafale maximale sur le créneau.")],
+      trace: { threshold: "best three-hour daylight utility score", observed: `${round(useful.rain)}mm/${Math.round(useful.cloud)}%/${Math.round(useful.gust)}kmh`, sourceKeys: ["hourly.precipitationMm", "hourly.cloudCoverPct", "hourly.windGustKmh", "hourly.shortwaveRadiationWm2"] },
+      scoreParts: { rarity: 6, magnitude: 8, utility: 20, localSpecificity: 15, clarity: 10, confidence: claim === "EXPECTED_HIGH" ? 10 : 7 }
+    });
+  }
+
+  const dry = longestDryWindow(bundle.hourly);
+  if (dry && dry.count >= 4) {
+    const start = hour(dry.start), end = hour(dry.end) + 1;
+    result.push({
+      detectorId: "P303", topicKey: `DRY_WINDOW:${start}-${end}`, family: "RAIN", priority: "P3", format: "F3_SEQUENCE", claim,
+      valueLabel: `${dry.count} HEURES`, headline: "La plus longue fenêtre sèche du jour se dessine.",
+      proofLine: `Elle devrait s’étendre approximativement de ${start} h à ${end} h.`,
+      evidence: [metricEvidence("dry window", dry.count, "heures", `${dry.start.time}/${dry.end.time}`, "Heures consécutives sous 0,1 mm."), metricEvidence("daily precipitation", bundle.daily.precipitationTotalMm, "mm", bundle.targetDate, "Cumul prévu sur la journée.")],
+      trace: { threshold: "longest consecutive dry window>=4h", observed: `${dry.count}h`, sourceKeys: ["hourly.precipitationMm", "daily.precipitationTotalMm"] },
+      scoreParts: { rarity: 6, magnitude: clamp(dry.count / 2, 6, 12), utility: 19, localSpecificity: 15, clarity: 10, confidence: claim === "EXPECTED_HIGH" ? 10 : 7 }
+    });
+  }
+
+  const amplitude = bundle.daily.thermalAmplitudeC;
+  result.push({
+    detectorId: "P304", topicKey: `THERMAL_RHYTHM:${Math.round(amplitude)}`, family: "HISTORY", priority: "P3", format: "F5_PHENOMENE_LOCAL", claim,
+    valueLabel: `${Math.round(amplitude)} °C`, headline: "Voici le rythme thermique de la journée.",
+    proofLine: `De ${Math.round(bundle.daily.minTemperatureC)} °C au plus frais à ${Math.round(bundle.daily.maxTemperatureC)} °C au plus doux.`,
+    evidence: [metricEvidence("daily minimum", bundle.daily.minTemperatureC, "°C", bundle.targetDate, "Minimum du consensus."), metricEvidence("daily maximum", bundle.daily.maxTemperatureC, "°C", bundle.targetDate, "Maximum du consensus."), metricEvidence("thermal amplitude", amplitude, "°C", bundle.targetDate, "Écart entre maximum et minimum.")],
+    trace: { threshold: "valid daily minimum and maximum", observed: `${round(amplitude)}C`, sourceKeys: ["daily.minTemperatureC", "daily.maxTemperatureC", "daily.thermalAmplitudeC"] },
+    scoreParts: { rarity: 5, magnitude: clamp(amplitude, 6, 14), utility: 17, localSpecificity: 15, clarity: 10, confidence: claim === "EXPECTED_HIGH" ? 10 : 7 }
+  });
+  return result;
+}
+
 function repetitionPenalties(candidate: CandidateDraft, history: DailyInsightSelectionHistory[]): DailyInsightScoreV2["penalties"] {
   const recent = [...history].sort((a, b) => a.date.localeCompare(b.date)).slice(-7);
   const yesterday = recent.at(-1);
   const p0 = candidate.priority === "P0";
+  const dailyFallback = candidate.detectorId.startsWith("P3");
   const penalties: DailyInsightScoreV2["penalties"] = [];
-  if (recent.some((item) => item.detectorId === candidate.detectorId)) penalties.push({ code: "DETECTOR_7D", value: p0 ? 5 : 18, detail: "Même détecteur utilisé dans les sept dernières sélections." });
-  if (yesterday?.family === candidate.family) penalties.push({ code: "FAMILY_YESTERDAY", value: p0 ? 3 : 12, detail: "Même famille que la dernière sélection." });
-  else if (recent.slice(-3).some((item) => item.family === candidate.family)) penalties.push({ code: "FAMILY_3D", value: p0 ? 2 : 6, detail: "Famille déjà utilisée récemment." });
-  if (yesterday?.format === candidate.format) penalties.push({ code: "FORMAT_YESTERDAY", value: p0 ? 1 : 4, detail: "Même structure de slide que la dernière sélection." });
+  if (recent.some((item) => item.detectorId === candidate.detectorId)) penalties.push({ code: "DETECTOR_7D", value: p0 ? 5 : dailyFallback ? 8 : 18, detail: "Même détecteur utilisé dans les sept dernières sélections." });
+  if (yesterday?.family === candidate.family) penalties.push({ code: "FAMILY_YESTERDAY", value: p0 ? 3 : dailyFallback ? 6 : 12, detail: "Même famille que la dernière sélection." });
+  else if (recent.slice(-3).some((item) => item.family === candidate.family)) penalties.push({ code: "FAMILY_3D", value: p0 ? 2 : dailyFallback ? 3 : 6, detail: "Famille déjà utilisée récemment." });
+  if (yesterday?.format === candidate.format) penalties.push({ code: "FORMAT_YESTERDAY", value: p0 ? 1 : dailyFallback ? 2 : 4, detail: "Même structure de slide que la dernière sélection." });
   return penalties;
 }
 
@@ -494,7 +595,8 @@ export function selectDailyInsightEditorial(input: DailyInsightSelectionInput): 
     ...temperatureCandidates(bundle, claim),
     ...rainCandidates(bundle, claim),
     ...localPhenomenonCandidates(bundle, claim),
-    ...(analogue ? [analogue] : [])
+    ...(analogue ? [analogue] : []),
+    ...dailyFallbackCandidates(bundle, claim)
   ];
   const candidates = drafts.map((draft) => finalizeCandidate(draft, input)).sort((left, right) =>
     priorityRank[left.priority] - priorityRank[right.priority]
