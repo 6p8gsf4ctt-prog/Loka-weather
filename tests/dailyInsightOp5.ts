@@ -2,6 +2,9 @@ import { DAILY_INSIGHT_SELECTION_VERSION, type DailyInsightSelectionResult } fro
 import { evaluateDailyInsightOp5 } from "../src/engine/dailyInsight/op5Rollout";
 import { renderDailyInsightOp5Story } from "../src/ui/dailyInsightOp5Story";
 import { CITIES } from "../src/config/cities";
+import { buildCandidateProduct } from "../src/engine/verdict";
+import type { ModelForecast, OfficialPublicPayloadV24 } from "../src/types";
+import { canonicalPoints } from "./scenes24/fixtures";
 
 let passed = 0;
 function ok(value: boolean, label: string): void {
@@ -24,6 +27,17 @@ const selected: DailyInsightSelectionResult = {
 const ready = { status: "READY" as const, detail: "ready", selection: selected };
 const now = new Date("2026-09-30T06:00:00.000Z");
 
+function payload(): OfficialPublicPayloadV24 {
+  const points = canonicalPoints(3 as never);
+  const consensus = new Map(points.map((point) => [point.time, point]));
+  const forecasts: ModelForecast[] = Array.from({ length: 5 }, (_, index) => ({
+    modelId: `m${index}`, family: "noaa", weight: 0.2, fetchedAt: "test", latitude: 0, longitude: 0, hourly: []
+  }));
+  const product = buildCandidateProduct(CITIES.tarnos, "2026-08-18", consensus, forecasts, {}, "test");
+  product.date = "2026-09-30";
+  return product;
+}
+
 ok(evaluateDailyInsightOp5({}, ready, now).mode === "LEGACY_FALLBACK", "disabled_uses_legacy");
 ok(evaluateDailyInsightOp5({ DAILY_INSIGHT_OP5_ENABLED: "true", DAILY_INSIGHT_OP5_ROLLBACK: "true" }, ready, now).mode === "LEGACY_FALLBACK", "rollback_has_priority");
 ok(evaluateDailyInsightOp5({ DAILY_INSIGHT_OP5_ENABLED: "true" }, { status: "UNAVAILABLE", detail: "missing", selection: null }, now).mode === "LEGACY_FALLBACK", "missing_cache_uses_legacy");
@@ -33,11 +47,12 @@ const silenceSelection = { ...selected, status: "NO_ELIGIBLE_CANDIDATE" as const
 ok(evaluateDailyInsightOp5({ DAILY_INSIGHT_OP5_ENABLED: "true" }, { status: "READY", detail: "ready", selection: silenceSelection }, now).mode === "EDITORIAL_SILENCE", "explicit_no_signal_is_silence");
 
 const active = evaluateDailyInsightOp5({ DAILY_INSIGHT_OP5_ENABLED: "true" }, ready, now);
-const html = renderDailyInsightOp5Story(CITIES.tarnos, "2026-09-30", active);
-ok(html.includes('width="1080" height="1920"') && html.includes("Enregistrer cette STORY"), "story_is_manual_1080x1920_export");
+const html = renderDailyInsightOp5Story(payload(), CITIES.tarnos, active);
+ok(html.includes('<canvas id="comparisonStory" width="1080" height="1920">') && html.includes("Partager / enregistrer la Story comparative"), "story_is_manual_1080x1920_export");
 ok(!html.includes("fetch(") && !html.includes("instagram.com"), "story_has_no_automatic_publication");
+ok(html.includes("const GS=") && html.includes("function drawHeader(") && html.includes("function box("), "story_uses_canonical_daily_graphic_runtime");
+ok(html.includes("À REMARQUER AUJOURD’HUI") && html.includes("DAILY_STORY_SHARED_V1"), "daily_insight_is_content_inside_shared_frame");
 const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1];
 ok(Boolean(script) && (() => { try { new Function(script!); return true; } catch { return false; } })(), "story_runtime_is_valid");
 
-console.log(`DAILY_INSIGHT_OP5 ${passed}/9 PASS`);
-
+console.log(`DAILY_INSIGHT_OP5 ${passed}/11 PASS`);

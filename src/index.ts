@@ -26,8 +26,8 @@ import { enhanceInstagramWithEditorialExport } from "./ui/instagramEditorialExpo
 import { renderInstagramDailyGraphicPreview } from "./ui/instagramDailyGraphicPreview";
 import { renderDailyInsightPreview } from "./ui/dailyInsightPreview";
 import { renderDailyInsightLabPreview } from "./ui/dailyInsightLabPreview";
-import { renderDailyInsightOp4Gallery } from "./ui/dailyInsightOp4Gallery";
-import { renderDailyInsightOp5Story } from "./ui/dailyInsightOp5Story";
+import { renderDailyInsightOp4Gallery, renderDailyInsightOp4Scenario } from "./ui/dailyInsightOp4Gallery";
+import { renderDailyInsightCandidateStory, renderDailyInsightOp5Story } from "./ui/dailyInsightOp5Story";
 import { renderDailyInsightScenarioGallery, renderDailyInsightStoryPage, renderDailyInsightStorySilence } from "./ui/dailyInsightStory";
 import { renderDailyInsightControl } from "./ui/dailyInsightControl";
 import { renderInstagramOfficial24 } from "./ui/instagramOfficial24";
@@ -145,6 +145,26 @@ export default {
       });
     }
 
+    if (url.pathname === "/daily-insight-lab-shared-story" && request.method === "GET") {
+      const slug = url.searchParams.get("city") || "tarnos";
+      const result = await safeToday(env, slug);
+      if (!result) return json({ error: "unknown_city" }, 404);
+      if (result.surface.engine === "UNAVAILABLE") return json({ error: result.surface.reason }, 503);
+      const targetDate = url.searchParams.get("date") || result.date;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate) || Number.isNaN(Date.parse(`${targetDate}T00:00:00Z`))) {
+        return json({ error: "invalid_date" }, 400);
+      }
+      const preview = await generateDailyInsightLabPreview(env, result.city, targetDate, new Date());
+      const winner = preview.selection?.winner;
+      if (!winner) return new Response(renderDailyInsightStorySilence({ city: result.city.name, date: targetDate, reason: preview.detail }), {
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" }
+      });
+      return new Response(renderDailyInsightCandidateStory({ ...result.surface.payload, date: targetDate }, result.city, winner), {
+        headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-loka-graphic-engine": "daily-shared" }
+      });
+    }
+
     if (url.pathname === "/daily-insight-op4-gallery" && request.method === "GET") {
       const slug = url.searchParams.get("city") || "tarnos";
       const city = getCity(slug);
@@ -160,6 +180,32 @@ export default {
           "content-type": "text/html; charset=utf-8",
           "cache-control": "no-store",
           "x-loka-daily-insight-op4": preview.status
+        }
+      });
+    }
+
+    if (url.pathname === "/daily-insight-op4-scenario" && request.method === "GET") {
+      const slug = url.searchParams.get("city") || "tarnos";
+      const result = await safeToday(env, slug);
+      if (!result) return json({ error: "unknown_city" }, 404);
+      if (result.surface.engine === "UNAVAILABLE") return json({ error: result.surface.reason }, 503);
+      const targetDate = url.searchParams.get("date") || result.date;
+      const caseId = url.searchParams.get("case") || "";
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate) || Number.isNaN(Date.parse(`${targetDate}T00:00:00Z`))) {
+        return json({ error: "invalid_date" }, 400);
+      }
+      const html = renderDailyInsightOp4Scenario(
+        { ...result.surface.payload, date: targetDate },
+        result.city,
+        targetDate,
+        caseId
+      );
+      if (!html) return json({ error: "unknown_scenario" }, 404);
+      return new Response(html, {
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store",
+          "x-loka-graphic-engine": "daily-shared"
         }
       });
     }
@@ -526,7 +572,7 @@ export default {
         }));
       }
       if (op5Decision.mode === "ACTIVE" && op5Decision.selection?.winner) {
-        return new Response(renderDailyInsightOp5Story(result.city, result.date, op5Decision), {
+        return new Response(renderDailyInsightOp5Story(result.surface.payload, result.city, op5Decision), {
           headers: {
             "content-type": "text/html; charset=utf-8",
             "cache-control": "no-store",

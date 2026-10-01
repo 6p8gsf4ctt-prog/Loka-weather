@@ -83,7 +83,7 @@ export function renderInstagramDailyGraphicPreview(
   };
 
   const comparisonCard = comparison ? `
-<div class="visual-card"><div class="visual-head"><div class="visual-title">STORY · COMPARAISON DU JOUR</div><div class="visual-size">1080 × 1920 · 9:16</div></div><div class="canvas-wrap"><canvas id="comparisonStory" width="1080" height="1920"></canvas></div><button class="primary" id="shareComparisonStory">Partager / enregistrer la Story comparative</button><div class="note">Ce visuel n’est généré que si le moteur détecte un signal comparatif suffisamment solide.</div></div>` : `
+<div class="visual-card" id="comparisonStoryCard"><div class="visual-head"><div class="visual-title">STORY · COMPARAISON DU JOUR</div><div class="visual-size">1080 × 1920 · 9:16</div></div><div class="canvas-wrap"><canvas id="comparisonStory" width="1080" height="1920"></canvas></div><button class="primary" id="shareComparisonStory">Partager / enregistrer la Story comparative</button><div class="note">Ce visuel n’est généré que si le moteur détecte un signal comparatif suffisamment solide.</div></div>` : `
 <div class="toolbar"><div class="visual-title">STORY · COMPARAISON DU JOUR</div><div class="muted" style="margin-top:8px">Aucun signal comparatif ne franchit aujourd’hui les seuils de fiabilité. Aucune Story artificielle n’est générée.</div></div>`;
 
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>LOKA! — Variante graphique journalière</title><style>
@@ -163,4 +163,23 @@ async function shareCanvas(targetCanvas,suffix){const file=await canvasFile(targ
 document.getElementById('shareStory').onclick=()=>shareCanvas(storyCanvas,'story');document.getElementById('shareLegendStory').onclick=()=>shareCanvas(legendStoryCanvas,'story-legende');if(comparisonStoryCanvas)document.getElementById('shareComparisonStory').onclick=()=>shareCanvas(comparisonStoryCanvas,'story-comparaison');document.getElementById('shareFeed').onclick=()=>shareCanvas(feedCanvas,'post');document.getElementById('captionText').textContent=m.social.caption;document.getElementById('hashtagsText').textContent=m.social.hashtags;document.getElementById('copyCaption').onclick=()=>copyText(m.social.caption,'Légende');document.getElementById('copyHashtags').onclick=()=>copyText(m.social.hashtags,'Hashtags');document.getElementById('copyAll').onclick=()=>copyText(m.social.caption+'\\n\\n'+m.social.hashtags,'Légende + hashtags');
 draw().catch(error=>{window.__LOKA_RENDER_STATUS={started:true,rendered:false,error:String(error)};document.getElementById('summary').textContent='Erreur de rendu : '+String(error);});
 </script><!--LOKA_EDITORIAL_SCRIPT_MOUNT--></body></html>`;
+}
+
+/**
+ * Standalone surface for the comparison Story. It deliberately calls the
+ * complete Daily renderer first, then only changes the surrounding preview
+ * chrome. The exported canvas therefore remains byte-for-byte governed by
+ * the same drawing runtime as /daily-graphic-preview.
+ */
+export function renderInstagramDailyComparisonGraphic(
+  payload: OfficialPublicPayloadV24,
+  city: CityConfig,
+  comparison: DailyComparisonStory
+): string {
+  const html = renderInstagramDailyGraphicPreview(payload, city, comparison);
+  const compactStyle = `<style id="loka-comparison-surface">.toolbar,.visual-card,.caption-card,.wrap>.note{display:none!important}#comparisonStoryCard{display:block!important}.wrap{width:min(100%,580px)}</style>`;
+  return html
+    .replace("</head>", `${compactStyle}</head>`)
+    .replace("Variante journalière", "Story Daily Insight · moteur graphique partagé")
+    .replace("Test graphique · parallèle", "Daily Insight · rendu partagé");
 }

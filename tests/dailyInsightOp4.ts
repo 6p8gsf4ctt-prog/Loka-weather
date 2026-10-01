@@ -12,10 +12,10 @@ const date = "2026-09-30";
 const scenarios = dailyInsightOp4Scenarios(CITIES.tarnos, date);
 ok(scenarios.length === 8, "eight_editorial_control_cases_exist");
 ok(new Set(scenarios.map((scenario) => scenario.group)).size === 4, "four_graphic_structures_are_covered");
-ok(scenarios.every((scenario) => scenario.score >= 80 && scenario.model.city === "Tarnos"), "control_cases_are_strong_and_local");
-ok(new Set(scenarios.map((scenario) => scenario.model.canvasId)).size === scenarios.length, "canvas_ids_are_unique");
-ok(scenarios.some((scenario) => scenario.model.detectorId === "T08" && scenario.model.evidence.length === 3), "hourly_shift_has_explicit_before_after_proof");
-ok(scenarios.some((scenario) => scenario.model.detectorId === "M01"), "coastal_local_signal_is_represented");
+ok(scenarios.every((scenario) => scenario.score >= 80 && scenario.story.frame === "DAILY_STORY_SHARED_V1"), "control_cases_use_shared_daily_frame");
+ok(new Set(scenarios.map((scenario) => scenario.story.signalId)).size === scenarios.length, "signal_ids_are_unique");
+ok(scenarios.some((scenario) => scenario.story.detector === "T08" && scenario.story.presentation.comparison?.right.value === "17 °C"), "hourly_shift_has_explicit_before_after_proof");
+ok(scenarios.some((scenario) => scenario.story.detector === "M01"), "coastal_local_signal_is_represented");
 
 const actual = {
   version: "1.0.0", mode: "LAB_ONLY", citySlug: "tarnos", targetDate: date,
@@ -33,11 +33,10 @@ const actual = {
 } as DailyInsightLabPreviewResult;
 
 const html = renderDailyInsightOp4Gallery(CITIES.tarnos, date, actual);
-ok((html.match(/<canvas /g) ?? []).length === 8, "gallery_renders_all_eight_stories");
+ok((html.match(/<iframe /g) ?? []).length === 8, "gallery_embeds_all_eight_shared_renderer_stories");
 ok(["NIVEAU RARE", "BASCULE HORAIRE", "SÉRIE LOCALE", "REPÈRE UTILE"].every((label) => html.includes(label)), "gallery_labels_the_four_structures");
 ok(html.includes("SILENCE ÉDITORIAL") && html.includes("AUCUNE PUBLICATION AUTOMATIQUE"), "real_silence_and_safety_are_visible");
 ok(!html.includes("/api/publish") && !html.includes("fetch("), "gallery_has_no_publication_transport");
-const runtime = html.match(/<script>([\s\S]*)<\/script>/)?.[1];
-ok(Boolean(runtime) && (() => { try { new Function(runtime!); return true; } catch { return false; } })(), "gallery_runtime_is_syntactically_valid");
+ok(html.includes("moteur graphique Daily partagé") && !html.includes("dailyInsightStoryRuntime"), "gallery_has_no_independent_graphic_runtime");
 
 console.log(`DAILY_INSIGHT_OP4 ${passed}/11 PASS`);

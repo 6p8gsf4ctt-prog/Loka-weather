@@ -23,9 +23,10 @@ export const DAILY_COMPARISON_VERSION = "1.0.0" as const;
 
 export interface DailyComparisonStory {
   version: typeof DAILY_COMPARISON_VERSION;
-  title: "LE CHIFFRE DU JOUR";
+  title: "LE CHIFFRE DU JOUR" | "À REMARQUER AUJOURD’HUI";
   signalId: string;
-  detector: WeeklySignalCandidate["detector"];
+  /** Editorial metadata only; the shared renderer never branches on it. */
+  detector: string;
   theme: WeeklyComplementaryTheme;
   visual: WeeklyComplementaryVisual;
   pictogramUrl: string;

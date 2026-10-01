@@ -73,11 +73,10 @@ const html = renderDailyInsightLabPreview(CITIES.tarnos, ready);
 ok(html.includes("Daily Insight Lab Preview") && html.includes("LABORATOIRE INDÉPENDANT"), "surface_identifies_independent_lab");
 ok(html.includes("Aucune publication automatique") && html.includes("export manuel uniquement"), "surface_forbids_automatic_publication");
 ok(html.includes("T08") && html.includes("99/100") && html.includes("Preuves et trace"), "editorial_audit_is_visible");
-ok(html.includes('<canvas id="dailyInsightLabStory" width="1080" height="1920">'), "story_keeps_instagram_dimensions");
-ok(html.includes('data-export="dailyInsightLabStory"') && !html.includes("fetch("), "export_is_local_without_publish_transport");
+ok(html.includes('<iframe class="shared-story"') && html.includes("daily-insight-lab-shared-story"), "story_uses_shared_daily_renderer_surface");
+ok(!html.includes("dailyInsightStoryRuntime") && !html.includes("fetch("), "lab_has_no_independent_graphic_or_publish_runtime");
 ok(html.includes("2026-09-30") && !html.includes("TEMP_DROP:20-23</div>"), "story_date_comes_from_request_scope");
-const runtime = html.match(/<script>([\s\S]*)<\/script>/)?.[1];
-ok(Boolean(runtime) && (() => { try { new Function(runtime!); return true; } catch { return false; } })(), "story_runtime_is_valid");
+ok(html.includes("renderer de /daily-graphic-preview"), "shared_renderer_is_explicitly_auditable");
 
 const unavailable: DailyInsightLabPreviewResult = {
   ...ready,
