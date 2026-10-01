@@ -61,6 +61,11 @@ const html = renderInstagramDailyGraphicPreview(dailyPayload, CITIES.tarnos, sto
 ok(html.includes('<canvas id="comparisonStory" width="1080" height="1920">'), "comparison_is_an_additional_story");
 ok((html.match(/<canvas id="feed"/g) ?? []).length === 1, "no_second_publication_is_created");
 ok(html.includes("shareComparisonStory") && html.includes("story-comparaison"), "comparison_story_is_exportable");
+const functionLine = (name: string) => html.split("\n").find((line) => line.startsWith(`function ${name}(`)) ?? "";
+ok(functionLine("drawComparisonTitle").includes("box(44,226,992,176)") && functionLine("drawComparisonTitle").includes("editorialAccent(94,354,58)"), "fixed_comparison_title_box_and_accent_are_preserved");
+ok(functionLine("drawComparisonHero").includes("box(44,438,992,550)") && functionLine("drawComparisonHero").includes("210,166"), "hero_keeps_shared_box_with_refined_icon_scale");
+ok(functionLine("drawComparisonEditorial").includes("y=p.comparison?1346:1040") && functionLine("drawComparisonEditorial").includes("balancedEditorialLines"), "editorial_box_keeps_shared_positions_with_adaptive_two_line_copy");
+ok(functionLine("drawStorySignature").includes("540,1810") && functionLine("drawStorySignature").includes("514,1834"), "shared_story_footer_position_is_unchanged");
 const browserScript = html.match(/<script>([\s\S]*)<\/script>/)?.[1] ?? "";
 let browserScriptValid = true;
 try { new Function(browserScript); } catch { browserScriptValid = false; }
@@ -72,4 +77,4 @@ calmPayload.editorial.facts.precipitation = { kind: "DRY", hours: 0, totalMm: 1 
 calmPayload.editorial.facts.wind = { kind: "NONE", maxGustKmh: 28.8 };
 ok(buildDailyComparisonStory(calmPayload, archive()) === null, "no_signal_means_no_artificial_story");
 
-console.log(`DAILY_COMPARISON ${passed}/10 PASS`);
+console.log(`DAILY_COMPARISON ${passed}/14 PASS`);

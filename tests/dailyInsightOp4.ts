@@ -18,6 +18,7 @@ ok(scenarios.some((scenario) => scenario.story.detector === "T08" && scenario.st
 ok(scenarios.some((scenario) => scenario.story.detector === "M01"), "coastal_local_signal_is_represented");
 ok(scenarios.some((scenario) => scenario.story.detector === "T05" && scenario.story.presentation.headline === "8 °C CE MATIN"), "percentile_case_uses_plain_public_wording");
 ok(scenarios.some((scenario) => scenario.story.detector === "T08" && scenario.story.presentation.headline === "10 °C DE MOINS CE SOIR"), "thermal_drop_cannot_be_read_as_minus_ten_degrees");
+ok(scenarios.some((scenario) => scenario.story.detector === "T02" && scenario.story.presentation.headline === "34 °C" && scenario.story.presentation.editorialLine.includes("depuis mars")), "rare_heat_uses_the_validated_reference_composition");
 
 const actual = {
   version: "1.0.0", mode: "LAB_ONLY", citySlug: "tarnos", targetDate: date,
@@ -41,4 +42,4 @@ ok(html.includes("SILENCE ÉDITORIAL") && html.includes("AUCUNE PUBLICATION AUTO
 ok(!html.includes("/api/publish") && !html.includes("fetch("), "gallery_has_no_publication_transport");
 ok(html.includes("moteur graphique Daily partagé") && !html.includes("dailyInsightStoryRuntime"), "gallery_has_no_independent_graphic_runtime");
 
-console.log(`DAILY_INSIGHT_OP4 ${passed}/13 PASS`);
+console.log(`DAILY_INSIGHT_OP4 ${passed}/14 PASS`);
