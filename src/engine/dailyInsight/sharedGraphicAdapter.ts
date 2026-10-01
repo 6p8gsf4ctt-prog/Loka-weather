@@ -13,22 +13,26 @@ import type {
 } from "../weekly/complementarySlides";
 import type { WeeklySignalClaimStatus } from "../weekly/signalCopy";
 import { complementaryPictogramDataUrl } from "../weekly/complementaryPictograms";
+import { dailyInsightPublicCopy } from "./publicCopy";
 
-function theme(family: DailyInsightFamilyV2): WeeklyComplementaryTheme {
-  if (family === "TEMPERATURE" || family === "HISTORY") return "TEMPERATURE";
-  if (family === "RAIN") return "WET_WEATHER";
-  if (family === "WIND") return "WIND";
-  if (family === "VISIBILITY") return "VISIBILITY";
-  if (family === "CALENDAR") return "LIGHT";
+function theme(candidate: DailyInsightCandidateV2): WeeklyComplementaryTheme {
+  if (candidate.detectorId === "R04") return "WET_WEATHER";
+  if (candidate.family === "TEMPERATURE" || candidate.family === "HISTORY") return "TEMPERATURE";
+  if (candidate.family === "RAIN") return "WET_WEATHER";
+  if (candidate.family === "WIND") return "WIND";
+  if (candidate.family === "VISIBILITY") return "VISIBILITY";
+  if (candidate.family === "CALENDAR") return "LIGHT";
   return "OTHER";
 }
 
-function visual(family: DailyInsightFamilyV2): WeeklyComplementaryVisual {
-  if (family === "TEMPERATURE" || family === "HISTORY") return "THERMOMETER";
-  if (family === "RAIN") return "RAIN";
-  if (family === "WIND") return "WIND";
-  if (family === "VISIBILITY") return "FOG";
-  if (family === "CALENDAR" || family === "MARINE") return "SUN";
+function visual(candidate: DailyInsightCandidateV2): WeeklyComplementaryVisual {
+  if (candidate.detectorId === "R04") return "RAIN";
+  if (candidate.detectorId === "H01") return "TREND";
+  if (candidate.family === "TEMPERATURE" || candidate.family === "HISTORY") return "THERMOMETER";
+  if (candidate.family === "RAIN") return "RAIN";
+  if (candidate.family === "WIND") return "WIND";
+  if (candidate.family === "VISIBILITY") return "FOG";
+  if (candidate.family === "CALENDAR" || candidate.family === "MARINE") return "SUN";
   return "TREND";
 }
 
@@ -87,25 +91,27 @@ function comparison(candidate: DailyInsightCandidateV2): { left: WeeklyComplemen
  * No geometry, font, colour, opacity, icon drawing or export rule lives here.
  */
 export function dailyInsightToSharedGraphic(candidate: DailyInsightCandidateV2): DailyComparisonStory {
-  const chosenVisual = visual(candidate.family);
+  const chosenVisual = visual(candidate);
   const evidenceComparison = comparison(candidate);
+  const publicCopy = dailyInsightPublicCopy(candidate, evidenceComparison);
+  const chosenComparison = publicCopy ? publicCopy.comparison : evidenceComparison;
   return {
     version: "1.0.0",
     title: "À REMARQUER AUJOURD’HUI",
     signalId: candidate.id,
     detector: candidate.detectorId,
-    theme: theme(candidate.family),
+    theme: theme(candidate),
     visual: chosenVisual,
     pictogramUrl: complementaryPictogramDataUrl(chosenVisual),
     presentation: {
-      layout: evidenceComparison ? "COMPARISON" : "SINGLE_STAT",
-      headline: candidate.valueLabel,
-      subtitle: subtitle(candidate.format, candidate.family),
-      editorialLine: candidate.headline,
-      comparison: evidenceComparison
+      layout: chosenComparison ? "COMPARISON" : "SINGLE_STAT",
+      headline: publicCopy?.headline ?? candidate.valueLabel,
+      subtitle: publicCopy?.subtitle ?? subtitle(candidate.format, candidate.family),
+      editorialLine: publicCopy?.editorialLine ?? candidate.headline,
+      comparison: chosenComparison
     },
     claimStatus: claimStatus(candidate.claim),
-    sourceNote: candidate.proofLine,
+    sourceNote: publicCopy?.sourceNote ?? candidate.proofLine,
     frame: "DAILY_STORY_SHARED_V1"
   };
 }

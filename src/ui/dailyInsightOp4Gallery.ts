@@ -39,6 +39,18 @@ function model(args: ScenarioInput, _city: CityConfig, date: string): Pick<Op4Sc
     : args.theme === "WET_WEATHER" ? "WET_WEATHER"
       : args.theme === "CALENDAR" ? "LIGHT" : "TEMPERATURE";
   const useComparison = args.format === "F1_RARETE_LOCALE" || args.format === "F2_EVOLUTION_RAPIDE" || args.format === "F5_PHENOMENE_LOCAL";
+  const comparisonItems = args.detectorId === "T08" ? args.evidence.slice(1, 3) : [args.evidence[0], args.evidence[args.evidence.length - 1]];
+  const publicCopy: Record<string, { headline: string; subtitle: string; editorialLine?: string; sourceNote?: string }> = {
+    T02: { headline: "34 °C AUJOURD’HUI", subtitle: "UNE TEMPÉRATURE PLUS ATTEINTE DEPUIS MARS" },
+    T05: { headline: "8 °C CE MATIN", subtitle: "PARMI LES 5 % DES PLUS FRAIS DE LA PÉRIODE", editorialLine: "Une matinée particulièrement fraîche pour la saison.", sourceNote: "Seulement 5 % des matinées comparables ont été plus froides." },
+    T08: { headline: "10 °C DE MOINS CE SOIR", subtitle: "DE 27 °C À 17 °C ENTRE 20 H ET 23 H", editorialLine: "La température devrait chuter rapidement ce soir." },
+    V02: { headline: "RAFALES EN FORTE HAUSSE", subtitle: "DE 30 À 65 KM/H CET APRÈS-MIDI" },
+    R02: { headline: "PLUIE APRÈS 18 JOURS", subtitle: "LE RETOUR D’UN TEMPS PLUS ARROSÉ AUJOURD’HUI" },
+    S04: { headline: "4e JOUR PLUS CHAUD", subtitle: "ÉCART MOYEN : +4,2 °C AU-DESSUS DES NORMALES", editorialLine: "Quatrième journée plus chaude que d’habitude pour la saison." },
+    C01: { headline: "CHANGEMENT D’HEURE", subtitle: "CETTE NUIT, PASSAGE À L’HEURE D’HIVER" },
+    M01: { headline: "11 °C D’ÉCART", subtitle: "ENTRE L’AIR ET L’OCÉAN AUJOURD’HUI" }
+  };
+  const copy = publicCopy[args.detectorId];
   return {
     label: args.label,
     story: {
@@ -51,18 +63,18 @@ function model(args: ScenarioInput, _city: CityConfig, date: string): Pick<Op4Sc
       pictogramUrl: complementaryPictogramDataUrl(visual),
       presentation: {
         layout: useComparison && args.evidence.length >= 2 ? "COMPARISON" : "SINGLE_STAT",
-        headline: args.valueLabel,
-        subtitle: args.format === "F1_RARETE_LOCALE" ? "UN REPÈRE DANS L’HISTOIRE MÉTÉO LOCALE"
+        headline: copy?.headline ?? args.valueLabel,
+        subtitle: copy?.subtitle ?? (args.format === "F1_RARETE_LOCALE" ? "UN REPÈRE DANS L’HISTOIRE MÉTÉO LOCALE"
           : args.format === "F2_EVOLUTION_RAPIDE" ? "LE CHANGEMENT PRINCIPAL DE LA JOURNÉE"
             : args.format === "F3_SEQUENCE" ? "UNE SÉQUENCE LOCALE À RETENIR"
-              : args.format === "F4_REPERE_SAISONNIER" ? "UN REPÈRE CALENDAIRE UTILE" : "LE PHÉNOMÈNE LOCAL À RETENIR",
-        editorialLine: args.line1,
-        comparison: useComparison && args.evidence.length >= 2 ? {
-          left: args.evidence[0], right: args.evidence[args.evidence.length - 1]
+              : args.format === "F4_REPERE_SAISONNIER" ? "UN REPÈRE CALENDAIRE UTILE" : "LE PHÉNOMÈNE LOCAL À RETENIR"),
+        editorialLine: copy?.editorialLine ?? args.line1,
+        comparison: useComparison && comparisonItems.length >= 2 ? {
+          left: comparisonItems[0], right: comparisonItems[1]
         } : null
       },
       claimStatus: args.format === "F4_REPERE_SAISONNIER" ? "OBSERVED" : "EXPECTED",
-      sourceNote: args.line2,
+      sourceNote: copy?.sourceNote ?? args.line2,
       frame: "DAILY_STORY_SHARED_V1"
     }
   };

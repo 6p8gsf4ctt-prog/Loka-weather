@@ -16,6 +16,8 @@ ok(scenarios.every((scenario) => scenario.score >= 80 && scenario.story.frame ==
 ok(new Set(scenarios.map((scenario) => scenario.story.signalId)).size === scenarios.length, "signal_ids_are_unique");
 ok(scenarios.some((scenario) => scenario.story.detector === "T08" && scenario.story.presentation.comparison?.right.value === "17 °C"), "hourly_shift_has_explicit_before_after_proof");
 ok(scenarios.some((scenario) => scenario.story.detector === "M01"), "coastal_local_signal_is_represented");
+ok(scenarios.some((scenario) => scenario.story.detector === "T05" && scenario.story.presentation.headline === "8 °C CE MATIN"), "percentile_case_uses_plain_public_wording");
+ok(scenarios.some((scenario) => scenario.story.detector === "T08" && scenario.story.presentation.headline === "10 °C DE MOINS CE SOIR"), "thermal_drop_cannot_be_read_as_minus_ten_degrees");
 
 const actual = {
   version: "1.0.0", mode: "LAB_ONLY", citySlug: "tarnos", targetDate: date,
@@ -39,4 +41,4 @@ ok(html.includes("SILENCE ÉDITORIAL") && html.includes("AUCUNE PUBLICATION AUTO
 ok(!html.includes("/api/publish") && !html.includes("fetch("), "gallery_has_no_publication_transport");
 ok(html.includes("moteur graphique Daily partagé") && !html.includes("dailyInsightStoryRuntime"), "gallery_has_no_independent_graphic_runtime");
 
-console.log(`DAILY_INSIGHT_OP4 ${passed}/11 PASS`);
+console.log(`DAILY_INSIGHT_OP4 ${passed}/13 PASS`);
