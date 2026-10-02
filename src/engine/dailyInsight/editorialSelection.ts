@@ -199,6 +199,25 @@ function previousObservation(bundle: DailyInsightDataBundle): DailyInsightRecent
   return bundle.recentObservations.find((row) => row[0] === expected) ?? null;
 }
 
+function rollingTemperatureRank(
+  rows: DailyInsightRecentTuple[],
+  metric: "tminC" | "tmaxC",
+  value: number,
+  direction: "LOW" | "HIGH",
+  windowSize = 100
+): { rank: number; sampleSize: number } | null {
+  const index = metric === "tminC" ? 1 : 2;
+  const history = rows
+    .slice()
+    .reverse()
+    .map((row) => row[index])
+    .filter((item): item is number => typeof item === "number" && Number.isFinite(item))
+    .slice(0, windowSize - 1);
+  if (history.length < 59) return null;
+  const moreExtreme = history.filter((item) => direction === "LOW" ? item < value : item > value).length;
+  return { rank: moreExtreme + 1, sampleSize: history.length + 1 };
+}
+
 function calendarCandidates(bundle: DailyInsightDataBundle): CandidateDraft[] {
   const result: CandidateDraft[] = [];
   if (bundle.calendar.clockChange) {
@@ -283,11 +302,16 @@ function temperatureCandidates(bundle: DailyInsightDataBundle, claim: DailyInsig
     const anomaly = config.value - ref.mean;
     const tail = config.value >= ref.p95 ? "HIGH" : config.value <= ref.p05 ? "LOW" : null;
     if (tail && Math.abs(config.value - ref.p50) >= 3) {
+      const rollingRank = rollingTemperatureRank(bundle.recentObservations, config.metric, config.value, tail === "HIGH" ? "HIGH" : "LOW");
       result.push({
         detectorId: "T05", topicKey: `CLIMATE_TAIL:${config.metric}:${tail}`, family: "HISTORY", priority: "P1", format: "F1_RARETE_LOCALE", claim,
         valueLabel: tail === "HIGH" ? "TOP 5 %" : "BAS 5 %", headline: tail === "HIGH" ? "Une chaleur parmi les plus marquées pour la période." : "Une fraîcheur parmi les plus marquées pour la période.",
         proofLine: `${Math.round(config.value)} °C prévus ${config.period}, comparés à ${ref.count} journées locales.`,
-        evidence: [metricEvidence(config.metric, config.value, "°C", bundle.targetDate, "Prévision cible."), { source: "CLIMATE_1991_2020", metric: config.metric, value: tail === "HIGH" ? ref.p95 : ref.p05, unit: "°C", window: "1991-2020 ±7 jours", detail: `${tail === "HIGH" ? "P95" : "P05"} sur ${ref.count} observations.` }],
+        evidence: [
+          metricEvidence(config.metric, config.value, "°C", bundle.targetDate, "Prévision cible."),
+          { source: "CLIMATE_1991_2020", metric: config.metric, value: tail === "HIGH" ? ref.p95 : ref.p05, unit: "°C", window: "1991-2020 ±7 jours", detail: `${tail === "HIGH" ? "P95" : "P05"} sur ${ref.count} observations.` },
+          ...(rollingRank ? [{ source: "METEO_FRANCE_ARCHIVE" as const, metric: "rolling_rank_100", value: rollingRank.rank, unit: "rang", window: `P${rollingRank.sampleSize}`, detail: `Rang exact parmi les ${rollingRank.sampleSize} dernières matinées ou journées, prévision incluse.` }] : [])
+        ],
         trace: { threshold: "outside P05/P95 and >=3C from median; sample>=300", observed: `${round(config.value)}C vs P05=${round(ref.p05)}/P95=${round(ref.p95)}`, sourceKeys: [`climate.${config.metric}`, "daily"] },
         scoreParts: { rarity: 23, magnitude: clamp(Math.abs(config.value - ref.p50) * 3, 12, 20), utility: 12, localSpecificity: 15, clarity: 10, confidence: claim === "EXPECTED_HIGH" ? 10 : 7 }
       });

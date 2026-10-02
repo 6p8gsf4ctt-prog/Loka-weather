@@ -22,6 +22,11 @@ function amount(value: string): string {
   return value.match(/\d+(?:[,.]\d+)?/)?.[0] ?? value;
 }
 
+function ordinal(value: number, feminine = false): string {
+  if (value === 1) return feminine ? "1re" : "1er";
+  return `${value}e`;
+}
+
 function hour(item: DailyInsightEvidenceV2 | undefined): string | null {
   if (!item) return null;
   const exact = item.window.match(/T(\d{2}):(\d{2})/);
@@ -80,7 +85,7 @@ export function dailyInsightPublicCopy(
       subtitle: "",
       editorialLine: warm ? "Une chaleur remarquable\npour la période." : "Une fraîcheur remarquable\npour la période.",
       sourceNote: referenceDate
-        ? `Valeur comparable observée le ${referenceDate}.`
+        ? `Ici, pas vu depuis le ${referenceDate}.`
         : "Comparaison établie à partir de l’historique météo local.",
       comparison: null
     };
@@ -89,9 +94,9 @@ export function dailyInsightPublicCopy(
   if (candidate.detectorId === "C01") {
     const winter = candidate.valueLabel.includes("−");
     return {
-      headline: "CHANGEMENT D’HEURE",
-      subtitle: winter ? "CETTE NUIT, PASSAGE À L’HEURE D’HIVER" : "CETTE NUIT, PASSAGE À L’HEURE D’ÉTÉ",
-      editorialLine: candidate.headline,
+      headline: "1 HEURE",
+      subtitle: "",
+      editorialLine: winter ? "Cette nuit, nous passons\nà l’heure d’hiver." : "Cette nuit, nous passons\nà l’heure d’été.",
       sourceNote: candidate.proofLine,
       comparison: null
     };
@@ -107,12 +112,15 @@ export function dailyInsightPublicCopy(
 
   if (["T08", "T09", "P301"].includes(candidate.detectorId)) {
     const drop = candidate.valueLabel.includes("−") || /perdre|chute/i.test(`${candidate.headline} ${candidate.proofLine}`);
-    const period = firstHour && secondHour ? `ENTRE ${firstHour.toUpperCase()} ET ${secondHour.toUpperCase()}` : "EN QUELQUES HEURES";
+    const startValue = first ? `${first} ${firstUnit}` : null;
+    const endValue = second ? `${second} ${secondUnit}` : null;
     return {
-      headline: `${amount(candidate.valueLabel)} °C DE ${drop ? "MOINS" : "PLUS"}`,
-      subtitle: `${period}${drop ? " CE SOIR" : " AUJOURD’HUI"}`,
-      editorialLine: drop ? "La température devrait chuter rapidement." : "La température devrait grimper rapidement.",
-      sourceNote: candidate.proofLine,
+      headline: `${amount(candidate.valueLabel)} °C`,
+      subtitle: "",
+      editorialLine: drop ? "Une chute rapide des températures\nce soir." : "Une hausse rapide des températures\naujourd’hui.",
+      sourceNote: startValue && endValue && firstHour && secondHour
+        ? `Il fera ${startValue} à ${firstHour}, mais ${drop ? "seulement " : "jusqu’à "}${endValue} à ${secondHour}.`
+        : candidate.proofLine,
       comparison: compared(
         first ? `${first} ${firstUnit}` : null, firstHour ?? "AU DÉPART",
         second ? `${second} ${secondUnit}` : null, secondHour ?? "À LA FIN"
@@ -122,14 +130,20 @@ export function dailyInsightPublicCopy(
 
   if (candidate.detectorId === "T05") {
     const low = /BAS|fraîch/i.test(`${candidate.valueLabel} ${candidate.headline}`);
-    const period = /matin/i.test(candidate.proofLine) ? "CE MATIN" : "AUJOURD’HUI";
+    const morning = /matin|tmin/i.test(`${candidate.proofLine} ${candidate.evidence[0]?.metric ?? ""}`);
+    const rankEvidence = candidate.evidence.find((item) => item.metric === "rolling_rank_100" && typeof item.value === "number");
+    const rank = typeof rankEvidence?.value === "number" ? Math.round(rankEvidence.value) : null;
+    const sampleSize = Number(rankEvidence?.window.replace(/^P/, "")) || 100;
+    const subject = morning ? "matinée" : "journée";
     return {
-      headline: first ? `${first} °C ${period}` : low ? "FRAÎCHEUR INHABITUELLE" : "CHALEUR INHABITUELLE",
-      subtitle: `PARMI LES 5 % DES ${low ? "PLUS FRAIS" : "PLUS CHAUDS"} DE LA PÉRIODE`,
-      editorialLine: low ? "Une matinée particulièrement fraîche pour la saison." : "Une journée particulièrement chaude pour la saison.",
-      sourceNote: candidate.proofLine.replace(/comparés? à \d+ (?:journées|matinées) locales\.?/i, "dans l’historique météo local."),
+      headline: first ? `${first} °C` : candidate.valueLabel,
+      subtitle: "",
+      editorialLine: low ? `Une ${subject} parmi les plus fraîches\nde ces derniers mois.` : `Une ${subject} parmi les plus chaudes\nde ces derniers mois.`,
+      sourceNote: rank && rank <= 5
+        ? `Ce serait la ${ordinal(rank, true)} ${subject} la plus ${low ? "fraîche" : "chaude"} des ${sampleSize} dernières.`
+        : `Un niveau inhabituel pour cette période de l’année.`,
       comparison: compared(
-        first ? `${first} ${firstUnit}` : null, period,
+        first ? `${first} ${firstUnit}` : null, morning ? "CE MATIN" : "AUJOURD’HUI",
         second ? `${second} ${secondUnit}` : null, `SEUIL DES 5 % LES PLUS ${low ? "FRAIS" : "CHAUDS"}`
       ) ?? fallbackComparison
     };
@@ -139,9 +153,9 @@ export function dailyInsightPublicCopy(
     const warmer = candidate.valueLabel.includes("+");
     const period = /^([^,]+),/.exec(candidate.headline)?.[1]?.toUpperCase() ?? "AUJOURD’HUI";
     return {
-      headline: `${amount(candidate.valueLabel)} °C DE ${warmer ? "PLUS" : "MOINS"}`,
-      subtitle: `${period} PAR RAPPORT À HIER`,
-      editorialLine: candidate.headline,
+      headline: `${amount(candidate.valueLabel)} °C`,
+      subtitle: "",
+      editorialLine: `${period.charAt(0)}${period.slice(1).toLowerCase()}, un net changement\npar rapport à hier.`,
       sourceNote: candidate.proofLine,
       comparison: fallbackComparison
     };
@@ -150,35 +164,35 @@ export function dailyInsightPublicCopy(
   if (candidate.detectorId === "T06") {
     const above = candidate.valueLabel.includes("+") || /au-dessus/i.test(candidate.headline);
     return {
-      headline: `${amount(candidate.valueLabel)} °C ${above ? "AU-DESSUS" : "EN DESSOUS"}`,
-      subtitle: `${above ? "PLUS CHAUD" : "PLUS FRAIS"} QUE D’HABITUDE POUR LA SAISON`,
-      editorialLine: candidate.headline.replace("notre référence locale", "la valeur habituelle"),
+      headline: `${amount(candidate.valueLabel)} °C`,
+      subtitle: "",
+      editorialLine: `${above ? "Plus chaud" : "Plus frais"} que d’habitude\npour la saison.`,
       sourceNote: "Comparaison avec les journées locales de la même période.",
       comparison: fallbackComparison
     };
   }
 
   if (candidate.detectorId === "R01") return {
-    headline: `${amount(candidate.valueLabel)} JOURS PRESQUE SECS`,
-    subtitle: "MOINS DE 1 MM DE PLUIE PAR JOUR",
-    editorialLine: candidate.headline,
+    headline: `${amount(candidate.valueLabel)} JOURS`,
+    subtitle: "",
+    editorialLine: "Une longue séquence presque sèche\nse poursuit.",
     sourceNote: candidate.proofLine,
     comparison: null
   };
 
   if (candidate.detectorId === "R02") return {
-    headline: `PLUIE APRÈS ${amount(candidate.valueLabel)} JOURS`,
-    subtitle: "LE RETOUR D’UN TEMPS PLUS ARROSÉ AUJOURD’HUI",
-    editorialLine: candidate.headline,
+    headline: `${amount(candidate.valueLabel)} JOURS`,
+    subtitle: "",
+    editorialLine: "La pluie devrait faire son retour\naujourd’hui.",
     sourceNote: candidate.proofLine,
     comparison: null
   };
 
   if (candidate.detectorId === "R04") return {
-    headline: first ? `${first} MM ATTENDUS` : "PLUIE REMARQUABLE",
-    subtitle: "PARMI LES 5 % DES CUMULS LES PLUS ÉLEVÉS DE LA PÉRIODE",
-    editorialLine: "Une journée particulièrement pluvieuse pour la saison pourrait se profiler.",
-    sourceNote: candidate.proofLine.replace(/P95/gi, "des 5 % les plus élevés"),
+    headline: first ? `${first} MM` : candidate.valueLabel,
+    subtitle: "",
+    editorialLine: "Une journée particulièrement pluvieuse\npour la saison.",
+    sourceNote: "Un cumul inhabituellement élevé est attendu aujourd’hui.",
     comparison: compared(
       first ? `${first} ${firstUnit}` : null, "CUMUL PRÉVU",
       second ? `${second} ${secondUnit}` : null, "SEUIL DES 5 % LES PLUS ARROSÉS"
@@ -186,9 +200,9 @@ export function dailyInsightPublicCopy(
   };
 
   if (candidate.detectorId === "R05") return {
-    headline: first ? `${first} MM ATTENDUS` : candidate.valueLabel,
-    subtitle: "UN PASSAGE PLUVIEUX MARQUÉ AUJOURD’HUI",
-    editorialLine: candidate.headline,
+    headline: first ? `${first} MM` : candidate.valueLabel,
+    subtitle: "",
+    editorialLine: "Un passage pluvieux marqué\nest attendu aujourd’hui.",
     sourceNote: candidate.proofLine,
     comparison: compared(
       first ? `${first} ${firstUnit}` : null, "SUR LA JOURNÉE",
@@ -197,18 +211,20 @@ export function dailyInsightPublicCopy(
   };
 
   if (candidate.detectorId === "V03") return {
-    headline: `RAFALES À ${amount(candidate.valueLabel)} KM/H`,
-    subtitle: "UN VENT FORT ATTENDU AUJOURD’HUI",
-    editorialLine: candidate.headline,
+    headline: `${amount(candidate.valueLabel)} KM/H`,
+    subtitle: "",
+    editorialLine: "De fortes rafales sont attendues\naujourd’hui.",
     sourceNote: candidate.proofLine,
     comparison: null
   };
 
   if (candidate.detectorId === "V02") return {
-    headline: "RAFALES EN FORTE HAUSSE",
-    subtitle: first && second ? `DE ${first} À ${second} KM/H CET APRÈS-MIDI` : "LE VENT VA NETTEMENT SE RENFORCER",
-    editorialLine: candidate.headline,
-    sourceNote: candidate.proofLine,
+    headline: `${amount(candidate.valueLabel)} KM/H`,
+    subtitle: "",
+    editorialLine: "Le vent devrait nettement se renforcer\ncet après-midi.",
+    sourceNote: first && second && firstHour && secondHour
+      ? `Les rafales passeront de ${first} km/h à ${firstHour} à ${second} km/h à ${secondHour}.`
+      : candidate.proofLine,
     comparison: compared(
       first ? `${first} ${firstUnit}` : null, firstHour ?? "AU DÉPART",
       second ? `${second} ${secondUnit}` : null, secondHour ?? "AU PLUS FORT"
@@ -216,9 +232,9 @@ export function dailyInsightPublicCopy(
   };
 
   if (candidate.detectorId === "B01") return {
-    headline: `${amount(candidate.valueLabel)} H DE BROUILLARD`,
-    subtitle: "UNE VISIBILITÉ RÉDUITE JUSQU’EN MATINÉE",
-    editorialLine: candidate.headline,
+    headline: `${amount(candidate.valueLabel)} H`,
+    subtitle: "",
+    editorialLine: "Le brouillard pourrait durer\nune bonne partie de la matinée.",
     sourceNote: candidate.proofLine,
     comparison: null
   };
@@ -226,19 +242,19 @@ export function dailyInsightPublicCopy(
   if (candidate.detectorId === "A01") {
     const rise = candidate.valueLabel.includes("+");
     return {
-      headline: `PRESSION EN FORTE ${rise ? "HAUSSE" : "BAISSE"}`,
-      subtitle: `${amount(candidate.valueLabel)} HPA D’ÉCART DANS LA JOURNÉE`,
-      editorialLine: candidate.headline,
+      headline: `${amount(candidate.valueLabel)} HPA`,
+      subtitle: "",
+      editorialLine: `La pression devrait fortement ${rise ? "remonter" : "chuter"}\nau fil de la journée.`,
       sourceNote: candidate.proofLine,
       comparison: null
     };
   }
 
   if (candidate.detectorId === "M01") return {
-    headline: `${amount(candidate.valueLabel)} °C D’ÉCART`,
-    subtitle: "ENTRE L’AIR ET L’OCÉAN AUJOURD’HUI",
-    editorialLine: candidate.headline,
-    sourceNote: candidate.proofLine,
+    headline: `${amount(candidate.valueLabel)} °C`,
+    subtitle: "",
+    editorialLine: "Un fort contraste entre la plage\net l’océan.",
+    sourceNote: first && second ? `Il fera ${first} °C dans l’air, contre ${second} °C dans l’eau.` : candidate.proofLine,
     comparison: compared(
       first ? `${first} ${firstUnit}` : null, "DANS L’AIR",
       second ? `${second} ${secondUnit}` : null, "DANS L’OCÉAN"
@@ -246,9 +262,9 @@ export function dailyInsightPublicCopy(
   };
 
   if (candidate.detectorId === "P304") return {
-    headline: `${amount(candidate.valueLabel)} °C D’AMPLITUDE`,
-    subtitle: "ENTRE LE MOMENT LE PLUS FRAIS ET LE PLUS DOUX",
-    editorialLine: candidate.headline,
+    headline: `${amount(candidate.valueLabel)} °C`,
+    subtitle: "",
+    editorialLine: "Un grand écart de température\nau fil de la journée.",
     sourceNote: candidate.proofLine,
     comparison: compared(
       first ? `${first} ${firstUnit}` : null, "AU PLUS FRAIS",

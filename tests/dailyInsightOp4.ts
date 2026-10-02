@@ -16,9 +16,9 @@ ok(scenarios.every((scenario) => scenario.score >= 80 && scenario.story.frame ==
 ok(new Set(scenarios.map((scenario) => scenario.story.signalId)).size === scenarios.length, "signal_ids_are_unique");
 ok(scenarios.some((scenario) => scenario.story.detector === "T08" && scenario.story.presentation.comparison?.right.value === "17 °C"), "hourly_shift_has_explicit_before_after_proof");
 ok(scenarios.some((scenario) => scenario.story.detector === "M01"), "coastal_local_signal_is_represented");
-ok(scenarios.some((scenario) => scenario.story.detector === "T05" && scenario.story.presentation.headline === "8 °C CE MATIN"), "percentile_case_uses_plain_public_wording");
-ok(scenarios.some((scenario) => scenario.story.detector === "T08" && scenario.story.presentation.headline === "10 °C DE MOINS CE SOIR"), "thermal_drop_cannot_be_read_as_minus_ten_degrees");
-ok(scenarios.some((scenario) => scenario.story.detector === "T02" && scenario.story.presentation.headline === "34 °C" && scenario.story.presentation.editorialLine === "Une chaleur remarquable\npour un début octobre." && scenario.story.sourceNote === "Valeur comparable observée le 18 mars."), "rare_heat_uses_the_validated_reference_composition");
+ok(scenarios.some((scenario) => scenario.story.detector === "T05" && scenario.story.presentation.headline === "8 °C" && scenario.story.sourceNote.includes("2e matinée")), "percentile_case_uses_an_exact_rank_and_one_metric");
+ok(scenarios.some((scenario) => scenario.story.detector === "T08" && scenario.story.presentation.headline === "10 °C" && scenario.story.sourceNote === "Il fera 27 °C à 20 h, mais seulement 17 °C à 23 h."), "thermal_drop_uses_one_metric_and_a_phrased_timeline");
+ok(scenarios.some((scenario) => scenario.story.detector === "T02" && scenario.story.presentation.headline === "34 °C" && scenario.story.presentation.editorialLine === "Une chaleur remarquable\npour un début octobre." && scenario.story.sourceNote === "À Tarnos, pas vu depuis le 18 mars."), "rare_heat_uses_the_validated_reference_composition");
 
 const actual = {
   version: "1.0.0", mode: "LAB_ONLY", citySlug: "tarnos", targetDate: date,

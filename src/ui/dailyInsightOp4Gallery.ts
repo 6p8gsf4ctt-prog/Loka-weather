@@ -41,14 +41,14 @@ function model(args: ScenarioInput, _city: CityConfig, date: string): Pick<Op4Sc
   const useComparison = args.format === "F1_RARETE_LOCALE" || args.format === "F2_EVOLUTION_RAPIDE" || args.format === "F5_PHENOMENE_LOCAL";
   const comparisonItems = args.detectorId === "T08" ? args.evidence.slice(1, 3) : [args.evidence[0], args.evidence[args.evidence.length - 1]];
   const publicCopy: Record<string, { headline: string; subtitle: string; editorialLine?: string; sourceNote?: string }> = {
-    T02: { headline: "34 °C", subtitle: "", editorialLine: "Une chaleur remarquable\npour un début octobre.", sourceNote: "Valeur comparable observée le 18 mars." },
-    T05: { headline: "8 °C CE MATIN", subtitle: "PARMI LES 5 % DES PLUS FRAIS DE LA PÉRIODE", editorialLine: "Une matinée particulièrement fraîche pour la saison.", sourceNote: "Seulement 5 % des matinées comparables ont été plus froides." },
-    T08: { headline: "10 °C DE MOINS CE SOIR", subtitle: "DE 27 °C À 17 °C ENTRE 20 H ET 23 H", editorialLine: "La température devrait chuter rapidement ce soir." },
-    V02: { headline: "RAFALES EN FORTE HAUSSE", subtitle: "DE 30 À 65 KM/H CET APRÈS-MIDI" },
-    R02: { headline: "PLUIE APRÈS 18 JOURS", subtitle: "LE RETOUR D’UN TEMPS PLUS ARROSÉ AUJOURD’HUI" },
-    S04: { headline: "4e JOUR PLUS CHAUD", subtitle: "ÉCART MOYEN : +4,2 °C AU-DESSUS DES NORMALES", editorialLine: "Quatrième journée plus chaude que d’habitude pour la saison." },
-    C01: { headline: "CHANGEMENT D’HEURE", subtitle: "CETTE NUIT, PASSAGE À L’HEURE D’HIVER" },
-    M01: { headline: "11 °C D’ÉCART", subtitle: "ENTRE L’AIR ET L’OCÉAN AUJOURD’HUI" }
+    T02: { headline: "34 °C", subtitle: "", editorialLine: "Une chaleur remarquable\npour un début octobre.", sourceNote: "À Tarnos, pas vu depuis le 18 mars." },
+    T05: { headline: "8 °C", subtitle: "", editorialLine: "Une matinée parmi les plus fraîches\nde ces derniers mois.", sourceNote: "Ce serait la 2e matinée la plus fraîche des 100 derniers jours." },
+    T08: { headline: "10 °C", subtitle: "", editorialLine: "Une chute rapide des températures\nce soir.", sourceNote: "Il fera 27 °C à 20 h, mais seulement 17 °C à 23 h." },
+    V02: { headline: "35 KM/H", subtitle: "", editorialLine: "Le vent devrait nettement se renforcer\ncet après-midi.", sourceNote: "Les rafales passeront de 30 km/h à 12 h à 65 km/h à 17 h." },
+    R02: { headline: "18 JOURS", subtitle: "", editorialLine: "La pluie devrait faire son retour\naujourd’hui.", sourceNote: "Environ 8 mm sont attendus après 18 jours presque secs." },
+    S04: { headline: "4 JOURS", subtitle: "", editorialLine: "Une série de journées plus chaudes\nque d’habitude.", sourceNote: "L’écart moyen atteint 4,2 °C au-dessus des normales." },
+    C01: { headline: "1 HEURE", subtitle: "", editorialLine: "Cette nuit, nous passons\nà l’heure d’hiver.", sourceNote: "À 3 h, il sera de nouveau 2 h." },
+    M01: { headline: "11 °C", subtitle: "", editorialLine: "Un fort contraste entre la plage\net l’océan.", sourceNote: "Il fera 29 °C dans l’air, contre 18 °C dans l’eau." }
   };
   const copy = publicCopy[args.detectorId];
   return {
