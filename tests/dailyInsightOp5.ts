@@ -43,6 +43,9 @@ ok(evaluateDailyInsightOp5({ DAILY_INSIGHT_OP5_ENABLED: "true", DAILY_INSIGHT_OP
 ok(evaluateDailyInsightOp5({ DAILY_INSIGHT_OP5_ENABLED: "true" }, { status: "UNAVAILABLE", detail: "missing", selection: null }, now).mode === "LEGACY_FALLBACK", "missing_cache_uses_legacy");
 ok(evaluateDailyInsightOp5({ DAILY_INSIGHT_OP5_ENABLED: "true", DAILY_INSIGHT_OP5_MAX_DRAFT_AGE_HOURS: "12" }, ready, new Date("2026-10-01T00:00:00Z")).mode === "LEGACY_FALLBACK", "stale_cache_uses_legacy");
 ok(evaluateDailyInsightOp5({ DAILY_INSIGHT_OP5_ENABLED: "true" }, ready, now).mode === "ACTIVE", "validated_winner_is_active");
+const discouragedCandidate = { ...candidate!, id: "2026-09-30:A01", detectorId: "A01", eligible: false, rejectionReasons: ["SCORE_BELOW_THRESHOLD", "EDITORIAL_INTEREST_FLOOR_80"], score: { ...candidate!.score, final: 72 } };
+const manualSelection: DailyInsightSelectionResult = { ...selected, winner: discouragedCandidate, candidates: [discouragedCandidate], manualOverride: { candidateId: discouragedCandidate.id, selectedAt: "2026-09-30T05:50:00.000Z", originalRank: 1, classification: "DISCOURAGED" } };
+ok(evaluateDailyInsightOp5({ DAILY_INSIGHT_OP5_ENABLED: "true" }, { status: "READY", detail: "manual", selection: manualSelection }, now).mode === "ACTIVE", "validated_manual_choice_can_override_editorial_score_only");
 const silenceSelection = { ...selected, status: "NO_ELIGIBLE_CANDIDATE" as const, winner: null, candidates: [] };
 ok(evaluateDailyInsightOp5({ DAILY_INSIGHT_OP5_ENABLED: "true" }, { status: "READY", detail: "ready", selection: silenceSelection }, now).mode === "EDITORIAL_SILENCE", "explicit_no_signal_is_silence");
 
@@ -55,4 +58,4 @@ ok(html.includes("À REMARQUER AUJOURD’HUI") && html.includes("DAILY_STORY_SHA
 const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1];
 ok(Boolean(script) && (() => { try { new Function(script!); return true; } catch { return false; } })(), "story_runtime_is_valid");
 
-console.log(`DAILY_INSIGHT_OP5 ${passed}/11 PASS`);
+console.log(`DAILY_INSIGHT_OP5 ${passed}/12 PASS`);

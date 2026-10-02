@@ -4,6 +4,7 @@ import { resolvePublicSurfaceSafely } from "./engine/publicFailSafe";
 import { buildDailyInsightPreview } from "./engine/dailyInsight/previewEngine";
 import { evaluateDailyInsightStoryRollout, isDailyInsightStoryEnabled, isDailyInsightStoryRollbackRequested, logDailyInsightStoryRollout } from "./engine/dailyInsight/rollout";
 import { evaluateDailyInsightOp5, isDailyInsightOp5Enabled, isDailyInsightOp5RollbackRequested } from "./engine/dailyInsight/op5Rollout";
+import { applyDailyInsightManualSelection, clearDailyInsightManualSelection as restoreDailyInsightAutomaticSelection, dailyInsightCandidateManualStatus } from "./engine/dailyInsight/editorialSelection";
 import { DAILY_INSIGHT_BOOTSTRAP_CRON, dailyInsightOp5ScheduledAction, dailyInsightScheduledAction } from "./engine/dailyInsight/schedule";
 import { generateDailyInsightLabPreview } from "./dailyInsightLab";
 import { WEEKLY_CLIMATE_STATION_ID } from "./engine/weekly/climateReferences";
@@ -17,7 +18,8 @@ import { buildEditorialLearningExport } from "./storage/editorialFeedbackExport"
 import { saveWeeklyPublication, weeklyPublicationForRange } from "./storage/weeklyPublications";
 import { loadWeeklyPreviewDraft, saveWeeklyPreviewDraft } from "./storage/weeklyPreviewDrafts";
 import { loadDailyInsightReference } from "./storage/dailyInsightReferences";
-import { loadDailyInsightEditorialDraft } from "./storage/dailyInsightEditorialDrafts";
+import { loadDailyInsightEditorialDraft, saveDailyInsightEditorialDraft } from "./storage/dailyInsightEditorialDrafts";
+import { clearDailyInsightManualSelection, saveDailyInsightManualSelection } from "./storage/dailyInsightManualSelections";
 import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
 import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
@@ -163,6 +165,54 @@ export default {
       return new Response(renderDailyInsightCandidateStory({ ...result.surface.payload, date: targetDate }, result.city, winner), {
         headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-loka-graphic-engine": "daily-shared" }
       });
+    }
+
+    if (url.pathname === "/daily-insight-candidate-story" && request.method === "GET") {
+      const slug = url.searchParams.get("city") || "tarnos";
+      const result = await safeToday(env, slug);
+      if (!result) return json({ error: "unknown_city" }, 404);
+      if (result.surface.engine === "UNAVAILABLE") return json({ error: result.surface.reason }, 503);
+      const targetDate = url.searchParams.get("date") || result.date;
+      const candidateId = url.searchParams.get("candidate") || "";
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate) || !candidateId) return json({ error: "date_and_candidate_required" }, 400);
+      let draft = await loadDailyInsightEditorialDraft(env.DB, result.city.slug, targetDate);
+      if (draft.status !== "READY" || !draft.selection) {
+        await generateDailyInsightLabPreview(env, result.city, targetDate, new Date());
+        draft = await loadDailyInsightEditorialDraft(env.DB, result.city.slug, targetDate);
+      }
+      const candidate = draft.selection?.candidates.find((item) => item.id === candidateId) ?? null;
+      if (!candidate) return json({ error: "candidate_not_found" }, 404);
+      if (dailyInsightCandidateManualStatus(candidate) === "BLOCKED") return json({ error: "candidate_blocked" }, 409);
+      return new Response(renderDailyInsightCandidateStory({ ...result.surface.payload, date: targetDate }, result.city, candidate), {
+        headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-loka-daily-insight-candidate": candidate.detectorId }
+      });
+    }
+
+    if (url.pathname === "/api/admin/daily-insight/select" && request.method === "POST") {
+      if (!isAuthorized(request, env)) return unauthorized();
+      let body: { city?: unknown; date?: unknown; candidateId?: unknown };
+      try { body = await request.json() as typeof body; } catch { return json({ error: "invalid_json" }, 400); }
+      const city = getCity(typeof body.city === "string" ? body.city : "tarnos");
+      const targetDate = typeof body.date === "string" ? body.date : "";
+      const candidateId = typeof body.candidateId === "string" ? body.candidateId : body.candidateId === null ? null : undefined;
+      if (!city || !/^\d{4}-\d{2}-\d{2}$/.test(targetDate) || candidateId === undefined) return json({ error: "city_date_and_candidate_required" }, 400);
+      const draft = await loadDailyInsightEditorialDraft(env.DB, city.slug, targetDate);
+      if (draft.status !== "READY" || !draft.selection) return json({ error: "daily_insight_draft_unavailable" }, 409);
+      try {
+        if (candidateId === null) {
+          const automatic = restoreDailyInsightAutomaticSelection(draft.selection);
+          await clearDailyInsightManualSelection(env.DB, city.slug, targetDate);
+          await saveDailyInsightEditorialDraft(env.DB, automatic);
+          return json({ ok: true, mode: "AUTOMATIC", candidateId: automatic.winner?.id ?? null, detectorId: automatic.winner?.detectorId ?? null });
+        }
+        const selectedAt = new Date().toISOString();
+        const selected = applyDailyInsightManualSelection(draft.selection, candidateId, selectedAt);
+        await saveDailyInsightManualSelection(env.DB, { citySlug: city.slug, targetDate, candidateId, selectedAt });
+        await saveDailyInsightEditorialDraft(env.DB, selected);
+        return json({ ok: true, mode: "MANUAL", candidateId, detectorId: selected.winner?.detectorId ?? null, classification: selected.manualOverride?.classification });
+      } catch (error) {
+        return json({ error: error instanceof Error ? error.message : String(error) }, 409);
+      }
     }
 
     if (url.pathname === "/daily-insight-op4-gallery" && request.method === "GET") {

@@ -1,10 +1,11 @@
 import { MODELS } from "./config/models";
 import { buildConsensus } from "./engine/consensus";
 import { buildDailyInsightDataBundle, type DailyInsightDataBundle } from "./engine/dailyInsight/dataBundle";
-import { selectDailyInsightEditorial, type DailyInsightSelectionResult } from "./engine/dailyInsight/editorialSelection";
+import { applyDailyInsightManualSelection, selectDailyInsightEditorial, type DailyInsightSelectionResult } from "./engine/dailyInsight/editorialSelection";
 import { WEEKLY_CLIMATE_STATION_ID } from "./engine/weekly/climateReferences";
 import { saveDailyInsightDataBundle } from "./storage/dailyInsightDataCache";
 import { recentDailyInsightSelectionHistory, saveDailyInsightEditorialDraft } from "./storage/dailyInsightEditorialDrafts";
+import { loadDailyInsightManualSelection } from "./storage/dailyInsightManualSelections";
 import { loadDailyInsightReference } from "./storage/dailyInsightReferences";
 import type { CityConfig, Env, ModelForecast } from "./types";
 import { collectDailyInsightExternalData } from "./weather/dailyInsightDataSources";
@@ -144,7 +145,17 @@ export async function generateDailyInsightLabPreview(
 
     const selectionStartedAt = performance.now();
     const history = await recentDailyInsightSelectionHistory(env.DB, city.slug, targetDate, 7);
-    const selection = selectDailyInsightEditorial({ bundle, recentSelections: history });
+    const automaticSelection = selectDailyInsightEditorial({ bundle, recentSelections: history });
+    const manualSelection = await loadDailyInsightManualSelection(env.DB, city.slug, targetDate);
+    let selection = automaticSelection;
+    if (manualSelection) {
+      try {
+        selection = applyDailyInsightManualSelection(automaticSelection, manualSelection.candidateId, manualSelection.selectedAt);
+      } catch {
+        // A stale or newly blocked choice never overrides the current engine.
+        selection = automaticSelection;
+      }
+    }
     const selectionMs = performance.now() - selectionStartedAt;
 
     const persistenceStartedAt = performance.now();

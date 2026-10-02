@@ -4,6 +4,9 @@ import {
   type DailyInsightHourlyPoint
 } from "../src/engine/dailyInsight/dataBundle";
 import {
+  applyDailyInsightManualSelection,
+  clearDailyInsightManualSelection,
+  dailyInsightCandidateManualStatus,
   selectDailyInsightEditorial,
   validateDailyInsightSelection,
   type DailyInsightSelectionHistory
@@ -144,6 +147,18 @@ ok(validateDailyInsightSelection(JSON.parse(JSON.stringify(calm))).bundleId === 
 const technicalOnly = selectDailyInsightEditorial({ bundle: fixture({ pressureChange: 8.6 }) });
 const pressureCandidate = technicalOnly.candidates.find((candidate) => candidate.detectorId === "A01");
 ok(technicalOnly.winner?.priority === "P3" && pressureCandidate?.rejectionReasons.includes("EDITORIAL_INTEREST_FLOOR_80") === true, "technical_pressure_shift_is_rejected_without_blocking_the_daily_rendezvous");
+ok(Boolean(pressureCandidate) && dailyInsightCandidateManualStatus(pressureCandidate!) === "DISCOURAGED", "low_editorial_score_remains_a_manual_option");
+const manualPressure = applyDailyInsightManualSelection(technicalOnly, pressureCandidate!.id, "2026-09-30T08:00:00.000Z");
+ok(manualPressure.winner?.detectorId === "A01" && manualPressure.manualOverride?.classification === "DISCOURAGED", "manual_choice_can_select_a_low_rank_valid_fact");
+ok(validateDailyInsightSelection(JSON.parse(JSON.stringify(manualPressure))).manualOverride?.candidateId === pressureCandidate!.id, "manual_choice_survives_validation");
+ok(clearDailyInsightManualSelection(manualPressure).winner?.id === technicalOnly.winner?.id, "automatic_recommendation_can_be_restored");
+const blockedClock = duplicate.candidates.find((candidate) => candidate.detectorId === "C01")!;
+ok(dailyInsightCandidateManualStatus(blockedClock) === "BLOCKED", "duplicate_or_misleading_fact_cannot_be_forced");
+
+const nocturnalDryRain = Array(24).fill(.4);
+for (let hour = 0; hour < 9; hour++) nocturnalDryRain[hour] = 0;
+const nocturnalDry = selectDailyInsightEditorial({ bundle: fixture({ rain: nocturnalDryRain }) });
+ok(!nocturnalDry.candidates.some((candidate) => candidate.detectorId === "P303"), "mostly_nocturnal_dry_window_is_not_a_candidate");
 
 const sevenDayFallbackHistory: DailyInsightSelectionHistory[] = [
   { date: "2026-09-23", detectorId: "P301", topicKey: "pivot", family: "TEMPERATURE", format: "F2_EVOLUTION_RAPIDE" },
@@ -158,4 +173,4 @@ const rotatedFallback = selectDailyInsightEditorial({ bundle: fixture(), recentS
 ok(rotatedFallback.status === "SELECTED" && rotatedFallback.winner?.priority === "P3", "rotation_never_removes_every_daily_rendezvous");
 ok(rotatedFallback.winner?.detectorId !== "P303", "rotation_prefers_another_daily_family_than_yesterday");
 
-console.log(`DAILY_INSIGHT_EDITORIAL_SELECTION ${passed}/16 PASS`);
+console.log(`DAILY_INSIGHT_EDITORIAL_SELECTION ${passed}/22 PASS`);

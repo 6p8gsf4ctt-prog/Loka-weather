@@ -76,9 +76,12 @@ ok(marine.presentation.headline === "11 °C" && marine.sourceNote === "Il fera 2
 const usefulWindow = dailyInsightToSharedGraphic(candidate({ detectorId: "P302", family: "ATMOSPHERE", format: "F5_PHENOMENE_LOCAL", priority: "P3", valueLabel: "14 H — 17 H", headline: "Voici le créneau le plus favorable de la journée.", proofLine: "Une fenêtre sèche et peu venteuse." }));
 ok(usefulWindow.presentation.headline.startsWith("MEILLEUR CRÉNEAU") && !usefulWindow.presentation.headline.includes("+"), "fallback_window_remains_immediately_useful");
 
+const dryWindow = dailyInsightToSharedGraphic(candidate({ detectorId: "P303", family: "RAIN", format: "F3_SEQUENCE", priority: "P3", valueLabel: "6 HEURES", headline: "La plus longue fenêtre sèche du jour se dessine.", proofLine: "Elle devrait s’étendre approximativement de 11 h à 17 h." }));
+ok(dryWindow.presentation.headline === "6 H" && !dryWindow.presentation.headline.includes("SANS PLUIE") && dryWindow.presentation.editorialLine.includes("sans pluie"), "dry_window_keeps_one_neutral_metric_and_explains_it_below");
+
 const fog = dailyInsightToSharedGraphic(candidate({ detectorId: "B01", family: "VISIBILITY", format: "F5_PHENOMENE_LOCAL", valueLabel: "6 HEURES", headline: "Un brouillard durable pourrait tenir jusqu’en matinée.", proofLine: "Visibilité inférieure à 1 km entre 4 h et 10 h." }));
 ok(fog.presentation.headline === "6 H" && fog.presentation.editorialLine.includes("brouillard"), "fog_uses_one_metric_and_names_the_phenomenon_in_editorial_copy");
 
 ok([drop, percentile, wind, rain, clock, marine, usefulWindow, fog].every((story) => story.frame === "DAILY_STORY_SHARED_V1"), "editorial_update_never_changes_the_graphic_frame");
 
-console.log(`DAILY_INSIGHT_PUBLIC_COPY ${passed}/13 PASS`);
+console.log(`DAILY_INSIGHT_PUBLIC_COPY ${passed}/14 PASS`);

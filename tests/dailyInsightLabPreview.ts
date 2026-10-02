@@ -70,13 +70,14 @@ const ready: DailyInsightLabPreviewResult = {
 };
 
 const html = renderDailyInsightLabPreview(CITIES.tarnos, ready);
-ok(html.includes("Daily Insight Lab Preview") && html.includes("LABORATOIRE INDÉPENDANT"), "surface_identifies_independent_lab");
-ok(html.includes("Aucune publication automatique") && html.includes("export manuel uniquement"), "surface_forbids_automatic_publication");
+ok(html.includes("Daily Insight Lab Preview") && html.includes("LABORATOIRE ÉDITORIAL"), "surface_identifies_editorial_lab");
+ok(html.includes("Aucune publication Instagram automatique") && html.includes("export manuel uniquement"), "surface_forbids_automatic_instagram_publication");
 ok(html.includes("T08") && html.includes("99/100") && html.includes("Preuves et trace"), "editorial_audit_is_visible");
 ok(html.includes('<iframe class="shared-story"') && html.includes("daily-insight-lab-shared-story"), "story_uses_shared_daily_renderer_surface");
-ok(!html.includes("dailyInsightStoryRuntime") && !html.includes("fetch("), "lab_has_no_independent_graphic_or_publish_runtime");
+ok(!html.includes("dailyInsightStoryRuntime") && html.includes("/api/admin/daily-insight/select"), "lab_uses_shared_graphics_and_exposes_controlled_manual_selection");
 ok(html.includes("2026-09-30") && !html.includes("TEMP_DROP:20-23</div>"), "story_date_comes_from_request_scope");
 ok(html.includes("renderer de /daily-graphic-preview"), "shared_renderer_is_explicitly_auditable");
+ok(html.includes("Toutes les possibilités classées") && html.includes("Prévisualiser") && html.includes("Clé d’administration"), "ranked_candidates_can_be_previewed_and_selected");
 
 const unavailable: DailyInsightLabPreviewResult = {
   ...ready,
@@ -108,5 +109,5 @@ const unavailableDb = {
   ok(result.status === "REFERENCE_UNAVAILABLE" && result.forecast.modelCount === 0, "missing_reference_stops_before_weather_capture");
   ok(queriedSql.length === 1 && queriedSql[0].includes("daily_insight_reference_cache"), "unavailable_path_reads_only_dedicated_reference_cache");
   ok(!queriedSql.some((sql) => /\bforecasts\b|daily_scene_ledger|official_generations/i.test(sql)), "lab_never_touches_active_daily_tables");
-  console.log(`DAILY_INSIGHT_LAB_PREVIEW ${passed}/11 PASS`);
+  console.log(`DAILY_INSIGHT_LAB_PREVIEW ${passed}/12 PASS`);
 })().catch((error) => { throw error; });

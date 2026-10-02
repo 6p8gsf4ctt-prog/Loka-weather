@@ -281,9 +281,9 @@ export function dailyInsightPublicCopy(
   };
 
   if (candidate.detectorId === "P303") return {
-    headline: `${amount(candidate.valueLabel)} H SANS PLUIE`,
-    subtitle: "LA PLUS LONGUE PÉRIODE SÈCHE DE LA JOURNÉE",
-    editorialLine: candidate.headline,
+    headline: `${amount(candidate.valueLabel)} H`,
+    subtitle: "",
+    editorialLine: "Une vraie fenêtre sans pluie\ndans la journée.",
     sourceNote: candidate.proofLine,
     comparison: null
   };

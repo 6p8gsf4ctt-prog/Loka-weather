@@ -97,6 +97,12 @@ export interface DailyInsightSelectionResult {
   publicationThreshold: typeof DAILY_INSIGHT_PUBLICATION_THRESHOLD;
   winner: DailyInsightCandidateV2 | null;
   candidates: DailyInsightCandidateV2[];
+  manualOverride?: {
+    candidateId: string;
+    selectedAt: string;
+    originalRank: number;
+    classification: "PUBLISHABLE" | "DISCOURAGED";
+  };
   audit: {
     generated: number;
     eligible: number;
@@ -104,6 +110,47 @@ export interface DailyInsightSelectionResult {
     rejectionCounts: Record<string, number>;
     appliedRotationPenalties: number;
   };
+}
+
+export type DailyInsightManualStatus = "PUBLISHABLE" | "DISCOURAGED" | "BLOCKED";
+
+const SOFT_MANUAL_REJECTIONS = new Set(["SCORE_BELOW_THRESHOLD"]);
+
+/** A human may overrule editorial strength, never factual or safety guards. */
+export function dailyInsightCandidateManualStatus(candidate: DailyInsightCandidateV2): DailyInsightManualStatus {
+  if (candidate.eligible) return "PUBLISHABLE";
+  const hardReasons = candidate.rejectionReasons.filter((reason) =>
+    !SOFT_MANUAL_REJECTIONS.has(reason) && !reason.startsWith("EDITORIAL_INTEREST_FLOOR_")
+  );
+  return hardReasons.length === 0 && candidate.claim !== "UNPUBLISHABLE" ? "DISCOURAGED" : "BLOCKED";
+}
+
+export function applyDailyInsightManualSelection(
+  selection: DailyInsightSelectionResult,
+  candidateId: string,
+  selectedAt = new Date().toISOString()
+): DailyInsightSelectionResult {
+  const candidate = selection.candidates.find((item) => item.id === candidateId);
+  if (!candidate) throw new Error("daily_insight_manual_candidate_not_found");
+  const classification = dailyInsightCandidateManualStatus(candidate);
+  if (classification === "BLOCKED") throw new Error("daily_insight_manual_candidate_blocked");
+  return {
+    ...selection,
+    status: "SELECTED",
+    winner: candidate,
+    manualOverride: {
+      candidateId,
+      selectedAt,
+      originalRank: selection.candidates.findIndex((item) => item.id === candidateId) + 1,
+      classification
+    }
+  };
+}
+
+export function clearDailyInsightManualSelection(selection: DailyInsightSelectionResult): DailyInsightSelectionResult {
+  const winner = selection.candidates.find((candidate) => candidate.eligible) ?? null;
+  const { manualOverride: _manualOverride, ...automatic } = selection;
+  return { ...automatic, status: winner ? "SELECTED" : "NO_ELIGIBLE_CANDIDATE", winner };
 }
 
 interface CandidateDraft extends Omit<DailyInsightCandidateV2, "id" | "score" | "eligible" | "rejectionReasons"> {
@@ -532,7 +579,10 @@ function dailyFallbackCandidates(bundle: DailyInsightDataBundle, claim: DailyIns
   const dry = longestDryWindow(bundle.hourly);
   if (dry && dry.count >= 4) {
     const start = hour(dry.start), end = hour(dry.end) + 1;
-    result.push({
+    // A mostly nocturnal dry interval is not a useful public promise and can
+    // contradict a rainy daytime forecast. Require four useful waking hours.
+    const wakingHours = Math.max(0, Math.min(end, 22) - Math.max(start, 7));
+    if (wakingHours >= 4) result.push({
       detectorId: "P303", topicKey: `DRY_WINDOW:${start}-${end}`, family: "RAIN", priority: "P3", format: "F3_SEQUENCE", claim,
       valueLabel: `${dry.count} HEURES`, headline: "La plus longue fenêtre sèche du jour se dessine.",
       proofLine: `Elle devrait s’étendre approximativement de ${start} h à ${end} h.`,
@@ -649,7 +699,19 @@ export function validateDailyInsightSelection(value: unknown): DailyInsightSelec
   if (selection.version !== DAILY_INSIGHT_SELECTION_VERSION || selection.mode !== DAILY_INSIGHT_SELECTION_MODE) throw new Error("daily_insight_selection_version_invalid");
   if (!selection.citySlug || !selection.targetDate || !selection.generatedAt || !selection.bundleId) throw new Error("daily_insight_selection_identity_invalid");
   if (!selection.audit || !Array.isArray(selection.candidates)) throw new Error("daily_insight_selection_audit_invalid");
-  if (selection.status === "SELECTED" && (!selection.winner || !selection.winner.eligible)) throw new Error("daily_insight_selection_winner_invalid");
+  if (selection.status === "SELECTED" && !selection.winner) throw new Error("daily_insight_selection_winner_invalid");
+  if (selection.status === "SELECTED" && selection.winner && !selection.winner.eligible) {
+    if (!selection.manualOverride || selection.manualOverride.candidateId !== selection.winner.id
+      || dailyInsightCandidateManualStatus(selection.winner) !== "DISCOURAGED") {
+      throw new Error("daily_insight_selection_winner_invalid");
+    }
+  }
+  if (selection.manualOverride) {
+    const candidate = selection.candidates.find((item) => item.id === selection.manualOverride?.candidateId);
+    if (!candidate || selection.winner?.id !== candidate.id || dailyInsightCandidateManualStatus(candidate) === "BLOCKED") {
+      throw new Error("daily_insight_manual_override_invalid");
+    }
+  }
   if (selection.status !== "SELECTED" && selection.winner !== null) throw new Error("daily_insight_selection_silence_invalid");
   return selection as DailyInsightSelectionResult;
 }

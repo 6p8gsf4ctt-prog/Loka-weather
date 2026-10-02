@@ -50,6 +50,9 @@ export function evaluateDailyInsightOp5(
   if (draft.selection.status !== "SELECTED" || !draft.selection.winner) return decision("LEGACY_FALLBACK", "op5_selection_not_publishable", maxAge, draft.selection, age);
 
   const winner = draft.selection.winner;
+  if (draft.selection.manualOverride?.candidateId === winner.id) {
+    return decision("ACTIVE", `op5_manual_${draft.selection.manualOverride.classification.toLowerCase()}`, maxAge, draft.selection, age);
+  }
   const floor = dailyInsightEditorialInterestFloor(winner.detectorId);
   if (!winner.eligible || winner.score.final < floor) return decision("LEGACY_FALLBACK", "op5_winner_guard_rejected", maxAge, draft.selection, age);
   return decision("ACTIVE", "op5_cached_winner_validated", maxAge, draft.selection, age);
@@ -62,4 +65,3 @@ export function isDailyInsightOp5Enabled(env: Pick<Env, "DAILY_INSIGHT_OP5_ENABL
 export function isDailyInsightOp5RollbackRequested(env: Pick<Env, "DAILY_INSIGHT_OP5_ROLLBACK">): boolean {
   return flag(env.DAILY_INSIGHT_OP5_ROLLBACK);
 }
-
