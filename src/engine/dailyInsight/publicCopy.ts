@@ -30,6 +30,18 @@ function hour(item: DailyInsightEvidenceV2 | undefined): string | null {
   return loose ? `${Number(loose[1])} h` : null;
 }
 
+function frenchDate(value: string): string | null {
+  const iso = value.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if (!iso) return null;
+  const date = new Date(`${iso[1]}-${iso[2]}-${iso[3]}T12:00:00Z`);
+  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" }).format(date);
+}
+
+function publicReferenceDate(candidate: DailyInsightCandidateV2): string | null {
+  const source = `${candidate.proofLine} ${candidate.evidence.map((item) => `${item.window} ${item.detail}`).join(" ")}`;
+  return frenchDate(source) ?? source.match(/\b\d{1,2}\s+(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\b/i)?.[0] ?? null;
+}
+
 function compared(
   leftValue: string | null,
   leftLabel: string,
@@ -57,6 +69,22 @@ export function dailyInsightPublicCopy(
   const secondUnit = candidate.evidence[1]?.unit ?? "";
   const firstHour = hour(candidate.evidence[0]);
   const secondHour = hour(candidate.evidence[1]);
+
+  if (candidate.detectorId === "T01" || candidate.detectorId === "T02") {
+    const forecastEvidence = [...candidate.evidence].reverse().find((item) => typeof item.value === "number" && item.unit === "°C");
+    const forecast = typeof forecastEvidence?.value === "number" ? numberText(forecastEvidence.value) : first;
+    const referenceDate = publicReferenceDate(candidate);
+    const warm = candidate.detectorId === "T02";
+    return {
+      headline: forecast ? `${forecast} °C` : candidate.valueLabel,
+      subtitle: "",
+      editorialLine: warm ? "Une chaleur remarquable pour la période." : "Une fraîcheur remarquable pour la période.",
+      sourceNote: referenceDate
+        ? `Valeur comparable observée le ${referenceDate}.`
+        : "Comparaison établie à partir de l’historique météo local.",
+      comparison: null
+    };
+  }
 
   if (candidate.detectorId === "C01") {
     const winter = candidate.valueLabel.includes("−");

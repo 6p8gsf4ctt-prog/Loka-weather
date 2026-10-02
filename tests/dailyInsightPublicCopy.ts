@@ -37,6 +37,17 @@ const percentile = dailyInsightToSharedGraphic(candidate({
 ok(percentile.presentation.headline === "8 °C CE MATIN" && !JSON.stringify(percentile.presentation).includes("P05"), "percentile_jargon_is_hidden");
 ok(percentile.presentation.subtitle.includes("5 %") && percentile.presentation.editorialLine.includes("fraîche"), "percentile_is_explained_in_plain_language");
 
+const rareHeat = dailyInsightToSharedGraphic(candidate({
+  detectorId: "T02", family: "HISTORY", format: "F1_RARETE_LOCALE", valueLabel: "6 MOIS",
+  headline: "La journée la plus chaude depuis six mois pourrait se profiler.", proofLine: "Dernière valeur comparable observée le 2026-03-18.",
+  evidence: [
+    { source: "METEO_FRANCE_ARCHIVE", metric: "tmaxC", value: 34.2, unit: "°C", window: "2026-03-18", detail: "Dernière occurrence." },
+    { source: "LOKA_CONSENSUS", metric: "tmaxC", value: 34, unit: "°C", window: "2026-10-01", detail: "Maximum prévu." }
+  ]
+}));
+ok(rareHeat.presentation.headline === "34 °C" && rareHeat.presentation.subtitle === "", "rare_heat_uses_one_dominant_metric_without_technical_subtitle");
+ok(rareHeat.presentation.editorialLine.includes("chaleur remarquable") && rareHeat.sourceNote === "Valeur comparable observée le 18 mars.", "rare_heat_uses_the_validated_public_copy");
+
 const wind = dailyInsightToSharedGraphic(candidate({
   detectorId: "V02", family: "WIND", valueLabel: "+35 KM/H", headline: "Le vent devrait se renforcer.", proofLine: "Les rafales gagneraient 35 km/h.",
   evidence: [
@@ -69,4 +80,4 @@ ok(fog.presentation.headline === "6 H DE BROUILLARD", "fog_duration_always_names
 
 ok([drop, percentile, wind, rain, clock, marine, usefulWindow, fog].every((story) => story.frame === "DAILY_STORY_SHARED_V1"), "editorial_update_never_changes_the_graphic_frame");
 
-console.log(`DAILY_INSIGHT_PUBLIC_COPY ${passed}/11 PASS`);
+console.log(`DAILY_INSIGHT_PUBLIC_COPY ${passed}/13 PASS`);
