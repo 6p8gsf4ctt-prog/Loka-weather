@@ -78,7 +78,7 @@ export function dailyInsightPublicCopy(
     return {
       headline: forecast ? `${forecast} °C` : candidate.valueLabel,
       subtitle: "",
-      editorialLine: warm ? "Une chaleur remarquable pour la période." : "Une fraîcheur remarquable pour la période.",
+      editorialLine: warm ? "Une chaleur remarquable\npour la période." : "Une fraîcheur remarquable\npour la période.",
       sourceNote: referenceDate
         ? `Valeur comparable observée le ${referenceDate}.`
         : "Comparaison établie à partir de l’historique météo local.",

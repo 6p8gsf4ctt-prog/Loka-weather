@@ -46,7 +46,7 @@ const rareHeat = dailyInsightToSharedGraphic(candidate({
   ]
 }));
 ok(rareHeat.presentation.headline === "34 °C" && rareHeat.presentation.subtitle === "", "rare_heat_uses_one_dominant_metric_without_technical_subtitle");
-ok(rareHeat.presentation.editorialLine.includes("chaleur remarquable") && rareHeat.sourceNote === "Valeur comparable observée le 18 mars.", "rare_heat_uses_the_validated_public_copy");
+ok(rareHeat.presentation.editorialLine === "Une chaleur remarquable\npour la période." && rareHeat.sourceNote === "Valeur comparable observée le 18 mars.", "rare_heat_uses_the_validated_public_copy_and_semantic_line_break");
 
 const wind = dailyInsightToSharedGraphic(candidate({
   detectorId: "V02", family: "WIND", valueLabel: "+35 KM/H", headline: "Le vent devrait se renforcer.", proofLine: "Les rafales gagneraient 35 km/h.",
