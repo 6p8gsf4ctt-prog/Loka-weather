@@ -410,6 +410,12 @@ export interface OfficialPublicPayloadV24 {
   editorial: EditorialProductV2;
   decision: SceneDecisionV24;
   models: { count: number; ok: string[]; failed: Record<string, string> };
+  /**
+   * Prepared data for the future five-Story daily deck. The current
+   * publication and Story renderers intentionally ignore it until step 2.
+   * Optional for backward compatibility with already archived daily payloads.
+   */
+  storyDeck?: import("./engine/dailyStoryDeck").DailyStoryDeckData;
 }
 
 export interface PublicationManifestV24 {
