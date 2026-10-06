@@ -34,9 +34,9 @@ function functionLine(html: string, name: string): string {
 
 const base = renderInstagramOfficial24(payloadFor(21), CITIES.tarnos);
 
-ok(base.includes("function drawStoryGeneral(mainIcon){const x=44,y=200,w=992,h=150") && !functionLine(base, "drawStoryGeneral").includes("subtitle"), "story_general_no_subtitle");
+ok(functionLine(base, "drawStoryGeneral").includes("frame=STORY_FRAME.content.general") && !functionLine(base, "drawStoryGeneral").includes("subtitle"), "story_general_uses_shared_safe_frame_without_subtitle");
 ok(base.includes("function drawFeedGeneral(mainIcon){const x=50,y=160,w=980,h=150") && !functionLine(base, "drawFeedGeneral").includes("subtitle"), "feed_general_no_subtitle");
-ok(base.includes("const visual=m.storyVisual||m.visual;const x=44,y=1139,w=992,h=272"), "story_comments_native_visual_slot");
+ok(functionLine(base, "drawStoryComments").includes("frame=STORY_FRAME.content.editorial"), "story_comments_use_shared_safe_frame");
 ok(base.includes("const visual=m.feedVisual||m.visual;const x=50,y=865,w=980,h=210"), "feed_comments_native_visual_slot");
 ok(base.includes('id="legendStory"') && functionLine(base, "renderLegendStory").includes("drawLegendPanel()"), "legend_story_native_renderer");
 ok(base.includes("<!--LOKA_EDITORIAL_STYLE_MOUNT-->"), "style_mount_present");

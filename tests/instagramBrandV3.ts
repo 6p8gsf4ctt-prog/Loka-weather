@@ -37,14 +37,14 @@ ok(html.includes('"logoUrl":"data:image/png;base64,'), "new_logo_is_embedded_in_
 ok(logo.includes("ctx.drawImage(logo,x,centerY-dh/2,dw,dh)"), "new_logo_is_drawn_as_transparent_asset");
 ok(logo.includes("scale=Math.min(maxWidth/iw,maxHeight/ih)"), "new_logo_preserves_aspect_ratio");
 ok(storyHeader.includes("drawLokaLogo(logo,STORY_HEADER_SAFE.logoX,STORY_HEADER_SAFE.logoCenterY,STORY_HEADER_SAFE.logoWidth,STORY_HEADER_SAFE.logoHeight)"), "story_uses_new_logo_asset");
-ok(html.includes("const STORY_HEADER_SAFE={logoX:50,logoCenterY:144,logoWidth:190,logoHeight:64,cityBaseline:158,dateBaseline:158}"), "story_logo_respects_safe_zone");
+ok(html.includes("const STORY_HEADER_SAFE=STORY_FRAME.header"), "story_logo_uses_shared_instagram_safe_zone");
 ok(feedHeader.includes("drawLokaLogo(logo,FEED_HEADER.logoX,FEED_HEADER.logoCenterY,FEED_HEADER.logoWidth,FEED_HEADER.logoHeight)"), "feed_uses_new_logo_asset");
 ok(html.includes("const FEED_HEADER={logoX:50,logoCenterY:79,logoWidth:174,logoHeight:58,cityBaseline:94,dateBaseline:94}"), "feed_header_geometry_preserved_with_new_logo");
-ok(storyGeneral.includes("x=44,y=200,w=992,h=150"), "story_box1_150");
+ok(storyGeneral.includes("frame=STORY_FRAME.content.general"), "story_box1_uses_shared_safe_frame");
 ok(feedGeneral.includes("x=50,y=160,w=980,h=150"), "feed_box1_150");
-ok(storyHours.includes("x=44,y=396,w=992,h=704"), "story_hour_grid_height_preserved_shifted");
+ok(storyHours.includes("frame=STORY_FRAME.content.hours") && storyHours.includes("sy=h/704"), "story_hour_grid_is_resolved_inside_shared_safe_frame");
 ok(feedHours.includes("x=50,y=336,w=980,h=500"), "feed_hour_grid_height_preserved_shifted");
-ok(storyComments.includes("x=44,y=1139,w=992,h=272"), "story_box3_272");
+ok(storyComments.includes("frame=STORY_FRAME.content.editorial"), "story_box3_uses_shared_safe_frame");
 ok(feedComments.includes("x=50,y=865,w=980,h=210"), "feed_box3_210");
 ok(!logo.includes("fillText") && !logo.includes("trackedText"), "logo_renderer_contains_no_reconstructed_text_wordmark");
 

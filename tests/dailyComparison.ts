@@ -62,10 +62,10 @@ ok(html.includes('<canvas id="comparisonStory" width="1080" height="1920">'), "c
 ok((html.match(/<canvas id="feed"/g) ?? []).length === 1, "no_second_publication_is_created");
 ok(html.includes("shareComparisonStory") && html.includes("story-comparaison"), "comparison_story_is_exportable");
 const functionLine = (name: string) => html.split("\n").find((line) => line.startsWith(`function ${name}(`)) ?? "";
-ok(functionLine("drawComparisonTitle").includes("box(44,306,992,176)") && functionLine("drawComparisonTitle").includes("editorialAccent(94,434,58)"), "comparison_title_moves_without_changing_its_width_or_glass_style");
-ok(functionLine("drawComparisonHero").includes("box(44,523,992,655)") && functionLine("drawComparisonHero").includes("drawImageCentered(icon,540,720,400,316)"), "hero_uses_one_compact_metric_composition");
-ok(functionLine("drawComparisonEditorial").includes("y=1220,h=462") && functionLine("drawComparisonEditorial").includes("fixedEditorialLines"), "editorial_box_receives_the_recovered_height_and_semantic_line_breaks");
-ok(functionLine("drawStorySignature").includes("540,1810") && functionLine("drawStorySignature").includes("514,1834"), "shared_story_footer_position_is_unchanged");
+ok(functionLine("drawComparisonTitle").includes("frame=STORY_FRAME.comparison.title") && functionLine("drawComparisonTitle").includes("editorialAccent"), "comparison_title_uses_shared_safe_frame_without_changing_its_glass_style");
+ok(functionLine("drawComparisonHero").includes("frame=STORY_FRAME.comparison.hero") && functionLine("drawComparisonHero").includes("drawImageCentered(icon,540,mapY(720),400,316)"), "hero_uses_one_compact_metric_composition_inside_shared_safe_frame");
+ok(functionLine("drawComparisonEditorial").includes("frame=STORY_FRAME.comparison.editorial") && functionLine("drawComparisonEditorial").includes("fixedEditorialLines"), "editorial_box_uses_shared_safe_frame_and_semantic_line_breaks");
+ok(functionLine("drawStorySignature").includes("const s=STORY_FRAME.signature") && functionLine("drawStorySignature").includes("s.underlineY"), "shared_story_footer_uses_weekly_reference_anchor");
 const browserScript = html.match(/<script>([\s\S]*)<\/script>/)?.[1] ?? "";
 let browserScriptValid = true;
 try { new Function(browserScript); } catch { browserScriptValid = false; }
