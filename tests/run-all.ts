@@ -29,6 +29,7 @@ import "./dailyInsightLabPreview";
 import "./dailyInsightOp4";
 import "./dailyInsightOp5";
 import "./workerPathname";
+import "./canonicalPublicRoutes";
 import "./weeklyIsolation";
 import "./weeklyForecast";
 import "./weeklyProfiles";

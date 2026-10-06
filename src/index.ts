@@ -38,6 +38,7 @@ import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewS
 import { renderWeeklyCandidatePreview, renderWeeklyPreviewGate, renderWeeklySelectionPanel } from "./ui/weeklyPreview";
 import { ensureDailyInsightBackgroundReference } from "./weather/dailyInsightReference";
 import { normalizeWorkerPathname } from "./http/normalizePathname";
+import { canonicalPublicRedirect } from "./http/canonicalPublicRoutes";
 
 function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: { "cache-control": "no-store", "access-control-allow-origin": "*" } });
@@ -83,6 +84,18 @@ export default {
   async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     url.pathname = normalizeWorkerPathname(url.pathname);
+    const canonicalRedirect = canonicalPublicRedirect(url.toString(), request.method);
+    if (canonicalRedirect) {
+      console.info("LOKA_LEGACY_PUBLIC_ROUTE_REDIRECT", JSON.stringify({ from: url.pathname, to: new URL(canonicalRedirect).pathname }));
+      return new Response(null, {
+        status: 302,
+        headers: {
+          "location": canonicalRedirect,
+          "cache-control": "no-store",
+          "x-loka-route-cleanup": "phase-1-redirect"
+        }
+      });
+    }
     if (url.pathname === "/api/health") return json({
       ok: true, engine: "V24", version: "2.0.0", models: MODELS.map((m) => m.id), sceneCount: 24,
       dailyInsightStory: {
