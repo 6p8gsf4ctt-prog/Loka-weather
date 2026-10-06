@@ -36,7 +36,7 @@ const enhanced = enhanceInstagramWithEditorialExport(
 ok(enhanced.includes("ACTIVE / LEGACY_RETIRED"), "ui_explains_field_status");
 ok(enhanced.includes("version:'1.2'"), "ui_export_version_1_2");
 ok(enhanced.includes("editorial-feedback/export?city="), "endpoint_unchanged");
-ok(enhanced.includes("légende commune Story / Publication"), "ui_explains_shared_legend");
+ok(enhanced.includes("commentaire partagé Story 5 / Publication") && enhanced.includes("légende Instagram"), "ui_explains_story_summary_and_instagram_legend");
 ok(!enhanced.includes("schemaVersion:'1.0'"), "ui_does_not_pin_old_schema");
 
 if (passed !== 16) throw new Error(`editorial_export_step6_count_mismatch:${passed}`);

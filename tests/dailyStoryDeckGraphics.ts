@@ -49,7 +49,7 @@ ok(functionLine(html, "renderHourlyStory").includes("drawStorySignature()") && f
 ok(functionLine(html, "drawDaylightBody").includes("DURÉE DU JOUR") && functionLine(html, "drawDaylightBody").includes("d.solarNoon"), "daylight_story_contains_duration_and_five_solar_markers");
 ok(model.storyDeck.moon.pictogramUrl.startsWith("data:image/svg+xml;charset=utf-8,"), "moon_uses_the_official_local_pictogram_pipeline");
 ok(functionLine(html, "drawMoonBody").includes("LEVER DE LUNE") && functionLine(html, "drawMoonBody").includes("PROCHAINE PHASE"), "moon_story_has_useful_public_information");
-ok(functionLine(html, "drawLegendPanel").includes("m.legendText||m.storyDeck.summary.legendText"), "summary_story_reuses_the_single_editable_daily_text");
+ok(functionLine(html, "drawLegendPanel").includes("m.storyVisual||m.visual||m.storyDeck.summary") && functionLine(html, "drawLegendPanel").includes("primaryLine") && functionLine(html, "drawLegendPanel").includes("secondaryLine"), "summary_story_reuses_the_publication_editorial_summary");
 ok(functionLine(html, "drawFeedHours").includes("x=50,y=336,w=980,h=500") && functionLine(html, "drawFeedSolar").includes("x=50,y=1100,w=980,h=205"), "publication_geometry_remains_unchanged");
 ok(LOKA_INSTAGRAM_STORY_SAFE_FRAME.deck.title.y === LOKA_INSTAGRAM_STORY_SAFE_FRAME.content.general.y && LOKA_INSTAGRAM_STORY_SAFE_FRAME.deck.body.y === LOKA_INSTAGRAM_STORY_SAFE_FRAME.content.hours.y, "deck_anchors_reuse_the_validated_daily_weekly_safe_frame");
 
