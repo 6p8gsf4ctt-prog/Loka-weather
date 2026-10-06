@@ -486,3 +486,87 @@ export function buildDailyStoryDeckData(
     }
   };
 }
+
+/**
+ * Compatibility path for payloads generated before the Story deck contract
+ * existed. It never interpolates the missing odd hours: those cells remain
+ * explicitly unavailable until a fresh consensus-backed payload is produced.
+ */
+export function buildLegacyDailyStoryDeckData(
+  payload: OfficialPublicPayloadV24,
+  city: CityConfig
+): DailyStoryDeckData {
+  const legacyByHour = new Map(
+    payload.hourly.map((point) => [Number(point.hour), point])
+  );
+  const points: DailyStoryDeckHourlyPoint[] = DAILY_STORY_DECK_HOURS.map((hour) => {
+    const point = legacyByHour.get(hour);
+    if (!point) {
+      return {
+        hour,
+        sourceTime: null,
+        temperatureC: null,
+        condition: null,
+        precipitationMm: null,
+        windGustKmh: null,
+        modelCount: null,
+        available: false
+      };
+    }
+    return {
+      hour,
+      sourceTime: null,
+      temperatureC: Math.round(point.temperatureC),
+      condition: point.condition,
+      precipitationMm: Math.round(point.precipitationMm * 100) / 100,
+      windGustKmh: null,
+      modelCount: payload.models.count,
+      available: true
+    };
+  });
+  const solar = solarPresentation(city, payload.date);
+  const availableCount = points.filter((point) => point.available).length;
+  return {
+    version: DAILY_STORY_DECK_VERSION,
+    frame: "DAILY_STORY_SHARED_V2",
+    city: payload.city,
+    citySlug: payload.citySlug,
+    date: payload.date,
+    generatedAt: payload.generatedAt,
+    slides: storySlides(payload.city),
+    overview: {
+      sceneId: payload.scene.id,
+      conditionTitle: payload.scene.label,
+      visualIcon: payload.scene.visualIcon,
+      minimumC: payload.temperatures.minC,
+      maximumC: payload.temperatures.maxC
+    },
+    hourly: {
+      startHour: 4,
+      endHour: 22,
+      intervalHours: 1,
+      expectedCount: 19,
+      availableCount,
+      complete: false,
+      points
+    },
+    daylight: {
+      ...solar,
+      durationLabel: durationLabel(solar.daylightMinutes)
+    },
+    moon: calculateMoonPresentation(city, payload.date),
+    summary: {
+      primaryLine: payload.editorial.visual.primaryLine,
+      secondaryLine: payload.editorial.visual.secondaryLine,
+      legendText: [payload.editorial.social.paragraph1, payload.editorial.social.paragraph2]
+        .filter(Boolean)
+        .join("\n\n")
+    },
+    provenance: {
+      weather: "LOKA_MULTI_MODEL_CONSENSUS",
+      solar: "LOKA_NOAA_CALCULATION",
+      moon: "LOKA_ASTRONOMICAL_CALCULATION_V1",
+      modelCount: payload.models.count
+    }
+  };
+}

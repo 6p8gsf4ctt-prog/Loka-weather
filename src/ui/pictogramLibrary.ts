@@ -16,6 +16,15 @@ export type WeatherPictogramKind =
 
 export type SolarPictogramKind = "dawn" | "sunrise" | "noon" | "sunset" | "dusk";
 export type TemperaturePictogramKind = "thermometer";
+export type MoonPictogramKind =
+  | "NEW_MOON"
+  | "WAXING_CRESCENT"
+  | "FIRST_QUARTER"
+  | "WAXING_GIBBOUS"
+  | "FULL_MOON"
+  | "WANING_GIBBOUS"
+  | "LAST_QUARTER"
+  | "WANING_CRESCENT";
 
 export const PICTOGRAM_LIBRARY_VERSION = "LOKA_PREMIUM_1.2" as const;
 
@@ -219,6 +228,36 @@ export function weatherPictogramDataUrl(kind: WeatherPictogramKind): string {
 
 export function solarPictogramDataUrl(kind: SolarPictogramKind): string {
   return toDataUrl(solarPictogramSvg(kind));
+}
+
+/** Lunar phases drawn with the same outline, palette and optical weight as
+ * the official weather library. The mask only changes the illuminated area;
+ * the outer disc and its position stay identical for every phase. */
+export function moonPictogramSvg(kind: MoonPictogramKind): string {
+  const id = `loka-moon-${kind.toLowerCase()}`;
+  const illuminated = (() => {
+    switch (kind) {
+      case "NEW_MOON": return `<circle cx="80" cy="60" r="35" fill="${PICTOGRAM_STYLE.ink}" fill-opacity="0.10"/>`;
+      case "FULL_MOON": return `<circle cx="80" cy="60" r="35" fill="${PICTOGRAM_STYLE.softWhite}" fill-opacity="0.72"/>`;
+      case "FIRST_QUARTER": return `<path d="M80 25 A35 35 0 0 1 80 95 Z" fill="${PICTOGRAM_STYLE.softWhite}" fill-opacity="0.72"/>`;
+      case "LAST_QUARTER": return `<path d="M80 25 A35 35 0 0 0 80 95 Z" fill="${PICTOGRAM_STYLE.softWhite}" fill-opacity="0.72"/>`;
+      case "WAXING_CRESCENT": return `<path d="M80 25 A35 35 0 0 1 80 95 A25 35 0 0 0 80 25 Z" fill="${PICTOGRAM_STYLE.softWhite}" fill-opacity="0.72"/>`;
+      case "WANING_CRESCENT": return `<path d="M80 25 A35 35 0 0 0 80 95 A25 35 0 0 1 80 25 Z" fill="${PICTOGRAM_STYLE.softWhite}" fill-opacity="0.72"/>`;
+      case "WAXING_GIBBOUS": return `<circle cx="80" cy="60" r="35" fill="${PICTOGRAM_STYLE.softWhite}" fill-opacity="0.72"/><ellipse cx="66" cy="60" rx="20" ry="35" fill="${PICTOGRAM_STYLE.ink}" fill-opacity="0.10"/>`;
+      case "WANING_GIBBOUS": return `<circle cx="80" cy="60" r="35" fill="${PICTOGRAM_STYLE.softWhite}" fill-opacity="0.72"/><ellipse cx="94" cy="60" rx="20" ry="35" fill="${PICTOGRAM_STYLE.ink}" fill-opacity="0.10"/>`;
+    }
+  })();
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="120" viewBox="0 0 160 120" fill="none" aria-labelledby="${id}">
+    <title id="${id}">${kind}</title>
+    <circle cx="80" cy="63" r="35" fill="none" stroke="${PICTOGRAM_STYLE.shadow}" stroke-opacity="0.13" stroke-width="6"/>
+    ${illuminated}
+    <circle cx="80" cy="60" r="35" fill="none" stroke="${PICTOGRAM_STYLE.ink}" stroke-width="4.2"/>
+    <path d="M59 47 C64 42 70 39 76 38 M94 74 C89 80 83 83 77 84" fill="none" stroke="${PICTOGRAM_STYLE.gold}" stroke-width="3.2" stroke-linecap="round" opacity="0.9"/>
+  </svg>`;
+}
+
+export function moonPictogramDataUrl(kind: MoonPictogramKind): string {
+  return toDataUrl(moonPictogramSvg(kind));
 }
 
 /**

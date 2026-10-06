@@ -65,6 +65,20 @@ export const LOKA_INSTAGRAM_STORY_SAFE_FRAME = {
       height: storyHeight(LOKA_DAILY_FEED_FRAME.lowerBox.height)
     }
   },
+  deck: {
+    title: {
+      x: 44,
+      y: storyY(LOKA_DAILY_FEED_FRAME.title.y),
+      width: 992,
+      height: storyHeight(LOKA_DAILY_FEED_FRAME.title.height)
+    },
+    body: {
+      x: 44,
+      y: storyY(336),
+      width: 992,
+      height: storyY(LOKA_DAILY_FEED_FRAME.lowerBox.bottom) - storyY(336)
+    }
+  },
   comparison: {
     title: {
       x: 44,

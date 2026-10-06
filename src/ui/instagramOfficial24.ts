@@ -5,6 +5,7 @@ import {
   PICTOGRAM_LIBRARY_VERSION,
   PICTOGRAM_STYLE,
   hourlyConditionToPictogram,
+  moonPictogramDataUrl,
   solarPictogramDataUrl,
   visualIconToPictogram,
   weatherPictogramDataUrl
@@ -14,6 +15,7 @@ import { LOKA_LOGO_DATA_URL } from "./lokaBrand";
 import { LOKA_DAILY_FEED_FRAME } from "./feedFrame";
 import { LOKA_EDITORIAL_SUMMARY_FRAME } from "./editorialSummaryFrame";
 import { LOKA_INSTAGRAM_STORY_SAFE_FRAME } from "./instagramStorySafeFrame";
+import { buildLegacyDailyStoryDeckData } from "../engine/dailyStoryDeck";
 
 
 function safeJson(value: unknown): string {
@@ -37,6 +39,7 @@ export function renderInstagramOfficial24(payload: OfficialPublicPayloadV24, cit
   }>;
   const engagement = payload.editorial.engagement
     ?? buildEngagementEditorial(payload.city, payload.date, payload.editorial.facts);
+  const storyDeck = payload.storyDeck ?? buildLegacyDailyStoryDeckData(payload, city);
 
   const model = {
     city: payload.city,
@@ -58,6 +61,22 @@ export function renderInstagramOfficial24(payload: OfficialPublicPayloadV24, cit
       ...item,
       pictogramUrl: weatherPictogramDataUrl(hourlyConditionToPictogram(item.condition))
     })),
+    storyDeck: {
+      ...storyDeck,
+      hourly: {
+        ...storyDeck.hourly,
+        points: storyDeck.hourly.points.map((item) => ({
+          ...item,
+          pictogramUrl: item.condition
+            ? weatherPictogramDataUrl(hourlyConditionToPictogram(item.condition))
+            : null
+        }))
+      },
+      moon: {
+        ...storyDeck.moon,
+        pictogramUrl: moonPictogramDataUrl(storyDeck.moon.phase)
+      }
+    },
     solar: solarPresentation(city, payload.date),
     solarPictograms: {
       dawn: solarPictogramDataUrl("dawn"),
