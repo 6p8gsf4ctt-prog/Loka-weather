@@ -44,6 +44,7 @@ ok(["story", "hourlyStory", "hourlyLateStory", "daylightStory", "moonStory", "le
 ok(html.includes("STORY JOURNALIÈRE PRINCIPALE · ACTUELLE") && html.includes("STORY 6 · LÉGENDE DE LA PUBLICATION"), "six_story_sequence_is_labelled");
 ok(model.storyDeck.hourly.points.length === 20 && model.storyDeck.hourly.points[0].hour === 4 && model.storyDeck.hourly.points[19].hour === 23, "hourly_story_contains_every_hour_from_four_to_twenty_three");
 ok(functionLine(html, "drawHourlyBody").includes("rows=2,columns=5") && functionLine(html, "drawHourlyBody").includes("row*columns+col"), "twenty_hours_use_two_validated_two_by_five_grids");
+ok(functionLine(html, "drawHourlyBody").includes("padTop=76,padBottom=8") && functionLine(html, "drawHourlyBody").includes("rowH=(frame.height-padTop-padBottom)/rows"), "hourly_grids_use_balanced_vertical_space_without_changing_the_shared_frame");
 ok(functionLine(html, "prepareStory").includes("drawHeader(logo)") && functionLine(html, "prepareStory").includes("drawDeckTitle(title)") && functionLine(html, "prepareStory").includes("drawDeckBody()"), "all_stories_reuse_one_shared_frame_runtime");
 ok(functionLine(html, "renderHourlyStory").includes("drawStorySignature()") && functionLine(html, "renderMoonStory").includes("drawStorySignature()"), "shared_instagram_footer_is_preserved");
 ok(functionLine(html, "drawDaylightBody").includes("DURÉE DU JOUR") && functionLine(html, "drawDaylightBody").includes("d.solarNoon"), "daylight_story_contains_duration_and_five_solar_markers");
@@ -78,5 +79,5 @@ let scriptValid = true;
 try { new Function(script); } catch { scriptValid = false; }
 ok(scriptValid, "six_story_browser_runtime_is_valid");
 
-if (passed !== 16) throw new Error(`daily_story_deck_graphics_count_mismatch:${passed}`);
-console.log(`DAILY_STORY_DECK_GRAPHICS ${passed}/16 PASS`);
+if (passed !== 17) throw new Error(`daily_story_deck_graphics_count_mismatch:${passed}`);
+console.log(`DAILY_STORY_DECK_GRAPHICS ${passed}/17 PASS`);

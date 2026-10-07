@@ -20,6 +20,7 @@ import { loadWeeklyPreviewDraft, saveWeeklyPreviewDraft } from "./storage/weekly
 import { loadDailyInsightReference } from "./storage/dailyInsightReferences";
 import { loadDailyInsightEditorialDraft, saveDailyInsightEditorialDraft } from "./storage/dailyInsightEditorialDrafts";
 import { clearDailyInsightManualSelection, saveDailyInsightManualSelection } from "./storage/dailyInsightManualSelections";
+import { dailyForecastSnapshotForGeneration } from "./storage/forecastSnapshots";
 import type { Env } from "./types";
 import { renderAdmin } from "./ui/admin";
 import { enhanceInstagramWithEditorialStudio } from "./ui/instagramEditorialStudio";
@@ -37,6 +38,8 @@ import { renderInstagramRecovery } from "./ui/instagramRecovery";
 import { renderScenePreviewFrame, renderScenePreviewGallery, renderScenePreviewStudio, type PreviewGalleryView } from "./ui/instagramScenePreview24";
 import { renderWeeklyCandidatePreview, renderWeeklyPreviewGate, renderWeeklySelectionPanel } from "./ui/weeklyPreview";
 import { ensureDailyInsightBackgroundReference } from "./weather/dailyInsightReference";
+import { consensusMapFromSnapshot } from "./weather/forecastSnapshot";
+import { buildDailyStoryDeckData } from "./engine/dailyStoryDeck";
 import { normalizeWorkerPathname } from "./http/normalizePathname";
 import { canonicalPublicRedirect } from "./http/canonicalPublicRoutes";
 
@@ -572,7 +575,33 @@ export default {
       // The primary daily graphic remains available; comparison material is
       // produced only when a background-prepared reference can be consumed.
       const comparison = null;
-      const previewHtml = renderInstagramDailyGraphicPreview(result.surface.payload, result.city, comparison);
+      let previewPayload = result.surface.payload;
+      let hourlyStorySource = "official-payload";
+      const hour23 = previewPayload.storyDeck?.hourly.points.find((point) => point.hour === 23);
+      if (!hour23?.available) {
+        try {
+          const snapshot = await dailyForecastSnapshotForGeneration(
+            env.DB,
+            result.city.slug,
+            previewPayload.date,
+            previewPayload.generatedAt
+          );
+          if (snapshot) {
+            previewPayload = {
+              ...previewPayload,
+              storyDeck: buildDailyStoryDeckData(
+                previewPayload,
+                result.city,
+                consensusMapFromSnapshot(snapshot)
+              )
+            };
+            hourlyStorySource = "official-forecast-snapshot";
+          }
+        } catch (error) {
+          console.warn("daily_hourly_story_snapshot_repair_failed", error instanceof Error ? error.message : String(error));
+        }
+      }
+      const previewHtml = renderInstagramDailyGraphicPreview(previewPayload, result.city, comparison);
       const editorialHtml = enhanceInstagramWithEditorialStudio(previewHtml);
       const persistentHtml = enhanceInstagramWithEditorialPersistence(editorialHtml, result.city.slug);
       const exportHtml = enhanceInstagramWithEditorialExport(persistentHtml, result.city.slug);
@@ -580,8 +609,9 @@ export default {
         headers: {
           "content-type": "text/html; charset=utf-8",
           "cache-control": "no-store",
-          "x-loka-daily-graphic-variant": "weekly-inspired-v5-safe-hourly-precipitation",
-          "x-loka-daily-story-deck": "primary-active-complements-test"
+          "x-loka-daily-graphic-variant": "weekly-inspired-v6-complete-balanced-hourly",
+          "x-loka-daily-story-deck": "primary-active-complements-test",
+          "x-loka-hourly-story-source": hourlyStorySource
         }
       });
     }

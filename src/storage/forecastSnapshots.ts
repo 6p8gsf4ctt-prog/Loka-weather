@@ -31,6 +31,39 @@ function parseSnapshotRow(row: ForecastSnapshotDbRow): ForecastSnapshot {
   };
 }
 
+/**
+ * Loads the daily snapshot that produced an already-official payload.
+ *
+ * The upper generated_at bound prevents a later manual preview from silently
+ * changing the hourly stories while the official Daily publication remains
+ * unchanged. The date check also prevents a snapshot crossing local days.
+ */
+export async function dailyForecastSnapshotForGeneration(
+  db: D1Database | undefined,
+  citySlug: string,
+  targetDate: string,
+  payloadGeneratedAt: string,
+  maxSkewMs = 30 * 60 * 1000
+): Promise<ForecastSnapshot | null> {
+  if (!databaseAvailable(db)) return null;
+  const row = await db.prepare(`
+    SELECT * FROM forecast_snapshots
+    WHERE city_slug = ? AND purpose = 'DAILY' AND generated_at <= ?
+    ORDER BY generated_at DESC LIMIT 1
+  `).bind(citySlug, payloadGeneratedAt).first<ForecastSnapshotDbRow>();
+  if (!row) return null;
+  const skewMs = Date.parse(payloadGeneratedAt) - Date.parse(row.generated_at);
+  if (!Number.isFinite(skewMs) || skewMs < 0 || skewMs > maxSkewMs) return null;
+  try {
+    const snapshot = parseSnapshotRow(row);
+    return snapshot.consensus.some((point) => point.time.slice(0, 10) === targetDate)
+      ? snapshot
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Reuses a recent weekly capture so candidate previews do not refetch five models. */
 export async function latestWeeklyForecastSnapshot(
   db: D1Database | undefined,
