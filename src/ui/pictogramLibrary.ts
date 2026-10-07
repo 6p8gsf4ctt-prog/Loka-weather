@@ -26,7 +26,7 @@ export type MoonPictogramKind =
   | "LAST_QUARTER"
   | "WANING_CRESCENT";
 
-export const PICTOGRAM_LIBRARY_VERSION = "LOKA_PREMIUM_1.3" as const;
+export const PICTOGRAM_LIBRARY_VERSION = "LOKA_PREMIUM_1.4" as const;
 
 export const PICTOGRAM_STYLE = {
   ink: "#12264A",
@@ -231,90 +231,87 @@ export function solarPictogramDataUrl(kind: SolarPictogramKind): string {
   return toDataUrl(solarPictogramSvg(kind));
 }
 
-/**
- * LOKA Moon — Modèle A · Blanc lunaire.
- *
- * The eight phases share the exact 160×120 canvas, outline and optical
- * position supplied in the official lunar source set. Only the illuminated
- * area and its terminator vary from one phase to another.
- */
+/** LOKA Moon — Modèle C 1.1. Shared by every daily lunar story. */
 export function moonPictogramSvg(kind: MoonPictogramKind): string {
   const slug = kind.toLowerCase().replaceAll("_", "-");
-  const titleId = `loka-moon-a_blanc_lunaire-${slug}-title`;
-  const clipId = `loka-moon-a_blanc_lunaire-${slug}-lit`;
+  const titleId = `loka-moon-c-1-1-${slug}-title`;
   const phase = (() => {
     switch (kind) {
       case "NEW_MOON":
-        return { clip: "", light: "", terminator: "" };
+        return { light: "", terminator: "", marker: "" };
       case "WAXING_CRESCENT": {
-        const path = "M80 25 A35 35 0 0 1 80 95 A25 35 0 0 0 80 25 Z";
+        const path = "M80 21 A39 39 0 0 1 80 99 A22 39 0 0 0 80 21 Z";
         return {
-          clip: `<path d="${path}"/>`,
-          light: `<path d="${path}" fill="#FFFFFF"/>`,
-          terminator: `<path d="M80 95 A25 35 0 0 0 80 25" fill="none" stroke="#748197" stroke-width="2.4" stroke-linecap="round"/>`
+          light: `<path d="${path}" fill="url(#loka-moon-lit)"/>`,
+          terminator: `<path d="M80 99 A22 39 0 0 0 80 21"/>`,
+          marker: `<path d="M116.6 48.2 A39 39 0 0 1 118.8 62.2"/>`
         };
       }
       case "FIRST_QUARTER": {
-        const path = "M80 25 A35 35 0 0 1 80 95 Z";
+        const path = "M80 21 A39 39 0 0 1 80 99 Z";
         return {
-          clip: `<path d="${path}"/>`,
-          light: `<path d="${path}" fill="#FFFFFF"/>`,
-          terminator: `<path d="M80 25 V95" fill="none" stroke="#748197" stroke-width="2.4" stroke-linecap="round"/>`
+          light: `<path d="${path}" fill="url(#loka-moon-lit)"/>`,
+          terminator: `<path d="M80 21 V99"/>`,
+          marker: `<path d="M116.6 48.2 A39 39 0 0 1 118.8 62.2"/>`
         };
       }
       case "WAXING_GIBBOUS": {
-        const path = "M80 25 A35 35 0 0 1 80 95 A18 35 0 0 1 80 25 Z";
+        const path = "M80 21 A39 39 0 0 1 80 99 A19 39 0 0 1 80 21 Z";
         return {
-          clip: `<path d="${path}"/>`,
-          light: `<path d="${path}" fill="#FFFFFF"/>`,
-          terminator: `<path d="M80 95 A18 35 0 0 1 80 25" fill="none" stroke="#748197" stroke-width="2.4" stroke-linecap="round"/>`
+          light: `<path d="${path}" fill="url(#loka-moon-lit)"/>`,
+          terminator: `<path d="M80 99 A19 39 0 0 1 80 21"/>`,
+          marker: `<path d="M116.6 48.2 A39 39 0 0 1 118.8 62.2"/>`
         };
       }
       case "FULL_MOON":
         return {
-          clip: `<circle cx="80" cy="60" r="35"/>`,
-          light: `<circle cx="80" cy="60" r="35" fill="#FFFFFF"/>`,
-          terminator: ""
+          light: `<circle cx="80" cy="60" r="39" fill="url(#loka-moon-lit)"/>`,
+          terminator: "",
+          marker: `<path d="M73 21.6 A39 39 0 0 1 87 21.6"/>`
         };
       case "WANING_GIBBOUS": {
-        const path = "M80 25 A35 35 0 0 0 80 95 A18 35 0 0 0 80 25 Z";
+        const path = "M80 21 A39 39 0 0 0 80 99 A19 39 0 0 0 80 21 Z";
         return {
-          clip: `<path d="${path}"/>`,
-          light: `<path d="${path}" fill="#FFFFFF"/>`,
-          terminator: `<path d="M80 95 A18 35 0 0 0 80 25" fill="none" stroke="#748197" stroke-width="2.4" stroke-linecap="round"/>`
+          light: `<path d="${path}" fill="url(#loka-moon-lit)"/>`,
+          terminator: `<path d="M80 99 A19 39 0 0 0 80 21"/>`,
+          marker: `<path d="M43.4 48.2 A39 39 0 0 0 41.2 62.2"/>`
         };
       }
       case "LAST_QUARTER": {
-        const path = "M80 25 A35 35 0 0 0 80 95 Z";
+        const path = "M80 21 A39 39 0 0 0 80 99 Z";
         return {
-          clip: `<path d="${path}"/>`,
-          light: `<path d="${path}" fill="#FFFFFF"/>`,
-          terminator: `<path d="M80 25 V95" fill="none" stroke="#748197" stroke-width="2.4" stroke-linecap="round"/>`
+          light: `<path d="${path}" fill="url(#loka-moon-lit)"/>`,
+          terminator: `<path d="M80 21 V99"/>`,
+          marker: `<path d="M43.4 48.2 A39 39 0 0 0 41.2 62.2"/>`
         };
       }
       case "WANING_CRESCENT": {
-        const path = "M80 25 A35 35 0 0 0 80 95 A25 35 0 0 1 80 25 Z";
+        const path = "M80 21 A39 39 0 0 0 80 99 A22 39 0 0 1 80 21 Z";
         return {
-          clip: `<path d="${path}"/>`,
-          light: `<path d="${path}" fill="#FFFFFF"/>`,
-          terminator: `<path d="M80 95 A25 35 0 0 1 80 25" fill="none" stroke="#748197" stroke-width="2.4" stroke-linecap="round"/>`
+          light: `<path d="${path}" fill="url(#loka-moon-lit)"/>`,
+          terminator: `<path d="M80 99 A22 39 0 0 1 80 21"/>`,
+          marker: `<path d="M43.4 48.2 A39 39 0 0 0 41.2 62.2"/>`
         };
       }
     }
   })();
-  const craters = phase.clip
-    ? `<g clip-path="url(#${clipId})" fill="none" stroke="#12264A" stroke-opacity="0.15" stroke-width="2">
-        <circle cx="67" cy="48" r="4.5"/><circle cx="94" cy="70" r="6"/>
-        <circle cx="65" cy="77" r="3"/>
-      </g>`
-    : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="120" viewBox="0 0 160 120" role="img" aria-labelledby="${titleId}">
     <title id="${titleId}">${kind}</title>
-    ${phase.clip ? `<defs><clipPath id="${clipId}">${phase.clip}</clipPath></defs>` : ""}
-    <circle cx="80" cy="63" r="35" fill="none" stroke="#071B3B" stroke-opacity="0.13" stroke-width="6"/>
-    <circle cx="80" cy="60" r="35" fill="#D3D9E3"/>
-    ${phase.light}${craters}${phase.terminator}
-    <circle cx="80" cy="60" r="35" fill="none" stroke="#12264A" stroke-width="4.2"/>
+    <defs>
+      <linearGradient id="loka-moon-shade" x1="50" y1="27" x2="105" y2="94" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#E3E8F0"/><stop offset="1" stop-color="#D5DDE8"/>
+      </linearGradient>
+      <linearGradient id="loka-moon-lit" x1="57" y1="28" x2="103" y2="94" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#FFFFFF"/><stop offset="1" stop-color="#F4F7FB"/>
+      </linearGradient>
+    </defs>
+    <circle cx="80" cy="63" r="39" fill="none" stroke="#071B3B" stroke-opacity="0.07" stroke-width="4.5"/>
+    <circle cx="80" cy="60" r="39" fill="url(#loka-moon-shade)"/>
+    ${phase.light}
+    <g fill="none" stroke="#98A5B8" stroke-width="2.2" stroke-linecap="round">${phase.terminator}</g>
+    <circle cx="80" cy="60" r="39" fill="none" stroke="#12264A" stroke-width="4.2"/>
+    <g fill="none" stroke="#A87500" stroke-opacity="0.08" stroke-width="5" stroke-linecap="round" transform="translate(0 1.5)">${phase.marker}</g>
+    <g fill="none" stroke="#FDB515" stroke-width="3.8" stroke-linecap="round">${phase.marker}</g>
   </svg>`;
 }
 

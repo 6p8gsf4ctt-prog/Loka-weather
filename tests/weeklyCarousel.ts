@@ -185,7 +185,7 @@ ok(Object.keys(plan.overviewTitle).join(",") === "title", "overview_title_keeps_
 ok(plan.slide1.coldestMorning.label === "MATIN LE PLUS FRAIS" && plan.slide1.hottestDay.label === "JOURNÉE LA PLUS CHAUDE" && plan.slide1.dailyStrip.length === 7, "carousel_plan_exposes_first_slide_content_contract");
 ok(plan.dailySummaries.length === 7 && plan.dailySummaries.every((day, index) => day.dayIndex === index), "carousel_plan_keeps_seven_daily_summaries");
 ok(plan.dailySummaries.every((day, index) => day.scene.id === editorial(events).dailySummaries[index]?.scene.id), "carousel_plan_keeps_daily_v24_scene_identity");
-ok(plan.dailySummaries.every((day) => day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY" && day.pictogram.libraryVersion === "LOKA_PREMIUM_1.3"), "daily_summaries_use_official_loka_pictogram_library");
+ok(plan.dailySummaries.every((day) => day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY" && day.pictogram.libraryVersion === "LOKA_PREMIUM_1.4"), "daily_summaries_use_official_loka_pictogram_library");
 ok(plan.dailySummaries.every((day) => day.scene.visualIcon === "partly" && day.pictogram.kind === "partly"), "daily_v24_visual_icon_drives_pictogram_kind");
 ok(plan.dailySummaries.map((day) => `${day.weekdayLabel} ${day.dayLabel}`).join(",") === "LUN 7,MAR 8,MER 9,JEU 10,VEN 11,SAM 12,DIM 13", "daily_strip_labels_are_monday_to_sunday_in_french");
 ok(plan.dailyHighlights.map((highlight) => `${highlight.kind}:${highlight.dayIndex}`).join(",") === "PREFERRED:5,WATCH:2", "carousel_plan_keeps_editorial_daily_highlights");
@@ -231,7 +231,7 @@ ok(html.includes("function trackedText(value,x,y,size,weight,color,tracking"), "
 ok(html.includes("plan.headerDateLabel"), "renderer_uses_week_range_in_existing_headers");
 ok(html.includes("replace(/\\s+/g"), "renderer_normalizes_canvas_whitespace");
 ok(html.includes("data:image/png;base64,"), "renderer_embeds_shared_loka_logo");
-ok(html.includes("pictogramUrl") && html.includes("LOKA_PREMIUM_1.3"), "renderer_reuses_brand_pictograms");
+ok(html.includes("pictogramUrl") && html.includes("LOKA_PREMIUM_1.4"), "renderer_reuses_brand_pictograms");
 ok(html.includes("SCÈNE V24 DU JOUR") && html.includes("Ici, cette semaine."), "renderer_explains_scene_context_and_signature");
 ok(html.includes(WEEKLY_OVERVIEW_MASTER_URL), "renderer_embeds_weekly_overview_master");
 ok(html.includes('"dailySummaries"') && html.includes('"source":"DAILY_V24_DECISION"'), "renderer_embeds_daily_summaries_with_v24_provenance");
@@ -253,7 +253,7 @@ const renderedModel = browserModelLine ? JSON.parse(browserModelLine) as {
   }>;
 } : null;
 ok(renderedModel?.dailySummaries.length === 7, "renderer_exposes_seven_daily_pictograms");
-ok(renderedModel?.dailySummaries.every((day) => day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY" && day.pictogram.libraryVersion === "LOKA_PREMIUM_1.3" && day.pictogram.kind === "partly" && day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")) === true, "renderer_uses_generated_official_loka_pictogram_urls");
+ok(renderedModel?.dailySummaries.every((day) => day.pictogram.source === "LOKA_OFFICIAL_PICTOGRAM_LIBRARY" && day.pictogram.libraryVersion === "LOKA_PREMIUM_1.4" && day.pictogram.kind === "partly" && day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")) === true, "renderer_uses_generated_official_loka_pictogram_urls");
 ok(renderedModel?.dailySummaries.map((day) => `${day.weekdayLabel} ${day.dayLabel}`).join(",") === "LUN 7,MAR 8,MER 9,JEU 10,VEN 11,SAM 12,DIM 13", "renderer_keeps_precomputed_french_day_labels");
 ok(renderedModel?.slide1.title === "LA SEMAINE À TARNOS" && renderedModel.slide1.dailyStrip.length === 7 && renderedModel.slide1.dailyStrip.every((day) => day.pictogram.url.startsWith("data:image/svg+xml;charset=utf-8,")), "renderer_exposes_first_slide_content_with_official_daily_pictograms");
 ok(renderedModel?.slide1.synthesis.primaryLine.includes(" · ") === true && renderedModel?.slide1.synthesis.secondaryLine.endsWith(".") === true && renderedModel?.slide1.synthesis.primaryMaximumLines === 1 && renderedModel?.slide1.synthesis.secondaryMaximumLines === 2, "renderer_exposes_the_shared_daily_editorial_copy_contract");
