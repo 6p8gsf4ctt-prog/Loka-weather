@@ -1,0 +1,26 @@
+MISE À JOUR LOKA — BIBLIOTHÈQUE LUNAIRE 1.3
+
+Objet
+- Remplacement des huit phases lunaires par le Modèle A · Blanc lunaire.
+- Conservation stricte des identifiants moteur existants.
+- Passage de la bibliothèque LOKA_PREMIUM_1.2 à LOKA_PREMIUM_1.3.
+
+Fichiers modifiés ou ajoutés uniquement
+- src/ui/pictogramLibrary.ts
+- src/engine/weekly/complementaryPictograms.ts
+- tests/lunarPictogramLibrary.ts
+- tests/run-all.ts
+- tests/weeklyCarousel.ts
+
+Éléments inchangés
+- Pictogrammes météo
+- Pictogrammes des heures du jour
+- Thermomètre
+- Données, règles éditoriales et composition des stories
+
+Contrôles réalisés
+- TypeScript : valide
+- Bibliothèque lunaire : 8/8
+- Stories journalières : 18/18
+- Moteur hebdomadaire : 104/104
+- Simulation Cloudflare Wrangler : valide

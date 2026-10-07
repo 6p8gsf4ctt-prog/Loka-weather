@@ -33,8 +33,7 @@ export function complementaryPictogramIsOfficial(
 ): boolean {
   const url = complementaryPictogramDataUrl(visual);
   return ALLOWED_VISUALS[theme].includes(visual)
-    && PICTOGRAM_LIBRARY_VERSION === "LOKA_PREMIUM_1.2"
+    && PICTOGRAM_LIBRARY_VERSION === "LOKA_PREMIUM_1.3"
     && url.startsWith("data:image/svg+xml;charset=utf-8,")
     && url.length > 200;
 }
-

@@ -19,6 +19,7 @@ import "./instagramLogoRuntimeV4";
 import "./instagramDailyGraphicPreview";
 import "./dailyStoryDeck";
 import "./dailyStoryDeckGraphics";
+import "./lunarPictogramLibrary";
 import "./dailyStoryDeckActivation";
 import "./dailyComparison";
 import "./dailyInsightReference";
