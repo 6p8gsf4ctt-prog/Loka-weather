@@ -64,5 +64,6 @@ setTimeout(()=>loadSaved(),80);
 
   return html
     .replace("</head>", `${PERSISTENCE_STYLE}</head>`)
-    .replace("</body>", `${script}</body>`);
+    .replace("</body>", `${script}</body>`)
+    .replaceAll("Story 5 / texte Instagram", "Story 6 / texte Instagram");
 }

@@ -34,19 +34,19 @@ function functionLine(html: string, name: string): string {
 
 const base = renderInstagramDailyGraphicPreview(payload(), CITIES.tarnos);
 ok(base.includes('id="storyDeckControls"') && base.includes('id="shareStoryDeck"'), "single_story_deck_control_is_present");
-ok(base.includes('href="#storyCard1"') && base.includes('href="#storyCard5"'), "five_story_navigation_is_ordered");
+ok(base.includes('href="#storyCard1"') && base.includes('href="#storyCard6"'), "six_story_navigation_is_ordered");
 ok(base.indexOf('id="storyCard1"') < base.indexOf('id="storyDeckControls"'), "historical_primary_story_is_presented_before_test_controls");
 ok(base.includes("STORY JOURNALIÈRE PRINCIPALE · ACTUELLE") && base.includes("Story historique LOKA maintenue en priorité"), "primary_story_is_explicitly_identified_as_current");
 ok(base.includes('id="shareStoryDeck" type="button" disabled'), "bulk_export_waits_for_complete_render");
-ok(base.includes("const STORY_DECK_EXPORTS=[[storyCanvas,'story-01-journee'],[hourlyStoryCanvas,'story-02-heure-par-heure'],[daylightStoryCanvas,'story-03-heures-du-jour'],[moonStoryCanvas,'story-04-lune'],[legendStoryCanvas,'story-05-legende-publication']]"), "bulk_export_names_preserve_instagram_order");
-ok(functionLine(base, "shareStoryDeck").includes("files.length!==5") && functionLine(base, "shareStoryDeck").includes("navigator.share"), "bulk_export_is_atomic_before_native_share");
+ok(base.includes("const STORY_DECK_EXPORTS=[[storyCanvas,'story-01-journee'],[hourlyStoryCanvas,'story-02-fil-04-13'],[hourlyLateStoryCanvas,'story-03-fil-14-23'],[daylightStoryCanvas,'story-04-heures-du-jour'],[moonStoryCanvas,'story-05-lune'],[legendStoryCanvas,'story-06-legende-publication']]"), "bulk_export_names_preserve_instagram_order");
+ok(functionLine(base, "shareStoryDeck").includes("files.length!==6") && functionLine(base, "shareStoryDeck").includes("navigator.share"), "bulk_export_is_atomic_before_native_share");
 ok(functionLine(base, "shareStoryDeck").includes("files.forEach(file=>fallbackDownload(file))"), "bulk_export_has_desktop_download_fallback");
 ok(base.includes("__LOKA_STORY_DECK_AUDIT") && base.includes("publicationChanged:false"), "runtime_audit_declares_publication_is_untouched");
-ok(functionLine(base, "drawLegendPanel").includes("m.legendText") && functionLine(base, "drawLegendPanel").includes("legendLayout"), "story_five_uses_the_complete_publication_legend");
-ok(!functionLine(base, "drawLegendPanel").includes("m.storyVisual||m.visual||m.storyDeck.summary"), "weather_comment_does_not_drive_story_five");
+ok(functionLine(base, "drawLegendPanel").includes("m.legendText") && functionLine(base, "drawLegendPanel").includes("legendLayout"), "story_six_uses_the_complete_publication_legend");
+ok(!functionLine(base, "drawLegendPanel").includes("m.storyVisual||m.visual||m.storyDeck.summary"), "weather_comment_does_not_drive_story_six");
 ok(functionLine(base, "renderStory").includes("drawStoryGeneral") && functionLine(base, "renderStory").includes("drawStoryHours") && functionLine(base, "renderStory").includes("drawStoryComments") && functionLine(base, "renderStory").includes("drawStorySolar"), "story_one_restores_the_complete_historical_daily_pipeline");
 ok(!functionLine(base, "renderStory").includes("drawOverviewBody"), "experimental_overview_does_not_replace_the_primary_story");
-ok(base.includes("primaryStoryPreserved:true") && base.includes("order:['PRIMARY','HOURLY','DAYLIGHT','MOON','PUBLICATION_LEGEND']"), "runtime_audit_records_primary_story_preservation");
+ok(base.includes("primaryStoryPreserved:true") && base.includes("order:['PRIMARY','HOURLY_04_13','HOURLY_14_23','DAYLIGHT','MOON','PUBLICATION_LEGEND']"), "runtime_audit_records_primary_story_preservation");
 ok(functionLine(base, "renderFeed").includes("drawFeedGeneral") && functionLine(base, "renderFeed").includes("drawFeedHours") && functionLine(base, "renderFeed").includes("drawFeedComments") && functionLine(base, "renderFeed").includes("drawFeedSolar"), "publication_render_pipeline_is_unchanged");
 
 const enhanced = enhanceInstagramWithEditorialExport(
@@ -56,10 +56,10 @@ const enhanced = enhanceInstagramWithEditorialExport(
   ),
   "tarnos"
 );
-ok(enhanced.includes("Editorial Studio · V1.6") && enhanced.includes("LÉGENDE DE PUBLICATION"), "editor_explains_the_two_live_text_links");
-ok(enhanced.includes("storyOneSource:'PRIMARY_SECONDARY'") && enhanced.includes("storyFiveSource:'PUBLICATION_LEGEND'"), "editor_contract_exposes_both_sources");
-ok(enhanced.includes("Story 1, Story 5 et Publication actualisées."), "editor_confirms_all_linked_visuals");
-ok(enhanced.includes("commentaire partagé Story 1 / Publication") && enhanced.includes("légende partagée Story 5 / texte Instagram"), "persistence_and_export_copy_match_the_final_architecture");
+ok(enhanced.includes("Editorial Studio · V1.7") && enhanced.includes("LÉGENDE DE PUBLICATION"), "editor_explains_the_two_live_text_links");
+ok(enhanced.includes("storyOneSource:'PRIMARY_SECONDARY'") && enhanced.includes("storySixSource:'PUBLICATION_LEGEND'"), "editor_contract_exposes_both_sources");
+ok(enhanced.includes("Story 1, Story 6 et Publication actualisées."), "editor_confirms_all_linked_visuals");
+ok(enhanced.includes("commentaire partagé Story 1 / Publication") && enhanced.includes("légende partagée Story 6 / texte Instagram"), "persistence_and_export_copy_match_the_final_architecture");
 
 for (const body of [...enhanced.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((match) => match[1])) {
   new Function(body);

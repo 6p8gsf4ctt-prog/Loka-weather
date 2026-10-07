@@ -22,7 +22,7 @@ ok(studio.includes("m.legendText=legend") && studio.includes("renderLegendStory(
 ok(studio.includes("publicationCaption(legend)") && studio.includes("copySharedPublication"), "shared_legend_drives_publication");
 ok(studio.includes("schedule('weather')") && studio.includes("target==='weather'"), "weather_comment_live_updates_story_one_and_publication");
 ok(studio.includes("schedule('legend')") && studio.includes("target==='legend'"), "publication_legend_live_updates_story_five");
-ok(studio.includes("storyOneSource:'PRIMARY_SECONDARY'") && studio.includes("storyFiveSource:'PUBLICATION_LEGEND'"), "live_destination_contract_is_declared");
+ok(studio.includes("storyOneSource:'PRIMARY_SECONDARY'") && studio.includes("storySixSource:'PUBLICATION_LEGEND'"), "live_destination_contract_is_declared");
 ok(studio.includes("__LOKA_EDITORIAL_LEGACY_SUBTITLE"), "legacy_subtitle_bridge_present");
 ok(studio.includes("activeSharedFields:['legend','hashtags']") && studio.includes("engagementUi:'DISABLED'"), "shared_editor_contract_declared");
 

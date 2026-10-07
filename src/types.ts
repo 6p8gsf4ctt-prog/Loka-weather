@@ -411,7 +411,7 @@ export interface OfficialPublicPayloadV24 {
   decision: SceneDecisionV24;
   models: { count: number; ok: string[]; failed: Record<string, string> };
   /**
-   * Prepared data for the five-Story daily deck. The publication renderer
+   * Prepared data for the six-Story daily deck. The publication renderer
    * keeps its historic inputs; only the dedicated Story compositions consume
    * this contract. Optional for compatibility with archived daily payloads.
    */

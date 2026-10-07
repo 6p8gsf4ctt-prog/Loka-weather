@@ -8,20 +8,21 @@ import type {
 import { hourOf } from "./math";
 import { solarPresentation, type SolarPresentation } from "../ui/solarTimes";
 
-export const DAILY_STORY_DECK_VERSION = "1.0.0" as const;
+export const DAILY_STORY_DECK_VERSION = "1.1.0" as const;
 export const DAILY_STORY_DECK_HOURS = Object.freeze(
-  Array.from({ length: 19 }, (_, index) => index + 4)
+  Array.from({ length: 20 }, (_, index) => index + 4)
 );
 
 export type DailyStoryDeckSlideId =
   | "OVERVIEW"
-  | "HOURLY"
+  | "HOURLY_EARLY"
+  | "HOURLY_LATE"
   | "DAYLIGHT"
   | "MOON"
   | "SUMMARY";
 
 export interface DailyStoryDeckSlideDescriptor {
-  position: 1 | 2 | 3 | 4 | 5;
+  position: 1 | 2 | 3 | 4 | 5 | 6;
   id: DailyStoryDeckSlideId;
   title: string;
   dataKey: "overview" | "hourly" | "daylight" | "moon" | "summary";
@@ -82,9 +83,9 @@ export interface DailyStoryDeckData {
   };
   hourly: {
     startHour: 4;
-    endHour: 22;
+    endHour: 23;
     intervalHours: 1;
-    expectedCount: 19;
+    expectedCount: 20;
     availableCount: number;
     complete: boolean;
     points: DailyStoryDeckHourlyPoint[];
@@ -399,10 +400,11 @@ function durationLabel(minutes: number | null): string | null {
 function storySlides(cityName: string): DailyStoryDeckSlideDescriptor[] {
   return [
     { position: 1, id: "OVERVIEW", title: `LA JOURNÉE À ${cityName.toUpperCase()}`, dataKey: "overview" },
-    { position: 2, id: "HOURLY", title: "HEURE PAR HEURE", dataKey: "hourly" },
-    { position: 3, id: "DAYLIGHT", title: "LES HEURES DU JOUR", dataKey: "daylight" },
-    { position: 4, id: "MOON", title: "LA LUNE CE SOIR", dataKey: "moon" },
-    { position: 5, id: "SUMMARY", title: "LA JOURNÉE EN QUELQUES MOTS", dataKey: "summary" }
+    { position: 2, id: "HOURLY_EARLY", title: "LE FIL DE LA JOURNÉE", dataKey: "hourly" },
+    { position: 3, id: "HOURLY_LATE", title: "LE FIL DE LA JOURNÉE", dataKey: "hourly" },
+    { position: 4, id: "DAYLIGHT", title: "LES HEURES DU JOUR", dataKey: "daylight" },
+    { position: 5, id: "MOON", title: "LA LUNE CE SOIR", dataKey: "moon" },
+    { position: 6, id: "SUMMARY", title: "LA JOURNÉE EN QUELQUES MOTS", dataKey: "summary" }
   ];
 }
 
@@ -434,7 +436,7 @@ export function buildDailyStoryDeckData(
       sourceTime: point.time,
       temperatureC: Math.round(point.temperatureC),
       condition: conditionForStoryHour(point),
-      precipitationMm: Math.round(point.precipitationMm * 100) / 100,
+      precipitationMm: Math.round(point.precipitationMm * 10) / 10,
       windGustKmh: Math.round(point.windGustKmh),
       modelCount: point.modelCount,
       available: true
@@ -459,9 +461,9 @@ export function buildDailyStoryDeckData(
     },
     hourly: {
       startHour: 4,
-      endHour: 22,
+      endHour: 23,
       intervalHours: 1,
-      expectedCount: 19,
+      expectedCount: 20,
       availableCount,
       complete: availableCount === DAILY_STORY_DECK_HOURS.length,
       points
@@ -518,7 +520,7 @@ export function buildLegacyDailyStoryDeckData(
       sourceTime: null,
       temperatureC: Math.round(point.temperatureC),
       condition: point.condition,
-      precipitationMm: Math.round(point.precipitationMm * 100) / 100,
+      precipitationMm: Math.round(point.precipitationMm * 10) / 10,
       windGustKmh: null,
       modelCount: payload.models.count,
       available: true
@@ -543,9 +545,9 @@ export function buildLegacyDailyStoryDeckData(
     },
     hourly: {
       startHour: 4,
-      endHour: 22,
+      endHour: 23,
       intervalHours: 1,
-      expectedCount: 19,
+      expectedCount: 20,
       availableCount,
       complete: false,
       points

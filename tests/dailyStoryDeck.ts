@@ -66,10 +66,10 @@ const payload = buildCandidateProduct(
 const deck = payload.storyDeck;
 
 ok(deck?.version === DAILY_STORY_DECK_VERSION && deck.frame === "DAILY_STORY_SHARED_V2", "deck_contract_is_versioned");
-ok(deck?.slides.map((slide) => slide.id).join(",") === "OVERVIEW,HOURLY,DAYLIGHT,MOON,SUMMARY", "five_story_sequence_is_fixed");
-ok(deck?.slides.map((slide) => slide.position).join(",") === "1,2,3,4,5", "story_positions_are_explicit");
-ok(DAILY_STORY_DECK_HOURS.join(",") === Array.from({ length: 19 }, (_, index) => index + 4).join(","), "hour_contract_is_every_hour_from_four_to_twenty_two");
-ok(deck?.hourly.points.length === 19 && deck.hourly.availableCount === 19 && deck.hourly.complete, "all_nineteen_hourly_points_are_available");
+ok(deck?.slides.map((slide) => slide.id).join(",") === "OVERVIEW,HOURLY_EARLY,HOURLY_LATE,DAYLIGHT,MOON,SUMMARY", "six_story_sequence_is_fixed");
+ok(deck?.slides.map((slide) => slide.position).join(",") === "1,2,3,4,5,6", "story_positions_are_explicit");
+ok(DAILY_STORY_DECK_HOURS.join(",") === Array.from({ length: 20 }, (_, index) => index + 4).join(","), "hour_contract_is_every_hour_from_four_to_twenty_three");
+ok(deck?.hourly.points.length === 20 && deck.hourly.availableCount === 20 && deck.hourly.complete, "all_twenty_hourly_points_are_available");
 ok(deck?.hourly.points.every((point, index) => point.hour === index + 4 && point.sourceTime?.endsWith(`${String(index + 4).padStart(2, "0")}:00`) === true) === true, "hourly_points_are_exact_not_interpolated");
 ok(payload.hourly.length === CITIES.tarnos.displayHours.length && payload.hourly.map((point) => point.hour).join(",") === CITIES.tarnos.displayHours.join(","), "legacy_publication_hours_are_unchanged");
 ok(deck?.overview.conditionTitle === payload.scene.label && deck.overview.minimumC === payload.temperatures.minC && deck.overview.maximumC === payload.temperatures.maxC, "overview_reuses_official_daily_data");
@@ -87,9 +87,8 @@ const incompleteConsensus = consensus();
 incompleteConsensus.delete(`${date}T11:00`);
 const incompleteDeck = buildDailyStoryDeckData(payload, CITIES.tarnos, incompleteConsensus);
 const missingHour = incompleteDeck.hourly.points.find((point) => point.hour === 11);
-ok(incompleteDeck.hourly.availableCount === 18 && !incompleteDeck.hourly.complete, "missing_hour_marks_the_deck_incomplete");
+ok(incompleteDeck.hourly.availableCount === 19 && !incompleteDeck.hourly.complete, "missing_hour_marks_the_deck_incomplete");
 ok(missingHour?.available === false && missingHour.temperatureC === null && missingHour.sourceTime === null, "missing_hour_is_never_invented_or_interpolated");
 
 if (passed !== 17) throw new Error(`daily_story_deck_count_mismatch:${passed}`);
 console.log(`DAILY_STORY_DECK ${passed}/17 PASS`);
-

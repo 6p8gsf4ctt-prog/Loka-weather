@@ -42,5 +42,12 @@ export function enhanceInstagramWithEditorialStudio(html: string): string {
   result = replaceRequired(result, "<!--LOKA_EDITORIAL_STUDIO_MOUNT-->", EDITOR_MARKUP, "studio_mount");
   result = replaceRequired(result, "<!--LOKA_EDITORIAL_SCRIPT_MOUNT-->", EDITOR_SCRIPT, "script_mount");
 
+  result = result
+    .replaceAll("Story 5", "Story 6")
+    .replaceAll("STORY_5", "STORY_6")
+    .replaceAll("storyFiveSource", "storySixSource")
+    .replaceAll("Editorial Studio · V1.6", "Editorial Studio · V1.7")
+    .replaceAll("version:'1.6'", "version:'1.7'");
+
   return result;
 }

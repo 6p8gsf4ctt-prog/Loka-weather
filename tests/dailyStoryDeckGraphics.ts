@@ -40,10 +40,10 @@ const payload = payloadFor(21);
 const html = renderInstagramDailyGraphicPreview(payload, CITIES.tarnos);
 const model = modelFrom(html);
 
-ok(["story", "hourlyStory", "daylightStory", "moonStory", "legendStory"].every((id) => html.includes(`<canvas id="${id}" width="1080" height="1920">`)), "five_story_canvases_are_exportable");
-ok(html.includes("STORY JOURNALIÈRE PRINCIPALE · ACTUELLE") && html.includes("STORY 5 · LÉGENDE DE LA PUBLICATION"), "five_story_sequence_is_labelled");
-ok(model.storyDeck.hourly.points.length === 19 && model.storyDeck.hourly.points[0].hour === 4 && model.storyDeck.hourly.points[18].hour === 22, "hourly_story_contains_every_hour_from_four_to_twenty_two");
-ok(functionLine(html, "drawHourlyBody").includes("rows=4,columns=5") && functionLine(html, "drawHourlyBody").includes("row===3?4:5"), "nineteen_hours_use_the_validated_five_by_four_grid");
+ok(["story", "hourlyStory", "hourlyLateStory", "daylightStory", "moonStory", "legendStory"].every((id) => html.includes(`<canvas id="${id}" width="1080" height="1920">`)), "six_story_canvases_are_exportable");
+ok(html.includes("STORY JOURNALIÈRE PRINCIPALE · ACTUELLE") && html.includes("STORY 6 · LÉGENDE DE LA PUBLICATION"), "six_story_sequence_is_labelled");
+ok(model.storyDeck.hourly.points.length === 20 && model.storyDeck.hourly.points[0].hour === 4 && model.storyDeck.hourly.points[19].hour === 23, "hourly_story_contains_every_hour_from_four_to_twenty_three");
+ok(functionLine(html, "drawHourlyBody").includes("rows=2,columns=5") && functionLine(html, "drawHourlyBody").includes("row*columns+col"), "twenty_hours_use_two_validated_two_by_five_grids");
 ok(functionLine(html, "prepareStory").includes("drawHeader(logo)") && functionLine(html, "prepareStory").includes("drawDeckTitle(title)") && functionLine(html, "prepareStory").includes("drawDeckBody()"), "all_stories_reuse_one_shared_frame_runtime");
 ok(functionLine(html, "renderHourlyStory").includes("drawStorySignature()") && functionLine(html, "renderMoonStory").includes("drawStorySignature()"), "shared_instagram_footer_is_preserved");
 ok(functionLine(html, "drawDaylightBody").includes("DURÉE DU JOUR") && functionLine(html, "drawDaylightBody").includes("d.solarNoon"), "daylight_story_contains_duration_and_five_solar_markers");
@@ -56,13 +56,13 @@ ok(LOKA_INSTAGRAM_STORY_SAFE_FRAME.deck.title.y === LOKA_INSTAGRAM_STORY_SAFE_FR
 const legacy = structuredClone(payload) as OfficialPublicPayloadV24;
 delete legacy.storyDeck;
 const legacyModel = modelFrom(renderInstagramDailyGraphicPreview(legacy, CITIES.tarnos));
-ok(legacyModel.storyDeck.hourly.points.length === 19 && legacyModel.storyDeck.hourly.complete === false, "archived_payloads_receive_a_non_interpolated_compatibility_deck");
+ok(legacyModel.storyDeck.hourly.points.length === 20 && legacyModel.storyDeck.hourly.complete === false, "archived_payloads_receive_a_non_interpolated_compatibility_deck");
 ok(legacyModel.storyDeck.hourly.points.some((point: any) => point.available === false && point.temperatureC === null), "missing_legacy_hours_are_explicit_not_invented");
 
 const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1] ?? "";
 let scriptValid = true;
 try { new Function(script); } catch { scriptValid = false; }
-ok(scriptValid, "five_story_browser_runtime_is_valid");
+ok(scriptValid, "six_story_browser_runtime_is_valid");
 
 if (passed !== 15) throw new Error(`daily_story_deck_graphics_count_mismatch:${passed}`);
 console.log(`DAILY_STORY_DECK_GRAPHICS ${passed}/15 PASS`);

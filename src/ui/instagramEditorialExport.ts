@@ -63,5 +63,6 @@ window.__LOKA_EDITORIAL_EXPORT={version:'1.2',citySlug:EXPORT_DATA.citySlug};
 
   return html
     .replace("</head>", `${EXPORT_STYLE}</head>`)
-    .replace("</body>", `${script}</body>`);
+    .replace("</body>", `${script}</body>`)
+    .replaceAll("Story 5 / texte Instagram", "Story 6 / texte Instagram");
 }
