@@ -129,6 +129,7 @@ export type HourlyCondition =
   | "couvert"
   | "brouillard"
   | "vent"
+  | "bruine"
   | "averse"
   | "pluie"
   | "orage";

@@ -68,7 +68,7 @@ function periodForSpan(firstHour: number | null, lastHour: number | null): Edito
 }
 
 function rainyCondition(condition: HourlyCondition): boolean {
-  return condition === "pluie" || condition === "averse" || condition === "orage";
+  return condition === "bruine" || condition === "pluie" || condition === "averse" || condition === "orage";
 }
 
 function skyRank(condition: HourlyCondition): number | null {
@@ -80,6 +80,7 @@ function skyRank(condition: HourlyCondition): number | null {
     case "nuageux": return 3;
     case "couvert": return 4;
     case "brouillard": return 4;
+    case "bruine": return 4;
     case "averse": return 4;
     case "pluie": return 4;
     case "orage": return 4;

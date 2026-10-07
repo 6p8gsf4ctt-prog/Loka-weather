@@ -34,6 +34,8 @@ export interface DailyStoryDeckHourlyPoint {
   temperatureC: number | null;
   condition: HourlyCondition | null;
   precipitationMm: number | null;
+  precipitationState: "NONE" | "LOW_RISK" | "DRIZZLE" | "RAIN" | null;
+  precipitationLabel: string;
   windGustKmh: number | null;
   modelCount: number | null;
   available: boolean;
@@ -390,6 +392,33 @@ export function conditionForStoryHour(point: ConsensusHour): HourlyCondition {
   return "couvert";
 }
 
+export function precipitationPresentationForStoryHour(point: Pick<ConsensusHour,
+  "precipitationMm" | "precipitationSupport" | "rainCodeSupport"
+>): { state: "NONE" | "LOW_RISK" | "DRIZZLE" | "RAIN"; label: string } {
+  const amount = Math.max(0, Math.round(point.precipitationMm * 10) / 10);
+  const support = Math.max(point.precipitationSupport, point.rainCodeSupport);
+  if (amount < 0.1 && point.rainCodeSupport < 0.35) return { state: "NONE", label: "0 mm" };
+  if (support < 0.35) return { state: "LOW_RISK", label: "Faible risque" };
+  if (support < 0.55 || amount < 0.5) {
+    return { state: "DRIZZLE", label: amount < 0.1 ? "Traces" : `${amount.toFixed(1).replace(".", ",")} mm` };
+  }
+  return { state: "RAIN", label: `${amount.toFixed(1).replace(".", ",")} mm` };
+}
+
+function conditionForStoryDeckHour(point: ConsensusHour): HourlyCondition {
+  if (point.thunderstormSupport >= 0.35) return "orage";
+  if (point.fogSupport >= 0.45) return "brouillard";
+  const precipitation = precipitationPresentationForStoryHour(point);
+  if (precipitation.state === "RAIN") return point.showerSupport >= 0.4 ? "averse" : "pluie";
+  if (precipitation.state === "DRIZZLE") return "bruine";
+  if (point.windGustKmh >= 70 && point.cloudCoverPct < 70) return "vent";
+  if (point.cloudCoverPct < 20) return "soleil";
+  if (point.cloudCoverPct < 40) return "peu nuageux";
+  if (point.cloudCoverPct < 65) return "variable";
+  if (point.cloudCoverPct < 85) return "nuageux";
+  return "couvert";
+}
+
 function durationLabel(minutes: number | null): string | null {
   if (minutes === null) return null;
   const hours = Math.floor(minutes / 60);
@@ -426,17 +455,22 @@ export function buildDailyStoryDeckData(
         temperatureC: null,
         condition: null,
         precipitationMm: null,
+        precipitationState: null,
+        precipitationLabel: "—",
         windGustKmh: null,
         modelCount: null,
         available: false
       };
     }
+    const precipitation = precipitationPresentationForStoryHour(point);
     return {
       hour,
       sourceTime: point.time,
       temperatureC: Math.round(point.temperatureC),
-      condition: conditionForStoryHour(point),
+      condition: conditionForStoryDeckHour(point),
       precipitationMm: Math.round(point.precipitationMm * 10) / 10,
+      precipitationState: precipitation.state,
+      precipitationLabel: precipitation.label,
       windGustKmh: Math.round(point.windGustKmh),
       modelCount: point.modelCount,
       available: true
@@ -510,17 +544,24 @@ export function buildLegacyDailyStoryDeckData(
         temperatureC: null,
         condition: null,
         precipitationMm: null,
+        precipitationState: null,
+        precipitationLabel: "—",
         windGustKmh: null,
         modelCount: null,
         available: false
       };
     }
+    const amount = Math.max(0, Math.round(point.precipitationMm * 10) / 10);
+    const rainyCondition = point.condition === "pluie" || point.condition === "averse" || point.condition === "orage";
+    const precipitationState = amount < 0.1 ? "NONE" : rainyCondition ? "RAIN" : "LOW_RISK";
     return {
       hour,
       sourceTime: null,
       temperatureC: Math.round(point.temperatureC),
       condition: point.condition,
       precipitationMm: Math.round(point.precipitationMm * 10) / 10,
+      precipitationState,
+      precipitationLabel: amount < 0.1 ? "0 mm" : rainyCondition ? `${amount.toFixed(1).replace(".", ",")} mm` : "Faible risque",
       windGustKmh: null,
       modelCount: payload.models.count,
       available: true

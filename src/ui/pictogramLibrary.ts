@@ -86,6 +86,7 @@ export function hourlyConditionToPictogram(condition: HourlyCondition): WeatherP
     case "couvert": return "cloud";
     case "brouillard": return "fog";
     case "vent": return "wind";
+    case "bruine": return "drizzle";
     case "averse":
     case "pluie": return "rain";
     case "orage": return "thunder";

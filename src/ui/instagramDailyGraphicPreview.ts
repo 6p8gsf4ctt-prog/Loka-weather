@@ -24,6 +24,40 @@ function safeJson(value: unknown): string {
   return JSON.stringify(value).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026");
 }
 
+function normalizeDailyStoryDeck(payload: OfficialPublicPayloadV24, city: CityConfig) {
+  const current = buildLegacyDailyStoryDeckData(payload, city);
+  const source = payload.storyDeck;
+  if (!source) return current;
+  const sourceByHour = new Map(source.hourly.points.map((point) => [point.hour, point]));
+  const points = current.hourly.points.map((fallback) => {
+    const sourcePoint = sourceByHour.get(fallback.hour);
+    if (!sourcePoint) return fallback;
+    const amount = Number(sourcePoint.precipitationMm);
+    const rainyCondition = sourcePoint.condition === "pluie" || sourcePoint.condition === "averse" || sourcePoint.condition === "orage";
+    const precipitationState = sourcePoint.precipitationState
+      ?? (!Number.isFinite(amount) || amount < 0.1 ? "NONE" : rainyCondition ? "RAIN" : "LOW_RISK");
+    const precipitationLabel = sourcePoint.precipitationLabel
+      ?? (!Number.isFinite(amount) ? "—" : amount < 0.1 ? "0 mm" : rainyCondition ? `${amount.toFixed(1).replace(".", ",")} mm` : "Faible risque");
+    return { ...sourcePoint, precipitationState, precipitationLabel };
+  });
+  const availableCount = points.filter((point) => point.available).length;
+  return {
+    ...source,
+    version: current.version,
+    slides: current.slides,
+    hourly: {
+      ...source.hourly,
+      startHour: current.hourly.startHour,
+      endHour: current.hourly.endHour,
+      intervalHours: current.hourly.intervalHours,
+      expectedCount: current.hourly.expectedCount,
+      availableCount,
+      complete: availableCount === current.hourly.expectedCount,
+      points
+    }
+  };
+}
+
 export function renderInstagramDailyGraphicPreview(
   payload: OfficialPublicPayloadV24,
   city: CityConfig,
@@ -45,7 +79,7 @@ export function renderInstagramDailyGraphicPreview(
   }>;
   const engagement = payload.editorial.engagement
     ?? buildEngagementEditorial(payload.city, payload.date, payload.editorial.facts);
-  const storyDeck = payload.storyDeck ?? buildLegacyDailyStoryDeckData(payload, city);
+  const storyDeck = normalizeDailyStoryDeck(payload, city);
 
   const model = {
     city: payload.city,
@@ -165,14 +199,14 @@ function drawStorySolar(solarIcons){const frame=STORY_FRAME.content.solar,x=fram
 function drawFeedSolar(solarIcons){const x=${LOKA_DAILY_FEED_FRAME.lowerBox.x},y=${LOKA_DAILY_FEED_FRAME.lowerBox.y},w=${LOKA_DAILY_FEED_FRAME.lowerBox.width},h=${LOKA_DAILY_FEED_FRAME.lowerBox.height};box(x,y,w,h);const colW=w/5;for(let i=1;i<5;i++)separator(x+colW*i,y+18,x+colW*i,y+h-18);const defs=[['AUBE','dawn',m.solar.dawn,null],['LEVER','sunrise',m.solar.sunrise,m.solar.sunriseDeltaMinutes],['MIDI SOLAIRE','noon',m.solar.solarNoon,null],['COUCHER','sunset',m.solar.sunset,m.solar.sunsetDeltaMinutes],['CRÉPUSCULE','dusk',m.solar.dusk,null]];defs.forEach((def,i)=>{const cx=x+colW*(i+.5);text(def[0],cx,1138,17,760,INK,'center');drawImageCentered(solarIcons[def[1]],cx,1192,90,68);text(def[2]||'—',cx,1252,31,700,INK,'center');const shift=solarShiftLabel(def[3]);if(shift)text(shift,cx,1280,18,650,rgba(INK,.84),'center');});}
 function drawStorySignature(){const s=STORY_FRAME.signature;text('Ici, aujourd’hui.',s.x,s.baseline,25,680,INK,'center');ctx.save();ctx.strokeStyle=GOLD;ctx.lineWidth=1.4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(s.underlineStartX,s.underlineY);ctx.lineTo(s.underlineEndX,s.underlineY);ctx.stroke();ctx.restore();}
 function drawFeedSignature(){text('Ici, aujourd’hui.',${LOKA_DAILY_FEED_FRAME.signature.x},${LOKA_DAILY_FEED_FRAME.signature.baseline},${LOKA_DAILY_FEED_FRAME.signature.size}*GS.publicationVisualScale*GS.hierarchy.signature,680,rgba(INK,${LOKA_DAILY_FEED_FRAME.signature.colorAlpha}),'center');ctx.save();ctx.strokeStyle=GOLD;ctx.lineWidth=${LOKA_DAILY_FEED_FRAME.signature.underlineWidth};ctx.lineCap='round';ctx.beginPath();ctx.moveTo(${LOKA_DAILY_FEED_FRAME.signature.underlineStartX},${LOKA_DAILY_FEED_FRAME.signature.underlineY});ctx.lineTo(${LOKA_DAILY_FEED_FRAME.signature.underlineEndX},${LOKA_DAILY_FEED_FRAME.signature.underlineY});ctx.stroke();ctx.restore();}
-function deckTitle(id){return m.storyDeck.slides.find(item=>item.id===id)?.title||'';}
+function deckTitle(id){const fallback={HOURLY_EARLY:'LE FIL DE LA JOURNÉE',HOURLY_LATE:'LE FIL DE LA JOURNÉE',DAYLIGHT:'LES HEURES DU JOUR',MOON:'LA LUNE CE SOIR',SUMMARY:'LA JOURNÉE EN QUELQUES MOTS'};return m.storyDeck.slides.find(item=>item.id===id)?.title||fallback[id]||'';}
 function drawDeckTitle(title){const frame=STORY_FRAME.deck.title,x=frame.x,y=frame.y,w=frame.width,h=frame.height;box(x,y,w,h);const size=fittedFontSize(title,w-96,56,38,820);text(title,x+52,y+h*.54+size*.34,size,820,INK,'left');editorialAccent(x+54,y+h*.70,58);}
 function drawDeckBody(){const frame=STORY_FRAME.deck.body;box(frame.x,frame.y,frame.width,frame.height);return frame;}
 function prepareStory(targetCtx,bg,logo,title){ctx=targetCtx;ctx.clearRect(0,0,1080,1920);drawCover(bg,1080,1920);drawHeader(logo);drawDeckTitle(title);return drawDeckBody();}
 function drawOverviewBody(mainIcon,frame){const d=m.storyDeck.overview,cx=frame.x+frame.width/2;drawImageCentered(mainIcon,cx,frame.y+300,390,300);const title=fitLines(d.conditionTitle,frame.width-120,2,78,48,820),lineHeight=Math.round(title.size*.98),titleStart=frame.y+555-(title.lines.length-1)*lineHeight/2;title.lines.forEach((line,i)=>text(line,cx,titleStart+i*lineHeight,title.size,820,INK,'center'));editorialAccent(cx-48,titleStart+(title.lines.length-1)*lineHeight+40,96);text(String(d.minimumC)+'° — '+String(d.maximumC)+'°',cx,frame.y+820,138,760,INK,'center');text('MINIMUM  —  MAXIMUM',cx,frame.y+882,25,720,rgba(INK,.88),'center');}
 function renderStory(bg,logo,mainIcon,slots,hourIcons,solarIcons){ctx=storyCtx;ctx.clearRect(0,0,1080,1920);drawCover(bg,1080,1920);drawHeader(logo);drawStoryGeneral(mainIcon);drawStoryHours(slots,hourIcons);drawStoryComments();drawStorySolar(solarIcons);drawStorySignature();}
 function formatPrecipitationMm(value){const amount=Number(value);if(!Number.isFinite(amount))return'—';if(amount<.1)return'0 mm';return amount.toFixed(1).replace('.',',')+' mm';}
-function drawHourlyBody(points,icons,frame){const rows=2,columns=5,padX=24,padY=42,cellW=(frame.width-padX*2)/columns,rowH=(frame.height-padY*2)/rows;separator(frame.x+padX,frame.y+padY+rowH,frame.x+frame.width-padX,frame.y+padY+rowH);for(let row=0;row<rows;row++){const top=frame.y+padY+rowH*row;for(let col=1;col<columns;col++)separator(frame.x+padX+cellW*col,top+22,frame.x+padX+cellW*col,top+rowH-22);for(let col=0;col<columns;col++){const index=row*columns+col,item=points[index],cx=frame.x+padX+cellW*(col+.5);text(String(item.hour).padStart(2,'0')+'h',cx,top+74,30,780,INK,'center');if(item.available&&icons[index])drawImageCentered(icons[index],cx,top+210,142,106);text(item.available?String(item.temperatureC)+'°':'—',cx,top+344,57,800,INK,'center');text(item.available?formatPrecipitationMm(item.precipitationMm):'—',cx,top+405,24,700,rgba(INK,.84),'center');}}}
+function drawHourlyBody(points,icons,frame){const rows=2,columns=5,padX=24,padY=42,cellW=(frame.width-padX*2)/columns,rowH=(frame.height-padY*2)/rows;separator(frame.x+padX,frame.y+padY+rowH,frame.x+frame.width-padX,frame.y+padY+rowH);for(let row=0;row<rows;row++){const top=frame.y+padY+rowH*row;for(let col=1;col<columns;col++)separator(frame.x+padX+cellW*col,top+22,frame.x+padX+cellW*col,top+rowH-22);for(let col=0;col<columns;col++){const index=row*columns+col,item=points[index]||{hour:null,available:false,temperatureC:null,precipitationMm:null,precipitationLabel:'—'},cx=frame.x+padX+cellW*(col+.5),hourLabel=Number.isFinite(Number(item.hour))?String(item.hour).padStart(2,'0')+'h':'—';text(hourLabel,cx,top+74,30,780,INK,'center');if(item.available&&icons[index])drawImageCentered(icons[index],cx,top+210,142,106);text(item.available?String(item.temperatureC)+'°':'—',cx,top+344,57,800,INK,'center');text(item.available?(item.precipitationLabel||formatPrecipitationMm(item.precipitationMm)):'—',cx,top+405,24,700,rgba(INK,.84),'center');}}}
 function renderHourlyStory(targetCtx,bg,logo,points,icons,slideId){ctx=targetCtx;const frame=prepareStory(targetCtx,bg,logo,deckTitle(slideId));drawHourlyBody(points,icons,frame);drawStorySignature();ctx=storyCtx;}
 function drawDaylightBody(solarIcons,frame){const d=m.storyDeck.daylight,cx=frame.x+frame.width/2;text('DURÉE DU JOUR',cx,frame.y+120,27,760,INK,'center');text(d.durationLabel||'—',cx,frame.y+258,112,760,INK,'center');const durationShift=solarShiftLabel(d.daylightDeltaMinutes);if(durationShift)text(durationShift+' par rapport à la veille',cx,frame.y+318,24,650,rgba(INK,.88),'center');editorialAccent(cx-45,frame.y+366,90);const defs=[['AUBE','dawn',d.dawn,null],['LEVER','sunrise',d.sunrise,d.sunriseDeltaMinutes],['MIDI SOLAIRE','noon',d.solarNoon,null],['COUCHER','sunset',d.sunset,d.sunsetDeltaMinutes],['CRÉPUSCULE','dusk',d.dusk,null]],colW=frame.width/5,top=frame.y+510;for(let i=1;i<5;i++)separator(frame.x+colW*i,top-36,frame.x+colW*i,frame.y+frame.height-72);defs.forEach((def,i)=>{const x=frame.x+colW*(i+.5);text(def[0],x,top,20,760,INK,'center');drawImageCentered(solarIcons[def[1]],x,top+120,132,100);text(def[2]||'—',x,top+218,38,720,INK,'center');const shift=solarShiftLabel(def[3]);if(shift)text(shift,x,top+258,19,650,rgba(INK,.84),'center');});}
 function renderDaylightStory(bg,logo,solarIcons){const frame=prepareStory(daylightStoryCtx,bg,logo,deckTitle('DAYLIGHT'));drawDaylightBody(solarIcons,frame);drawStorySignature();ctx=storyCtx;}

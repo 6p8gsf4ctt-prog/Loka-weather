@@ -580,7 +580,7 @@ export default {
         headers: {
           "content-type": "text/html; charset=utf-8",
           "cache-control": "no-store",
-          "x-loka-daily-graphic-variant": "weekly-inspired-v4-two-part-hourly-thread",
+          "x-loka-daily-graphic-variant": "weekly-inspired-v5-safe-hourly-precipitation",
           "x-loka-daily-story-deck": "primary-active-complements-test"
         }
       });

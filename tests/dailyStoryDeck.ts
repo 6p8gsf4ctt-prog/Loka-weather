@@ -3,7 +3,8 @@ import {
   buildDailyStoryDeckData,
   calculateMoonPresentation,
   DAILY_STORY_DECK_HOURS,
-  DAILY_STORY_DECK_VERSION
+  DAILY_STORY_DECK_VERSION,
+  precipitationPresentationForStoryHour
 } from "../src/engine/dailyStoryDeck";
 import { buildCandidateProduct } from "../src/engine/verdict";
 import type { ConsensusHour, ModelForecast } from "../src/types";
@@ -78,6 +79,16 @@ ok(deck?.summary.legendText === `${payload.editorial.social.paragraph1}\n\n${pay
 ok(Boolean(deck?.daylight.sunrise && deck.daylight.sunset && deck.daylight.durationLabel), "daylight_data_are_ready");
 ok(deck?.provenance.weather === "LOKA_MULTI_MODEL_CONSENSUS" && deck.provenance.modelCount === 5, "weather_provenance_is_explicit");
 
+const precipitationStates = [
+  { precipitationMm: 0, precipitationSupport: 0.1, rainCodeSupport: 0.1 },
+  { precipitationMm: 0.3, precipitationSupport: 0.2, rainCodeSupport: 0.2 },
+  { precipitationMm: 0.3, precipitationSupport: 0.4, rainCodeSupport: 0.4 },
+  { precipitationMm: 0.3, precipitationSupport: 0.7, rainCodeSupport: 0.7 },
+  { precipitationMm: 0.8, precipitationSupport: 0.7, rainCodeSupport: 0.7 }
+].map(precipitationPresentationForStoryHour);
+ok(precipitationStates.map((item) => item.state).join(",") === "NONE,LOW_RISK,DRIZZLE,DRIZZLE,RAIN", "precipitation_display_states_follow_support_and_amount");
+ok(precipitationStates.map((item) => item.label).join("|") === "0 mm|Faible risque|0,3 mm|0,3 mm|0,8 mm", "precipitation_labels_never_present_a_low_support_mean_as_certain_rain");
+
 const moon = calculateMoonPresentation(CITIES.tarnos, date);
 ok(moon.illuminationPct >= 0 && moon.illuminationPct <= 100 && moon.ageDays >= 0 && moon.ageDays <= 29.6, "moon_phase_values_are_bounded");
 ok(/^\d{4}-\d{2}-\d{2}$/.test(moon.nextPrincipalPhase.estimatedDate) && moon.method === "LOKA_ASTRONOMICAL_CALCULATION_V1", "moon_next_phase_is_traceable");
@@ -90,5 +101,5 @@ const missingHour = incompleteDeck.hourly.points.find((point) => point.hour === 
 ok(incompleteDeck.hourly.availableCount === 19 && !incompleteDeck.hourly.complete, "missing_hour_marks_the_deck_incomplete");
 ok(missingHour?.available === false && missingHour.temperatureC === null && missingHour.sourceTime === null, "missing_hour_is_never_invented_or_interpolated");
 
-if (passed !== 17) throw new Error(`daily_story_deck_count_mismatch:${passed}`);
-console.log(`DAILY_STORY_DECK ${passed}/17 PASS`);
+if (passed !== 19) throw new Error(`daily_story_deck_count_mismatch:${passed}`);
+console.log(`DAILY_STORY_DECK ${passed}/19 PASS`);

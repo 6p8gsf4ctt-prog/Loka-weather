@@ -59,10 +59,24 @@ const legacyModel = modelFrom(renderInstagramDailyGraphicPreview(legacy, CITIES.
 ok(legacyModel.storyDeck.hourly.points.length === 20 && legacyModel.storyDeck.hourly.complete === false, "archived_payloads_receive_a_non_interpolated_compatibility_deck");
 ok(legacyModel.storyDeck.hourly.points.some((point: any) => point.available === false && point.temperatureC === null), "missing_legacy_hours_are_explicit_not_invented");
 
+const cached = structuredClone(payload) as OfficialPublicPayloadV24;
+if (!cached.storyDeck) throw new Error("cached_story_deck_fixture_missing");
+(cached.storyDeck as any).version = "1.0.0";
+(cached.storyDeck as any).slides = [
+  { position: 1, id: "OVERVIEW", title: "LA JOURNÉE À TARNOS", dataKey: "overview" },
+  { position: 2, id: "HOURLY", title: "HEURE PAR HEURE", dataKey: "hourly" },
+  { position: 3, id: "DAYLIGHT", title: "LES HEURES DU JOUR", dataKey: "daylight" },
+  { position: 4, id: "MOON", title: "LA LUNE CE SOIR", dataKey: "moon" },
+  { position: 5, id: "SUMMARY", title: "LA JOURNÉE EN QUELQUES MOTS", dataKey: "summary" }
+];
+(cached.storyDeck as any).hourly.points = cached.storyDeck.hourly.points.slice(0, 19);
+const cachedModel = modelFrom(renderInstagramDailyGraphicPreview(cached, CITIES.tarnos));
+ok(cachedModel.storyDeck.slides.some((slide: any) => slide.id === "HOURLY_EARLY") && cachedModel.storyDeck.slides.some((slide: any) => slide.id === "HOURLY_LATE") && cachedModel.storyDeck.hourly.points.length === 20 && cachedModel.storyDeck.hourly.points[19].available === false, "cached_v1_decks_are_migrated_without_inventing_hour_twenty_three");
+
 const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1] ?? "";
 let scriptValid = true;
 try { new Function(script); } catch { scriptValid = false; }
 ok(scriptValid, "six_story_browser_runtime_is_valid");
 
-if (passed !== 15) throw new Error(`daily_story_deck_graphics_count_mismatch:${passed}`);
-console.log(`DAILY_STORY_DECK_GRAPHICS ${passed}/15 PASS`);
+if (passed !== 16) throw new Error(`daily_story_deck_graphics_count_mismatch:${passed}`);
+console.log(`DAILY_STORY_DECK_GRAPHICS ${passed}/16 PASS`);
