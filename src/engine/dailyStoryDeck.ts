@@ -8,7 +8,7 @@ import type {
 import { hourOf } from "./math";
 import { solarPresentation, type SolarPresentation } from "../ui/solarTimes";
 
-export const DAILY_STORY_DECK_VERSION = "1.1.0" as const;
+export const DAILY_STORY_DECK_VERSION = "1.2.0" as const;
 export const DAILY_STORY_DECK_HOURS = Object.freeze(
   Array.from({ length: 20 }, (_, index) => index + 4)
 );
@@ -431,7 +431,7 @@ function storySlides(cityName: string): DailyStoryDeckSlideDescriptor[] {
     { position: 1, id: "OVERVIEW", title: `LA JOURNÉE À ${cityName.toUpperCase()}`, dataKey: "overview" },
     { position: 2, id: "HOURLY_EARLY", title: "LE FIL DE LA JOURNÉE", dataKey: "hourly" },
     { position: 3, id: "HOURLY_LATE", title: "LE FIL DE LA JOURNÉE", dataKey: "hourly" },
-    { position: 4, id: "DAYLIGHT", title: "LES HEURES DU JOUR", dataKey: "daylight" },
+    { position: 4, id: "DAYLIGHT", title: "DE L’AUBE AU CRÉPUSCULE", dataKey: "daylight" },
     { position: 5, id: "MOON", title: "LA LUNE CE SOIR", dataKey: "moon" },
     { position: 6, id: "SUMMARY", title: "LA JOURNÉE EN QUELQUES MOTS", dataKey: "summary" }
   ];

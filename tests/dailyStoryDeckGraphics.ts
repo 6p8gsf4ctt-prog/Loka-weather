@@ -48,6 +48,7 @@ ok(functionLine(html, "drawHourlyBody").includes("padTop=76,padBottom=8") && fun
 ok(functionLine(html, "prepareStory").includes("drawHeader(logo)") && functionLine(html, "prepareStory").includes("drawDeckTitle(title)") && functionLine(html, "prepareStory").includes("drawDeckBody()"), "all_stories_reuse_one_shared_frame_runtime");
 ok(functionLine(html, "renderHourlyStory").includes("drawStorySignature()") && functionLine(html, "renderMoonStory").includes("drawStorySignature()"), "shared_instagram_footer_is_preserved");
 ok(functionLine(html, "drawDaylightBody").includes("DURÉE DU JOUR") && functionLine(html, "drawDaylightBody").includes("d.solarNoon"), "daylight_story_contains_duration_and_five_solar_markers");
+ok(html.includes("DE L’AUBE AU CRÉPUSCULE") && functionLine(html, "drawDaylightBody").includes("top=frame.y+625") && functionLine(html, "drawDaylightBody").includes("top+285,50,780"), "daylight_story_uses_the_new_title_and_balanced_readable_hierarchy");
 ok(model.storyDeck.moon.pictogramUrl.startsWith("data:image/svg+xml;charset=utf-8,"), "moon_uses_the_official_local_pictogram_pipeline");
 ok(functionLine(html, "drawMoonBody").includes("LEVER DE LUNE") && functionLine(html, "drawMoonBody").includes("PROCHAINE PHASE"), "moon_story_has_useful_public_information");
 ok(functionLine(html, "drawLegendPanel").includes("m.legendText") && functionLine(html, "drawLegendPanel").includes("legendLayout") && functionLine(html, "drawLegendPanel").includes("drawLegendSerifLine"), "story_five_reuses_the_complete_publication_legend");
@@ -79,5 +80,5 @@ let scriptValid = true;
 try { new Function(script); } catch { scriptValid = false; }
 ok(scriptValid, "six_story_browser_runtime_is_valid");
 
-if (passed !== 17) throw new Error(`daily_story_deck_graphics_count_mismatch:${passed}`);
-console.log(`DAILY_STORY_DECK_GRAPHICS ${passed}/17 PASS`);
+if (passed !== 18) throw new Error(`daily_story_deck_graphics_count_mismatch:${passed}`);
+console.log(`DAILY_STORY_DECK_GRAPHICS ${passed}/18 PASS`);

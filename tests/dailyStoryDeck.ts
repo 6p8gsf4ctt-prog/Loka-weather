@@ -68,6 +68,7 @@ const deck = payload.storyDeck;
 
 ok(deck?.version === DAILY_STORY_DECK_VERSION && deck.frame === "DAILY_STORY_SHARED_V2", "deck_contract_is_versioned");
 ok(deck?.slides.map((slide) => slide.id).join(",") === "OVERVIEW,HOURLY_EARLY,HOURLY_LATE,DAYLIGHT,MOON,SUMMARY", "six_story_sequence_is_fixed");
+ok(deck?.slides.find((slide) => slide.id === "DAYLIGHT")?.title === "DE L’AUBE AU CRÉPUSCULE", "daylight_story_uses_the_validated_public_title");
 ok(deck?.slides.map((slide) => slide.position).join(",") === "1,2,3,4,5,6", "story_positions_are_explicit");
 ok(DAILY_STORY_DECK_HOURS.join(",") === Array.from({ length: 20 }, (_, index) => index + 4).join(","), "hour_contract_is_every_hour_from_four_to_twenty_three");
 ok(deck?.hourly.points.length === 20 && deck.hourly.availableCount === 20 && deck.hourly.complete, "all_twenty_hourly_points_are_available");
@@ -101,5 +102,5 @@ const missingHour = incompleteDeck.hourly.points.find((point) => point.hour === 
 ok(incompleteDeck.hourly.availableCount === 19 && !incompleteDeck.hourly.complete, "missing_hour_marks_the_deck_incomplete");
 ok(missingHour?.available === false && missingHour.temperatureC === null && missingHour.sourceTime === null, "missing_hour_is_never_invented_or_interpolated");
 
-if (passed !== 19) throw new Error(`daily_story_deck_count_mismatch:${passed}`);
-console.log(`DAILY_STORY_DECK ${passed}/19 PASS`);
+if (passed !== 20) throw new Error(`daily_story_deck_count_mismatch:${passed}`);
+console.log(`DAILY_STORY_DECK ${passed}/20 PASS`);

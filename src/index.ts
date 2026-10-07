@@ -609,7 +609,7 @@ export default {
         headers: {
           "content-type": "text/html; charset=utf-8",
           "cache-control": "no-store",
-          "x-loka-daily-graphic-variant": "weekly-inspired-v6-complete-balanced-hourly",
+          "x-loka-daily-graphic-variant": "weekly-inspired-v7-balanced-daylight",
           "x-loka-daily-story-deck": "primary-active-complements-test",
           "x-loka-hourly-story-source": hourlyStorySource
         }
