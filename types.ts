@@ -1,0 +1,469 @@
+export interface Env {
+  DB: D1Database;
+  ASSETS?: Fetcher;
+  OPEN_METEO_BASE_URL?: string;
+  OPEN_METEO_API_KEY?: string;
+  /** Public data.gouv.fr dataset metadata endpoint; no user credential required. */
+  METEO_FRANCE_DAILY_DATASET_URL?: string;
+  /** Hours before the local Météo-France climate cache is refreshed. */
+  METEO_FRANCE_CLIMATE_REFRESH_HOURS?: string;
+  /** Network timeout for metadata and compressed climate resources. */
+  METEO_FRANCE_CLIMATE_FETCH_TIMEOUT_MS?: string;
+  ADMIN_TOKEN?: string;
+  WEEKLY_ENABLED?: string;
+  /** Opt-in gate: contextual slides stay preview-only until explicitly enabled. */
+  WEEKLY_CONTEXTUAL_SLIDES_ENABLED?: string;
+  /** Phase-4 gate: expose preflighted editorial slides on the public surface. */
+  WEEKLY_PROGRESSIVE_PUBLICATION_ENABLED?: string;
+  /** Phase-4 shadow mode: run the rollout checks while keeping slide 1 public. */
+  WEEKLY_PROGRESSIVE_SHADOW_MODE?: string;
+  /** Immediate kill switch: force the public weekly surface back to slide 1. */
+  WEEKLY_PROGRESSIVE_ROLLBACK?: string;
+  /** Explicit exposure gate for the standalone Daily Insight STORY. */
+  DAILY_INSIGHT_STORY_ENABLED?: string;
+  /** Immediate kill switch; takes precedence over the exposure gate. */
+  DAILY_INSIGHT_STORY_ROLLBACK?: string;
+  /** Maximum synchronous Daily Insight calculation time accepted by rollout. */
+  DAILY_INSIGHT_CPU_BUDGET_MS?: string;
+  /** Controlled OP5 exposure gate for the cached V2 editorial selection. */
+  DAILY_INSIGHT_OP5_ENABLED?: string;
+  /** Immediate OP5 rollback to the already deployed Daily Insight story. */
+  DAILY_INSIGHT_OP5_ROLLBACK?: string;
+  /** Maximum age accepted for a background-prepared OP5 draft. */
+  DAILY_INSIGHT_OP5_MAX_DRAFT_AGE_HOURS?: string;
+}
+
+export type WeatherFamily =
+  | "meteofrance"
+  | "ecmwf_physics"
+  | "ecmwf_ai"
+  | "dwd"
+  | "noaa";
+
+export interface CityConfig {
+  slug: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+  displayHours: number[];
+  wind: { gustNotableKmh: number; gustStrongKmh: number };
+  thermal: {
+    morningCoolBelowC: number;
+    morningMildBelowC: number;
+    morningWarmFromC: number;
+    afternoonHotFromC: number;
+    afternoonVeryHotFromC: number;
+    notableRiseC: number;
+    strongRiseC: number;
+    notableDropC: number;
+  };
+}
+
+export interface ModelConfig {
+  id: string;
+  apiModel: string;
+  family: WeatherFamily;
+  baseWeight: number;
+}
+
+export interface HourPoint {
+  time: string;
+  temperatureC: number | null;
+  apparentTemperatureC: number | null;
+  precipitationMm: number;
+  rainMm: number;
+  cloudCoverPct: number | null;
+  cloudCoverLowPct: number | null;
+  cloudCoverMidPct: number | null;
+  cloudCoverHighPct: number | null;
+  windSpeedKmh: number | null;
+  windGustKmh: number | null;
+  weatherCode: number | null;
+}
+
+export interface ModelForecast {
+  modelId: string;
+  family: WeatherFamily;
+  weight: number;
+  fetchedAt: string;
+  latitude: number;
+  longitude: number;
+  generationTimeMs?: number;
+  hourly: HourPoint[];
+}
+
+export interface ConsensusHour {
+  time: string;
+  temperatureC: number;
+  apparentTemperatureC: number;
+  precipitationMm: number;
+  cloudCoverPct: number;
+  cloudCoverLowPct: number | null;
+  cloudCoverMidPct: number | null;
+  cloudCoverHighPct: number | null;
+  cloudLayerModelCount: number;
+  windSpeedKmh: number;
+  windGustKmh: number;
+  modelCount: number;
+  temperatureSpreadC: number;
+  precipitationSupport: number;
+  rainCodeSupport: number;
+  showerSupport: number;
+  thunderstormSupport: number;
+  fogSupport: number;
+}
+
+export interface DisplayHour {
+  hour: number;
+  temperatureC: number;
+  condition: HourlyCondition;
+  precipitationMm: number;
+}
+
+export type HourlyCondition =
+  | "soleil"
+  | "peu nuageux"
+  | "variable"
+  | "nuageux"
+  | "couvert"
+  | "brouillard"
+  | "vent"
+  | "bruine"
+  | "averse"
+  | "pluie"
+  | "orage";
+
+export type Scene24Id =
+  | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12
+  | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24;
+
+export type Scene24Key =
+  | "GRAND_SOLEIL"
+  | "SOLEIL_VOILE"
+  | "ECLAIRCIES"
+  | "VARIABLE_LUMINEUX"
+  | "DEGRADATION"
+  | "SOLEIL_PLUS_VENT"
+  | "SOLEIL_VOILE_DENSE"
+  | "BRUME_BROUILLARD"
+  | "COUVERT"
+  | "VENT_FORT"
+  | "AMELIORATION"
+  | "PLUIE_SOUTENUE"
+  | "AVERSES"
+  | "ECLAIRCIES_PLUS_VENT"
+  | "AMELIORATION_LUMINEUSE"
+  | "SOLEIL_PLUS_PASSAGES_NUAGEUX"
+  | "BROUILLARD_DENSE"
+  | "VARIABLE"
+  | "INSTABLE"
+  | "NUAGEUX_PLUS_VENT"
+  | "GRANDES_ECLAIRCIES"
+  | "ORAGEUX"
+  | "COUVERT_DENSE"
+  | "PLUIE_PLUS_VENT";
+
+export type Scene24Family =
+  | "LIGHT"
+  | "VEIL"
+  | "MIXED_SKY"
+  | "VARIABILITY"
+  | "TREND"
+  | "WIND_COMBINATION"
+  | "VISIBILITY"
+  | "CLOUD"
+  | "WIND"
+  | "RAIN"
+  | "INSTABILITY"
+  | "THUNDER"
+  | "RAIN_WIND";
+
+export type Scene24Confidence = "HIGH" | "MEDIUM" | "LOW";
+export type ResolutionMode = "DIRECT" | "NEIGHBOR_RESOLUTION" | "CONSERVATIVE" | "HYSTERESIS";
+export type DecisionValidity = "VALID" | "INVALID";
+export type VisualIcon = "sun" | "partly" | "cloud" | "veil" | "fog" | "wind" | "rain" | "shower" | "thunder" | "mixed" | "rain-wind" | "cloud-wind" | "sun-wind";
+
+export interface Scene24Definition {
+  id: Scene24Id;
+  key: Scene24Key;
+  label: string;
+  family: Scene24Family;
+  description: string;
+  masterFileName: string;
+  emoji: string;
+  visualIcon: VisualIcon;
+}
+
+export interface Scene24Candidate {
+  sceneId: Scene24Id;
+  sceneKey: Scene24Key;
+  score: number;
+  confidence: Scene24Confidence;
+  reasons: string[];
+  penalties: string[];
+}
+
+export interface Scene24RunnerUp {
+  sceneId: Scene24Id;
+  sceneKey: Scene24Key;
+  score: number;
+}
+
+export interface SceneDecisionV24 {
+  version: string;
+  doctrineVersion: string;
+  validity: DecisionValidity;
+  decisionFamily: Scene24Family;
+  resolutionMode: ResolutionMode;
+  familyReason: string;
+  candidateSceneIds: Scene24Id[];
+  sceneId: Scene24Id;
+  sceneKey: Scene24Key;
+  sceneLabel: string;
+  score: number;
+  confidence: Scene24Confidence;
+  runnerUp: Scene24RunnerUp | null;
+  candidates: Scene24Candidate[];
+  reasons: string[];
+  fallbackUsed: false;
+  hysteresisApplied: boolean;
+  invariantChecks: Array<{ name: string; pass: boolean; detail: string }>;
+  profileSummary: Record<string, number | string | boolean | null>;
+}
+
+export type SkyBand = "CLEAR" | "BRIGHT" | "MIXED" | "CLOUDY" | "DENSE";
+
+export interface DayPeriodProfile {
+  count: number;
+  meanCloudPct: number;
+  brightFraction: number;
+  cloudyFraction: number;
+  meanWindGustKmh: number;
+  rainHours: number;
+}
+
+export interface DayProfileV2 {
+  version: "2.0";
+  citySlug: string;
+  date: string;
+  period: {
+    startHour: number;
+    endHour: number;
+    sunriseLocalHour: number;
+    sunsetLocalHour: number;
+    daylightHours: number;
+  };
+  periods: {
+    early: DayPeriodProfile;
+    mid: DayPeriodProfile;
+    late: DayPeriodProfile;
+    lastHours: DayPeriodProfile;
+  };
+  light: {
+    clearFraction: number;
+    brightFraction: number;
+    mixedFraction: number;
+    cloudyFraction: number;
+    denseFraction: number;
+    brightBlockMaxHours: number;
+    cloudBlockMaxHours: number;
+    lastHoursBrightFraction: number;
+  };
+  cloud: {
+    meanCoverPct: number;
+    medianCoverPct: number;
+    minCoverPct: number;
+    maxCoverPct: number;
+    stdDevPct: number;
+    lowMeanPct: number | null;
+    midMeanPct: number | null;
+    highMeanPct: number | null;
+    highFractionAbove70: number | null;
+    denseBlockMaxHours: number;
+  };
+  rain: {
+    rainHours: number;
+    rainBlockMaxHours: number;
+    rainBreakCount: number;
+    dryGapMaxHours: number;
+    rainTotalMm: number;
+    maxRainMmPerHour: number;
+    continuityRatio: number;
+    showerHours: number;
+    showerBlockCount: number;
+    convectiveRainFraction: number;
+  };
+  wind: {
+    notableHours: number;
+    strongHours: number;
+    maxGustKmh: number;
+    blockMaxHours: number;
+    strongBlockMaxHours: number;
+    brightOverlapHours: number;
+    mixedOverlapHours: number;
+    cloudOverlapHours: number;
+    rainOverlapHours: number;
+  };
+  convection: {
+    thunderHours: number;
+    peakThunderSupport: number;
+  };
+  visibility: {
+    fogHours: number;
+    denseFogHours: number;
+    fogBlockMaxHours: number;
+    denseFogBlockMaxHours: number;
+    fogSupportPeak: number;
+    fogSupportMean: number;
+    visibilityMinKm: null;
+  };
+  evolution: {
+    earlyCloudPct: number;
+    midCloudPct: number;
+    lateCloudPct: number;
+    earlyBrightFraction: number;
+    midBrightFraction: number;
+    lateBrightFraction: number;
+    cloudTrend: number;
+    trendStrength: "STABLE" | "WEAK" | "MODERATE" | "STRONG";
+    reversals: number;
+  };
+  structure: {
+    meaningfulTransitions: number;
+    uncertainWeather: boolean;
+    distinctStateCount: number;
+    modelCountMin: number;
+    modelCountMean: number;
+  };
+}
+
+export interface EditorialFacts {
+  sceneId: Scene24Id;
+  sceneKey: Scene24Key;
+  trajectory: "STABLE" | "IMPROVING" | "DEGRADING" | "VARIABLE";
+  startSky: SkyBand;
+  middleSky: SkyBand;
+  endSky: SkyBand;
+  transitionStrength: "NONE" | "WEAK" | "MODERATE" | "STRONG";
+  brightestPeriod: "EARLY" | "MID" | "LATE" | "ALL_DAY";
+  cloudiestPeriod: "EARLY" | "MID" | "LATE" | "ALL_DAY";
+  precipitation: { kind: "DRY" | "SHOWERS" | "RAIN" | "THUNDER"; hours: number; totalMm: number };
+  wind: { kind: "NONE" | "NOTABLE" | "STRONG"; maxGustKmh: number };
+  fog: { kind: "NONE" | "BRIEF" | "DENSE"; hours: number };
+  temperature: { minC: number; maxC: number; character: "COOL" | "MILD" | "WARM" | "HOT" | "VERY_HOT" };
+  confidence: Scene24Confidence;
+  modelSignalUncertain: boolean;
+}
+
+export interface EditorialProductV2 {
+  version: "2.0";
+  scene: {
+    id: Scene24Id;
+    key: Scene24Key;
+    title: string;
+    emoji: string;
+    visualIcon: VisualIcon;
+  };
+  visual: {
+    subtitle: string;
+    primaryLine: string;
+    secondaryLine: string;
+  };
+  social: {
+    paragraph1: string;
+    paragraph2: string;
+    signature: "Ici, aujourd’hui.";
+    handle: string;
+    caption: string;
+    hashtags: string;
+  };
+  engagement: EditorialEngagementV2;
+  facts: EditorialFacts;
+}
+
+export type EditorialEngagementFormat = "POLL" | "QUESTION";
+
+export interface EditorialEngagementV2 {
+  format: EditorialEngagementFormat;
+  question: string;
+  options: [string, string] | null;
+}
+
+export interface OfficialPublicPayloadV24 {
+  version: "2.0";
+  city: string;
+  citySlug: string;
+  date: string;
+  generatedAt: string;
+  source: string;
+  scene: {
+    id: Scene24Id;
+    key: Scene24Key;
+    label: string;
+    family: Scene24Family;
+    masterUrl: string;
+    visualIcon: VisualIcon;
+    emoji: string;
+  };
+  temperatures: { minC: number; maxC: number };
+  hourly: DisplayHour[];
+  editorial: EditorialProductV2;
+  decision: SceneDecisionV24;
+  models: { count: number; ok: string[]; failed: Record<string, string> };
+  /**
+   * Prepared data for the six-Story daily deck. The publication renderer
+   * keeps its historic inputs; only the dedicated Story compositions consume
+   * this contract. Optional for compatibility with archived daily payloads.
+   */
+  storyDeck?: import("./engine/dailyStoryDeck").DailyStoryDeckData;
+}
+
+export interface PublicationManifestV24 {
+  version: "2.0";
+  engine: "V24";
+  citySlug: string;
+  forecastDate: string;
+  generatedAt: string;
+  sceneId: Scene24Id;
+  sceneKey: Scene24Key;
+  payloadSha256: string;
+  createdAt: string;
+}
+
+export type DailySceneStatus = "OFFICIAL" | "RECOVERED";
+
+export interface DailySceneLedgerRow {
+  id: number;
+  citySlug: string;
+  forecastDate: string;
+  revision: number;
+  status: DailySceneStatus;
+  generationId: number;
+  sceneId: Scene24Id;
+  sceneKey: Scene24Key;
+  sceneLabel: string;
+  confidence: Scene24Confidence;
+  resolutionMode: ResolutionMode;
+  runnerUpSceneId: Scene24Id | null;
+  engineVersion: string;
+  doctrineVersion: string;
+  manifestHash: string;
+  reason: string | null;
+  createdAt: string;
+}
+
+export interface GenerationArchiveRow {
+  id: number;
+  citySlug: string;
+  forecastDate: string;
+  generatedAt: string;
+  source: string;
+  sceneId: Scene24Id;
+  sceneKey: Scene24Key;
+  score: number;
+  confidence: Scene24Confidence;
+  modelCount: number;
+  publicPayload: OfficialPublicPayloadV24;
+  manifestHash: string;
+}
