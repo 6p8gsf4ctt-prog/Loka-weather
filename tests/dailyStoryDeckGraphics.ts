@@ -41,7 +41,7 @@ const html = renderInstagramDailyGraphicPreview(payload, CITIES.tarnos);
 const model = modelFrom(html);
 
 ok(["story", "hourlyStory", "daylightStory", "moonStory", "legendStory"].every((id) => html.includes(`<canvas id="${id}" width="1080" height="1920">`)), "five_story_canvases_are_exportable");
-ok(html.includes("STORY 1 · LA JOURNÉE") && html.includes("STORY 5 · RÉSUMÉ DU JOUR"), "five_story_sequence_is_labelled");
+ok(html.includes("STORY JOURNALIÈRE PRINCIPALE · ACTUELLE") && html.includes("STORY 5 · RÉSUMÉ DU JOUR"), "five_story_sequence_is_labelled");
 ok(model.storyDeck.hourly.points.length === 19 && model.storyDeck.hourly.points[0].hour === 4 && model.storyDeck.hourly.points[18].hour === 22, "hourly_story_contains_every_hour_from_four_to_twenty_two");
 ok(functionLine(html, "drawHourlyBody").includes("rows=4,columns=5") && functionLine(html, "drawHourlyBody").includes("row===3?4:5"), "nineteen_hours_use_the_validated_five_by_four_grid");
 ok(functionLine(html, "prepareStory").includes("drawHeader(logo)") && functionLine(html, "prepareStory").includes("drawDeckTitle(title)") && functionLine(html, "prepareStory").includes("drawDeckBody()"), "all_stories_reuse_one_shared_frame_runtime");
