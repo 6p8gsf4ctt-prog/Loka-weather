@@ -20,6 +20,9 @@ ok(!studio.includes('id="engagementFormat"') && !studio.includes('id="engagement
 ok(studio.includes("m.storyVisual={...officialVisual") && studio.includes("m.feedVisual={...officialVisual"), "one_visual_pair_updates_both_canvases");
 ok(studio.includes("m.legendText=legend") && studio.includes("renderLegendStory(a.bg,a.logo)"), "shared_legend_drives_story");
 ok(studio.includes("publicationCaption(legend)") && studio.includes("copySharedPublication"), "shared_legend_drives_publication");
+ok(studio.includes("schedule('weather')") && studio.includes("target==='weather'"), "weather_comment_live_updates_story_one_and_publication");
+ok(studio.includes("schedule('legend')") && studio.includes("target==='legend'"), "publication_legend_live_updates_story_five");
+ok(studio.includes("storyOneSource:'PRIMARY_SECONDARY'") && studio.includes("storyFiveSource:'PUBLICATION_LEGEND'"), "live_destination_contract_is_declared");
 ok(studio.includes("__LOKA_EDITORIAL_LEGACY_SUBTITLE"), "legacy_subtitle_bridge_present");
 ok(studio.includes("activeSharedFields:['legend','hashtags']") && studio.includes("engagementUi:'DISABLED'"), "shared_editor_contract_declared");
 
@@ -33,5 +36,5 @@ for (const body of [...persisted.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(
 }
 ok(true, "inline_scripts_syntax");
 
-if (passed !== 16) throw new Error(`instagram_studio_step5_count_mismatch:${passed}`);
-console.log(`INSTAGRAM_EDITORIAL_STUDIO_STEP5 ${passed}/16 PASS`);
+if (passed !== 19) throw new Error(`instagram_studio_step5_count_mismatch:${passed}`);
+console.log(`INSTAGRAM_EDITORIAL_STUDIO_STEP5 ${passed}/19 PASS`);

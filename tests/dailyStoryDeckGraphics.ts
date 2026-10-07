@@ -41,7 +41,7 @@ const html = renderInstagramDailyGraphicPreview(payload, CITIES.tarnos);
 const model = modelFrom(html);
 
 ok(["story", "hourlyStory", "daylightStory", "moonStory", "legendStory"].every((id) => html.includes(`<canvas id="${id}" width="1080" height="1920">`)), "five_story_canvases_are_exportable");
-ok(html.includes("STORY JOURNALIÈRE PRINCIPALE · ACTUELLE") && html.includes("STORY 5 · RÉSUMÉ DU JOUR"), "five_story_sequence_is_labelled");
+ok(html.includes("STORY JOURNALIÈRE PRINCIPALE · ACTUELLE") && html.includes("STORY 5 · LÉGENDE DE LA PUBLICATION"), "five_story_sequence_is_labelled");
 ok(model.storyDeck.hourly.points.length === 19 && model.storyDeck.hourly.points[0].hour === 4 && model.storyDeck.hourly.points[18].hour === 22, "hourly_story_contains_every_hour_from_four_to_twenty_two");
 ok(functionLine(html, "drawHourlyBody").includes("rows=4,columns=5") && functionLine(html, "drawHourlyBody").includes("row===3?4:5"), "nineteen_hours_use_the_validated_five_by_four_grid");
 ok(functionLine(html, "prepareStory").includes("drawHeader(logo)") && functionLine(html, "prepareStory").includes("drawDeckTitle(title)") && functionLine(html, "prepareStory").includes("drawDeckBody()"), "all_stories_reuse_one_shared_frame_runtime");
@@ -49,7 +49,7 @@ ok(functionLine(html, "renderHourlyStory").includes("drawStorySignature()") && f
 ok(functionLine(html, "drawDaylightBody").includes("DURÉE DU JOUR") && functionLine(html, "drawDaylightBody").includes("d.solarNoon"), "daylight_story_contains_duration_and_five_solar_markers");
 ok(model.storyDeck.moon.pictogramUrl.startsWith("data:image/svg+xml;charset=utf-8,"), "moon_uses_the_official_local_pictogram_pipeline");
 ok(functionLine(html, "drawMoonBody").includes("LEVER DE LUNE") && functionLine(html, "drawMoonBody").includes("PROCHAINE PHASE"), "moon_story_has_useful_public_information");
-ok(functionLine(html, "drawLegendPanel").includes("m.storyVisual||m.visual||m.storyDeck.summary") && functionLine(html, "drawLegendPanel").includes("primaryLine") && functionLine(html, "drawLegendPanel").includes("secondaryLine"), "summary_story_reuses_the_publication_editorial_summary");
+ok(functionLine(html, "drawLegendPanel").includes("m.legendText") && functionLine(html, "drawLegendPanel").includes("legendLayout") && functionLine(html, "drawLegendPanel").includes("drawLegendSerifLine"), "story_five_reuses_the_complete_publication_legend");
 ok(functionLine(html, "drawFeedHours").includes("x=50,y=336,w=980,h=500") && functionLine(html, "drawFeedSolar").includes("x=50,y=1100,w=980,h=205"), "publication_geometry_remains_unchanged");
 ok(LOKA_INSTAGRAM_STORY_SAFE_FRAME.deck.title.y === LOKA_INSTAGRAM_STORY_SAFE_FRAME.content.general.y && LOKA_INSTAGRAM_STORY_SAFE_FRAME.deck.body.y === LOKA_INSTAGRAM_STORY_SAFE_FRAME.content.hours.y, "deck_anchors_reuse_the_validated_daily_weekly_safe_frame");
 

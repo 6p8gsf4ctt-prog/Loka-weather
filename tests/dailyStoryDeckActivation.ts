@@ -38,15 +38,15 @@ ok(base.includes('href="#storyCard1"') && base.includes('href="#storyCard5"'), "
 ok(base.indexOf('id="storyCard1"') < base.indexOf('id="storyDeckControls"'), "historical_primary_story_is_presented_before_test_controls");
 ok(base.includes("STORY JOURNALIÈRE PRINCIPALE · ACTUELLE") && base.includes("Story historique LOKA maintenue en priorité"), "primary_story_is_explicitly_identified_as_current");
 ok(base.includes('id="shareStoryDeck" type="button" disabled'), "bulk_export_waits_for_complete_render");
-ok(base.includes("const STORY_DECK_EXPORTS=[[storyCanvas,'story-01-journee'],[hourlyStoryCanvas,'story-02-heure-par-heure'],[daylightStoryCanvas,'story-03-heures-du-jour'],[moonStoryCanvas,'story-04-lune'],[legendStoryCanvas,'story-05-resume']]"), "bulk_export_names_preserve_instagram_order");
+ok(base.includes("const STORY_DECK_EXPORTS=[[storyCanvas,'story-01-journee'],[hourlyStoryCanvas,'story-02-heure-par-heure'],[daylightStoryCanvas,'story-03-heures-du-jour'],[moonStoryCanvas,'story-04-lune'],[legendStoryCanvas,'story-05-legende-publication']]"), "bulk_export_names_preserve_instagram_order");
 ok(functionLine(base, "shareStoryDeck").includes("files.length!==5") && functionLine(base, "shareStoryDeck").includes("navigator.share"), "bulk_export_is_atomic_before_native_share");
 ok(functionLine(base, "shareStoryDeck").includes("files.forEach(file=>fallbackDownload(file))"), "bulk_export_has_desktop_download_fallback");
 ok(base.includes("__LOKA_STORY_DECK_AUDIT") && base.includes("publicationChanged:false"), "runtime_audit_declares_publication_is_untouched");
-ok(functionLine(base, "drawLegendPanel").includes("m.storyVisual||m.visual||m.storyDeck.summary"), "story_five_uses_daily_editorial_summary");
-ok(!functionLine(base, "drawLegendPanel").includes("m.legendText"), "instagram_caption_is_not_drawn_in_story_five");
+ok(functionLine(base, "drawLegendPanel").includes("m.legendText") && functionLine(base, "drawLegendPanel").includes("legendLayout"), "story_five_uses_the_complete_publication_legend");
+ok(!functionLine(base, "drawLegendPanel").includes("m.storyVisual||m.visual||m.storyDeck.summary"), "weather_comment_does_not_drive_story_five");
 ok(functionLine(base, "renderStory").includes("drawStoryGeneral") && functionLine(base, "renderStory").includes("drawStoryHours") && functionLine(base, "renderStory").includes("drawStoryComments") && functionLine(base, "renderStory").includes("drawStorySolar"), "story_one_restores_the_complete_historical_daily_pipeline");
 ok(!functionLine(base, "renderStory").includes("drawOverviewBody"), "experimental_overview_does_not_replace_the_primary_story");
-ok(base.includes("primaryStoryPreserved:true") && base.includes("order:['PRIMARY','HOURLY','DAYLIGHT','MOON','SUMMARY']"), "runtime_audit_records_primary_story_preservation");
+ok(base.includes("primaryStoryPreserved:true") && base.includes("order:['PRIMARY','HOURLY','DAYLIGHT','MOON','PUBLICATION_LEGEND']"), "runtime_audit_records_primary_story_preservation");
 ok(functionLine(base, "renderFeed").includes("drawFeedGeneral") && functionLine(base, "renderFeed").includes("drawFeedHours") && functionLine(base, "renderFeed").includes("drawFeedComments") && functionLine(base, "renderFeed").includes("drawFeedSolar"), "publication_render_pipeline_is_unchanged");
 
 const enhanced = enhanceInstagramWithEditorialExport(
@@ -56,10 +56,10 @@ const enhanced = enhanceInstagramWithEditorialExport(
   ),
   "tarnos"
 );
-ok(enhanced.includes("Editorial Studio · V1.5") && enhanced.includes("Story 5 « Résumé du jour »"), "editor_explains_the_new_summary_link");
-ok(enhanced.includes("storySummarySource:'PRIMARY_SECONDARY'"), "editor_contract_exposes_summary_source");
-ok(enhanced.includes("Story 5 et Publication actualisées."), "editor_confirms_only_the_linked_visuals");
-ok(enhanced.includes("commentaire partagé Story 5 / Publication") && enhanced.includes("légende Instagram"), "persistence_and_export_copy_match_the_final_architecture");
+ok(enhanced.includes("Editorial Studio · V1.6") && enhanced.includes("LÉGENDE DE PUBLICATION"), "editor_explains_the_two_live_text_links");
+ok(enhanced.includes("storyOneSource:'PRIMARY_SECONDARY'") && enhanced.includes("storyFiveSource:'PUBLICATION_LEGEND'"), "editor_contract_exposes_both_sources");
+ok(enhanced.includes("Story 1, Story 5 et Publication actualisées."), "editor_confirms_all_linked_visuals");
+ok(enhanced.includes("commentaire partagé Story 1 / Publication") && enhanced.includes("légende partagée Story 5 / texte Instagram"), "persistence_and_export_copy_match_the_final_architecture");
 
 for (const body of [...enhanced.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((match) => match[1])) {
   new Function(body);
